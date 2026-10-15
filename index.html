@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>KMZ Missionen</title>
+<style>
+  :root{--acc:#0b63c5;--ok:#13a538;--bad:#e01b1b;--txt:#15202b;--muted:#5d6975;--line:#d5dbe2;--bar:rgba(255,255,255,.96)}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:#cfd6dc;color:var(--txt);font:16px/1.3 Roboto,system-ui,sans-serif;user-select:none}
+  #map{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block}
+  button{font:inherit;border:0;border-radius:10px;font-weight:700;cursor:pointer}
+  button:disabled{opacity:.4}
+  svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+  /* Bedienelemente auf der Karte */
+  #ctrl{position:fixed;right:12px;top:12px;bottom:84px;display:flex;flex-direction:column;justify-content:center;gap:10px}
+  #ctrl button{width:56px;height:56px;background:#fff;color:#111;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  #ctrl button svg{width:28px;height:28px}
+
+  /* Leiste unten */
+  #bar{position:fixed;left:0;right:0;bottom:0;height:72px;background:var(--bar);display:flex;align-items:center;gap:10px;padding:0 12px;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
+  #bar button{height:52px;padding:0 16px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .b-sec{background:#e7eef7;color:var(--acc)}
+  .b-ok{background:var(--ok);color:#fff}
+  #count{min-width:120px;font-weight:700;font-size:17px}
+  #count small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+  #q{flex:1;min-width:90px;height:52px;border:1px solid var(--line);border-radius:10px;padding:0 14px;font-size:17px;background:#fff}
+  #bDl{font-size:17px}
+
+  /* Meldungen */
+  #toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);max-width:70%;background:#15202b;color:#fff;padding:12px 18px;border-radius:10px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none;z-index:50}
+  #toast.err{background:#b3131b}
+  #busy{position:fixed;left:12px;top:12px;background:rgba(255,255,255,.95);padding:10px 14px;border-radius:10px;font-weight:600;display:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+
+  /* Vollbild-Seiten (Einstellungen, Ordnerwahl, Dialoge) */
+  .page{position:fixed;inset:0;background:#f4f6f8;display:none;flex-direction:column;z-index:20}
+  .page.open{display:flex}
+  .page header{height:64px;display:flex;align-items:center;gap:12px;padding:0 12px;background:#fff;border-bottom:1px solid var(--line);flex:none}
+  .page header h2{margin:0;font-size:20px;flex:1;color:var(--acc)}
+  .page header button{height:48px;padding:0 16px}
+  .body{flex:1;overflow:auto;padding:12px 16px}
+  .set{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+  .set .l{flex:1;min-width:0}
+  .set .t{font-weight:700}
+  .set .v{color:var(--muted);font-size:14px;word-break:break-all;margin-top:2px}
+  .set button{height:46px;padding:0 14px}
+  .sw{position:relative;width:62px;height:34px;flex:none}
+  .sw input{opacity:0;width:0;height:0}
+  .sw span{position:absolute;inset:0;background:#c3ccd5;border-radius:34px;transition:.15s}
+  .sw span:before{content:"";position:absolute;width:28px;height:28px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}
+  .sw input:checked+span{background:var(--ok)}
+  .sw input:checked+span:before{transform:translateX(28px)}
+  .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{border-radius:0;background:#fff;color:var(--acc);height:44px;padding:0 14px}
+  .seg button.on{background:var(--acc);color:#fff}
+
+  .roots{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .roots button{height:44px;padding:0 14px}
+  .dir{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:0 14px;height:54px;margin-bottom:6px;font-size:17px}
+  .dir svg{color:#d9a400}
+  #pPath{font-size:14px;color:var(--muted);word-break:break-all;margin-bottom:8px}
+
+  .dlg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30}
+  .dlg.open{display:flex}
+  .dlg .box{background:#fff;border-radius:14px;width:min(560px,92%);max-height:88%;display:flex;flex-direction:column;padding:16px}
+  .dlg h3{margin:0 0 8px;font-size:19px}
+  .dlg .lst{overflow:auto;flex:1;margin:6px 0 12px;color:var(--muted);font-size:15px}
+  .dlg .act{display:flex;gap:10px}
+  .dlg .act button{flex:1;height:52px}
+</style>
+</head>
+<body>
+
+<canvas id="map"></canvas>
+<div id="busy"></div>
+<div id="toast"></div>
+
+<div id="ctrl">
+  <button id="zIn" title="Vergrößern"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button id="zOut" title="Verkleinern"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+  <button id="bFit" title="Alle Felder anzeigen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  <button id="bLoc" title="Mein Standort"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+</div>
+
+<div id="bar">
+  <div id="count">0 markiert<small>0 Felder</small></div>
+  <button id="bNone" class="b-sec" disabled><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Alle abwählen</button>
+  <input id="q" type="search" placeholder="Feld suchen…" autocomplete="off">
+  <button id="bDl" class="b-ok" disabled><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download</button>
+  <button id="bSet" class="b-sec" title="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+</div>
+
+<!-- Einstellungen -->
+<div class="page" id="pgSet">
+  <header><h2>Einstellungen</h2><button class="b-sec" id="setBack">Zurück zur Karte</button></header>
+  <div class="body">
+    <div class="set"><div class="l"><div class="t">Quellordner (KMZ aus UAV Editor)</div><div class="v" id="vSrc"></div></div><button class="b-sec" data-pick="src">Ordner wählen</button></div>
+    <div class="set"><div class="l"><div class="t">Zielordner (Download)</div><div class="v" id="vDst"></div></div><button class="b-sec" data-pick="dst">Ordner wählen</button></div>
+    <div class="set"><div class="l"><div class="t">Verschieben statt kopieren</div><div class="v">Aus = Original bleibt im Quellordner</div></div><label class="sw"><input type="checkbox" id="sMove"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Zielordner vor Download leeren</div><div class="v">Löscht vorher alle .kmz im Zielordner</div></div><label class="sw"><input type="checkbox" id="sClear"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Kartentyp</div></div><div class="seg"><button data-layer="sat">Satellit</button><button data-layer="osm">Karte</button></div></div>
+    <div class="set"><div class="l"><div class="t">Dateizugriff</div><div class="v" id="vAcc"></div></div><button class="b-sec" id="bAcc">Berechtigung</button></div>
+    <div class="set"><div class="l"><div class="t">KMZ Missionen</div><div class="v">Version 1.0</div></div></div>
+  </div>
+</div>
+
+<!-- Ordnerwahl -->
+<div class="page" id="pgPick">
+  <header><h2 id="pTitle">Ordner wählen</h2><button class="b-sec" id="pCancel">Abbrechen</button><button class="b-ok" id="pOk">Diesen Ordner nehmen</button></header>
+  <div class="body">
+    <div class="roots" id="pRoots"></div>
+    <div id="pPath"></div>
+    <div id="pList"></div>
+  </div>
+</div>
+
+<!-- Bestätigung -->
+<div class="dlg" id="dlg">
+  <div class="box">
+    <h3 id="dTitle"></h3>
+    <div id="dText" style="color:var(--muted);font-size:15px;word-break:break-all"></div>
+    <div class="lst" id="dList"></div>
+    <div class="act"><button class="b-sec" id="dNo">Abbrechen</button><button class="b-ok" id="dYes">OK</button></div>
+  </div>
+</div>
+
+<!-- Berechtigung fehlt -->
+<div class="dlg" id="perm">
+  <div class="box">
+    <h3>Dateizugriff erlauben</h3>
+    <div style="color:var(--muted);margin-bottom:14px">Damit die App die KMZ-Dateien lesen und in den DJI-Ordner verschieben kann, braucht sie „Zugriff auf alle Dateien“. Im nächsten Fenster den Schalter für „KMZ Missionen“ einschalten und zurückkehren.</div>
+    <div class="act"><button class="b-ok" id="permGo">Berechtigung erteilen</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+const $ = id => document.getElementById(id);
+
+// ---------- Brücke zur App (im Browser: Testmodus) ----------
+const A = window.Android || {
+  hasAccess: () => true, requestAccess() {}, getPref: (k, d) => d, setPref() {},
+  internalRoot: () => '/storage/emulated/0', roots: () => '[{"name":"Interner Speicher","path":"/storage/emulated/0"}]',
+  listDirs: p => JSON.stringify({ ok: true, path: p, parent: null, dirs: [], kmz: 0 }),
+  listKmz: () => JSON.stringify({ ok: true, files: (window.__mock || []).map(m => ({ name: m.name, path: '/mock/' + m.name })) }),
+  readKml: p => ((window.__mock || []).find(m => p.endsWith('/' + m.name)) || {}).kml || '',
+  transfer: (j) => JSON.stringify({ ok: true, done: JSON.parse(j).length, errors: [] }), locate() {}
+};
+
+// ---------- Einstellungen ----------
+const ROOT = A.internalRoot();
+const DEF = { src: ROOT + '/Download', dst: ROOT + '/DJI/Mission/Download', move: '1', clear: '0', labels: '1', layer: 'sat' };
+const P = {};
+for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
+const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
+
+// ---------- Meldungen ----------
+let tt;
+function toast(t, err, ms) {
+  const e = $('toast'); e.textContent = t; e.className = err ? 'err' : ''; e.style.display = 'block';
+  clearTimeout(tt); tt = setTimeout(() => e.style.display = 'none', ms || (err ? 6000 : 3000));
+}
+function busy(t) { const b = $('busy'); b.textContent = t || ''; b.style.display = t ? 'block' : 'none'; }
+window.addEventListener('error', e => toast('Fehler: ' + e.message, true));
+
+// ================= Karte =================
+const cv = $('map'), ctx = cv.getContext('2d');
+const LAYERS = {
+  sat: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+  osm: (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+};
+const V = { lat: 50.39, lon: 8.07, z: 12 };
+let W = 0, H = 0, DPR = 1;
+const tiles = new Map();
+const S = { files: [], me: null };
+
+const lon2x = lon => (lon + 180) / 360;
+const lat2y = lat => { const s = Math.sin(lat * Math.PI / 180); return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI); };
+const x2lon = x => x * 360 - 180;
+const y2lat = y => 90 - 360 * Math.atan(Math.exp((y - 0.5) * 2 * Math.PI)) / Math.PI;
+const ws = () => 256 * Math.pow(2, V.z);
+const BAR = 72;
+const mapH = () => H - BAR;  // sichtbarer Kartenbereich über der Leiste
+function toScreen(lat, lon) {
+  const s = ws();
+  return [(lon2x(lon) - lon2x(V.lon)) * s + W / 2, (lat2y(lat) - lat2y(V.lat)) * s + mapH() / 2];
+}
+function fromScreen(px, py) {
+  const s = ws();
+  return [y2lat(lat2y(V.lat) + (py - mapH() / 2) / s), x2lon(lon2x(V.lon) + (px - W / 2) / s)];
+}
+function resize() {
+  DPR = window.devicePixelRatio || 1; W = innerWidth; H = innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); draw();
+}
+let pend = false;
+function draw() { if (!pend) { pend = true; requestAnimationFrame(paint); } }
+
+function tile(z, x, y) {
+  const k = P.layer + z + '/' + x + '/' + y;
+  let t = tiles.get(k);
+  if (!t) {
+    t = new Image(); t.onload = draw; t.src = LAYERS[P.layer](z, x, y); tiles.set(k, t);
+    if (tiles.size > 500) tiles.delete(tiles.keys().next().value);
+  }
+  return t;
+}
+
+function paint() {
+  pend = false;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = '#cfd6dc'; ctx.fillRect(0, 0, W, H);
+  const tz = Math.max(1, Math.min(19, Math.round(V.z)));
+  const n = Math.pow(2, tz), ts = 256 * Math.pow(2, V.z - tz);
+  const cx = lon2x(V.lon) * n * ts, cy = lat2y(V.lat) * n * ts, mh = mapH();
+  const x0 = Math.floor((cx - W / 2) / ts), x1 = Math.floor((cx + W / 2) / ts);
+  const y0 = Math.max(0, Math.floor((cy - mh / 2) / ts)), y1 = Math.min(n - 1, Math.floor((cy + (H - mh / 2)) / ts));
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    const t = tile(tz, ((tx % n) + n) % n, ty);
+    if (t.complete && t.naturalWidth) ctx.drawImage(t, Math.round(tx * ts - cx + W / 2), Math.round(ty * ts - cy + mh / 2), Math.ceil(ts) + 1, Math.ceil(ts) + 1);
+  }
+  const vis = S.files.filter(visible);
+  vis.filter(f => !f.selected).forEach(drawField);
+  vis.filter(f => f.selected).forEach(drawField);
+  if (P.labels === '1') vis.forEach(drawLabel);
+  if (S.me) {
+    const [x, y] = toScreen(S.me[0], S.me[1]);
+    ctx.beginPath(); ctx.arc(x, y, 10, 0, 7); ctx.fillStyle = '#0b63c5'; ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.stroke();
+  }
+}
+
+function drawField(f) {
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = f.selected ? '#13a538' : '#e01b1b';
+  ctx.lineWidth = f.selected ? 4 : 3;
+  ctx.fillStyle = f.selected ? 'rgba(19,165,56,.45)' : 'rgba(224,27,27,.32)';
+  for (const s of f.shapes) {
+    ctx.beginPath();
+    s.pts.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    if (s.type === 'poly') { ctx.closePath(); ctx.fill(); }
+    ctx.stroke();
+  }
+}
+
+function drawLabel(f) {
+  if (V.z < 13 && !f.selected) return;
+  const [x, y] = toScreen(f.center[0], f.center[1]);
+  if (x < -150 || y < -30 || x > W + 150 || y > H + 30) return;
+  ctx.font = '700 15px Roboto,system-ui,sans-serif';
+  const w = ctx.measureText(f.title).width + 14;
+  ctx.fillStyle = f.selected ? '#13a538' : 'rgba(255,255,255,.9)';
+  ctx.fillRect(x - w / 2, y - 12, w, 24);
+  ctx.strokeStyle = f.selected ? '#fff' : '#e01b1b'; ctx.lineWidth = 2; ctx.strokeRect(x - w / 2, y - 12, w, 24);
+  ctx.fillStyle = f.selected ? '#fff' : '#15202b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(f.title, x, y + 1);
+}
+
+function zoomAt(nz, px, py) {
+  nz = Math.max(3, Math.min(20, nz));
+  const b = fromScreen(px, py);
+  V.z = nz;
+  const s = ws();
+  V.lon = x2lon(lon2x(b[1]) - (px - W / 2) / s);
+  V.lat = y2lat(lat2y(b[0]) - (py - mapH() / 2) / s);
+  draw();
+}
+function panBy(dx, dy) {
+  const s = ws();
+  V.lon = x2lon(lon2x(V.lon) - dx / s);
+  V.lat = y2lat(Math.min(0.999, Math.max(0.001, lat2y(V.lat) - dy / s)));
+  draw();
+}
+function fitBounds(b) {
+  if (!b) return;
+  const bx = lon2x(b.e) - lon2x(b.w), by = lat2y(b.s) - lat2y(b.n);
+  const k = Math.min((W - 100) / Math.max(bx, 1e-9), mapH() / Math.max(by, 1e-9)) * 0.85 / 256;
+  V.z = Math.max(3, Math.min(18, Math.log2(k)));
+  V.lon = x2lon((lon2x(b.w) + lon2x(b.e)) / 2);
+  V.lat = y2lat((lat2y(b.n) + lat2y(b.s)) / 2);
+  draw();
+}
+
+// Touch
+const ptr = new Map();
+let g = null;
+cv.addEventListener('pointerdown', e => {
+  cv.setPointerCapture(e.pointerId);
+  ptr.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptr.size === 1) g = { tap: true, sx: e.clientX, sy: e.clientY, d: 0 };
+  else if (ptr.size === 2) { const [a, b] = [...ptr.values()]; g = { tap: false, d: Math.hypot(a.x - b.x, a.y - b.y), z: V.z }; }
+});
+cv.addEventListener('pointermove', e => {
+  const p = ptr.get(e.pointerId); if (!p) return;
+  if (ptr.size === 1) {
+    panBy(e.clientX - p.x, e.clientY - p.y);
+    if (g && Math.hypot(e.clientX - g.sx, e.clientY - g.sy) > 10) g.tap = false;
+  }
+  p.x = e.clientX; p.y = e.clientY;
+  if (ptr.size === 2 && g && g.d) {
+    const [a, b] = [...ptr.values()];
+    zoomAt(g.z + Math.log2(Math.hypot(a.x - b.x, a.y - b.y) / g.d), (a.x + b.x) / 2, (a.y + b.y) / 2);
+  }
+});
+cv.addEventListener('pointerup', e => {
+  const p = ptr.get(e.pointerId); ptr.delete(e.pointerId);
+  if (ptr.size === 0 && g && g.tap && p) hit(p.x, p.y);
+  if (ptr.size === 0) g = null; else if (g) { g.d = 0; g.tap = false; }
+});
+cv.addEventListener('pointercancel', e => { ptr.delete(e.pointerId); g = null; });
+cv.addEventListener('wheel', e => { e.preventDefault(); zoomAt(V.z - Math.sign(e.deltaY) * 0.5, e.clientX, e.clientY); }, { passive: false });
+
+function inPoly(x, y, pts) {
+  let c = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+function segD(px, py, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy;
+  let t = l ? ((px - a[0]) * dx + (py - a[1]) * dy) / l : 0; t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - a[0] - t * dx, py - a[1] - t * dy);
+}
+function hit(x, y) {
+  const vis = S.files.filter(visible);
+  // Labels zuerst (liegen oben)
+  if (P.labels === '1') for (const f of vis) {
+    if (V.z < 13 && !f.selected) continue;
+    const [lx, ly] = toScreen(f.center[0], f.center[1]);
+    ctx.font = '700 15px Roboto,system-ui,sans-serif';
+    if (Math.abs(x - lx) < ctx.measureText(f.title).width / 2 + 7 && Math.abs(y - ly) < 14) return toggle(f);
+  }
+  for (let i = vis.length - 1; i >= 0; i--) {
+    const f = vis[i];
+    for (const s of f.shapes) {
+      const sp = s.pts.map(p => toScreen(p[0], p[1]));
+      if (s.type === 'poly' && inPoly(x, y, sp)) return toggle(f);
+      if (s.type !== 'poly') for (let k = 0; k < sp.length - 1; k++) if (segD(x, y, sp[k], sp[k + 1]) < 16) return toggle(f);
+    }
+  }
+}
+
+// ================= KMZ lesen =================
+function parseKml(text) {
+  const shapes = [];
+  for (const part of text.split('<!--SPLIT-->')) {
+    if (!part.trim()) continue;
+    const doc = new DOMParser().parseFromString(part, 'application/xml');
+    const els = doc.getElementsByTagName('*');
+    for (let i = 0; i < els.length; i++) {
+      const el = els[i];
+      if (el.localName !== 'coordinates') continue;
+      const pts = el.textContent.trim().split(/\s+/).map(s => s.split(',').map(Number))
+        .filter(p => p.length >= 2 && isFinite(p[0]) && isFinite(p[1])).map(p => [p[1], p[0]]);
+      if (!pts.length) continue;
+      let type = pts.length > 1 ? 'line' : 'point';
+      for (let a = el.parentElement; a; a = a.parentElement) {
+        const n = a.localName;
+        if (n === 'LinearRing' || n === 'Polygon') { type = 'poly'; break; }
+        if (n === 'LineString') { type = 'line'; break; }
+        if (n === 'Point') { type = 'point'; break; }
+        if (n === 'Placemark' || n === 'Document') break;
+      }
+      shapes.push({ type, pts });
+    }
+  }
+  if (!shapes.some(s => s.type !== 'point')) {
+    const pts = shapes.flatMap(s => s.pts);
+    return pts.length > 1 ? [{ type: 'line', pts }] : [];
+  }
+  return shapes.filter(s => s.type !== 'point');
+}
+function bounds(list) {
+  let b = null;
+  for (const f of list) for (const s of f.shapes) for (const [la, lo] of s.pts) {
+    if (!b) b = { n: la, s: la, e: lo, w: lo };
+    else { b.n = Math.max(b.n, la); b.s = Math.min(b.s, la); b.e = Math.max(b.e, lo); b.w = Math.min(b.w, lo); }
+  }
+  return b;
+}
+
+let loading = false;
+async function load(keepView) {
+  if (loading) return;
+  if (!A.hasAccess()) { $('perm').classList.add('open'); return; }
+  $('perm').classList.remove('open');
+  loading = true;
+  const keep = new Set(S.files.filter(f => f.selected).map(f => f.path));
+  const r = JSON.parse(A.listKmz(P.src));
+  if (!r.ok) { loading = false; S.files = []; update(); return toast(r.error + ' – Quellordner in den Einstellungen prüfen.', true); }
+  const out = []; let bad = 0;
+  for (let i = 0; i < r.files.length; i++) {
+    const f = r.files[i];
+    if (i % 5 === 0) { busy(`Lade Felder ${i + 1}/${r.files.length}…`); await new Promise(res => setTimeout(res, 0)); }
+    try {
+      const shapes = parseKml(A.readKml(f.path));
+      if (!shapes.length) { bad++; continue; }
+      const e = { name: f.name, path: f.path, title: f.name.replace(/\.km[lz]$/i, ''), shapes, selected: keep.has(f.path) };
+      const b = bounds([e]); e.bounds = b; e.center = [(b.n + b.s) / 2, (b.e + b.w) / 2];
+      out.push(e);
+    } catch (err) { bad++; }
+  }
+  busy('');
+  S.files = out;
+  loading = false;
+  update();
+  if (!keepView) fitAll();
+  if (!out.length) toast('Keine KMZ-Felder im Quellordner gefunden:\n' + P.src, true);
+  else if (bad) toast(`${bad} Datei(en) ohne lesbare Felder übersprungen.`, true);
+}
+
+// ================= Leiste =================
+function visible(f) {
+  const q = $('q').value.trim().toLowerCase();
+  return !q || f.title.toLowerCase().includes(q) || f.selected;
+}
+function update() {
+  const n = S.files.filter(f => f.selected).length;
+  $('count').innerHTML = `${n} markiert<small>${S.files.length} Felder</small>`;
+  $('bDl').disabled = $('bNone').disabled = !n;
+  draw();
+}
+function toggle(f) { f.selected = !f.selected; update(); }
+function fitAll() {
+  const sel = S.files.filter(f => f.selected && visible(f));
+  fitBounds(bounds(S.files.filter(visible)) || bounds(sel));
+}
+
+$('zIn').onclick = () => zoomAt(V.z + 1, W / 2, mapH() / 2);
+$('zOut').onclick = () => zoomAt(V.z - 1, W / 2, mapH() / 2);
+$('bFit').onclick = fitAll;
+$('bLoc').onclick = () => { toast('Suche Standort…'); A.locate(); };
+window.onLocation = (lat, lon) => { S.me = [lat, lon]; V.lat = lat; V.lon = lon; V.z = Math.max(V.z, 15); draw(); $('toast').style.display = 'none'; };
+window.onLocationError = m => toast(m, true);
+$('bNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); toast('Alle Felder abgewählt.'); };
+$('q').oninput = () => { update(); };
+$('q').onkeydown = e => { if (e.key === 'Enter') { $('q').blur(); fitAll(); } };
+
+// Download
+$('bDl').onclick = () => {
+  const sel = S.files.filter(f => f.selected);
+  const move = P.move === '1';
+  confirmDlg(`${sel.length} Feld${sel.length > 1 ? 'er' : ''} ${move ? 'verschieben' : 'kopieren'}?`,
+    'Nach: ' + P.dst + (P.clear === '1' ? '\nVorhandene .kmz im Zielordner werden vorher gelöscht.' : ''),
+    sel.map(f => f.name), move ? 'Verschieben' : 'Kopieren', () => {
+      busy('Übertrage…');
+      setTimeout(async () => {
+        const r = JSON.parse(A.transfer(JSON.stringify(sel.map(f => f.path)), P.dst, move, P.clear === '1'));
+        busy('');
+        if (r.error) return toast('Fehler: ' + r.error, true);
+        S.files.forEach(f => f.selected = false);
+        if (r.errors && r.errors.length) toast(`${r.done} übertragen, ${r.errors.length} Fehler:\n` + r.errors.join('\n'), true, 9000);
+        else toast(`${r.done} Feld${r.done > 1 ? 'er' : ''} ${move ? 'verschoben' : 'kopiert'}.`);
+        await load(true);
+      }, 30);
+    });
+};
+
+// ================= Dialoge =================
+let dlgCb = null;
+function confirmDlg(title, text, list, okLabel, cb) {
+  $('dTitle').textContent = title;
+  $('dText').textContent = text; $('dText').style.whiteSpace = 'pre-line';
+  $('dList').innerHTML = ''; list.forEach(n => { const d = document.createElement('div'); d.textContent = '• ' + n; $('dList').appendChild(d); });
+  $('dYes').textContent = okLabel; dlgCb = cb; $('dlg').classList.add('open');
+}
+$('dNo').onclick = () => $('dlg').classList.remove('open');
+$('dYes').onclick = () => { $('dlg').classList.remove('open'); dlgCb && dlgCb(); };
+$('permGo').onclick = () => A.requestAccess();
+
+// ================= Einstellungen =================
+function fillSettings() {
+  $('vSrc').textContent = P.src; $('vDst').textContent = P.dst;
+  $('sMove').checked = P.move === '1'; $('sClear').checked = P.clear === '1'; $('sLabels').checked = P.labels === '1';
+  document.querySelectorAll('[data-layer]').forEach(b => b.classList.toggle('on', b.dataset.layer === P.layer));
+  $('vAcc').textContent = A.hasAccess() ? 'Erteilt' : 'Fehlt – bitte erteilen';
+}
+let srcAtOpen = '';
+$('bSet').onclick = () => { srcAtOpen = P.src; fillSettings(); $('pgSet').classList.add('open'); };
+function closeSettings() {
+  $('pgSet').classList.remove('open'); draw();
+  if (P.src !== srcAtOpen) load(false);
+}
+$('setBack').onclick = closeSettings;
+$('sMove').onchange = e => setP('move', e.target.checked ? 1 : 0);
+$('sClear').onchange = e => setP('clear', e.target.checked ? 1 : 0);
+$('sLabels').onchange = e => { setP('labels', e.target.checked ? 1 : 0); draw(); };
+document.querySelectorAll('[data-layer]').forEach(b => b.onclick = () => { setP('layer', b.dataset.layer); fillSettings(); draw(); });
+$('bAcc').onclick = () => A.requestAccess();
+
+// Ordnerwahl
+let pick = null;
+document.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
+  const key = b.dataset.pick;
+  pick = { key, path: P[key] };
+  $('pTitle').textContent = key === 'src' ? 'Quellordner wählen' : 'Zielordner wählen';
+  const roots = JSON.parse(A.roots());
+  $('pRoots').innerHTML = '';
+  roots.forEach(r => { const x = document.createElement('button'); x.className = 'b-sec'; x.textContent = r.name; x.onclick = () => openDir(r.path); $('pRoots').appendChild(x); });
+  $('pgPick').classList.add('open');
+  openDir(P[key]);
+});
+function openDir(path) {
+  let r = JSON.parse(A.listDirs(path));
+  // Ordner existiert (noch) nicht: zum nächsten vorhandenen Elternordner springen
+  let tries = 0;
+  while (!r.ok && tries++ < 8 && path.lastIndexOf('/') > 0) { path = path.slice(0, path.lastIndexOf('/')); r = JSON.parse(A.listDirs(path)); }
+  pick.path = r.path || path;
+  $('pPath').textContent = pick.path + (r.kmz ? `  ·  ${r.kmz} KMZ-Datei(en)` : '');
+  const L = $('pList'); L.innerHTML = '';
+  const folder = '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+  if (r.parent) { const d = document.createElement('div'); d.className = 'dir'; d.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg><b>.. eine Ebene höher</b>'; d.onclick = () => openDir(r.parent); L.appendChild(d); }
+  (r.dirs || []).forEach(n => {
+    const d = document.createElement('div'); d.className = 'dir'; d.innerHTML = folder + '<span></span>';
+    d.querySelector('span').textContent = n; d.onclick = () => openDir(pick.path + '/' + n); L.appendChild(d);
+  });
+  if (!(r.dirs || []).length) { const d = document.createElement('div'); d.style.cssText = 'color:var(--muted);padding:8px'; d.textContent = 'Keine Unterordner.'; L.appendChild(d); }
+}
+$('pCancel').onclick = () => $('pgPick').classList.remove('open');
+$('pOk').onclick = () => { setP(pick.key, pick.path); $('pgPick').classList.remove('open'); fillSettings(); };
+
+// Zurück-Taste der RC
+window.onBack = () => {
+  if ($('dlg').classList.contains('open')) { $('dlg').classList.remove('open'); return true; }
+  if ($('pgPick').classList.contains('open')) { $('pgPick').classList.remove('open'); return true; }
+  if ($('pgSet').classList.contains('open')) { closeSettings(); return true; }
+  return false;
+};
+window.onAppResume = () => {
+  if ($('pgSet').classList.contains('open')) fillSettings();
+  if ($('perm').classList.contains('open') && A.hasAccess()) load(false);
+};
+
+// ================= Start =================
+addEventListener('resize', resize);
+resize();
+update();
+load(false);
+})();
+</script>
+</body>
+</html>

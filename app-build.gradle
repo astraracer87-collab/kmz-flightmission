@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'de.olh.kmzmission'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'de.olh.kmzmission'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    // Fester Schlüssel, damit Updates ohne Deinstallation installiert werden können
+    signingConfigs {
+        fixed {
+            storeFile file('kmz.keystore')
+            storePassword 'kmzmission'
+            keyAlias 'kmz'
+            keyPassword 'kmzmission'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.fixed
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.fixed
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}

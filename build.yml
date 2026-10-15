@@ -1,0 +1,58 @@
+name: APK bauen
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flach hochgeladene Dateien einsortieren
+        run: |
+          set -e
+          mkdir -p app/src/main/java/de/olh/kmzmission app/src/main/assets app/src/main/res/mipmap-xxxhdpi
+          [ -f app-build.gradle ]     && cp app-build.gradle app/build.gradle
+          [ -f kmz.keystore ]         && cp kmz.keystore app/kmz.keystore
+          [ -f AndroidManifest.xml ]  && cp AndroidManifest.xml app/src/main/AndroidManifest.xml
+          [ -f MainActivity.java ]    && cp MainActivity.java app/src/main/java/de/olh/kmzmission/MainActivity.java
+          [ -f index.html ]           && cp index.html app/src/main/assets/index.html
+          [ -f ic_launcher.png ]      && cp ic_launcher.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          find app -type f | sort
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: APK bauen
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: APK umbenennen
+        run: cp app/build/outputs/apk/debug/app-debug.apk KMZ-Missionen.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KMZ-Missionen
+          path: KMZ-Missionen.apk
+
+      - name: Als Release "latest" veröffentlichen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest KMZ-Missionen.apk --target "${{ github.sha }}" \
+            --title "KMZ Missionen – Build ${{ github.run_number }}" \
+            --notes "Automatischer Build. APK herunterladen und auf der DJI RC installieren."
