@@ -19,17 +19,17 @@
   #ctrl button svg{width:28px;height:28px}
 
   /* Leiste unten */
-  #bar{position:fixed;left:0;right:0;bottom:0;height:72px;background:var(--bar);display:flex;align-items:center;gap:10px;padding:0 12px;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
-  #bar button{height:52px;padding:0 16px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+  #bar{position:fixed;left:0;right:0;bottom:0;height:72px;background:var(--bar);display:flex;align-items:center;gap:8px;padding:0 12px;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
+  #bar button{height:52px;padding:0 12px;flex:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
   .b-sec{background:#e7eef7;color:var(--acc)}
   .b-ok{background:var(--ok);color:#fff}
-  #count{min-width:120px;font-weight:700;font-size:17px}
+  #count{min-width:96px;flex:none;font-weight:700;font-size:17px}
   #count small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
-  #q{flex:1;min-width:90px;height:52px;border:1px solid var(--line);border-radius:10px;padding:0 14px;font-size:17px;background:#fff}
+  #q{flex:1;min-width:60px;width:60px;height:52px;border:1px solid var(--line);border-radius:10px;padding:0 14px;font-size:17px;background:#fff}
   #bDl{font-size:17px}
 
   /* Meldungen */
-  #toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);max-width:70%;background:#15202b;color:#fff;padding:12px 18px;border-radius:10px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none;z-index:50}
+  #toast{white-space:pre-line;position:fixed;left:50%;top:14px;transform:translateX(-50%);max-width:70%;background:#15202b;color:#fff;padding:12px 18px;border-radius:10px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none;z-index:50}
   #toast.err{background:#b3131b}
   #busy{position:fixed;left:12px;top:12px;background:rgba(255,255,255,.95);padding:10px 14px;border-radius:10px;font-weight:600;display:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 
@@ -51,6 +51,9 @@
   .sw span:before{content:"";position:absolute;width:28px;height:28px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}
   .sw input:checked+span{background:var(--ok)}
   .sw input:checked+span:before{transform:translateX(28px)}
+  .inp{flex:1;min-width:180px;height:46px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:16px;background:#fff}
+  .lst .new{color:#0b63c5}
+  .lst .chg{color:#b36b00}
   .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
   .seg button{border-radius:0;background:#fff;color:var(--acc);height:44px;padding:0 14px}
   .seg button.on{background:var(--acc);color:#fff}
@@ -85,8 +88,9 @@
 
 <div id="bar">
   <div id="count">0 markiert<small>0 Felder</small></div>
-  <button id="bNone" class="b-sec" disabled><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Alle abwählen</button>
+  <button id="bNone" class="b-sec" disabled><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Abwählen</button>
   <input id="q" type="search" placeholder="Feld suchen…" autocomplete="off">
+  <button id="bSync" class="b-sec" title="Mit UAV Editor abgleichen"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-14.3-4.9M4 12a8 8 0 0 0 14.3 4.9"/><path d="M5.5 3v4.5H10M18.5 21v-4.5H14"/></svg>Abgleichen</button>
   <button id="bDl" class="b-ok" disabled><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download</button>
   <button id="bSet" class="b-sec" title="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </div>
@@ -102,7 +106,18 @@
     <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Kartentyp</div></div><div class="seg"><button data-layer="sat">Satellit</button><button data-layer="osm">Karte</button></div></div>
     <div class="set"><div class="l"><div class="t">Dateizugriff</div><div class="v" id="vAcc"></div></div><button class="b-sec" id="bAcc">Berechtigung</button></div>
-    <div class="set"><div class="l"><div class="t">KMZ Missionen</div><div class="v">Version 1.0</div></div></div>
+    <div class="set" style="flex-direction:column;align-items:stretch">
+      <div class="t">UAV Editor – Zugang für „Abgleichen“</div>
+      <div class="v" id="vUave" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="uUser" class="inp" type="email" placeholder="E-Mail / Login" autocomplete="off">
+        <input id="uPw" class="inp" type="password" placeholder="Passwort" autocomplete="off">
+        <button class="b-ok" id="uSave" style="height:46px;padding:0 14px">Speichern</button>
+        <button class="b-sec" id="uForget" style="height:46px;padding:0 14px">Löschen</button>
+      </div>
+      <div class="v" style="margin-top:6px">Das Passwort wird verschlüsselt nur auf diesem Gerät gespeichert.</div>
+    </div>
+    <div class="set"><div class="l"><div class="t">KMZ Missionen</div><div class="v">Version 1.1</div></div></div>
   </div>
 </div>
 
@@ -462,15 +477,15 @@ $('bDl').onclick = () => {
 };
 
 // ================= Dialoge =================
-let dlgCb = null;
+let dlgCb = null, dlgOnCancel = null;
 function confirmDlg(title, text, list, okLabel, cb) {
   $('dTitle').textContent = title;
   $('dText').textContent = text; $('dText').style.whiteSpace = 'pre-line';
   $('dList').innerHTML = ''; list.forEach(n => { const d = document.createElement('div'); d.textContent = '• ' + n; $('dList').appendChild(d); });
   $('dYes').textContent = okLabel; dlgCb = cb; $('dlg').classList.add('open');
 }
-$('dNo').onclick = () => $('dlg').classList.remove('open');
-$('dYes').onclick = () => { $('dlg').classList.remove('open'); dlgCb && dlgCb(); };
+$('dNo').onclick = () => { $('dlg').classList.remove('open'); if (dlgOnCancel) { const c = dlgOnCancel; dlgOnCancel = null; c(); } };
+$('dYes').onclick = () => { $('dlg').classList.remove('open'); dlgOnCancel = null; dlgCb && dlgCb(); };
 $('permGo').onclick = () => A.requestAccess();
 
 // ================= Einstellungen =================
@@ -479,6 +494,12 @@ function fillSettings() {
   $('sMove').checked = P.move === '1'; $('sClear').checked = P.clear === '1'; $('sLabels').checked = P.labels === '1';
   document.querySelectorAll('[data-layer]').forEach(b => b.classList.toggle('on', b.dataset.layer === P.layer));
   $('vAcc').textContent = A.hasAccess() ? 'Erteilt' : 'Fehlt – bitte erteilen';
+  if (A.uaveUser) {
+    $('uUser').value = A.uaveUser();
+    $('uPw').value = '';
+    $('uPw').placeholder = A.uaveHasPassword() ? 'Passwort gespeichert (zum Ändern neu eingeben)' : 'Passwort';
+    $('vUave').textContent = A.uaveUser() && A.uaveHasPassword() ? 'Eingerichtet für ' + A.uaveUser() : 'Noch nicht eingerichtet';
+  }
 }
 let srcAtOpen = '';
 $('bSet').onclick = () => { srcAtOpen = P.src; fillSettings(); $('pgSet').classList.add('open'); };
@@ -492,6 +513,54 @@ $('sClear').onchange = e => setP('clear', e.target.checked ? 1 : 0);
 $('sLabels').onchange = e => { setP('labels', e.target.checked ? 1 : 0); draw(); };
 document.querySelectorAll('[data-layer]').forEach(b => b.onclick = () => { setP('layer', b.dataset.layer); fillSettings(); draw(); });
 $('bAcc').onclick = () => A.requestAccess();
+$('uSave').onclick = () => {
+  const u = $('uUser').value.trim(), pw = $('uPw').value;
+  if (!u) return toast('Bitte E-Mail / Login eintragen.', true);
+  if (!pw && !A.uaveHasPassword()) return toast('Bitte Passwort eintragen.', true);
+  A.uaveSetCredentials(u, pw); $('uPw').value = ''; fillSettings(); toast('UAV-Editor-Zugang gespeichert.');
+};
+$('uForget').onclick = () => { A.uaveForget(); fillSettings(); toast('Zugang gelöscht.'); };
+
+// ================= Abgleich mit UAV Editor =================
+let syncing = false;
+$('bSync').onclick = () => {
+  if (syncing) return;
+  if (!A.uaveCheck) return toast('In dieser Version nicht verfügbar.', true);
+  if (!A.uaveUser() || !A.uaveHasPassword()) { toast('Bitte zuerst den UAV-Editor-Zugang eintragen.', true); $('bSet').onclick(); return; }
+  syncing = true; $('bSync').disabled = true;
+  busy('Verbinde mit UAV Editor…');
+  A.uaveCheck(P.src);
+};
+function syncEnd() { syncing = false; $('bSync').disabled = false; busy(''); }
+window.onUave = raw => {
+  const ev = JSON.parse(raw);
+  if (ev.type === 'status') { busy(ev.text); return; }
+  if (ev.type === 'error') { syncEnd(); toast(ev.message, true, 8000); return; }
+  if (ev.type === 'progress') { busy(`Lade ${ev.done + 1}/${ev.total}: ${ev.name}`); return; }
+  if (ev.type === 'list') {
+    busy('');
+    const todo = ev.fields.filter(f => f.status !== 'ok').sort((a, b) => a.name.localeCompare(b.name, 'de', { numeric: true }));
+    if (!todo.length) { syncEnd(); toast(`Alles aktuell – ${ev.total} Felder in UAV Editor, alle vorhanden.`); return; }
+    const parts = [];
+    if (ev.missing) parts.push(`${ev.missing} neu`);
+    if (ev.changed) parts.push(`${ev.changed} geändert`);
+    confirmDlg(`${todo.length} Feld${todo.length > 1 ? 'er' : ''} aus UAV Editor laden?`,
+      `${parts.join(', ')} · ${ev.total} Felder insgesamt\nZiel: ${P.src}`,
+      todo.map(f => (f.status === 'changed' ? '↻ ' : '+ ') + f.name),
+      'Alle laden', () => {
+        busy('Starte Export…');
+        A.uaveDownload(JSON.stringify(todo.map(f => f.id)), P.src, String(new Date().getTimezoneOffset()));
+      });
+    dlgOnCancel = syncEnd;
+    return;
+  }
+  if (ev.type === 'done') {
+    syncEnd();
+    if (ev.errors && ev.errors.length) toast(`${ev.ok} geladen, ${ev.errors.length} Fehler:\n` + ev.errors.join('\n'), true, 10000);
+    else toast(`${ev.ok} Feld${ev.ok === 1 ? '' : 'er'} aus UAV Editor geladen.`);
+    load(true);
+  }
+};
 
 // Ordnerwahl
 let pick = null;
@@ -526,7 +595,7 @@ $('pOk').onclick = () => { setP(pick.key, pick.path); $('pgPick').classList.remo
 
 // Zurück-Taste der RC
 window.onBack = () => {
-  if ($('dlg').classList.contains('open')) { $('dlg').classList.remove('open'); return true; }
+  if ($('dlg').classList.contains('open')) { $('dNo').onclick(); return true; }
   if ($('pgPick').classList.contains('open')) { $('pgPick').classList.remove('open'); return true; }
   if ($('pgSet').classList.contains('open')) { closeSettings(); return true; }
   return false;
