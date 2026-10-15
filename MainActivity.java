@@ -159,7 +159,8 @@ public class MainActivity extends Activity {
             while ((r = in.read(buf)) > 0) out.write(buf, 0, r);
             out.flush();
         }
-        dst.setLastModified(src.lastModified());
+        // Datum immer auf "jetzt" setzen, damit die Planung in Pilot 2 als neueste erscheint
+        dst.setLastModified(System.currentTimeMillis());
     }
 
     private static JSONObject err(String msg) {
