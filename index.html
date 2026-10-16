@@ -1556,7 +1556,10 @@ function doTransfer(paths, drone) {
     const nConv = drone ? S.files.filter(f => paths.includes(f.path) && f.drone && f.drone !== drone).length : 0;
     const what = nConv ? ` (${nConv} auf ${drone === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} umgerechnet)` : '';
     if (r.errors && r.errors.length) toast(`${r.done} übertragen${what}, ${r.errors.length} Fehler:\n` + r.errors.join('\n'), true, 9000);
-    else toast(`${r.done} Feld${r.done > 1 ? 'er' : ''}${what} ${move ? 'verschoben' : 'kopiert'}.`);
+    else {
+      const c = r.check, t = ms => ms ? new Date(ms).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+      toast(`${r.done} Feld${r.done > 1 ? 'er' : ''}${what} ${move ? 'verschoben' : 'kopiert'}.` + (c ? `\nDatum gesetzt – Datei: ${t(c.file)} · Planung erstellt: ${t(c.create)} · geändert: ${t(c.update)}` : ''), false, 6000);
+    }
     // Quellordner nicht neu einlesen: beim Kopieren ändert sich dort nichts, beim Verschieben nur die übertragenen Felder entfernen
     if (move) { const gone = new Set(paths); S.files = S.files.filter(f => !gone.has(f.path)); markDups(); }
     update();

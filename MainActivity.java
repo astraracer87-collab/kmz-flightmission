@@ -589,6 +589,18 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         if (!tmp.renameTo(target)) { copy(tmp, target); tmp.delete(); }
                         target.setLastModified(System.currentTimeMillis());
                         scanned.add(target.getAbsolutePath());
+                        if (!res.has("check")) {   // zur Kontrolle: was tatsächlich in der Datei steht
+                            java.util.regex.Matcher cm = java.util.regex.Pattern.compile("<wpml:createTime>(\\d+)<").matcher(new String(converted, StandardCharsets.ISO_8859_1));
+                            String inner = "";
+                            try (ZipInputStream zc = new ZipInputStream(new ByteArrayInputStream(converted))) {
+                                ZipEntry ze; while ((ze = zc.getNextEntry()) != null) if (ze.getName().toLowerCase(Locale.ROOT).endsWith("template.kml")) { inner = new String(readBytes(zc), StandardCharsets.UTF_8); break; }
+                            } catch (Exception ignored) { }
+                            java.util.regex.Matcher cm2 = java.util.regex.Pattern.compile("<wpml:createTime>(\\d+)<").matcher(inner);
+                            java.util.regex.Matcher um2 = java.util.regex.Pattern.compile("<wpml:updateTime>(\\d+)<").matcher(inner);
+                            res.put("check", new JSONObject().put("name", name).put("path", target.getAbsolutePath())
+                                    .put("file", target.lastModified()).put("create", cm2.find() ? Long.parseLong(cm2.group(1)) : 0)
+                                    .put("update", um2.find() ? Long.parseLong(um2.group(1)) : 0));
+                        }
                         if (move) { if (!src.delete()) errors.put(src.getName() + ": kopiert, Original konnte nicht gelöscht werden"); else scanned.add(src.getAbsolutePath()); }
                         done++;
                     } catch (Exception e) {
