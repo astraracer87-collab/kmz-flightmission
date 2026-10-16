@@ -108,7 +108,14 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         s.setBuiltInZoomControls(false);
         s.setSupportZoom(false);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+                WebResourceResponse r = tileFromCache(req.getUrl());
+                return r != null ? r : super.shouldInterceptRequest(view, req);
+            }
+        });
+        new Thread(this::tileCacheTrim).start();
         web.addJavascriptInterface(new Bridge(), "Android");
         web.loadUrl("file:///android_asset/index.html");
 
@@ -248,10 +255,18 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private static String droneOfKml(String kml) {
         Matcher e = Pattern.compile("<wpml:droneEnumValue>(\\d+)<").matcher(kml);
         Matcher s = Pattern.compile("<wpml:droneSubEnumValue>(\\d+)<").matcher(kml);
-        if (!e.find()) return null;
-        int en = Integer.parseInt(e.group(1)), sub = s.find() ? Integer.parseInt(s.group(1)) : -1;
-        for (Map.Entry<String, int[]> d : DRONES.entrySet())
-            if (d.getValue()[0] == en && d.getValue()[1] == sub) return d.getKey();
+        if (e.find()) {
+            int en = Integer.parseInt(e.group(1)), sub = s.find() ? Integer.parseInt(s.group(1)) : -1;
+            for (Map.Entry<String, int[]> d : DRONES.entrySet())
+                if (d.getValue()[0] == en && d.getValue()[1] == sub) return d.getKey();
+        }
+        // ohne Drohnenkennung: über die Flughöhe (Kitzrettung: Mavic 3T 50 m, Matrice 4T 70 m)
+        Matcher h = Pattern.compile("<wpml:globalHeight>([\\d.]+)<").matcher(kml);
+        if (h.find()) {
+            double v = Double.parseDouble(h.group(1));
+            if (v >= 45 && v <= 55 && DRONES.containsKey("M3T")) return "M3T";
+            if (v >= 65 && v <= 75 && DRONES.containsKey("M4T")) return "M4T";
+        }
         return null;
     }
 
@@ -558,6 +573,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
         /** Lädt die angegebenen Felder (JSON-Array mit IDs) als KMZ in den Quellordner */
         @JavascriptInterface
+        public void uaveCancel() { uaveCancel = true; }
+
+        @JavascriptInterface
         public void uaveDownload(String idsJson, String srcDir, String tzOffset) {
             new Thread(() -> uaveDownloadImpl(idsJson, srcDir, tzOffset)).start();
         }
@@ -691,6 +709,25 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
 
         /** Temporäre Betriebseinschränkungen (NOTAM) im Gebiet: gespeicherte Daten */
+        @JavascriptInterface
+        public String tileCacheInfo() { return String.valueOf(tileCacheBytes()); }
+
+        @JavascriptInterface
+        public void tileCacheClear() {
+            new Thread(() -> {
+                java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
+                List<File> dirs = new ArrayList<>();
+                st.push(tileDir());
+                while (!st.isEmpty()) {
+                    File d = st.pop(); dirs.add(d);
+                    File[] fs = d.listFiles();
+                    if (fs == null) continue;
+                    for (File x : fs) { if (x.isDirectory()) st.push(x); else x.delete(); }
+                }
+                js("window.onTileCache && window.onTileCache()");
+            }).start();
+        }
+
         /** Gespeicherte Grenzen der Bundesländer / RB Gießen im Gebiet */
         @JavascriptInterface
         public String regions() {
@@ -768,6 +805,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private String[] uaveAuthHeader;                       // funktionierende Header-Variante
     private final Map<String, JSONObject> uaveFields = new HashMap<>();
     private volatile boolean uaveBusy = false;
+    private volatile boolean uaveCancel = false;   // vom Abbrechen-Knopf gesetzt, wird zwischen zwei Feldern geprüft
 
     private void uaveEvent(JSONObject ev) {
         js("window.onUave && window.onUave(" + JSONObject.quote(ev.toString()) + ")");
@@ -933,7 +971,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         List<String> out = new ArrayList<>();
         String t = name.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("Ä", "Ae")
                 .replace("Ö", "Oe").replace("Ü", "Ue").replace("ß", "ss");
-        for (String base : new String[]{name, t}) {
+        // UAV Editor entfernt Umlaut-Punkte im Dateinamen (Jörg -> Jorg), behält Leerzeichen und schreibt teils klein
+        String plain = java.text.Normalizer.normalize(name.replace("ß", "ss"), java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        out.add(safeFileName(plain).toLowerCase(Locale.ROOT) + "_");
+        out.add(safeFileName(name).toLowerCase(Locale.ROOT) + "_");
+        for (String base : new String[]{name, t, plain}) {
             out.add(base.replaceAll("[^A-Za-z0-9_\\-]", "").toLowerCase(Locale.ROOT) + "_");
             out.add(base.replace(' ', '_').replaceAll("[^A-Za-z0-9_\\-]", "").toLowerCase(Locale.ROOT) + "_");
             out.add(base.replace(' ', '-').replaceAll("[^A-Za-z0-9_\\-]", "").toLowerCase(Locale.ROOT) + "_");
@@ -959,6 +1001,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private void uaveCheckImpl(String srcDir) {
         if (uaveBusy) return;
         uaveBusy = true;
+        uaveCancel = false;
         try {
             uaveProgress("Anmeldung bei UAV Editor…");
             uaveLogin();
@@ -975,6 +1018,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject f = arr.getJSONObject(i);
                     if (!"dji-pilot-2".equals(f.optString("copterProfile"))) continue;
+                    f.put("_arch", archive);   // für die Anzeige im Auswahl-Dialog (Archiv / aktiv)
                     uaveFields.put(f.getString("id"), f);
                 }
             }
@@ -1010,7 +1054,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 if ("missing".equals(status)) missing++;
                 if ("changed".equals(status)) changed++;
                 result.put(new JSONObject().put("id", id).put("name", name).put("status", status)
-                        .put("file", found != null ? found.getName() : JSONObject.NULL));
+                        .put("file", found != null ? found.getName() : JSONObject.NULL)
+                        .put("arch", f.optBoolean("_arch")).put("area", f.optDouble("area", 0)).put("mod", mod)
+                        .put("cut", f.optJSONObject("orderData") != null ? f.optJSONObject("orderData").optString("cuttingDate", "") : ""));
             }
             prefs.edit().putString("uave_manifest", man.toString()).apply();
             uaveEvent(new JSONObject().put("type", "list").put("fields", result)
@@ -1045,7 +1091,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     /** Export eines Feldes anstoßen, auf Fertigstellung warten und KMZ speichern. Gibt den Dateinamen zurück. */
-    private String uaveExportOne(String fieldId, String name, File dir, String tzOffset) throws Exception {
+    /** Startet einen Export in UAV Editor, wartet bis fertig und lädt das Ergebnis (KMZ oder ZIP). */
+    private Object[] uaveExportRaw(JSONArray fieldIds, String tzOffset, long maxWaitMs) throws Exception {
         Map<String, String> form = new java.util.LinkedHashMap<>();
         form.put("app", "uav");
         form.put("token", uaveToken);
@@ -1061,7 +1108,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         JSONArray items = new JSONArray().put(new JSONObject()
                 .put("type", "fields")
                 .put("customFieldLabelSettings", new JSONObject())
-                .put("fieldIds", new JSONArray().put(fieldId))
+                .put("fieldIds", fieldIds)
                 .put("outputs", new JSONArray().put(new JSONObject().put("format", "kml-pilot-2"))));
         form.put("items", items.toString());
 
@@ -1073,10 +1120,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (!m.find()) throw new Exception("Export-Auftrag nicht erkannt");
         String stateId = m.group(1);
 
-        // Status abfragen, bis fertig (max. 3 Minuten)
+        // Status abfragen, bis fertig
         JSONObject state = null;
-        long until = System.currentTimeMillis() + 180000;
+        long until = System.currentTimeMillis() + maxWaitMs;
         while (System.currentTimeMillis() < until) {
+            if (uaveCancel) throw new Exception("abgebrochen");
             Thread.sleep(800);
             Resp s = http("GET", UAVE_SERVICES + "/export-state/" + stateId + "?t=" + System.currentTimeMillis(), null, null);
             if (s.code >= 400) continue;
@@ -1090,6 +1138,14 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         String dl = state.optString("downloadUrl", "/download-export/" + stateId);
         Resp d = http("GET", dl.startsWith("http") ? dl : UAVE_SERVICES + dl, null, null);
         if (d.code >= 400 || d.body.length == 0) throw new Exception("Download fehlgeschlagen (" + d.code + ")");
+
+        return new Object[]{d, state};
+    }
+
+    private String uaveExportOne(String fieldId, String name, File dir, String tzOffset) throws Exception {
+        Object[] raw = uaveExportRaw(new JSONArray().put(fieldId), tzOffset, 180000);
+        Resp d = (Resp) raw[0];
+        JSONObject state = (JSONObject) raw[1];
 
         // Dateiname: Server-Vorgabe, sonst Feldname
         String fname = null;
@@ -1128,46 +1184,134 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return fname;
     }
 
-    /** Exportiert die Felder nacheinander in den Ordner. Liefert {files:{id:datei}, ok, errors} */
+    /** Ab dieser Anzahl werden Felder als ZIP-Pakete exportiert (schneller), darunter einzeln */
+    private static final int ZIP_FROM = 11, ZIP_BATCH = 25;
+
+    /** Ein ZIP-Paket exportieren und entpacken. Liefert {feldId: dateiname} für alle zuordenbaren Felder. */
+    private Map<String, String> uaveExportZip(List<String> ids, File dir, String tzOffset) throws Exception {
+        JSONArray arr = new JSONArray();
+        for (String id : ids) arr.put(id);
+        Object[] raw = uaveExportRaw(arr, tzOffset, 120000 + 6000L * ids.size());
+        Resp d = (Resp) raw[0];
+        if (!dir.isDirectory() && !dir.mkdirs()) throw new Exception("Quellordner kann nicht angelegt werden");
+        // KMZ-Einträge aus dem ZIP lesen (JSON-Beigaben werden ignoriert)
+        Map<String, byte[]> entries = new java.util.LinkedHashMap<>();
+        try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(d.body))) {
+            ZipEntry e;
+            while ((e = z.getNextEntry()) != null) {
+                if (e.isDirectory() || !e.getName().toLowerCase(Locale.ROOT).endsWith(".kmz")) continue;
+                java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+                byte[] buf = new byte[65536]; int k;
+                while ((k = z.read(buf)) > 0) bo.write(buf, 0, k);
+                entries.put(safeFileName(new File(e.getName()).getName()), bo.toByteArray());
+            }
+        }
+        if (entries.isEmpty()) throw new Exception("Export-Archiv ohne KMZ");
+        // Zuordnung über den Namen: Datei = "<Feldname>_<Fläche>ha_<n>WP.kmz". Längster passender Feldname gewinnt,
+        // damit „Egenolf-3-“ und „Egenolf-3-M3T“ nicht verwechselt werden.
+        List<String> order = new ArrayList<>(ids);
+        java.util.Collections.sort(order, (a, b) -> nameOf(b).length() - nameOf(a).length());
+        Map<String, String> out = new HashMap<>();
+        Set<String> used = new java.util.HashSet<>();
+        for (String id : order) {
+            List<String> pres = namePrefixes(nameOf(id));
+            String hit = null;
+            for (String fn : entries.keySet()) {
+                if (used.contains(fn)) continue;
+                String l = fn.toLowerCase(Locale.ROOT);
+                for (String pre : pres) if (pre.length() > 1 && (l.startsWith(pre) || l.equals(pre.substring(0, pre.length() - 1) + ".kmz"))) { hit = fn; break; }
+                if (hit != null) break;
+            }
+            if (hit == null) continue;   // wird danach einzeln geladen
+            used.add(hit);
+            File tmp = new File(dir, hit + ".tmp");
+            try (OutputStream o = new FileOutputStream(tmp)) { o.write(entries.get(hit)); }
+            File f = new File(dir, hit);
+            if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
+            out.put(id, hit);
+        }
+        return out;
+    }
+
+    private String nameOf(String id) {
+        JSONObject f = uaveFields.get(id);
+        return f != null ? f.optString("name", id) : id;
+    }
+
+    /** Exportiert die Felder in den Ordner – ab 11 Feldern in ZIP-Paketen, sonst einzeln. Liefert {files:{id:datei}, ok, errors} */
     private JSONObject uaveExportLoop(JSONArray ids, File dir, String tzOffset) throws Exception {
         int ok = 0;
         JSONArray errors = new JSONArray();
         JSONObject files = new JSONObject();
         JSONObject man = manifest();
-        for (int i = 0; i < ids.length(); i++) {
-            String id = ids.getString(i);
-            JSONObject f = uaveFields.get(id);
-            String name = f != null ? f.optString("name", id) : id;
+        int total = ids.length();
+        List<String> all = new ArrayList<>();
+        for (int i = 0; i < total; i++) all.add(ids.getString(i));
+        List<String> single = new ArrayList<>();
+        int done = 0;
+        if (total >= ZIP_FROM) {
+            for (int b = 0; b < total && !uaveCancel; b += ZIP_BATCH) {
+                List<String> part = all.subList(b, Math.min(total, b + ZIP_BATCH));
+                uaveEvent(new JSONObject().put("type", "progress").put("done", done).put("total", total)
+                        .put("name", "Paket " + (b / ZIP_BATCH + 1) + " von " + ((total + ZIP_BATCH - 1) / ZIP_BATCH) + " (ZIP, " + part.size() + " Felder)"));
+                Map<String, String> got;
+                try {
+                    try { got = uaveExportZip(part, dir, tzOffset); }
+                    catch (Exception first) { if (uaveCancel) throw first; uaveLogin(); got = uaveExportZip(part, dir, tzOffset); }
+                } catch (Exception e) {
+                    if (uaveCancel) break;
+                    got = new HashMap<>();   // ganzes Paket fehlgeschlagen -> einzeln nachladen
+                }
+                for (String id : part) {
+                    String file = got.get(id);
+                    if (file == null) { single.add(id); continue; }
+                    remember(man, id, file, dir);
+                    files.put(id, file);
+                    ok++; done++;
+                }
+            }
+        } else single.addAll(all);
+        for (String id : single) {
+            if (uaveCancel) break;   // sauber zwischen zwei Feldern aufhören – fertige Dateien bleiben
+            String name = nameOf(id);
             try {
-                uaveEvent(new JSONObject().put("type", "progress").put("done", i).put("total", ids.length()).put("name", name));
+                uaveEvent(new JSONObject().put("type", "progress").put("done", done).put("total", total).put("name", name));
                 String file;
                 try {
                     file = uaveExportOne(id, name, dir, tzOffset);
                 } catch (Exception first) {
+                    if (uaveCancel) break;
                     // Token evtl. abgelaufen: einmal neu anmelden und wiederholen
                     uaveLogin();
                     file = uaveExportOne(id, name, dir, tzOffset);
                 }
-                // alte Datei mit anderem Namen entfernen, damit keine Dubletten entstehen
-                JSONObject old = man.optJSONObject(id);
-                if (old != null && !file.equals(old.optString("file"))) {
-                    File of = new File(dir, old.optString("file"));
-                    if (of.isFile()) of.delete();
-                }
-                man.put(id, withMeta(new JSONObject().put("file", file).put("mod", System.currentTimeMillis()), f));
-                prefs.edit().putString("uave_manifest", man.toString()).apply();
+                remember(man, id, file, dir);
                 files.put(id, file);
                 ok++;
             } catch (Exception e) {
+                if (uaveCancel) break;
                 errors.put(name + ": " + friendlyError(e));
             }
+            done++;
         }
-        return new JSONObject().put("ok", ok).put("errors", errors).put("files", files);
+        return new JSONObject().put("ok", ok).put("errors", errors).put("files", files).put("cancelled", uaveCancel);
+    }
+
+    /** Manifest pflegen; alte Datei mit anderem Namen entfernen, damit keine Dubletten entstehen */
+    private void remember(JSONObject man, String id, String file, File dir) throws Exception {
+        JSONObject old = man.optJSONObject(id);
+        if (old != null && !file.equals(old.optString("file"))) {
+            File of = new File(dir, old.optString("file"));
+            if (of.isFile()) of.delete();
+        }
+        man.put(id, withMeta(new JSONObject().put("file", file).put("mod", System.currentTimeMillis()), uaveFields.get(id)));
+        prefs.edit().putString("uave_manifest", man.toString()).apply();
     }
 
     private void uaveDownloadImpl(String idsJson, String srcDir, String tzOffset) {
         if (uaveBusy) return;
         uaveBusy = true;
+        uaveCancel = false;
         try {
             if (uaveToken == null) { uaveProgress("Anmeldung bei UAV Editor…"); uaveLogin(); }
             JSONObject r = uaveExportLoop(new JSONArray(idsJson), new File(srcDir), tzOffset);
@@ -1182,6 +1326,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private void uaveChangeDroneImpl(String idsJson, String droneType, String srcDir, String tzOffset) {
         if (uaveBusy) return;
         uaveBusy = true;
+        uaveCancel = false;
         try {
             JSONArray ids = new JSONArray(idsJson);
             uaveProgress("Anmeldung bei UAV Editor…");
@@ -1383,6 +1528,95 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         } catch (Exception ignored) { }
     }
 
+    // ---------- Kartenkacheln (Karte + Satellit) dauerhaft auf der RC speichern ----------
+    // Jede angezeigte Kachel wird gespeichert und offline von dort geladen. Kein Massen-Download
+    // (Nutzungsbedingungen von OpenStreetMap/Esri) – was einmal angesehen wurde, ist offline da.
+    private static final long TILE_FRESH = 30L * 24 * 3600 * 1000, TILE_MAX_BYTES = 500L * 1024 * 1024;
+    private File tileDir() { return new File(getFilesDir(), "tiles"); }
+
+    private WebResourceResponse tileFromCache(Uri u) {
+        try {
+            String host = u.getHost();
+            if (host == null) return null;
+            String key, mime;
+            List<String> seg = u.getPathSegments();
+            if (host.equals("tile.openstreetmap.org") && seg.size() == 3) {
+                key = "osm/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2); mime = "image/png";
+            } else if (host.equals("server.arcgisonline.com") && seg.size() >= 3 && u.getPath().contains("/tile/")) {
+                int n = seg.size();   // .../tile/{z}/{y}/{x}
+                key = "sat/" + seg.get(n - 3) + "/" + seg.get(n - 1) + "/" + seg.get(n - 2) + ".jpg"; mime = "image/jpeg";
+            } else return null;
+            File f = new File(tileDir(), key);
+            boolean have = f.isFile() && f.length() > 0;
+            boolean on = online();
+            if (have && (!on || System.currentTimeMillis() - f.lastModified() < TILE_FRESH)) return tileResp(f, mime);
+            if (!on) return new WebResourceResponse(mime, null, 404, "offline", null, new ByteArrayInputStream(new byte[0]));
+            try {
+            HttpURLConnection c = (HttpURLConnection) new URL(u.toString()).openConnection();
+            c.setConnectTimeout(10000); c.setReadTimeout(20000);
+            c.setRequestProperty("User-Agent", "MissionKitzrettung/2.0 (Android; Kitzrettung Limburg, nicht-kommerziell)");
+            if (c.getResponseCode() == 200) {
+                byte[] b;
+                try (InputStream in = c.getInputStream()) { b = readBytes(in); }
+                c.disconnect();
+                if (b.length > 0) {
+                    f.getParentFile().mkdirs();
+                    File tmp = new File(f.getPath() + ".tmp");
+                    try (OutputStream o = new FileOutputStream(tmp)) { o.write(b); }
+                    if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
+                    return new WebResourceResponse(mime, null, new ByteArrayInputStream(b));
+                }
+            }
+            c.disconnect();
+            } catch (Exception netErr) { /* Netz weg mitten im Laden: unten alte Kachel nehmen */ }
+            return have ? tileResp(f, mime) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static WebResourceResponse tileResp(File f, String mime) throws Exception {
+        return new WebResourceResponse(mime, null, new FileInputStream(f));
+    }
+
+    private static byte[] readBytes(InputStream in) throws Exception {
+        ByteArrayOutputStream bo = new ByteArrayOutputStream();
+        byte[] buf = new byte[32768]; int k;
+        while ((k = in.read(buf)) > 0) bo.write(buf, 0, k);
+        return bo.toByteArray();
+    }
+
+    /** Speicher begrenzen: über 500 MB die am längsten nicht aktualisierten Kacheln löschen */
+    private void tileCacheTrim() {
+        try {
+            List<File> all = new ArrayList<>();
+            java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
+            st.push(tileDir());
+            long total = 0;
+            while (!st.isEmpty()) {
+                File[] fs = st.pop().listFiles();
+                if (fs == null) continue;
+                for (File x : fs) { if (x.isDirectory()) st.push(x); else { all.add(x); total += x.length(); } }
+            }
+            if (total <= TILE_MAX_BYTES) return;
+            Collections.sort(all, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+            for (File x : all) { if (total <= TILE_MAX_BYTES * 8 / 10) break; total -= x.length(); x.delete(); }
+        } catch (Exception ignored) { }
+    }
+
+    /** Größe des Kachelspeichers für die Einstellungen */
+    private long tileCacheBytes() {
+        long total = 0;
+        java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
+        st.push(tileDir());
+        while (!st.isEmpty()) {
+            File[] fs = st.pop().listFiles();
+            if (fs == null) continue;
+            for (File x : fs) { if (x.isDirectory()) st.push(x); else total += x.length(); }
+        }
+        return total;
+    }
+
     // ---------- Bundesländer + Regierungsbezirk Gießen (OSM-Grenzen, vereinfacht, offline) ----------
     private File regionFile() { return new File(getFilesDir(), "regions.json"); }
 
@@ -1484,17 +1718,28 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
     }
 
+    private static final String[] OVERPASS = {
+            "https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"};
+
+    /** Overpass-Abfrage; ist ein Server überlastet, wird der nächste versucht */
     private String overpass(String q, int readTimeoutMs) throws Exception {
-        HttpURLConnection c = (HttpURLConnection) new URL("https://overpass-api.de/api/interpreter").openConnection();
-        c.setRequestMethod("POST");
-        c.setConnectTimeout(15000); c.setReadTimeout(readTimeoutMs);
-        c.setDoOutput(true);
-        c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-        c.setRequestProperty("User-Agent", "KMZMissionen/1.6 (Kitzrettung, nicht-kommerziell)");
-        try (OutputStream o = c.getOutputStream()) { o.write(("data=" + URLEncoder.encode(q, "UTF-8")).getBytes(StandardCharsets.UTF_8)); }
-        if (c.getResponseCode() != 200) throw new Exception("Overpass " + c.getResponseCode());
-        try (InputStream in = c.getInputStream()) { return readAll(in); } finally { c.disconnect(); }
+        Exception last = null;
+        for (String ep : OVERPASS) {
+            try {
+                HttpURLConnection c = (HttpURLConnection) new URL(ep).openConnection();
+                c.setRequestMethod("POST");
+                c.setConnectTimeout(15000); c.setReadTimeout(readTimeoutMs);
+                c.setDoOutput(true);
+                c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                c.setRequestProperty("User-Agent", "MissionKitzrettung/2.0 (Kitzrettung, nicht-kommerziell)");
+                try (OutputStream o = c.getOutputStream()) { o.write(("data=" + URLEncoder.encode(q, "UTF-8")).getBytes(StandardCharsets.UTF_8)); }
+                if (c.getResponseCode() != 200) { last = new Exception("Overpass " + c.getResponseCode()); c.disconnect(); continue; }
+                try (InputStream in = c.getInputStream()) { return readAll(in); } finally { c.disconnect(); }
+            } catch (Exception e) { last = e; }
+        }
+        throw last != null ? last : new Exception("Overpass nicht erreichbar");
     }
+
 
     private static List<String> csvLine(String line) {
         List<String> out = new ArrayList<>();
@@ -1741,6 +1986,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 geoEvent(new JSONObject().put("type", "done").put("ok", 0).put("fail", 0).put("fetched", geoFetched()).put("tiles", geoTileCount()));
                 return;
             }
+            // Bereits gespeichertes Gebiet nicht verlieren: zusammenfassen, solange das Gesamtgebiet klein bleibt (< ca. 80 km)
+            try {
+                JSONObject ob = new JSONObject(prefs.getString("geo_vec_bbox", "{}"));
+                if (ob.has("n") && !force) {
+                    double un = Math.max(n, ob.getDouble("n")), us = Math.min(s, ob.getDouble("s"));
+                    double ue = Math.max(e, ob.getDouble("e")), uw = Math.min(w, ob.getDouble("w"));
+                    double km = Math.hypot((un - us) * 111.2, (ue - uw) * 111.2 * Math.cos(Math.toRadians((un + us) / 2)));
+                    if (km < 80) { n = un; s = us; e = ue; w = uw; }
+                }
+            } catch (Exception ignored) { }
             File dir = geoVecDir();
             if (!dir.isDirectory()) dir.mkdirs();
             int ok = 0, fail = 0, count = 0, k = 0;
