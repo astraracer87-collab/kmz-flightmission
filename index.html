@@ -307,6 +307,8 @@
     <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
     <div class="set"><div class="l"><div class="t">Kartentyp</div><div class="v" id="vTiles">Angesehene Kacheln werden auf der RC gespeichert und sind danach offline verfügbar.</div></div><button class="b-sec" id="bTilesClear">Leeren</button><div class="seg"><button data-layer="grey">Grau</button><button data-layer="osm">Karte</button><button data-layer="sat">Luftbild</button></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzgebiet offline speichern</div><div class="v" id="vPrefetch">Lädt Grau, Karte und Luftbild für das Gebiet aller Felder (+ 3 km) einmal komplett auf die RC – danach ruckelfrei und ohne Internet.</div></div><button class="b-ok" id="bPrefetch">Herunterladen</button></div>
+    <div class="set"><div class="l"><div class="t">Pilot-2-Bibliothek (Test)</div><div class="v" id="vPilotLib">Felder zusätzlich direkt in die Missions-Bibliothek von Pilot 2 legen – gleichnamige Missionen werden ersetzt, neue angelegt. Erst mit einem unwichtigen Feld testen!</div></div><button class="b-sec" id="bPilotLib">Suchen</button><label class="sw"><input type="checkbox" id="sPilotLib"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Pilot-2-Speicher prüfen</div><div class="v">Zeigt, wo DJI Pilot 2 und der Cloud-Sync Missionen ablegen und ob diese App dort schreiben darf (nur Ordnernamen und Anzahlen)</div></div><button class="b-sec" id="bPilotScan">Prüfen</button></div>
     <div class="set"><div class="l"><div class="t">Wetter</div><div class="v">Tagesgang, Sonnenlauf und Einsatzwetter – auch per Tipp auf die Windanzeige</div></div><button class="b-sec" id="bWxSet">Wetter öffnen</button></div>
     <div class="set"><div class="l"><div class="t">Dateizugriff</div><div class="v" id="vAcc"></div></div><button class="b-sec" id="bAcc">Berechtigung</button></div>
     <div class="set" style="flex-direction:column;align-items:stretch">
@@ -377,7 +379,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { perf: '0', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { pilotLib: '', pilotLibOn: '0', perf: '0', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -1604,7 +1606,11 @@ function doTransfer(paths, drone) {
   const move = P.move === '1';
   busy(drone ? 'Rechne um und übertrage…' : 'Übertrage…');
   setTimeout(async () => {
+    // zusätzlich direkt in die Pilot-2-Bibliothek (Test), vor dem Verschieben – danach gäbe es die Quelle nicht mehr
+    let lib = null;
+    if (P.pilotLibOn === '1' && P.pilotLib && A.pilotLibPut) { try { lib = JSON.parse(A.pilotLibPut(JSON.stringify(paths), P.pilotLib, drone || '')); } catch (e) { lib = { errors: [String(e)] }; } }
     const r = JSON.parse(A.transfer(JSON.stringify(paths), P.dst, move, P.clear === '1', drone || ''));
+    if (lib) setTimeout(() => toast(lib.error ? 'Pilot-2-Bibliothek: ' + lib.error : `Pilot-2-Bibliothek: ${lib.replaced || 0} ersetzt, ${lib.created || 0} neu${lib.errors && lib.errors.length ? ' · Fehler: ' + lib.errors.join(', ') : ''} – Pilot 2 neu starten und prüfen`, !!(lib.error || (lib.errors && lib.errors.length)), 8000), 6500);
     busy('');
     if (r.error) return toast('Fehler: ' + r.error, true);
     S.files.forEach(f => f.selected = false);
@@ -2064,6 +2070,7 @@ function fillRules() {
   $('sWxStart').value = P.wxStart;
   document.querySelectorAll('[data-wxmax]').forEach(b => b.classList.toggle('on', b.dataset.wxmax === P.wxMaxH));
   $('sPerf').checked = P.perf === '1';
+  pilotLibText();
   const rm = P.rose === '0' ? 'off' : P.compass === '0' ? 'north' : 'dev';
   document.querySelectorAll('[data-rose]').forEach(b => b.classList.toggle('on', b.dataset.rose === rm));
   $('vNotam').textContent = (S.notams.length ? `${S.notams.filter(n => n.active).length} aktiv, ${S.notams.filter(n => !n.active).length} geplant` : 'keine im Gebiet') + (S.notamFetched ? ` · Stand ${fmtDate(S.notamFetched)}` : ' · noch nicht geladen');
@@ -2622,6 +2629,23 @@ function showAirfieldList() {
   $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => showAirfield(S.airfields.find(a => a.id === el.dataset.af)));
 }
 document.querySelectorAll('[data-rose]').forEach(b => b.onclick = () => { const v = b.dataset.rose; setP('rose', v === 'off' ? 0 : 1); if (v !== 'off') setP('compass', v === 'dev' ? 1 : 0); fillSettings(); windWidget(); draw(); });
+function pilotLibText() {
+  $('vPilotLib').textContent = P.pilotLib ? `Bibliothek: ${P.pilotLib} · ${P.pilotLibOn === '1' ? 'aktiv – beim Übertragen wird zusätzlich dorthin geschrieben' : 'aus'} · erst mit einem unwichtigen Feld testen` : 'Noch nicht gefunden – „Suchen“ tippen. Felder werden dann zusätzlich direkt in die Missions-Bibliothek von Pilot 2 gelegt (gleichnamige ersetzt, neue angelegt).';
+  $('sPilotLib').checked = P.pilotLibOn === '1'; $('sPilotLib').disabled = !P.pilotLib;
+}
+$('bPilotLib').onclick = () => {
+  let r = []; try { r = JSON.parse(A.pilotLibFind ? A.pilotLibFind() : '[]'); } catch (e) { }
+  if (!r.length) { toast('Keine Pilot-2-Bibliothek gefunden (Ordner mit Missions-Unterordnern). Ggf. fehlt der Zugriff auf Android/data.', true, 7000); return; }
+  r.sort((a, b) => b.missions - a.missions);
+  const best = r[0];
+  setP('pilotLib', best.path); pilotLibText();
+  toast(`Gefunden: ${best.path}\n${best.missions} Missionen · ${best.writable ? 'schreibbar' : 'NICHT schreibbar (Android sperrt den Ordner)'}`, !best.writable, 7000);
+};
+$('sPilotLib').onchange = e => { setP('pilotLibOn', e.target.checked ? 1 : 0); pilotLibText(); };
+$('bPilotScan').onclick = () => {
+  const r = A.pilotScan ? A.pilotScan() : 'Nicht verfügbar (alte App-Version)';
+  openInfoPage('Pilot-2-Speicher', `<div class="zone"><div class="meta">Bitte ein Foto davon schicken – daraus lässt sich ablesen, ob Missionen direkt in die Pilot-2-Bibliothek gelegt werden können.</div><pre style="white-space:pre-wrap;font-size:12px;line-height:1.4">${esc(r)}</pre></div>`);
+};
 $('sPerf').onchange = e => { setP('perf', e.target.checked ? 1 : 0); draw(); };
 document.querySelectorAll('[data-wxmax]').forEach(b => b.onclick = () => { setP('wxMaxH', b.dataset.wxmax); fillSettings(); });
 $('sWxStart').onchange = e => { if (e.target.value) setP('wxStart', e.target.value); };
