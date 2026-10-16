@@ -241,7 +241,7 @@
 <div id="notam"></div>
 <div id="net"></div>
 <div id="toast"></div>
-<div id="infoPop"><div class="ph">Infos auf der Karte</div><button data-inf="geo"><b class="ck"></b><span><b>Geozonen</b><small>Antippen zeigt die Geozonen und Regeln an der Stelle</small></span><i class="dot" style="background:#d42020"></i></button><button data-inf="fld"><b class="ck"></b><span><b>Felder</b><small>Feldnamen auf der Karte anzeigen</small></span><i class="dot" style="background:#1e7bff"></i></button></div>
+<div id="infoPop"><div class="ph">Infos auf der Karte</div><button data-inf="geo"><b class="ck"></b><span><b>Geozonen</b><small>Antippen zeigt die Geozonen und Regeln an der Stelle · lange drücken markiert das Feld</small></span><i class="dot" style="background:#d42020"></i></button><button data-inf="fld"><b class="ck"></b><span><b>Felder</b><small>Feldnamen auf der Karte anzeigen</small></span><i class="dot" style="background:#1e7bff"></i></button></div>
 <div id="layerPop"><button data-ly="grey"><i class="sw-grey"></i>Grau</button><button data-ly="osm"><i class="sw-osm"></i>Karte</button><button data-ly="sat"><i class="sw-sat"></i>Luftbild</button></div>
 
 <div id="ctrl">
@@ -298,6 +298,7 @@
     <div class="set"><div class="l"><div class="t">Saison-Vorschau (Planung)</div><div class="v">Zeigt Naturschutz-, FFH- und Vogelschutzgebiete im RB Gießen so, als wäre Mähsaison (15.04.–30.06.). Nur zur Planung – außerhalb der Saison gilt die Verfügung NICHT.</div></div><label class="sw"><input type="checkbox" id="sSeason"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Die Rose steht mit Norden oben wie die Karte, der Windsack zeigt die Windrichtung (schwarze Marke = woher der Wind kommt). Mit Kompassnadel: die rote Nadelspitze zeigt, wohin die RC schaut · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt ebenfalls die Blickrichtung.</div></div><div class="seg"><button data-rose="dev">Mit Kompassnadel</button><button data-rose="north">Ohne Nadel</button><button data-rose="off">Aus</button></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzbeginn bei Mähdatum ohne Uhrzeit</div><div class="v">Für das Wetter-Einsatzfenster (1 h vorher bis 1 h nachher)</div></div><input id="sWxStart" class="inp" type="time" style="flex:none;width:130px;min-width:0"></div>
+    <div class="set"><div class="l"><div class="t">Wetter: Höhen anzeigen bis</div><div class="v">Nur die Höhen, in denen ihr fliegt – Wind, Temperatur und Böen in der Wettertabelle</div></div><div class="seg" id="sWxMax"><button data-wxmax="50">50 m</button><button data-wxmax="100">100 m</button><button data-wxmax="250">alle</button></div></div>
     <div class="set"><div class="l"><div class="t">Flugplätze anzeigen</div><div class="v" id="vAf">Flugplätze, Segel-/UL-Plätze und Hubschrauberlandeplätze im Gebiet der Felder (+3 km)</div></div><button class="b-sec" id="bAfList">Liste</button><label class="sw"><input type="checkbox" id="sAf"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">NOTAM / temporäre Betriebseinschränkungen</div><div class="v" id="vNotam"></div></div><button class="b-sec" id="bNotamList">Anzeigen</button></div>
     <div class="set"><div class="l"><div class="t">Regeln &amp; Auflagen</div><div class="v">Übersicht: Allgemeinverfügung, Allgemeinerlaubnis, was gilt wo</div></div><button class="b-sec" id="bRules">Ansehen</button></div>
@@ -376,7 +377,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -1119,6 +1120,16 @@ cv.addEventListener('pointerdown', e => {
   ptr.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (ptr.size === 1) {
     g = { tap: true, sx: e.clientX, sy: e.clientY, d: 0 };
+    // Info-Modus: normaler Tipp zeigt Infos, langes Drücken markiert das Feld
+    if (infoMode) {
+      const gg = g, x = e.clientX, y = e.clientY;
+      gg.lp = setTimeout(() => {
+        if (g !== gg || !gg.tap || ptr.size !== 1) return;
+        gg.tap = false; gg.long = true;
+        if (hitField(x, y)) { if (navigator.vibrate) try { navigator.vibrate(30); } catch (er) { } }
+        else toast('Hier ist kein Feld zum Markieren.', false, 1800);
+      }, 550);
+    }
   }
   else if (ptr.size === 2) { const [a, b] = [...ptr.values()]; g = { tap: false, d: Math.hypot(a.x - b.x, a.y - b.y), z: V.z }; }
 });
@@ -1137,7 +1148,9 @@ cv.addEventListener('pointermove', e => {
 });
 cv.addEventListener('pointerup', e => {
   const p = ptr.get(e.pointerId); ptr.delete(e.pointerId);
+  if (g && g.lp) clearTimeout(g.lp);
   if (ptr.size === 0 && g && g.tap && p) { if (infoMode) geoInfoAt(p.x, p.y); else hit(p.x, p.y); }
+  if (g && g.long) { g = ptr.size ? g : null; return; }   // langes Drücken: schon markiert, nichts weiter
   if (ptr.size === 0) {
     if (g && !g.tap) {
       // Geschwindigkeit der letzten 100 ms: schnell gewischt → mit Schwung weiter, sonst sofort scharf zeichnen
@@ -1175,6 +1188,10 @@ function hit(x, y) {
     const [ax, ay] = toScreen(a.lat, a.lon);
     if (Math.hypot(x - ax, y - ay) < 20) return showAirfield(a);
   }
+  return hitField(x, y);
+}
+/** Feld an der Stelle markieren/abwählen; true wenn getroffen */
+function hitField(x, y) {
   const vis = S.files.filter(visible);
   // Labels zuerst (liegen oben)
   if (P.labels === '1') for (const b of [...labelBoxes].reverse()) {   // nur sichtbare Etiketten
@@ -1190,6 +1207,7 @@ function hit(x, y) {
       if (s.type !== 'poly') for (let k = 0; k < sp.length - 1; k++) if (segD(x, y, sp[k], sp[k + 1]) < 16) return toggle(f);
     }
   }
+  return false;
 }
 
 // ================= KMZ lesen =================
@@ -1373,7 +1391,7 @@ function update() {
   searchHits();
   draw();
 }
-function toggle(f) { f.selected = !f.selected; update(); }
+function toggle(f) { f.selected = !f.selected; update(); return true; }
 function fitAll() {
   const sel = S.files.filter(f => f.selected && visible(f));
   fitBounds(bounds(S.files.filter(visible)) || bounds(sel));
@@ -1989,6 +2007,7 @@ function fillRules() {
   $('sOsmPower').checked = P.osmPower === '1';
   $('sAf').checked = P.airf === '1';
   $('sWxStart').value = P.wxStart;
+  document.querySelectorAll('[data-wxmax]').forEach(b => b.classList.toggle('on', b.dataset.wxmax === P.wxMaxH));
   const rm = P.rose === '0' ? 'off' : P.compass === '0' ? 'north' : 'dev';
   document.querySelectorAll('[data-rose]').forEach(b => b.classList.toggle('on', b.dataset.rose === rm));
   $('vNotam').textContent = (S.notams.length ? `${S.notams.filter(n => n.active).length} aktiv, ${S.notams.filter(n => !n.active).length} geplant` : 'keine im Gebiet') + (S.notamFetched ? ` · Stand ${fmtDate(S.notamFetched)}` : ' · noch nicht geladen');
@@ -2547,6 +2566,7 @@ function showAirfieldList() {
   $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => showAirfield(S.airfields.find(a => a.id === el.dataset.af)));
 }
 document.querySelectorAll('[data-rose]').forEach(b => b.onclick = () => { const v = b.dataset.rose; setP('rose', v === 'off' ? 0 : 1); if (v !== 'off') setP('compass', v === 'dev' ? 1 : 0); fillSettings(); windWidget(); draw(); });
+document.querySelectorAll('[data-wxmax]').forEach(b => b.onclick = () => { setP('wxMaxH', b.dataset.wxmax); fillSettings(); });
 $('sWxStart').onchange = e => { if (e.target.value) setP('wxStart', e.target.value); };
 $('sAf').onchange = e => { setP('airf', e.target.checked ? 1 : 0); draw(); };
 $('bAfList').onclick = showAirfieldList;
@@ -2706,6 +2726,8 @@ const DIR8 = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
 function dirTxt(deg) { return DIR8[Math.round(deg / 45) % 8] + ' ' + Math.round(deg) + '°'; }
 const f1 = v => v == null ? '—' : v.toFixed(1).replace('.', ',');
 function wxRowsHtml(d, fromMs, toMs, markFrom, markTo) {
+  const mx = +(P.wxMaxH || 100), keep = d.labels.map((l, i) => parseInt(l) <= mx ? i : -1).filter(i => i >= 0);
+  d = Object.assign({}, d, { labels: keep.map(i => d.labels[i]), w: keep.map(i => d.w[i]) });
   let rows = '';
   for (let i = 0; i < d.time.length; i++) {
     const t = d.time[i]; if (t < fromMs || t > toMs) continue;
@@ -2836,11 +2858,19 @@ function evalCell(kind, v, extra) {
   if (kind === 'kp') return v >= 6 ? 'r' : v >= 5 ? 'o' : v >= 3 ? 'y' : '';
   return '';
 }
+/** Angezeigte Höhen: bis zur eingestellten Grenze, dazu die Missionshöhe (z. B. 70 m bei Matrice 4T) */
+function wxHeights() {
+  const mx = +(P.wxMaxH || 100), fh = flightHeight();
+  const w = [...new Set([...WX_WH.filter(h => h <= mx), ...(fh && fh <= mx ? [fh] : [])])].sort((a, b) => a - b);
+  const t = WX_TH.filter(h => h <= mx);
+  return { w, t };
+}
 function wxTable(hours, kpc) {
   const rows = [];
   const add = (label, unit, fn) => rows.push({ label, unit, fn });
-  WX_TH.forEach(h => add(`Temp ${h} m`, '°C', x => { const r = tempAtH(x.d, x.i, h); return { t: r.v == null ? '—' : (r.est ? '~' : '') + f1(r.v) + '°', c: evalCell('temp', r.v) }; }));
-  WX_WH.forEach(h => add(`Wind ${h} m`, 'm/s', x => { const r = windAtH(x.d, x.i, h); return { t: r.v == null ? '—' : (r.est ? '~' : '') + f1(r.v), c: evalCell(h === 10 ? 'w10' : 'wh', r.v) }; }));
+  const HS = wxHeights();
+  HS.t.forEach(h => add(`Temp ${h} m`, '°C', x => { const r = tempAtH(x.d, x.i, h); return { t: r.v == null ? '—' : (r.est ? '~' : '') + f1(r.v) + '°', c: evalCell('temp', r.v) }; }));
+  HS.w.forEach(h => add(`Wind ${h} m`, 'm/s', x => { const r = windAtH(x.d, x.i, h); return { t: r.v == null ? '—' : (r.est ? '~' : '') + f1(r.v), c: evalCell(h === 10 ? 'w10' : 'wh', r.v) }; }));
   add('Böen 10 m', 'm/s', x => { const v = x.d.gust[x.i]; return { t: f1(v), c: evalCell('gust', v) }; });
   add('Richtung', 'woher', x => { const v = x.d.dir[x.i], w = x.d.wind[10] && x.d.wind[10][x.i];
     return { t: v == null ? '—' : w != null && w < 0.5 ? 'still' : `<span class="arr" style="transform:rotate(${(v + 180) % 360}deg)">↑</span>${DIR8[Math.round(v / 45) % 8]} ${Math.round(v)}°` }; });

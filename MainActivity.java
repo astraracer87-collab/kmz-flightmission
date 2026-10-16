@@ -1916,7 +1916,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             String lay = u.getPath().contains("_grau/") ? "bmg" : "bmf";
             return new String[]{lay + "/" + seg.get(n - 3) + "/" + seg.get(n - 1).replace(".png", "") + "/" + seg.get(n - 2) + ".png", "image/png"};
         }
-        if (host.equals("dop.local") && n == 3) return new String[]{"dop2/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".jpg", "image/jpeg"};
+        if (host.equals("dop.local") && n == 3) return new String[]{"dop3/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".jpg", "image/jpeg"};
         if (host.equals("tile.openstreetmap.org") && n == 3) return new String[]{"osm/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2), "image/png"};
         if (host.equals("server.arcgisonline.com") && n >= 3 && u.getPath().contains("/tile/"))   // .../tile/{z}/{y}/{x}
             return new String[]{"sat/" + seg.get(n - 3) + "/" + seg.get(n - 1) + "/" + seg.get(n - 2) + ".jpg", "image/jpeg"};
@@ -1934,7 +1934,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (!on) return new WebResourceResponse(km[1], null, 404, "offline", null, new ByteArrayInputStream(new byte[0]));
             byte[] b = null;
             try {
-                if (km[0].startsWith("dop2/")) {
+                if (km[0].startsWith("dop3/")) {
                     List<String> seg = u.getPathSegments();
                     b = dopTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("s"));
                     if (b == null) {   // außerhalb HE/RP: Esri nur zum Ansehen
@@ -1979,24 +1979,18 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         String bbox = String.format(Locale.ROOT, "%.3f,%.3f,%.3f,%.3f", x0, y0, x1, y1);
         if (states == null || states.isEmpty()) states = "HE,RP";
         boolean he = states.contains("HE"), rp = states.contains("RP");
-        java.util.concurrent.Future<byte[]> fRp = rp ? DOP_POOL.submit(() -> httpBytes(DOP_RP + bbox)) : null;
-        java.util.concurrent.Future<byte[]> fHe = he ? DOP_POOL.submit(() -> httpBytes(DOP_HE + bbox)) : null;
-        // nur ein Land und das Bild ist vollständig: direkt weitergeben (kein Umrechnen)
+        boolean both = he && rp;
+        java.util.concurrent.Future<byte[]> fRp = both ? DOP_POOL.submit(() -> httpBytes(DOP_RP + bbox)) : null;
+        java.util.concurrent.Future<byte[]> fHe = both ? DOP_POOL.submit(() -> httpBytes(DOP_HE + bbox)) : null;
+        // nur ein Land: das JPEG des Landesdienstes direkt übernehmen (keine Transparenz, kein Umrechnen – schnell und farbecht)
         if (!(he && rp)) {
             byte[] b = null;
-            try { b = (he ? fHe : fRp).get(40, java.util.concurrent.TimeUnit.SECONDS); } catch (Exception ignored) { }
+            try { b = httpBytes((he ? DOP_HE : DOP_RP).replace("FORMAT=image/png&TRANSPARENT=TRUE", "FORMAT=image/jpeg") + bbox); } catch (Exception ignored) { }
             if (b == null) return null;
             android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
-            if (bm == null || !hasContent(bm)) { if (bm != null) bm.recycle(); return null; }
-            android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
-            android.graphics.Canvas cv = new android.graphics.Canvas(out);
-            cv.drawColor(0xffd9d9d0);
-            cv.drawBitmap(bm, null, new android.graphics.Rect(0, 0, 256, 256), null);
-            bm.recycle();
-            ByteArrayOutputStream bo = new ByteArrayOutputStream();
-            out.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, bo);
-            out.recycle();
-            return bo.toByteArray();
+            boolean ok = bm != null && hasContent(bm);
+            if (bm != null) bm.recycle();
+            return ok ? b : null;
         }
         android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas cv = new android.graphics.Canvas(out);
@@ -2062,7 +2056,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         ex.submit(() -> {
                             if (prefetchStop) return;
                             try {
-                                String key = lay.equals("dop") ? "dop2/" + t[0] + "/" + t[1] + "/" + t[2] + ".jpg" : lay + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png";
+                                String key = lay.equals("dop") ? "dop3/" + t[0] + "/" + t[1] + "/" + t[2] + ".jpg" : lay + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png";
                                 File f = new File(tileDir(), key);
                                 if (f.isFile() && f.length() > 0) { synchronized (cnt) { cnt[1]++; } }
                                 else {
