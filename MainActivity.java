@@ -334,6 +334,56 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return out.toByteArray();
     }
 
+    /** Muss die Datei für die Zieldrohne umgerechnet werden? */
+    private static boolean needsConvert(File src, String to) {
+        try (ZipInputStream z = new ZipInputStream(new FileInputStream(src))) {
+            ZipEntry e;
+            while ((e = z.getNextEntry()) != null) {
+                if (!e.getName().toLowerCase(Locale.ROOT).endsWith("template.kml")) continue;
+                String t = new String(readBytes(z), StandardCharsets.UTF_8);
+                String from = droneOfKml(t);
+                return from != null && !from.equals(to);
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    /** KMZ neu packen: optional umrechnen (to != null), Zeitstempel createTime/updateTime und Zip-Einträge auf jetzt */
+    private static byte[] rewriteKmz(File src, String to) throws Exception {
+        if (to != null) {
+            byte[] c = convertKmz(src, to);   // null = gleiche Drohne, nichts umzurechnen
+            if (c != null) return stampKmz(c);
+        }
+        try (InputStream in = new FileInputStream(src)) { return stampKmz(readBytes(in)); }
+    }
+
+    private static byte[] stampKmz(byte[] kmz) throws Exception {
+        String now = String.valueOf(System.currentTimeMillis());
+        java.util.LinkedHashMap<String, byte[]> entries = new java.util.LinkedHashMap<>();
+        try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(kmz))) {
+            ZipEntry e;
+            while ((e = z.getNextEntry()) != null) { if (!e.isDirectory()) entries.put(e.getName(), readBytes(z)); }
+        }
+        if (entries.isEmpty()) return kmz;   // keine Zip-Datei: unverändert übernehmen
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zo = new java.util.zip.ZipOutputStream(out)) {
+            for (Map.Entry<String, byte[]> en : entries.entrySet()) {
+                byte[] v = en.getValue();
+                String ln = en.getKey().toLowerCase(Locale.ROOT);
+                if (ln.endsWith(".kml") || ln.endsWith(".wpml")) {
+                    String t = new String(v, StandardCharsets.UTF_8)
+                            .replaceAll("<wpml:createTime>\\d+</wpml:createTime>", "<wpml:createTime>" + now + "</wpml:createTime>")
+                            .replaceAll("<wpml:updateTime>\\d+</wpml:updateTime>", "<wpml:updateTime>" + now + "</wpml:updateTime>");
+                    v = t.getBytes(StandardCharsets.UTF_8);
+                }
+                ZipEntry ze = new ZipEntry(en.getKey());
+                ze.setTime(System.currentTimeMillis());
+                zo.putNextEntry(ze); zo.write(v); zo.closeEntry();
+            }
+        }
+        return out.toByteArray();
+    }
+
     /** "Feld-M3T_1.8ha.kmz" -> "Feld-M4T_1.8ha.kmz" */
     private static String swapDroneInName(String name, String to) {
         String other = "M3T".equals(to) ? "M4T" : "M3T";
@@ -514,21 +564,22 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 for (int i = 0; i < paths.length(); i++) {
                     File src = new File(paths.getString(i));
                     try {
-                        byte[] converted = (drone == null || drone.isEmpty()) ? null : convertKmz(src, drone);
-                        String name = converted != null ? swapDroneInName(src.getName(), drone) : src.getName();
+                        boolean conv = drone != null && !drone.isEmpty() && needsConvert(src, drone);
+                        // immer neu schreiben: Zeitstempel in der Planung (createTime/updateTime) auf jetzt, ggf. umrechnen
+                        byte[] converted = rewriteKmz(src, conv ? drone : null);
+                        String name = conv ? swapDroneInName(src.getName(), drone) : src.getName();
                         File target = new File(dst, name);
                         if (src.getCanonicalPath().equals(target.getCanonicalPath())) {
                             errors.put(src.getName() + ": liegt bereits im Zielordner");
                             continue;
                         }
-                        if (converted != null) {
-                            try (OutputStream o = new FileOutputStream(target, false)) { o.write(converted); }
-                            target.setLastModified(System.currentTimeMillis());
-                            if (target.length() != converted.length) throw new Exception("Schreiben unvollständig");
-                        } else {
-                            copy(src, target);
-                            if (target.length() != src.length()) throw new Exception("Kopie unvollständig");
-                        }
+                        // alte Zieldatei löschen und neu anlegen -> auch das Erstelldatum der Datei ist "jetzt"
+                        File tmp = new File(dst, "." + name + ".tmp");
+                        try (OutputStream o = new FileOutputStream(tmp, false)) { o.write(converted); }
+                        if (tmp.length() != converted.length) { tmp.delete(); throw new Exception("Schreiben unvollständig"); }
+                        if (target.exists() && !target.delete()) { tmp.delete(); throw new Exception("alte Datei im Zielordner lässt sich nicht ersetzen"); }
+                        if (!tmp.renameTo(target)) { copy(tmp, target); tmp.delete(); }
+                        target.setLastModified(System.currentTimeMillis());
                         if (move && !src.delete()) errors.put(src.getName() + ": kopiert, Original konnte nicht gelöscht werden");
                         done++;
                     } catch (Exception e) {
@@ -744,6 +795,73 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 }
                 js("window.onTileCache && window.onTileCache()");
             }).start();
+        }
+
+        /** Gespeicherte Stromleitungen (OSM) kompakt für die Karte: [{kv, p, n, o, g:[lon,lat,…]}] */
+        @JavascriptInterface
+        public String osmLines() {
+            JSONArray out = new JSONArray();
+            try {
+                if (!osmFile().isFile()) return "[]";
+                JSONArray els = new JSONArray(readFile(osmFile()));
+                for (int i = 0; i < els.length(); i++) {
+                    JSONObject el = els.getJSONObject(i);
+                    if (!"way".equals(el.optString("type"))) continue;
+                    JSONObject t = el.optJSONObject("tags");
+                    JSONArray g = el.optJSONArray("geometry");
+                    if (t == null || g == null || g.length() < 2) continue;
+                    if (!t.optString("power").matches("line|minor_line")) continue;   // nur Freileitungen (Erdkabel/Bahn/Windräder separat)
+                    JSONArray pts = new JSONArray();
+                    for (int k = 0; k < g.length(); k++) {
+                        JSONObject pt = g.optJSONObject(k);
+                        if (pt != null) pts.put(Math.round(pt.optDouble("lon") * 1e5) / 1e5).put(Math.round(pt.optDouble("lat") * 1e5) / 1e5);
+                    }
+                    int kv = 0;
+                    for (String v : t.optString("voltage").split(";")) { try { kv = Math.max(kv, Integer.parseInt(v.trim()) / 1000); } catch (Exception ignored) { } }
+                    out.put(new JSONObject().put("kv", kv).put("p", t.optString("power")).put("n", t.optString("name", t.optString("ref", "")))
+                            .put("o", t.optString("operator")).put("g", pts));
+                }
+            } catch (Exception ignored) { }
+            return out.toString();
+        }
+
+        /** Hindernisse aus OSM: {pts:[{t,h,hub,rot,n,lat,lon}], rails:[{e,n,g}]} – t = wind|mast|tower|chimney */
+        @JavascriptInterface
+        public String osmObstacles() {
+            JSONArray pts = new JSONArray(), rails = new JSONArray();
+            try {
+                if (osmFile().isFile()) {
+                    JSONArray els = new JSONArray(readFile(osmFile()));
+                    for (int i = 0; i < els.length(); i++) {
+                        JSONObject el = els.getJSONObject(i), t = el.optJSONObject("tags");
+                        if (t == null) continue;
+                        String ty = el.optString("type");
+                        if (t.has("railway") && "way".equals(ty)) {
+                            JSONArray g = el.optJSONArray("geometry"), ln = new JSONArray();
+                            if (g == null) continue;
+                            for (int k = 0; k < g.length(); k++) { JSONObject p = g.optJSONObject(k); if (p != null) ln.put(Math.round(p.optDouble("lon") * 1e5) / 1e5).put(Math.round(p.optDouble("lat") * 1e5) / 1e5); }
+                            String elc = t.optString("electrified");
+                            rails.put(new JSONObject().put("e", elc.equals("contact_line") || elc.equals("yes")).put("n", t.optString("name", t.optString("ref", ""))).put("g", ln));
+                            continue;
+                        }
+                        boolean wind = "generator".equals(t.optString("power")) && "wind".equals(t.optString("generator:source"));
+                        String mm = t.optString("man_made");
+                        if (!wind && mm.isEmpty()) continue;
+                        double lat = el.optDouble("lat", Double.NaN), lon = el.optDouble("lon", Double.NaN);
+                        JSONArray g = el.optJSONArray("geometry");
+                        if (Double.isNaN(lat) && g != null && g.length() > 0) {   // als Fläche kartiert: Mittelpunkt
+                            double a2 = 0, b2 = 0; for (int k = 0; k < g.length(); k++) { a2 += g.getJSONObject(k).optDouble("lat"); b2 += g.getJSONObject(k).optDouble("lon"); }
+                            lat = a2 / g.length(); lon = b2 / g.length();
+                        }
+                        if (Double.isNaN(lat)) continue;
+                        pts.put(new JSONObject().put("t", wind ? "wind" : mm.replace("communications_tower", "tower"))
+                                .put("h", num(t.optString("height"))).put("hub", num(t.optString("generator:hub_height", t.optString("hub_height"))))
+                                .put("rot", num(t.optString("rotor:diameter", t.optString("generator:rotor_diameter"))))
+                                .put("n", t.optString("name", t.optString("operator", ""))).put("lat", lat).put("lon", lon));
+                    }
+                }
+            } catch (Exception ignored) { }
+            try { return new JSONObject().put("pts", pts).put("rails", rails).toString(); } catch (Exception e) { return "{}"; }
         }
 
         /** Gespeicherte Grenzen der Bundesländer / RB Gießen im Gebiet */
@@ -1566,32 +1684,33 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     /** Lädt alle Leitungen/Masten im Gebiet (alle 24 h oder wenn das Gebiet größer wird) */
     private void osmSync(double n, double s, double e, double w, boolean force) {
+        // gespeichertes Gebiet behalten: mit dem neuen zusammenfassen, solange es klein bleibt (< ca. 80 km)
+        try {
+            JSONObject ob = new JSONObject(prefs.getString("osm_bbox", "{}"));
+            if (ob.has("n") && osmFile().isFile()) {
+                double un = Math.max(n, ob.getDouble("n")), us = Math.min(s, ob.getDouble("s"));
+                double ue = Math.max(e, ob.getDouble("e")), uw = Math.min(w, ob.getDouble("w"));
+                if (Math.hypot((un - us) * 111.2, (ue - uw) * 111.2 * Math.cos(Math.toRadians((un + us) / 2))) < 80) { n = un; s = us; e = ue; w = uw; }
+            }
+        } catch (Exception ignored) { }
         long fetched = prefs.getLong("osm_fetched", 0);
-        boolean fresh = System.currentTimeMillis() - fetched < DAY;
-        if (!force && fresh && osmCovers(n, s, e, w) && osmFile().isFile()) return;
+        boolean fresh = System.currentTimeMillis() - fetched < 7 * DAY;   // Leitungen ändern sich selten
+        boolean oldFormat = prefs.getInt("osm_ver", 1) < 2;   // ältere Daten ohne Windräder/Masten/Bahn: einmal neu laden
+        if (!force && fresh && !oldFormat && osmCovers(n, s, e, w) && osmFile().isFile()) return;
         try {
             String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
             String q = "[out:json][timeout:120];("
                     + "way[\"power\"~\"^(line|minor_line|cable)$\"](" + bb + ");"
                     + "node[\"power\"~\"^(tower|portal)$\"](" + bb + ");"
                     + "node[\"power\"=\"pole\"][\"height\"](" + bb + ");"
+                    // Hindernisse: Windräder, hohe Bauwerke, Bahnstrecken
+                    + "nwr[\"power\"=\"generator\"][\"generator:source\"=\"wind\"](" + bb + ");"
+                    + "node[\"man_made\"~\"^(mast|tower|chimney|communications_tower)$\"](" + bb + ");"
+                    + "way[\"railway\"~\"^(rail|light_rail)$\"](" + bb + ");"
                     + ");out tags geom;";
-            HttpURLConnection c = (HttpURLConnection) new URL("https://overpass-api.de/api/interpreter").openConnection();
-            c.setRequestMethod("POST");
-            c.setConnectTimeout(15000); c.setReadTimeout(150000);
-            c.setDoOutput(true);
-            c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            c.setRequestProperty("User-Agent", "KMZMissionen/1.5 (Kitzrettung, nicht-kommerziell)");
-            try (OutputStream o = c.getOutputStream()) { o.write(("data=" + URLEncoder.encode(q, "UTF-8")).getBytes(StandardCharsets.UTF_8)); }
-            if (c.getResponseCode() != 200) return;
-            String txt;
-            try (InputStream in = c.getInputStream()) { txt = readAll(in); }
-            c.disconnect();
-            JSONArray els = new JSONObject(txt).getJSONArray("elements");   // prüft, ob die Antwort gültig ist
-            File tmp = new File(osmFile().getPath() + ".tmp");
-            try (OutputStream o = new FileOutputStream(tmp)) { o.write(els.toString().getBytes(StandardCharsets.UTF_8)); }
-            if (!tmp.renameTo(osmFile())) { osmFile().delete(); tmp.renameTo(osmFile()); }
-            prefs.edit().putLong("osm_fetched", System.currentTimeMillis())
+            JSONArray els = new JSONObject(overpass(q, 180000)).getJSONArray("elements");   // mit Ausweichservern
+            writeFileAtomic(osmFile(), els.toString());
+            prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 2)
                     .putString("osm_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             osmCache = els;
             osmCacheLoaded = System.currentTimeMillis();
@@ -1757,6 +1876,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             prefs.edit().putLong("reg_fetched", System.currentTimeMillis())
                     .putString("reg_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
         } catch (Exception ignored) { }
+    }
+
+    /** "142 m" / "142,5" -> 142.5, sonst 0 */
+    private static double num(String v) {
+        try { Matcher m = Pattern.compile("([\\d]+(?:[.,]\\d+)?)").matcher(v == null ? "" : v); return m.find() ? Double.parseDouble(m.group(1).replace(',', '.')) : 0; } catch (Exception e) { return 0; }
     }
 
     /** Douglas-Peucker (iterativ genug für Grenzlinien) */
@@ -1999,6 +2123,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 JSONArray near = new JSONArray();
                 for (int i = 0; i < osmCache.length(); i++) {
                     JSONObject el = osmCache.getJSONObject(i);
+                    JSONObject tg = el.optJSONObject("tags");
+                    String pw = tg != null ? tg.optString("power") : "";
+                    if (!pw.matches("line|minor_line|cable|tower|portal|pole")) continue;   // nur Stromnetz (keine Bahn/Windräder)
                     if ("node".equals(el.optString("type"))) {
                         if (distM(lat, lon, el.optDouble("lat"), el.optDouble("lon")) <= 350) near.put(el);
                     } else {
@@ -2019,6 +2146,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 return;
             }
         } catch (Exception ignored) { }
+        if (!online()) {
+            try {
+                js("window.onPowerInfo && window.onPowerInfo(" + JSONObject.quote(new JSONObject().put("ok", false)
+                        .put("error", "offline – für diese Stelle noch keine Leitungsdaten gespeichert").toString()) + ")");
+            } catch (Exception ignored) { }
+            return;
+        }
         powerInfoOnline(lat, lon);   // außerhalb des gespeicherten Gebiets: live abfragen
     }
 
@@ -2053,6 +2187,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 regionSync(fn, fs, fe, fw, force);
                 js("window.onRegions && window.onRegions()");
                 osmSync(fn, fs, fe, fw, force);
+                js("window.onOsmLines && window.onOsmLines()");
                 airfieldSync(fn, fs, fe, fw, force);
                 notamSyncImpl(fn, fs, fe, fw, force);
                 js("window.onNotams && window.onNotams()");

@@ -231,6 +231,7 @@
     <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Bundesland-Erkennung</div>
       <div class="v" id="vReg"></div>
     </div>
+    <div class="set"><div class="l"><div class="t">Hindernisse aus OpenStreetMap</div><div class="v">Windräder (grün, mit Gesamthöhe), Masten/Türme/Schornsteine (braunes Dreieck), Bahnstrecken (schwarz-weiß) und alle Freileitungen nach Spannung: violett dick = Höchstspannung (220/380 kV), violett = Hochspannung (110 kV), orange = Mittelspannung, grau gestrichelt = Nieder-/unbekannte Spannung. Auch Leitungen ohne dipul-Geozone – Hindernis beim Start und Tiefflug.</div></div><label class="sw"><input type="checkbox" id="sOsmPower"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Überfluggenehmigung Stromleitungen (Netzbetreiber)</div><div class="v">Genehmigungen der Netzbetreiber liegen vor – Stromtrassen werden grau, in der Info stehen Spannung und Masthöhe</div></div><label class="sw"><input type="checkbox" id="sPower"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Allgemeinverfügung Wildtierrettung (RP Gießen)</div><div class="v" id="vAvgi"></div></div><label class="sw"><input type="checkbox" id="sAvgi"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Saison-Vorschau (Planung)</div><div class="v">Zeigt Naturschutz-, FFH- und Vogelschutzgebiete im RB Gießen so, als wäre Mähsaison (15.04.–30.06.). Nur zur Planung – außerhalb der Saison gilt die Verfügung NICHT.</div></div><label class="sw"><input type="checkbox" id="sSeason"><span></span></label></div>
@@ -313,7 +314,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -429,6 +430,8 @@ function paint() {
     ctx.fillStyle = '#334'; ctx.fillText(at, ax, H - 78);
   }
   if (P.geo === '1' && S.geo.length && V.z >= 9) paintGeo();
+  if (P.osmPower === '1' && (S.obs.length || S.rails.length) && V.z >= 11) paintObstacles();
+  if (P.osmPower === '1' && S.osm.length && V.z >= 11) paintOsmLines();
   if (S.notams.length) S.notams.forEach(drawNotam);
   const vis = S.files.filter(visible);
   const ord = [...vis].sort(byAreaDesc);
@@ -436,12 +439,17 @@ function paint() {
   ord.filter(f => f.selected).forEach(drawField);   // Route markierter Felder obenauf
   labelBoxes = [];
   if (P.labels === '1') { vis.filter(f => f.selected).forEach(drawLabel); vis.filter(f => !f.selected).forEach(drawLabel); }
-  if (P.geo === '1' && S.geo.length && V.z >= 9) {
-    const icons = geoAirIcons();
-    if (!S.airfields.some(isVincenz)) icons.filter(g => /vincenz/i.test(g.f.props.name || '')).forEach(drawVincenzRings);
-    icons.forEach(drawGeoAirIcon);
+  // dipul ist maßgeblich: Symbol und Vincenz-Ringe in der Mitte des dipul-Kreises; OSM-Marker nur, wo dipul keinen Platz hat
+  const icons = P.geo === '1' && S.geo.length && V.z >= 9 ? geoAirIcons() : [];
+  const nearIcon = a => icons.some(g => Math.hypot((a.lat - g.lat) * 111.2, (a.lon - g.lon) * 71) < 0.6);
+  const vzIcons = icons.filter(g => /vincenz/i.test(g.f.props.name || ''));
+  vzIcons.forEach(drawVincenzRings);
+  if (P.airf === '1' && S.airfields.length && V.z >= 9) {
+    const osm = S.airfields.filter(a => !nearIcon(a));
+    if (!vzIcons.length) osm.filter(isVincenz).forEach(drawVincenzRings);
+    osm.forEach(drawAirfield);
   }
-  if (P.airf === '1' && S.airfields.length && V.z >= 9) { S.airfields.filter(isVincenz).forEach(drawVincenzRings); S.airfields.forEach(drawAirfield); }
+  icons.forEach(drawGeoAirIcon);
   if (infoPin) {
     const [x, y] = toScreen(infoPin[0], infoPin[1]);
     ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y - 22, 9, Math.PI * 0.75, Math.PI * 2.25); ctx.closePath();
@@ -511,9 +519,9 @@ function geoPathDraw(f, st) {
 // Raster für Zonen über einer Landesgrenze: Zellen geografisch ausgerichtet, damit der Cache beim Verschieben greift
 const covCellCache = new Map();
 function cellCovered(layer, lat, lon) {
-  const k = layer + ':' + lat.toFixed(5) + ',' + lon.toFixed(5);
+  const k = layer + ':' + lat.toFixed(6) + ',' + lon.toFixed(6);
   let v = covCellCache.get(k);
-  if (v === undefined) { v = !!coverageOf(layer, regionAt(lat, lon)); if (covCellCache.size > 40000) covCellCache.clear(); covCellCache.set(k, v); }
+  if (v === undefined) { v = !!coverageOf(layer, regionAt(lat, lon)); if (covCellCache.size > 120000) covCellCache.clear(); covCellCache.set(k, v); }
   return v;
 }
 function paintGeo() {
@@ -526,13 +534,18 @@ function paintGeo() {
     const covs = S.regions.length ? featRegions(f).map(r => !!coverageOf(f.layer, r)) : [!!coverageOf(f.layer, featRegion(f))];
     if (covs.every(c => c === covs[0])) { geoPathDraw(f, covs[0] ? GEO_STYLE.on : GEO_STYLE.off); continue; }
     // Zone liegt in Bundesländern mit unterschiedlicher Genehmigung: an der Landesgrenze trennen (grün / rot getrennt zeichnen)
-    const cellPx = 10, [la0, lo0] = fromScreen(0, 0), [la1, lo1] = fromScreen(cellPx, cellPx);
-    const dLat = Math.abs(la0 - la1), dLon = Math.abs(lo1 - lo0);
-    const pOn = new Path2D(), pOff = new Path2D();
-    const latA = Math.floor(Math.max(f.bb.s, s0) / dLat) * dLat, lonA = Math.floor(Math.max(f.bb.w, w0) / dLon) * dLon;
-    for (let la = latA; la <= Math.min(f.bb.n, n0) + dLat; la += dLat) for (let lo = lonA; lo <= Math.min(f.bb.e, e0) + dLon; lo += dLon) {
-      const [cx, cy] = toScreen(la + dLat, lo), [cx2, cy2] = toScreen(la, lo + dLon);
-      (cellCovered(f.layer, la + dLat / 2, lo + dLon / 2) ? pOn : pOff).rect(cx, cy, cx2 - cx + .6, cy2 - cy + .6);
+    // Raster in Bildschirm-Pixeln: 10-px-Zellen, an der Grenze (Ecken uneinig) fein in 2-px-Zellen unterteilt
+    const pOn = new Path2D(), pOff = new Path2D(), C = 10, Fp = 2;
+    const sx0 = Math.max(0, Math.floor(Math.min(...[toScreen(f.bb.n, f.bb.w)[0], toScreen(f.bb.s, f.bb.w)[0]]) / C) * C);
+    const sx1 = Math.min(W, Math.max(toScreen(f.bb.n, f.bb.e)[0], toScreen(f.bb.s, f.bb.e)[0]) + C);
+    const sy0 = Math.max(0, Math.floor(toScreen(f.bb.n, f.bb.w)[1] / C) * C), sy1 = Math.min(H, toScreen(f.bb.s, f.bb.w)[1] + C);
+    const corner = new Map();
+    const cov = (x, y) => { const k = x + ',' + y; let v = corner.get(k); if (v === undefined) { const [la, lo] = fromScreen(x, y); v = cellCovered(f.layer, la, lo); corner.set(k, v); } return v; };
+    for (let y = sy0; y < sy1; y += C) for (let x = sx0; x < sx1; x += C) {
+      const a = cov(x, y), b = cov(x + C, y), c = cov(x, y + C), d = cov(x + C, y + C);
+      if (a === b && a === c && a === d) { (a ? pOn : pOff).rect(x, y, C + .5, C + .5); continue; }
+      for (let yy = y; yy < y + C; yy += Fp) for (let xx = x; xx < x + C; xx += Fp)
+        (cov(xx + Fp / 2, yy + Fp / 2) ? pOn : pOff).rect(xx, yy, Fp + .3, Fp + .3);
     }
     ctx.save(); ctx.clip(pOff); geoPathDraw(f, GEO_STYLE.off); ctx.restore();
     ctx.save(); ctx.clip(pOn); geoPathDraw(f, GEO_STYLE.on); ctx.restore();
@@ -624,8 +637,10 @@ function geoAirIcons() {
   const out = [];
   S.geo.forEach(f => {
     if (!AIR_LAYERS.includes(f.layer)) return;
-    const lat = (f.bb.n + f.bb.s) / 2, lon = (f.bb.e + f.bb.w) / 2;
-    if (P.airf === '1' && S.airfields.some(a => Math.hypot((a.lat - lat) * 111.2, (a.lon - lon) * 71) < 0.4)) return;
+    // Mitte des dipul-Kreises (Schwerpunkt der Eckpunkte; bei Kreisen exakt der Mittelpunkt)
+    const r0 = f.rings[0] || [], m = r0.length > 1 && r0[0][0] === r0[r0.length - 1][0] && r0[0][1] === r0[r0.length - 1][1] ? r0.slice(0, -1) : r0;
+    const lat = m.length ? m.reduce((a, c) => a + c[1], 0) / m.length : (f.bb.n + f.bb.s) / 2;
+    const lon = m.length ? m.reduce((a, c) => a + c[0], 0) / m.length : (f.bb.e + f.bb.w) / 2;
     out.push({ f, lat, lon, heli: isHeliZone(f), model: f.layer === 'modellflugplaetze' });
   });
   return out;
@@ -985,10 +1000,13 @@ function doTransfer(paths, drone) {
     busy('');
     if (r.error) return toast('Fehler: ' + r.error, true);
     S.files.forEach(f => f.selected = false);
-    const what = drone ? ` als ${drone === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'}` : '';
+    const nConv = drone ? S.files.filter(f => paths.includes(f.path) && f.drone && f.drone !== drone).length : 0;
+    const what = nConv ? ` (${nConv} auf ${drone === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} umgerechnet)` : '';
     if (r.errors && r.errors.length) toast(`${r.done} übertragen${what}, ${r.errors.length} Fehler:\n` + r.errors.join('\n'), true, 9000);
     else toast(`${r.done} Feld${r.done > 1 ? 'er' : ''}${what} ${move ? 'verschoben' : 'kopiert'}.`);
-    await load(true);
+    // Quellordner nicht neu einlesen: beim Kopieren ändert sich dort nichts, beim Verschieben nur die übertragenen Felder entfernen
+    if (move) { const gone = new Set(paths); S.files = S.files.filter(f => !gone.has(f.path)); markDups(); }
+    update();
   }, 30);
 }
 
@@ -1187,7 +1205,7 @@ function inRegion(lat, lon, r) {
 /** {st:'HE', rbGi:true, fallback:false} – fällt auf die Einstellung zurück, wenn keine Grenzdaten vorliegen */
 function regionAt(lat, lon) {
   if (!S.regions.length) return { st: null, rbGi: false, fallback: true };
-  const k = lat.toFixed(3) + ',' + lon.toFixed(3);
+  const k = lat.toFixed(5) + ',' + lon.toFixed(5);   // ca. 1 m – grobe Kästchen ergaben Treppenstufen an der Grenze
   if (regCache.has(k)) return regCache.get(k);
   let st = null, rbGi = false;
   for (const r of S.regions) {
@@ -1196,7 +1214,7 @@ function regionAt(lat, lon) {
     else if (r.lvl === '5') rbGi = true;
   }
   const res = st ? { st, rbGi: st === 'HE' && rbGi, fallback: false } : { st: null, rbGi: false, fallback: true };
-  if (regCache.size > 5000) regCache.clear();
+  if (regCache.size > 60000) regCache.clear();
   regCache.set(k, res);
   return res;
 }
@@ -1254,6 +1272,7 @@ function fillRules() {
   $('sAvgi').checked = P.avgi === '1';
   $('sSeason').checked = P.season === '1';
   $('sPower').checked = P.power === '1';
+  $('sOsmPower').checked = P.osmPower === '1';
   $('sAf').checked = P.airf === '1';
   $('sWxStart').value = P.wxStart;
   const rm = P.rose === '0' ? 'off' : P.compass === '0' ? 'north' : 'dev';
@@ -1265,6 +1284,7 @@ function fillRules() {
     + (P.avgi !== '1' ? 'ausgeschaltet' : act ? '<b style="color:#13a538">heute GÜLTIG</b>' : `<b style="color:#b3131b">heute NICHT gültig</b> (außerhalb 15.04.–30.06.)${P.season === '1' ? ' – Saison-Vorschau an' : ''}`);
 }
 document.querySelectorAll('[data-lic]').forEach(b => b.onclick = () => { setP('lic', b.dataset.lic); fillRules(); applyGeoConfig(); });
+$('sOsmPower').onchange = e => { setP('osmPower', e.target.checked ? 1 : 0); draw(); };
 $('sPower').onchange = e => { setP('power', e.target.checked ? 1 : 0); fillRules(); applyGeoConfig(); };
 $('sAvgi').onchange = e => { setP('avgi', e.target.checked ? 1 : 0); fillRules(); applyGeoConfig(); };
 $('sSeason').onchange = e => { setP('season', e.target.checked ? 1 : 0); fillRules(); applyGeoConfig(); if (e.target.checked && !avgiActive()) toast('Saison-Vorschau: nur zur Planung. Heute gilt die Allgemeinverfügung nicht.', true, 5000); };
@@ -1402,7 +1422,36 @@ window.onGeoInfo = raw => {
     const here = S.files.filter(visible).filter(f => (f.outline && inRing(r.lat, r.lon, f.outline.map(p => [p[1], p[0]]))) || fieldDistTo(f, r.lat, r.lon) < 25);
     if (here.length) html = `<div class="zone" style="border-left:5px solid #1e7bff"><h4>Feld${here.length > 1 ? 'er' : ''} an dieser Stelle</h4>${here.map(f => `<div>${esc(f.title)}${f.height ? ' · ' + f.height + ' m' : ''}${f.drone ? ' · ' + f.drone : ''}${f.areaM2 ? ' · ' + (f.areaM2 / 10000).toFixed(2).replace('.', ',') + ' ha' : ''}</div>`).join('')}</div>` + html;
   }
+  // Stromleitung aus OpenStreetMap ohne dipul-Geozone: trotzdem anzeigen (Hindernis)
+  const osmNear = osmLinesNear(r.lat, r.lon, 35);
+  if (osmNear.length && !feats.some(f => f.layer === 'stromleitungen')) {
+    html += osmNear.slice(0, 3).map(l => { const c = lineClass(l.kv, l.p);
+      return `<div class="zone" style="border-left:5px solid ${c.c}"><h4>Stromleitung · ${l.kv ? l.kv + ' kV' : 'Spannung unbekannt'} <span class="chip grey">keine dipul-Geozone</span></h4>
+        <div class="meta">${c.name}${l.n ? ' · ' + esc(l.n) : ''}${l.o ? ' · ' + esc(l.o) : ''} · typische Masthöhe ca. ${c.h[0]}–${c.h[1]} m (Schätzwert)</div>
+        <div>Keine Geozone nach § 21h LuftVO, aber ein Hindernis: Seile sind aus der Luft schlecht zu sehen – beim Start, bei der Landung und im Tiefflug Abstand halten.</div>
+        <div class="meta" style="margin-top:4px">Daten © OpenStreetMap-Mitwirkende</div></div>`; }).join('');
+  }
+  // Hindernisse aus OSM an der Stelle
+  const fhm = flightHeight();
+  obstaclesNear(r.lat, r.lon).slice(0, 3).forEach(({ o, d }) => {
+    const top = Math.round(o.top || 0), warn = fhm && top && top >= fhm - 20;
+    html += `<div class="zone" style="border-left:5px solid ${o.t === 'wind' ? '#00695c' : '#5d4037'}"><h4>${OBS_NAME[o.t] || 'Bauwerk'}${top ? ' · ' + top + ' m hoch' : ' · Höhe nicht erfasst'} <span class="chip grey">${Math.round(d)} m entfernt</span></h4>
+      <div class="meta">${o.n ? esc(o.n) + ' · ' : ''}${o.t === 'wind' ? `${o.hub ? 'Nabenhöhe ' + Math.round(o.hub) + ' m · ' : ''}${o.rot ? 'Rotor ⌀ ' + Math.round(o.rot) + ' m · ' : ''}` : ''}Daten © OpenStreetMap-Mitwirkende, ohne Gewähr</div>
+      ${warn ? `<div style="margin-top:6px;padding:8px 10px;border-radius:8px;background:#b3131b;color:#fff;font-weight:700">⚠ Missionshöhe ${fhm} m – das Hindernis ist ${top} m hoch! Abstand halten bzw. Route meiden.</div>` : top ? `<div>Missionshöhe ${fhm || '–'} m · Hindernis ${top} m – Geländeunterschiede zum Startpunkt beachten.</div>` : '<div>Höhe vor Ort prüfen.</div>'}
+      ${o.t === 'wind' ? '<div class="meta" style="margin-top:4px">Windkraftanlagen sind auch dipul-Geozonen (§ 21h LuftVO). Drehende Rotoren und Verwirbelungen hinter der Anlage meiden.</div>' : ''}</div>`;
+  });
+  const rn = railsNear(r.lat, r.lon);
+  if (rn.length) html += `<div class="zone" style="border-left:5px solid #2b2f36"><h4>Bahnstrecke${rn[0].n ? ' · ' + esc(rn[0].n) : ''} ${rn.some(x => x.e) ? '<span class="chip">mit Oberleitung</span>' : '<span class="chip grey">ohne Oberleitung (laut OSM)</span>'}</h4>
+    <div>${rn.some(x => x.e) ? 'Oberleitung ca. 5,5–6 m über Gleis, Masten ca. 8–10 m. Mindestens 5 m über Oberleitungen (Allgemeinerlaubnis), nie darunter durch.' : 'Gleise ohne Oberleitung – Bahnanlage bleibt trotzdem Geozone.'} Bahnanlagen sind dipul-Geozonen (§ 21h LuftVO).</div>
+    <div class="meta" style="margin-top:4px">Daten © OpenStreetMap-Mitwirkende</div></div>`;
   openInfoPage(`Geozonen-Info · ${feats.length === 1 ? '1 Zone' : feats.length + ' Zonen'} an diesem Punkt`, html);
+  // Leitungsdaten sofort zeigen (gespeichert), Masthöhen kommen gleich danach dazu
+  if ($('powerBox')) {
+    const dz = feats.find(f => f.layer === 'stromleitungen'), nm = ((dz && dz.props && dz.props.name) || '');
+    const dipKv = /HöS|HOES|HÖS/i.test(nm) ? 'Höchstspannung (220/380 kV)' : /\bHS\b|\(HS\)/.test(nm) ? 'Hochspannung (meist 110 kV)' : /\bMS\b|\(MS\)/.test(nm) ? 'Mittelspannung' : '';
+    const ol = osmNear.slice(0, 2).map(l => `${l.kv ? l.kv + ' kV' : '? kV'} · ${lineClass(l.kv, l.p).name}${l.n ? ' · ' + esc(l.n) : ''}`).join('<br>');
+    $('powerBox').innerHTML = `${dipKv ? `<b style="color:var(--txt)">Laut dipul: ${dipKv}</b><br>` : ''}${ol ? 'OpenStreetMap: ' + ol + '<br>' : ''}<span>Masthöhen werden ergänzt…</span>`;
+  }
   if ($('ilsSave')) $('ilsSave').onclick = () => { A.setPref('ils_phone', $('ilsPhone').value.trim()); toast('Nummer der Rettungsleitstelle gespeichert.'); window.onGeoInfo(raw); };
   $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => { const a = S.airfields.find(x => String(x.id) === el.dataset.af); if (a) showAirfield(a); });
   if (feats.some(f => f.layer === 'stromleitungen')) {
@@ -1414,6 +1463,107 @@ window.onGeoInfo = raw => {
   }
 };
 
+// ---------- Stromleitungen aus OpenStreetMap auf der Karte (nach Spannung klassifiziert) ----------
+S.osm = [];
+function loadOsmLines() {
+  if (!A.osmLines) return;
+  try {
+    S.osm = JSON.parse(A.osmLines() || '[]').map(l => {
+      const pts = toLatLon(l.g); let n = -90, s = 90, e = -180, w = 180;
+      pts.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); });
+      return { kv: l.kv, p: l.p, n: l.n, o: l.o, pts, bb: { n, s, e, w } };
+    });
+  } catch (e) { S.osm = []; }
+  draw();
+}
+window.onOsmLines = () => { loadOsmLines(); loadObstacles(); };
+// ---------- Hindernisse aus OSM: Windräder, Masten/Türme/Schornsteine, Bahnstrecken ----------
+S.obs = []; S.rails = [];
+function loadObstacles() {
+  if (!A.osmObstacles) return;
+  try {
+    const d = JSON.parse(A.osmObstacles() || '{}');
+    S.obs = (d.pts || []).map(o => Object.assign(o, { top: o.h || (o.hub ? o.hub + (o.rot || 0) / 2 : 0) }));   // Gesamthöhe: height, sonst Nabe + halber Rotor
+    S.rails = (d.rails || []).map(r => { const pts = toLatLon(r.g); let n = -90, s = 90, e = -180, w = 180;
+      pts.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); });
+      return { e: r.e, n: r.n, pts, bb: { n, s, e, w } }; });
+  } catch (e) { S.obs = []; S.rails = []; }
+  draw();
+}
+const OBS_NAME = { wind: 'Windrad', mast: 'Mast', tower: 'Turm', chimney: 'Schornstein' };
+function paintObstacles() {
+  const [n0, w0] = fromScreen(0, 0), [s0, e0] = fromScreen(W, H);
+  ctx.save(); ctx.lineJoin = 'round';
+  if (V.z >= 12) for (const r of S.rails) {   // Bahn: klassische Signatur schwarz-weiß
+    if (r.bb.s > n0 || r.bb.n < s0 || r.bb.w > e0 || r.bb.e < w0) continue;
+    ctx.beginPath(); r.pts.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.setLineDash([]); ctx.lineWidth = 4.5; ctx.strokeStyle = '#2b2f36'; ctx.stroke();
+    ctx.setLineDash([9, 9]); ctx.lineWidth = 2.2; ctx.strokeStyle = '#fff'; ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  if (V.z >= 11) for (const o of S.obs) {
+    if (o.lat > n0 || o.lat < s0 || o.lon < w0 || o.lon > e0) continue;
+    if (o.t !== 'wind' && !o.top && V.z < 14) continue;   // Bauwerke ohne Höhenangabe erst nah
+    const [x, y] = toScreen(o.lat, o.lon);
+    if (o.t === 'wind') {   // Windrad: Kreis mit drei Rotorblättern; Rotorkreis maßstäblich ab nahem Zoom
+      if (o.rot && V.z >= 15) { const [, y2] = toScreen(o.lat + o.rot / 2 / 111200, o.lon); ctx.beginPath(); ctx.arc(x, y, Math.abs(y - y2), 0, 7); ctx.strokeStyle = 'rgba(0,105,92,.7)'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); }
+      ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.fillStyle = '#00695c'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      for (let k = 0; k < 3; k++) { const a = -Math.PI / 2 + k * 2 * Math.PI / 3; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 8 * Math.cos(a), y + 8 * Math.sin(a)); ctx.stroke(); }
+    } else {   // Mast/Turm/Schornstein: Dreieck
+      ctx.beginPath(); ctx.moveTo(x, y - 11); ctx.lineTo(x + 9, y + 7); ctx.lineTo(x - 9, y + 7); ctx.closePath();
+      ctx.fillStyle = '#5d4037'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+    }
+    if (o.top && V.z >= 13) {
+      const fh = flightHeight(), t = Math.round(o.top) + ' m', warn = fh && o.top >= fh - 20;
+      ctx.font = '700 11px Roboto,system-ui,sans-serif'; const tw = ctx.measureText(t).width + 8;
+      ctx.fillStyle = warn ? '#b3131b' : 'rgba(255,255,255,.92)'; ctx.fillRect(x - tw / 2, y + 13, tw, 15);
+      ctx.fillStyle = warn ? '#fff' : '#222'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y + 21);
+    }
+  }
+  ctx.restore();
+}
+function obstaclesNear(lat, lon) {
+  return S.obs.map(o => ({ o, d: Math.hypot((o.lat - lat) * 111200, (o.lon - lon) * 111200 * Math.cos(lat * Math.PI / 180)) }))
+    .filter(x => x.d < Math.max(60, (x.o.rot || 0) / 2 + 40)).sort((a, b) => a.d - b.d);
+}
+function railsNear(lat, lon) {
+  return S.rails.filter(l => lat <= l.bb.n + .002 && lat >= l.bb.s - .002 && lon <= l.bb.e + .003 && lon >= l.bb.w - .003)
+    .filter(l => { for (let i = 0; i + 1 < l.pts.length; i++) if (segDistM(lat, lon, [l.pts[i][1], l.pts[i][0]], [l.pts[i + 1][1], l.pts[i + 1][0]]) < 30) return true; return false; });
+}
+function lineClass(kv, p) {
+  if (kv >= 220) return { name: 'Höchstspannung', c: '#6a1b9a', w: 4, h: [60, 80] };
+  if (kv >= 60) return { name: 'Hochspannung', c: '#8e24aa', w: 3, h: [25, 45] };
+  if (kv >= 6) return { name: 'Mittelspannung', c: '#ef6c00', w: 2.2, h: [8, 15] };
+  if (kv > 0) return { name: 'Niederspannung', c: '#6d7a86', w: 1.5, h: [6, 10], dash: [6, 4] };
+  return p === 'line' ? { name: 'Spannung unbekannt (Freileitung)', c: '#8e24aa', w: 2.5, h: [20, 45], dash: [10, 4] }
+    : { name: 'Spannung unbekannt (kleine Leitung)', c: '#6d7a86', w: 1.5, h: [6, 15], dash: [6, 4] };
+}
+function paintOsmLines() {
+  const [n0, w0] = fromScreen(0, 0), [s0, e0] = fromScreen(W, H);
+  ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  for (const l of S.osm) {
+    if (l.bb.s > n0 || l.bb.n < s0 || l.bb.w > e0 || l.bb.e < w0) continue;
+    const c = lineClass(l.kv, l.p);
+    if (c.w < 2 && V.z < 14) continue;   // kleine Leitungen erst bei nahem Zoom
+    ctx.beginPath(); l.pts.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.setLineDash([]); ctx.lineWidth = c.w + 2.5; ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.stroke();
+    ctx.setLineDash(c.dash || []); ctx.lineWidth = c.w; ctx.strokeStyle = c.c; ctx.stroke();
+    if (V.z >= 15 && l.pts.length > 1) {   // Spannung an der Linie
+      const m = l.pts[Math.floor(l.pts.length / 2)], [x, y] = toScreen(m[0], m[1]);
+      if (x > 0 && y > 0 && x < W && y < H) {
+        const t = l.kv ? l.kv + ' kV' : '? kV'; ctx.setLineDash([]);
+        ctx.font = '700 11px Roboto,system-ui,sans-serif'; const tw = ctx.measureText(t).width + 8;
+        ctx.fillStyle = c.c; ctx.fillRect(x - tw / 2, y - 8, tw, 16); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y + .5);
+      }
+    }
+  }
+  ctx.restore();
+}
+function osmLinesNear(lat, lon, m) {
+  return S.osm.filter(l => lat <= l.bb.n + .002 && lat >= l.bb.s - .002 && lon <= l.bb.e + .003 && lon >= l.bb.w - .003)
+    .filter(l => { for (let i = 0; i + 1 < l.pts.length; i++) if (segDistM(lat, lon, [l.pts[i][1], l.pts[i][0]], [l.pts[i + 1][1], l.pts[i + 1][0]]) < m) return true; return false; });
+}
 // ---------- Stromleitungen: Spannung & Masthöhe ----------
 function typicalHeight(kv) {
   if (kv >= 220) return [70, 80];   // Höchstspannung
@@ -1429,12 +1579,12 @@ function flightHeight() {
 window.onPowerInfo = raw => {
   const box = $('powerBox'); if (!box) return;
   const r = JSON.parse(raw);
-  if (!r.ok) { box.textContent = 'Leitungsdaten nicht verfügbar: ' + r.error; return; }
+  if (!r.ok) { box.innerHTML = box.innerHTML.replace('<span>Masthöhen werden ergänzt…</span>', '') + `<span>Masthöhen nicht verfügbar: ${esc(r.error)}</span>`; return; }
   const els = r.elements || [];
   const lines = els.filter(e => e.type === 'way');
   const masts = els.filter(e => e.type === 'node');
   const mh = masts.map(m => parseFloat(String(m.tags && m.tags.height || '').replace(',', '.'))).filter(h => h > 0);
-  if (!lines.length && !masts.length) { box.innerHTML = 'In OpenStreetMap ist hier keine Leitung erfasst. Höhe vor Ort prüfen.'; return; }
+  if (!lines.length && !masts.length) { box.innerHTML = box.innerHTML.replace('<span>Masthöhen werden ergänzt…</span>', '') + 'In OpenStreetMap ist hier keine Leitung erfasst. Höhe vor Ort prüfen.'; return; }
   const kvs = [];
   let html = '<b style="color:var(--txt)">Leitungsdaten (OpenStreetMap):</b><ul>';
   lines.slice(0, 5).forEach(l => {
@@ -1621,7 +1771,10 @@ function fieldDistTo(f, lat, lon) {
 }
 function vincenzHits(files) {
   const out = [];
-  S.airfields.filter(isVincenz).forEach(a => files.forEach(f => {
+  const dz = S.geo.length ? geoAirIcons().filter(g => /vincenz/i.test(g.f.props.name || '')) : [];
+  const osmV = S.airfields.filter(isVincenz);
+  const centers = dz.length ? dz.map(g => Object.assign({}, osmV[0] || { name: g.f.props.name, kind: 'heliport' }, { lat: g.lat, lon: g.lon })) : osmV;
+  centers.forEach(a => files.forEach(f => {
     const d = fieldDistTo(f, a.lat, a.lon);
     if (d <= 1500) out.push({ a, f, d });
   }));
@@ -2525,6 +2678,8 @@ addEventListener('resize', resize);
 resize();
 update();
 loadRegions();
+loadOsmLines();
+loadObstacles();
 loadGeoVectors();
 applyTheme();
 setTimeout(() => geoSyncNow(false), 4000);   // auch ohne Felder
