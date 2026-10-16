@@ -19,9 +19,8 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font:16px/1.3 Roboto,system-ui,sans-serif;user-select:none}
   #mapWrap{position:fixed;inset:0;overflow:hidden;background:#cfd6dc}
-  #map,#mapT{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
-  #map{touch-action:none}
-  #mapT{pointer-events:none}
+  #map{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
+  #mapT{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform;display:block}
   #mapWrap.grey #mapT{filter:saturate(.3) brightness(1.1) contrast(.85)}
   #mapO{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform}
   button{font:inherit;border:0;border-radius:10px;font-weight:700;cursor:pointer}
@@ -476,7 +475,7 @@ function fromScreen(px, py) {
 }
 function resize() {
   DPR = window.devicePixelRatio || 1; W = innerWidth; H = innerHeight;
-  cv.width = tcv.width = Math.round(W * DPR); cv.height = tcv.height = Math.round(H * DPR); draw();
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); TV.ok = false; draw();
 }
 let pend = false, dirty = true, settleT = 0;
 /** Inhalt hat sich geändert → Karte neu rendern */
@@ -492,7 +491,7 @@ let tileT = 0, tileAt = 0;
 function tileDraw(ms) {
   const at = Date.now() + ms;
   if (tileT && tileAt <= at) return;
-  clearTimeout(tileT); tileAt = at; tileT = setTimeout(() => { tileT = 0; drawLive(false); }, ms);
+  clearTimeout(tileT); tileAt = at; tileT = setTimeout(() => { tileT = 0; tilesDirty = true; drawLive(false); }, ms);
 }
 const tileFail = new Map();   // Kachel-Schlüssel -> Zeitpunkt des letzten Fehlschlags (für erneuten Versuch)
 const tKey = (z, x, y) => P.layer + z + '/' + x + '/' + y;
@@ -523,28 +522,41 @@ function parentTile(z, x, y) {
 }
 
 /** Lage des vorgerenderten Bildes im aktuellen Ausschnitt: [x, y, Faktor] in Bildschirm-Pixeln */
-function bufPlace() {
-  const k = Math.pow(2, V.z - BV.z), s = ws(), ss = 256 * Math.pow(2, BV.z);
-  const X0 = lon2x(BV.lon) - (W / 2 + BV.M) / ss, Y0 = lat2y(BV.lat) - (mapH() / 2 + BV.M) / ss;
+function bufPlace(B) {
+  B = B || BV;
+  const k = Math.pow(2, V.z - B.z), s = ws(), ss = 256 * Math.pow(2, B.z);
+  // Mitte des Bildes so, wie es gezeichnet wurde (nicht mit der heutigen Bildschirmgröße – die kann sich nach dem Wiederöffnen ändern)
+  const X0 = lon2x(B.lon) - B.hx / ss, Y0 = lat2y(B.lat) - B.hy / ss;
   return [(X0 - lon2x(V.lon)) * s + W / 2, (Y0 - lat2y(V.lat)) * s + mapH() / 2, k];
 }
+const covers = (B, lo, hi) => { if (!B.ok) return false; const [x, y, k] = bufPlace(B); return k > lo && k < hi && x <= 0 && y <= 0 && x + B.bw * k >= W && y + B.bh * k >= H; };
+// Kachel-Ebene: ebenfalls vorgerendert mit Rand und per CSS verschoben – exakt im Gleichschritt mit den Zonen/Feldern
+const TV = { ok: false }; let tilesDirty = true;
+function renderTiles() {
+  const M = Math.round(Math.max(W, H) * 0.3), Wr = W, Hr = H, bw = W + 2 * M, bh = H + 2 * M;
+  if (tcv.width !== Math.round(bw * DPR) || tcv.height !== Math.round(bh * DPR)) { tcv.width = Math.round(bw * DPR); tcv.height = Math.round(bh * DPR); tcv.style.width = bw + 'px'; tcv.style.height = bh + 'px'; }
+  ctx = tctx; W = bw; H = bh;
+  try { ctx.setTransform(DPR, 0, 0, DPR, 0, 0); paintTiles(); }
+  finally { W = Wr; H = Hr; ctx = mctx; }
+  Object.assign(TV, { ok: true, lat: V.lat, lon: V.lon, z: V.z, M, bw, bh, hx: bw / 2, hy: (bh - BAR) / 2 });
+  tilesDirty = false;
+}
+const placeEl = (el, B, hideOut) => { const [x, y, k] = bufPlace(B); el.style.visibility = !hideOut || (k > .3 && k < 3.5) ? 'visible' : 'hidden'; el.style.transform = `translate3d(${x}px,${y}px,0) scale(${k})`; };
 let lastMove = 0;
 function paint() {
   pend = false;
   const gest = (ptr.size > 0 || fling) && Date.now() - lastMove < 180;   // Finger (oder Schwung) bewegt die Karte gerade
   let cover = false;
-  if (BV.ok) { const [x, y, k] = bufPlace(); cover = k > .55 && k < 1.8 && x <= 0 && y <= 0 && x + BV.bw * k >= W && y + BV.bh * k >= H; }
+  cover = covers(BV, .55, 1.8);
   // Ebenen (Zonen, Felder, Hindernisse) nur neu rendern, wenn nicht gerade gewischt wird – beim Wischen wird das fertige Bild verschoben
-  if (!gest && (dirty || !cover)) renderBuf();
-  // Drei Ebenen: Kacheln (eigene Leinwand, Grau per GPU-Filter), Zonen/Felder (fertiges Bild, nur per CSS verschoben), oben Position/Kompass
-  ctx = tctx; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  paintTiles();   // Kartenkacheln immer live (schnell), dadurch nie leere Ränder
+  const sizeChanged = BV.ok && (BV.sw !== W || BV.sh !== H || BV.dpr !== DPR);   // z. B. nach dem Wiederöffnen der App
+  if (sizeChanged || (!gest && (dirty || !cover))) renderBuf();
+  // Drei Ebenen: Kacheln und Zonen/Felder als fertige Bilder, die nur per CSS verschoben werden (gleichzeitig, kein Versatz), oben Position/Kompass
+  // Kacheln: neu, wenn die Ebenen gerade neu gerendert wurden (gleicher Ausschnitt), neue Kacheln angekommen sind (nicht während Bewegung) oder der Rand erreicht ist
+  if (!TV.ok || (BV.ok && BV.t !== TV.bt && !gest) || (tilesDirty && !gest) || !covers(TV, .55, 1.8)) { renderTiles(); TV.bt = BV.t; }
+  placeEl(tcv, TV, false);
+  if (BV.ok) placeEl(buf, BV, true);
   ctx = mctx;
-  if (BV.ok) {
-    const [x, y, k] = bufPlace();
-    buf.style.visibility = k > .3 && k < 3.5 ? 'visible' : 'hidden';
-    buf.style.transform = `translate3d(${x}px,${y}px,0) scale(${k})`;
-  }
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   paintLive();
@@ -557,7 +569,7 @@ function renderBuf() {
   try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, buf.width, buf.height); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); paintStatic(); }
   finally { W = Wr; H = Hr; ctx = mctx; }
   labelBoxes.forEach(b => { b.x -= M; b.y -= M; });   // Etiketten-Treffer in Bildschirmkoordinaten
-  Object.assign(BV, { ok: true, lat: V.lat, lon: V.lon, z: V.z, M, bw, bh, t: Date.now() });
+  Object.assign(BV, { ok: true, lat: V.lat, lon: V.lon, z: V.z, M, bw, bh, hx: bw / 2, hy: (bh - BAR) / 2, sw: Wr, sh: Hr, dpr: DPR, t: Date.now() });
   dirty = false;
 }
 function paintTiles() {
@@ -672,7 +684,7 @@ function featRegions(f) {
   if (!masks) {
     const { n, s: so, e, w } = f.bb;
     const crossed = segsIn(w, so, e, n, g => segHitsRect(g, w, so, e, n));
-    const [cla, clo] = featPoint(f), m0 = memberFull(cla, clo), set = new Set([m0]);
+    const [cla, clo] = featPoint(f), m0 = memberFast(cla, clo), set = new Set([m0]);
     if (crossed) {   // Eckpunkte entlang der Ringe: Zugehörigkeit per kurzer Strahlen vom vorigen Punkt
       let pla = cla, plo = clo, pm = m0;
       f.rings.forEach(r => r.forEach(c => { pm = memberFrom(pm, pla, plo, c[1], c[0]); pla = c[1]; plo = c[0]; set.add(pm); }));
@@ -777,12 +789,42 @@ function memberFrom(mA, laA, loA, laB, loB) {
   return m;
 }
 function memberFull(lat, lon) { let m = 0; S.regions.forEach((r, i) => { if (inRegion(lat, lon, r)) m |= 1 << i; }); return m; }
+// Schnelle Zugehörigkeit: Raster (0,02°) – jeder Rasterpunkt wird über einen kurzen Strahl vom Nachbarpunkt abgeleitet,
+// nur der allererste über alle Grenzlinien. Danach kostet jede Abfrage nur noch wenige Grenzsegmente.
+const MG = 0.02, MGO = 0.0001234567; let memGrid = new Map(), memGridN = -1;   // Versatz: Rasterpunkte nie genau auf Grenzlinien
+function gridMask(gx, gy) {
+  if (memGridN !== S.regions.length) { memGrid = new Map(); memGridN = S.regions.length; }
+  const k = gx + ',' + gy; let m = memGrid.get(k);
+  if (m !== undefined) return m;
+  const lat = gy * MG + MGO, lon = gx * MG + MGO;
+  // nächsten bekannten Rasterpunkt suchen (Spirale bis 6 Zellen), sonst einmal komplett rechnen
+  for (let r = 1; r <= 6 && m === undefined; r++)
+    for (let dx = -r; dx <= r && m === undefined; dx++) for (const dy of [-r, r]) {
+      const n = memGrid.get((gx + dx) + ',' + (gy + dy)); if (n !== undefined) { m = memberFrom(n, (gy + dy) * MG + MGO, (gx + dx) * MG + MGO, lat, lon); break; }
+      const n2 = memGrid.get((gx + dy) + ',' + (gy + dx)); if (n2 !== undefined) { m = memberFrom(n2, (gy + dx) * MG + MGO, (gx + dy) * MG + MGO, lat, lon); break; }
+    }
+  if (m === undefined) m = memberFull(lat, lon);
+  memGrid.set(k, m);
+  return m;
+}
+function memberFast(lat, lon) {
+  if (!S.regions.length) return 0;
+  const gx = Math.round(lon / MG), gy = Math.round(lat / MG);
+  return memberFrom(gridMask(gx, gy), gy * MG + MGO, gx * MG + MGO, lat, lon);
+}
 const regFromMask = m => {
   let st = null, rb = false;
   S.regions.forEach((r, i) => { if (!(m & (1 << i))) return; if (r.lvl === '4' && r.code) st = r.code.replace('DE-', ''); else if (r.lvl === '5') rb = true; });
   return st ? { st, rbGi: st === 'HE' && rb, fallback: false } : { st: null, rbGi: false, fallback: true };
 };
-const splitJobs = new Map(); let splitBusy = false;
+const splitJobs = new Map(); let splitBusy = false, splitDrawT = 0;
+// Beim Wischen/Zoomen Pause, damit die Karte flüssig bleibt
+const splitPause = () => (ptr.size || fling || Date.now() - lastMove < 300) ? 120 : 4;
+// fertige Trennungen gesammelt anzeigen (höchstens alle 400 ms neu zeichnen, nicht während Bewegung)
+function splitRedraw() {
+  if (splitDrawT) return;
+  splitDrawT = setTimeout(function go() { if (ptr.size || fling || Date.now() - lastMove < 300) { splitDrawT = setTimeout(go, 300); return; } splitDrawT = 0; draw(); }, 400);
+}
 function splitFor(f, area) {
   const zr = Math.max(1, Math.round(V.z)), sp = f._split, nd = area.need;
   const fits = sp && sp.zr === zr && sp.x0 <= Math.max(nd.x0, lon2x(f.bb.w)) && sp.x1 >= Math.min(nd.x1, lon2x(f.bb.e)) && sp.y0 <= Math.max(nd.y0, lat2y(f.bb.n)) && sp.y1 >= Math.min(nd.y1, lat2y(f.bb.s));
@@ -801,7 +843,7 @@ function runSplit() {
   let size = minS; while (size < Math.max(x1 - x0, y1 - y0)) size *= 2;
   const on = new Path2D(), off = new Path2D(), ox = x0, oy = y0;
   const cla = y2lat(y0 + size / 2), clo = x2lon(x0 + size / 2);
-  const stack = [[x0, y0, size, cla, clo, memberFull(cla, clo)]];
+  const stack = [[x0, y0, size, cla, clo, memberFast(cla, clo)]];
   const layer = f.layer;
   const kindOf = new Map();
   const step = () => {
@@ -823,11 +865,11 @@ function runSplit() {
       const h = sz / 2;
       stack.push([x, y, h, cla2, clo2, m], [x + h, y, h, cla2, clo2, m], [x, y + h, h, cla2, clo2, m], [x + h, y + h, h, cla2, clo2, m]);
     }
-    if (stack.length) { setTimeout(step, 0); return; }
+    if (stack.length) { setTimeout(step, splitPause()); return; }
     f._split = { zr, on, off, ox, oy, x0: job.area.x0, x1: job.area.x1, y0: job.area.y0, y1: job.area.y1 };
     splitJobs.delete(f);
-    draw();
-    setTimeout(runSplit, 0);
+    splitRedraw();
+    setTimeout(runSplit, splitPause());
   };
   step();
 }
@@ -1936,13 +1978,7 @@ function regionAt(lat, lon) {
   if (!S.regions.length) return { st: null, rbGi: false, fallback: true };
   const k = lat.toFixed(5) + ',' + lon.toFixed(5);   // ca. 1 m – grobe Kästchen ergaben Treppenstufen an der Grenze
   if (regCache.has(k)) return regCache.get(k);
-  let st = null, rbGi = false;
-  for (const r of S.regions) {
-    if (!inRegion(lat, lon, r)) continue;
-    if (r.lvl === '4' && r.code) st = r.code.replace('DE-', '');
-    else if (r.lvl === '5') rbGi = true;
-  }
-  const res = st ? { st, rbGi: st === 'HE' && rbGi, fallback: false } : { st: null, rbGi: false, fallback: true };
+  const res = regFromMask(memberFast(lat, lon));   // schnell über Raster + kurze Strahlen
   if (regCache.size > 60000) regCache.clear();
   regCache.set(k, res);
   return res;
@@ -3501,6 +3537,7 @@ window.onBack = () => {
   return false;
 };
 window.onAppResume = () => {
+  resize();
   windWidget();
   netBadge();
   geoBadge(); geoSyncNow(false);
