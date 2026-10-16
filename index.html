@@ -134,6 +134,18 @@
   label.pick em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
 
   /* Wetterseite */
+  #bInfo{position:relative}
+  #infoPop{position:fixed;display:none;flex-direction:column;gap:4px;padding:8px;background:var(--card);border-radius:16px;box-shadow:0 3px 14px rgba(0,0,0,.35);z-index:30;width:300px}
+  #infoPop.open{display:flex}
+  #infoPop .ph{font-size:12px;color:var(--muted);padding:2px 6px 4px}
+  #infoPop button{display:flex;align-items:center;gap:10px;padding:8px;background:transparent;color:var(--txt);text-align:left;border-radius:10px;border:2px solid transparent}
+  #infoPop button span{flex:1;display:flex;flex-direction:column}
+  #infoPop small{font-weight:400;font-size:12px;color:var(--muted)}
+  #infoPop .ck{width:24px;height:24px;border-radius:6px;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px}
+  #infoPop button.on{border-color:var(--acc)}
+  #infoPop button.on .ck{background:var(--acc);border-color:var(--acc)}
+  #infoPop button.on .ck::after{content:'✓'}
+  #infoPop .dot{width:12px;height:12px;border-radius:50%;flex:none}
   #layerPop{position:fixed;display:none;gap:8px;padding:8px;background:var(--ctrl);backdrop-filter:blur(6px);border-radius:16px;box-shadow:0 3px 14px rgba(0,0,0,.35);z-index:30}
   #layerPop.open{display:flex}
   #layerPop button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;background:transparent;color:var(--txt);font-size:13px;border:2px solid transparent;border-radius:12px}
@@ -178,6 +190,7 @@
 <div id="notam"></div>
 <div id="net"></div>
 <div id="toast"></div>
+<div id="infoPop"><div class="ph">Infos auf der Karte</div><button data-inf="geo"><b class="ck"></b><span><b>Geozonen</b><small>Antippen zeigt die Geozonen und Regeln an der Stelle</small></span><i class="dot" style="background:#d42020"></i></button><button data-inf="fld"><b class="ck"></b><span><b>Felder</b><small>Feldnamen auf der Karte anzeigen</small></span><i class="dot" style="background:#1e7bff"></i></button></div>
 <div id="layerPop"><button data-ly="grey"><i class="sw-grey"></i>Grau</button><button data-ly="osm"><i class="sw-osm"></i>Karte</button><button data-ly="sat"><i class="sw-sat"></i>Satellit</button></div>
 
 <div id="ctrl">
@@ -185,7 +198,7 @@
   <button id="zOut" title="Verkleinern"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
   <button id="bFit" title="Alle Felder anzeigen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
   <button id="bLayer" title="Kartenart wechseln: Grau → Karte → Satellit"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/><path d="M3 17.5l9 5 9-5" opacity=".55"/></svg></button>
-  <button id="bInfo" title="Geozonen-Info: Punkt antippen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
+  <button id="bInfo" title="Infos: Geozonen und/oder Feldnamen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
   <button id="bLoc" title="Mein Standort"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
 </div>
 
@@ -207,7 +220,7 @@
     <div class="set"><div class="l"><div class="t">Zielordner (Download)</div><div class="v" id="vDst"></div></div><button class="b-sec" data-pick="dst">Ordner wählen</button></div>
     <div class="set"><div class="l"><div class="t">Verschieben statt kopieren</div><div class="v">Aus = Original bleibt im Quellordner</div></div><label class="sw"><input type="checkbox" id="sMove"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Zielordner vor Download leeren</div><div class="v">Löscht vorher alle .kmz im Zielordner</div></div><label class="sw"><input type="checkbox" id="sClear"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div><div class="v">Auch über ⓘ → „Felder“ schaltbar</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Gibt es ein Feld als M3T und M4T, zeigt die Karte nur die passende Version; Felder, die es nur einmal gibt, immer (sie werden beim Download bei Bedarf umgerechnet).</div></div><div class="seg"><button data-rcdrone="">Keine</button><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
     <div class="set"><div class="l"><div class="t">Geozonen (dipul) anzeigen</div><div class="v">Flughäfen, Kontrollzonen, Schutzgebiete, Verkehrswege, Stromleitungen u. a. – nur zur Orientierung, maßgeblich ist dipul.de</div></div><label class="sw"><input type="checkbox" id="sGeo"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Fernpilotenzeugnis</div><div class="v" id="vLic"></div></div><div class="seg"><button data-lic="A1A3">A1/A3</button><button data-lic="A2">A2</button></div></div>
@@ -421,7 +434,8 @@ function paint() {
   const ord = [...vis].sort(byAreaDesc);
   ord.forEach(f => { drawOutline(f); drawField(f); });
   ord.filter(f => f.selected).forEach(drawField);   // Route markierter Felder obenauf
-  if (P.labels === '1') vis.forEach(drawLabel);
+  labelBoxes = [];
+  if (P.labels === '1') { vis.filter(f => f.selected).forEach(drawLabel); vis.filter(f => !f.selected).forEach(drawLabel); }
   if (P.geo === '1' && S.geo.length && V.z >= 9) {
     const icons = geoAirIcons();
     if (!S.airfields.some(isVincenz)) icons.filter(g => /vincenz/i.test(g.f.props.name || '')).forEach(drawVincenzRings);
@@ -474,6 +488,34 @@ function loadGeoVectors() {
   draw();
 }
 function geoLayerOn(layer) { return layer !== 'wohngrundstuecke' || P.georesi === '1'; }
+/** Bundesländer, die eine Geozone berührt (Stichprobe ihrer Eckpunkte) – einmal je Zone berechnet */
+function featRegions(f) {
+  if (f.regs) return f.regs;
+  const m = new Map(), pts = f.rings.flat(), step = Math.max(1, Math.floor(pts.length / 60));
+  for (let i = 0; i < pts.length; i += step) { const r = regionAt(pts[i][1], pts[i][0]); m.set((r.st || '') + '|' + r.rbGi, r); }
+  const c = featRegion(f); m.set((c.st || '') + '|' + c.rbGi, c);
+  return (f.regs = [...m.values()]);
+}
+const GEO_STYLE = { on: ['rgba(20,170,60,.24)', 'rgba(10,140,45,.95)', 1.5], off: ['rgba(230,30,30,.22)', 'rgba(210,20,20,.9)', 2] };
+function geoPathDraw(f, st) {
+  ctx.fillStyle = st[0]; ctx.strokeStyle = st[1]; ctx.lineWidth = st[2];
+  if (f.type === 'Point' || f.type === 'MultiPoint') {
+    f.rings.forEach(r => r.forEach(c => { const [x, y] = toScreen(c[1], c[0]); ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); ctx.stroke(); }));
+    return;
+  }
+  ctx.beginPath();
+  f.rings.forEach(r => r.forEach((c, i) => { const [x, y] = toScreen(c[1], c[0]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }));
+  if (f.type === 'Polygon' || f.type === 'MultiPolygon') ctx.fill('evenodd');
+  ctx.stroke();
+}
+// Raster für Zonen über einer Landesgrenze: Zellen geografisch ausgerichtet, damit der Cache beim Verschieben greift
+const covCellCache = new Map();
+function cellCovered(layer, lat, lon) {
+  const k = layer + ':' + lat.toFixed(5) + ',' + lon.toFixed(5);
+  let v = covCellCache.get(k);
+  if (v === undefined) { v = !!coverageOf(layer, regionAt(lat, lon)); if (covCellCache.size > 40000) covCellCache.clear(); covCellCache.set(k, v); }
+  return v;
+}
 function paintGeo() {
   const [n0, w0] = fromScreen(0, 0), [s0, e0] = fromScreen(W, H);
   ctx.save();
@@ -481,19 +523,19 @@ function paintGeo() {
   for (const f of S.geo) {
     if (!geoLayerOn(f.layer)) continue;
     if (f.bb.s > n0 || f.bb.n < s0 || f.bb.w > e0 || f.bb.e < w0) continue;
-    const cov = !!coverageOf(f.layer, featRegion(f));
-    ctx.fillStyle = cov ? 'rgba(20,170,60,.24)' : 'rgba(230,30,30,.22)';
-    ctx.strokeStyle = cov ? 'rgba(10,140,45,.95)' : 'rgba(210,20,20,.9)';
-    ctx.lineWidth = cov ? 1.5 : 2;
-    const poly = f.type === 'Polygon' || f.type === 'MultiPolygon';
-    if (f.type === 'Point' || f.type === 'MultiPoint') {
-      f.rings.forEach(r => r.forEach(c => { const [x, y] = toScreen(c[1], c[0]); ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); ctx.stroke(); }));
-      continue;
+    const covs = S.regions.length ? featRegions(f).map(r => !!coverageOf(f.layer, r)) : [!!coverageOf(f.layer, featRegion(f))];
+    if (covs.every(c => c === covs[0])) { geoPathDraw(f, covs[0] ? GEO_STYLE.on : GEO_STYLE.off); continue; }
+    // Zone liegt in Bundesländern mit unterschiedlicher Genehmigung: an der Landesgrenze trennen (grün / rot getrennt zeichnen)
+    const cellPx = 10, [la0, lo0] = fromScreen(0, 0), [la1, lo1] = fromScreen(cellPx, cellPx);
+    const dLat = Math.abs(la0 - la1), dLon = Math.abs(lo1 - lo0);
+    const pOn = new Path2D(), pOff = new Path2D();
+    const latA = Math.floor(Math.max(f.bb.s, s0) / dLat) * dLat, lonA = Math.floor(Math.max(f.bb.w, w0) / dLon) * dLon;
+    for (let la = latA; la <= Math.min(f.bb.n, n0) + dLat; la += dLat) for (let lo = lonA; lo <= Math.min(f.bb.e, e0) + dLon; lo += dLon) {
+      const [cx, cy] = toScreen(la + dLat, lo), [cx2, cy2] = toScreen(la, lo + dLon);
+      (cellCovered(f.layer, la + dLat / 2, lo + dLon / 2) ? pOn : pOff).rect(cx, cy, cx2 - cx + .6, cy2 - cy + .6);
     }
-    ctx.beginPath();
-    f.rings.forEach(r => r.forEach((c, i) => { const [x, y] = toScreen(c[1], c[0]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }));
-    if (poly) ctx.fill('evenodd');
-    ctx.stroke();
+    ctx.save(); ctx.clip(pOff); geoPathDraw(f, GEO_STYLE.off); ctx.restore();
+    ctx.save(); ctx.clip(pOn); geoPathDraw(f, GEO_STYLE.on); ctx.restore();
   }
   ctx.restore();
 }
@@ -613,8 +655,8 @@ function drawAirfield(a) {
   }
 }
 
-// Farben: Felder blau, markierte Felder türkis mit dunkelblauem Rand (statt Gelb)
-const FC = { route: '#1e7bff', routeSel: '#19e3ff', halo: '#0a2a66', fill: 'rgba(30,123,255,.16)', fillSel: 'rgba(25,227,255,.30)' };
+// Farben: unmarkiert alles blau, markiert alles orange
+const FC = { route: '#1e7bff', routeSel: '#ff7a00', halo: '#c75a00', fill: 'rgba(30,123,255,.16)', fillSel: 'rgba(255,122,0,.22)' };
 /** Feldkontur aus UAV Editor als Hintergrund der Flugroute (nicht eigenständig wählbar) */
 function drawOutline(f) {
   if (!f.outline) return;
@@ -624,7 +666,7 @@ function drawOutline(f) {
   ctx.fillStyle = f.selected ? FC.fillSel : FC.fill; ctx.fill();
   ctx.lineJoin = 'round';
   ctx.lineWidth = f.selected ? 3 : 2; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.stroke();   // weiße Kante: Grenze zum Nachbarfeld sichtbar
-  ctx.setLineDash([6, 4]); ctx.lineWidth = f.selected ? 2 : 1.5; ctx.strokeStyle = f.selected ? FC.halo : FC.route; ctx.stroke(); ctx.setLineDash([]);
+  ctx.setLineDash([6, 4]); ctx.lineWidth = f.selected ? 2 : 1.5; ctx.strokeStyle = f.selected ? FC.routeSel : FC.route; ctx.stroke(); ctx.setLineDash([]);
 }
 function drawField(f) {
   ctx.lineJoin = 'round';
@@ -632,13 +674,13 @@ function drawField(f) {
     ctx.beginPath();
     s.pts.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
     if (s.type === 'poly') { ctx.closePath(); if (!f.outline) { ctx.fillStyle = f.selected ? FC.fillSel : FC.fill; ctx.fill(); } }
-    if (f.selected) { ctx.lineWidth = 6; ctx.strokeStyle = FC.halo; ctx.stroke(); }
-    ctx.lineWidth = f.selected ? 3 : 2.5; ctx.strokeStyle = f.selected ? FC.routeSel : FC.route; ctx.stroke();
+    ctx.lineWidth = f.selected ? 3.5 : 2.5; ctx.strokeStyle = f.selected ? FC.routeSel : FC.route; ctx.stroke();
   }
 }
 // große Felder unten, kleine oben – so sieht man, wo welches Feld endet und das nächste beginnt
 const byAreaDesc = (a, b) => (b.areaM2 || 0) - (a.areaM2 || 0);
 
+let labelBoxes = [];
 const LABEL_Z = 15;   // Feldnamen erst bei naher Zoomstufe (markierte Felder immer)
 function drawLabel(f) {
   if (V.z < LABEL_Z && !f.selected) return;
@@ -647,9 +689,12 @@ function drawLabel(f) {
   ctx.font = '700 15px Roboto,system-ui,sans-serif';
   const t = f.selected && f.height ? `${f.title} · ${f.height} m${f.drone ? ' · ' + f.drone : ''}` : f.title;   // markiert: Flughöhe anzeigen
   const w = ctx.measureText(t).width + 14;
-  ctx.fillStyle = f.selected ? FC.halo : 'rgba(255,255,255,.9)';
+  const box = { x: x - w / 2, y: y - 12, w, h: 24 };
+  if (!f.selected && labelBoxes.some(b => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y)) return;   // kein Platz – Name weglassen
+  box.f = f; labelBoxes.push(box);
+  ctx.fillStyle = f.selected ? FC.routeSel : 'rgba(255,255,255,.9)';
   ctx.fillRect(x - w / 2, y - 12, w, 24);
-  ctx.strokeStyle = f.selected ? FC.routeSel : FC.route; ctx.lineWidth = 2; ctx.strokeRect(x - w / 2, y - 12, w, 24);
+  ctx.strokeStyle = f.selected ? '#fff' : FC.route; ctx.lineWidth = 2; ctx.strokeRect(x - w / 2, y - 12, w, 24);
   ctx.fillStyle = f.selected ? '#fff' : '#15202b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(t, x, y + 1);
 }
@@ -735,11 +780,8 @@ function hit(x, y) {
   }
   const vis = S.files.filter(visible);
   // Labels zuerst (liegen oben)
-  if (P.labels === '1') for (const f of vis) {
-    if (V.z < LABEL_Z && !f.selected) continue;
-    const [lx, ly] = toScreen(f.center[0], f.center[1]);
-    ctx.font = '700 15px Roboto,system-ui,sans-serif';
-    if (Math.abs(x - lx) < ctx.measureText(f.title).width / 2 + 7 && Math.abs(y - ly) < 14) return toggle(f);
+  if (P.labels === '1') for (const b of [...labelBoxes].reverse()) {   // nur sichtbare Etiketten
+    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return toggle(b.f);
   }
   const small = [...vis].sort(byAreaDesc).reverse();   // oben liegende (kleine) Felder zuerst
   for (const f of small) if (f.outline && inPoly(x, y, f.outline.map(p => toScreen(p[0], p[1])))) return toggle(f);
@@ -1074,7 +1116,7 @@ function closeSettings() {
 $('setBack').onclick = closeSettings;
 $('sMove').onchange = e => setP('move', e.target.checked ? 1 : 0);
 $('sClear').onchange = e => setP('clear', e.target.checked ? 1 : 0);
-$('sLabels').onchange = e => { setP('labels', e.target.checked ? 1 : 0); draw(); };
+$('sLabels').onchange = e => { setP('labels', e.target.checked ? 1 : 0); infoBtnState(); draw(); };
 $('bWxSet').onclick = () => { $('pgSet').classList.remove('open'); showWeather(false); };
 $('bTilesClear').onclick = () => { if (A.tileCacheClear) { A.tileCacheClear(); toast('Kartenspeicher wird geleert…'); } };
 window.onTileCache = () => { tiles.clear(); fillSettings(); toast('Kartenspeicher geleert.'); };
@@ -1116,7 +1158,7 @@ const regCache = new Map();
 function loadRegions() {
   regCache.clear();
   if (A.regions) try { const r = JSON.parse(A.regions() || '{}'); S.regions = r.list || []; S.regFetched = r.fetched || 0; } catch (e) { S.regions = []; }
-  S.geo.forEach(f => delete f.reg);
+  S.geo.forEach(f => { delete f.reg; delete f.regs; }); covCellCache.clear();
   draw();
 }
 window.onRegions = () => { loadRegions(); if ($('pgSet').classList.contains('open')) fillRules(); };
@@ -1187,7 +1229,7 @@ function geoGroups() {
   const layers = GEO_ALL.filter(l => l !== 'wohngrundstuecke' || P.georesi === '1');
   return { r: layers.filter(l => !coverageOf(l, reg)), c: layers.filter(l => coverageOf(l, reg)) };
 }
-function applyGeoConfig() { draw(); geoBadge(); }
+function applyGeoConfig() { covCellCache.clear(); draw(); geoBadge(); }
 function fillRules() {
   const a2 = P.lic === 'A2';
   $('vLic').textContent = a2
@@ -1355,7 +1397,12 @@ window.onGeoInfo = raw => {
       ${extra ? `<details><summary>Alle Angaben von dipul</summary>${extra}</details>` : ''}</div>`;
   });
   if (r.text && !feats.length) html += `<div class="zone"><h4>Antwort von dipul</h4><pre style="white-space:pre-wrap;font-size:13px">${esc(r.text)}</pre></div>`;
-  openInfoPage(feats.length === 1 ? '1 Geozone an diesem Punkt' : `${feats.length} Geozonen an diesem Punkt`, html);
+  // Felder an dieser Stelle (wenn „Felder“ aktiv)
+  if (P.labels === '1') {
+    const here = S.files.filter(visible).filter(f => (f.outline && inRing(r.lat, r.lon, f.outline.map(p => [p[1], p[0]]))) || fieldDistTo(f, r.lat, r.lon) < 25);
+    if (here.length) html = `<div class="zone" style="border-left:5px solid #1e7bff"><h4>Feld${here.length > 1 ? 'er' : ''} an dieser Stelle</h4>${here.map(f => `<div>${esc(f.title)}${f.height ? ' · ' + f.height + ' m' : ''}${f.drone ? ' · ' + f.drone : ''}${f.areaM2 ? ' · ' + (f.areaM2 / 10000).toFixed(2).replace('.', ',') + ' ha' : ''}</div>`).join('')}</div>` + html;
+  }
+  openInfoPage(`Geozonen-Info · ${feats.length === 1 ? '1 Zone' : feats.length + ' Zonen'} an diesem Punkt`, html);
   if ($('ilsSave')) $('ilsSave').onclick = () => { A.setPref('ils_phone', $('ilsPhone').value.trim()); toast('Nummer der Rettungsleitstelle gespeichert.'); window.onGeoInfo(raw); };
   $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => { const a = S.airfields.find(x => String(x.id) === el.dataset.af); if (a) showAirfield(a); });
   if (feats.some(f => f.layer === 'stromleitungen')) {
@@ -1479,7 +1526,33 @@ function showRules() {
 }
 $('iBack').onclick = () => { $('pgInfo').classList.remove('open'); infoPin = null; draw(); };
 $('bRules').onclick = showRules;
-$('bInfo').onclick = () => { infoMode = !infoMode; $('bInfo').classList.toggle('on', infoMode); toast(infoMode ? 'Info-Modus: Punkt auf der Karte antippen. Nochmal ⓘ zum Beenden.' : 'Info-Modus beendet – Antippen wählt wieder Felder.'); if (!infoMode) { infoPin = null; draw(); } };
+// ⓘ: Mehrfachauswahl Geozonen-Info / Feldnamen; der geschlossene Knopf zeigt per Punkt, was aktiv ist (rot = Geozonen, blau = Felder)
+function infoBtnState() {
+  const g = infoMode, f = P.labels === '1';
+  const b = $('bInfo');
+  b.classList.remove('on');
+  b.style.background = g && f ? 'linear-gradient(135deg,#d42020 0%,#d42020 30%,#1e7bff 70%,#1e7bff 100%)' : g ? '#d42020' : f ? '#1e7bff' : '';
+  b.style.color = g || f ? '#fff' : '';
+  document.querySelectorAll('#infoPop [data-inf]').forEach(b => b.classList.toggle('on', b.dataset.inf === 'geo' ? g : f));
+}
+$('bInfo').onclick = e => {
+  e.stopPropagation();
+  const pop = $('infoPop');
+  if (pop.classList.contains('open')) { pop.classList.remove('open'); return; }
+  $('layerPop').classList.remove('open');
+  const r = $('bInfo').getBoundingClientRect();
+  pop.style.top = Math.max(8, r.top + r.height / 2 - 40) + 'px';
+  pop.style.right = (innerWidth - r.left + 10) + 'px';
+  infoBtnState(); pop.classList.add('open');
+};
+document.querySelectorAll('#infoPop [data-inf]').forEach(b => b.onclick = e => {
+  e.stopPropagation();
+  if (b.dataset.inf === 'geo') { infoMode = !infoMode; if (!infoMode) infoPin = null; toast(infoMode ? 'Geozonen-Info an: Punkt auf der Karte antippen.' : 'Geozonen-Info aus – Antippen wählt wieder Felder.', false, 2500); }
+  else { setP('labels', P.labels === '1' ? 0 : 1); if ($('pgSet').classList.contains('open')) fillSettings(); }
+  infoBtnState(); draw();
+});
+document.addEventListener('pointerdown', e => { if (!e.target.closest('#infoPop') && !e.target.closest('#bInfo')) $('infoPop').classList.remove('open'); });
+infoBtnState();
 
 // ================= Flugplätze =================
 function loadAirfields() {
@@ -1986,6 +2059,7 @@ $('bLayer').onclick = e => {
   e.stopPropagation();
   const pop = $('layerPop');
   if (pop.classList.contains('open')) { pop.classList.remove('open'); return; }
+  $('infoPop').classList.remove('open');
   const r = $('bLayer').getBoundingClientRect();
   pop.style.top = Math.max(8, r.top + r.height / 2 - 34) + 'px';
   pop.style.right = (innerWidth - r.left + 10) + 'px';
