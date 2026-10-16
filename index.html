@@ -3,11 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>KMZ Missionen</title>
+<title>Mission Kitzrettung</title>
 <style>
-  :root{--acc:#0b63c5;--ok:#13a538;--bad:#e01b1b;--txt:#15202b;--muted:#5d6975;--line:#d5dbe2;--bar:rgba(255,255,255,.96)}
+  :root{--acc:#0b63c5;--ok:#1f9d48;--bad:#e01b1b;--txt:#15202b;--muted:#5d6975;--line:#dde3ea;--line2:#eef1f4;--bar:rgba(255,255,255,.94);
+    --bg:#eef2f5;--card:#fff;--card2:#f6f8fa;--ctrl:rgba(255,255,255,.92);--ctrltxt:#15202b;--sec:#e7eef7;--brand:#6b4a2b;--brand2:#4f8a2b;
+    --o-bg:#ffe9c7;--r-bg:#ffd5d5;--y-bg:#fff6c2;--g-bg:#dff3e4;
+    --sunday:#e3f0ff;--suntw:#dcd6f2;--sunnight:#33405e;
+    --rose-bg:rgba(240,244,250,.86);--rose-ring:rgba(120,135,165,.7);--rose-tick:#55657f;--rose-tick2:#8a97ad;--rose-txt:#2e3a52}
+  body.dark{--acc:#4da3ff;--txt:#e6edf3;--muted:#9aa7b4;--line:#2d3945;--line2:#232d38;--bar:rgba(18,24,31,.94);
+    --bg:#0f151b;--card:#18212a;--card2:#1e2832;--ctrl:rgba(24,33,42,.92);--ctrltxt:#e6edf3;--sec:#22303e;
+    --o-bg:#5a3d10;--r-bg:#5c1d1d;--y-bg:#4d4510;--g-bg:#173d24;
+    --sunday:#25405e;--suntw:#2e2a4c;--sunnight:#0d1220;
+    --rose-bg:rgba(22,30,40,.86);--rose-ring:rgba(140,155,180,.6);--rose-tick:#c9d3e0;--rose-tick2:#7d8aa0;--rose-txt:#e6edf3}
+  body.dark #map{filter:brightness(.72) saturate(.9)}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;height:100%;overflow:hidden;background:#cfd6dc;color:var(--txt);font:16px/1.3 Roboto,system-ui,sans-serif;user-select:none}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font:16px/1.3 Roboto,system-ui,sans-serif;user-select:none}
   #map{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block}
   button{font:inherit;border:0;border-radius:10px;font-weight:700;cursor:pointer}
   button:disabled{opacity:.4}
@@ -15,35 +25,46 @@
 
   /* Bedienelemente auf der Karte */
   #ctrl{position:fixed;right:12px;top:12px;bottom:84px;display:flex;flex-direction:column;justify-content:center;gap:10px}
-  #ctrl button{width:56px;height:56px;background:#fff;color:#111;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  #ctrl button{width:56px;height:56px;background:var(--ctrl);color:var(--ctrltxt);display:flex;align-items:center;justify-content:center;border-radius:16px;box-shadow:0 3px 12px rgba(0,0,0,.28);backdrop-filter:blur(6px)}
   #ctrl button svg{width:28px;height:28px}
 
   /* Leiste unten */
-  #bar{position:fixed;left:0;right:0;bottom:0;height:72px;background:var(--bar);display:flex;align-items:center;gap:8px;padding:0 12px;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
-  #bar button{height:52px;padding:0 12px;flex:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
-  .b-sec{background:#e7eef7;color:var(--acc)}
-  .b-ok{background:var(--ok);color:#fff}
+  #bar{position:fixed;left:0;right:0;bottom:0;height:72px;background:var(--bar);backdrop-filter:blur(8px);color:var(--txt);display:flex;align-items:center;gap:8px;padding:0 12px;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
+  #bar button{height:52px;padding:0 14px;border-radius:14px;flex:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .b-sec{background:var(--sec);color:var(--acc)}
+  .b-ok{background:linear-gradient(180deg,#27b057,#1a8f40);color:#fff;box-shadow:0 2px 6px rgba(26,143,64,.35)}
   #count{min-width:96px;flex:none;font-weight:700;font-size:17px}
   #count small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
-  #q{flex:1;min-width:60px;width:60px;height:52px;border:1px solid var(--line);border-radius:10px;padding:0 14px;font-size:17px;background:#fff}
+  #q{flex:1;min-width:60px;width:60px;height:52px;border:1px solid var(--line);border-radius:14px;padding:0 14px;font-size:17px;background:var(--card);color:var(--txt)}
   #bDl{font-size:17px}
 
   /* Meldungen */
   #toast{white-space:pre-line;position:fixed;left:50%;top:14px;transform:translateX(-50%);max-width:70%;background:#15202b;color:#fff;padding:12px 18px;border-radius:10px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none;z-index:50}
   #toast.err{background:#b3131b}
-  #busy{position:fixed;left:12px;top:12px;background:rgba(255,255,255,.95);padding:10px 14px;border-radius:10px;font-weight:600;display:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+  #wind{position:fixed;left:10px;top:8px;display:none;flex-direction:column;align-items:center;gap:4px;cursor:pointer;z-index:5}
+  #wind svg{width:132px;height:132px;flex:none;stroke:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))}
+  #wind .card{background:var(--ctrl);color:var(--txt);backdrop-filter:blur(6px);border-radius:10px;box-shadow:0 1px 5px rgba(0,0,0,.3);padding:5px 10px;font-size:12px;line-height:1.35;text-align:center;white-space:nowrap}
+  #wind .big{font-size:15px;font-weight:700}
+  #wind .sub{color:var(--muted)}
+  #notam{position:fixed;left:156px;top:12px;background:#b3131b;color:#fff;font-weight:700;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none;cursor:pointer;z-index:5}
+  #notam.inact{background:#5d6975}
+  #net{position:fixed;right:80px;top:12px;padding:6px 12px 6px 9px;border-radius:20px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;background:#0e7a2c;color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.35);pointer-events:none;z-index:4}
+  #net.off{background:#b3131b;color:#fff}
+  #net svg{width:22px;height:22px;stroke-width:2.4}
+  #busy{top:70px !important;left:156px !important;position:fixed;left:12px;top:12px;background:var(--ctrl);color:var(--txt);padding:10px 14px;border-radius:10px;font-weight:600;display:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 
   /* Vollbild-Seiten (Einstellungen, Ordnerwahl, Dialoge) */
-  .page{position:fixed;inset:0;background:#f4f6f8;display:none;flex-direction:column;z-index:20}
+  .page{position:fixed;inset:0;background:var(--bg);color:var(--txt);display:none;flex-direction:column;z-index:20}
   .page.open{display:flex}
-  .page header{height:64px;display:flex;align-items:center;gap:12px;padding:0 12px;background:#fff;border-bottom:1px solid var(--line);flex:none}
-  .page header h2{margin:0;font-size:20px;flex:1;color:var(--acc)}
+  .page header{height:66px;display:flex;align-items:center;gap:12px;padding:0 12px;background:var(--card);border-bottom:1px solid var(--line);flex:none;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  .page header .logo{width:46px;height:46px;border-radius:50%;flex:none}
+  .page header h2{margin:0;font-size:20px;flex:1;color:var(--txt);display:flex;align-items:center}
   .page header button{height:48px;padding:0 16px}
   .body{flex:1;overflow:auto;padding:12px 16px}
-  .set{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+  .set{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
   .set .l{flex:1;min-width:0}
   .set .t{font-weight:700}
-  .set .v{color:var(--muted);font-size:14px;word-break:break-all;margin-top:2px}
+  .set .v{color:var(--muted);font-size:14px;overflow-wrap:anywhere;margin-top:2px}
   .set button{height:46px;padding:0 14px}
   .sw{position:relative;width:62px;height:34px;flex:none}
   .sw input{opacity:0;width:0;height:0}
@@ -51,42 +72,97 @@
   .sw span:before{content:"";position:absolute;width:28px;height:28px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}
   .sw input:checked+span{background:var(--ok)}
   .sw input:checked+span:before{transform:translateX(28px)}
-  .inp{flex:1;min-width:180px;height:46px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:16px;background:#fff}
+  .zone{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+  .zone h4{margin:0 0 4px;font-size:17px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .chip{font-size:12px;font-weight:700;padding:3px 8px;border-radius:20px;color:#fff;background:#b3131b}
+  .chip.cov{background:#13a538}
+  .chip.grey{background:#5d6975}
+  .zone .meta{color:var(--muted);font-size:14px;margin-bottom:6px}
+  .zone ul{margin:6px 0 0;padding-left:20px}
+  .zone li{margin:3px 0}
+  .zone details{margin-top:6px;color:var(--muted);font-size:13px}
+  .rules h3{margin:14px 0 6px;color:var(--acc)}
+  .rules p,.rules li{font-size:15px}
+  .lnk{color:var(--acc);text-decoration:underline;cursor:pointer}
+  #ctrl button.on{background:#0b63c5;color:#fff}
+  .wx{width:100%;border-collapse:collapse;font-size:14px;background:var(--card)}
+  .wx th,.wx td{padding:6px 5px;border-bottom:1px solid var(--line2);text-align:center;white-space:nowrap}
+  .wx th{position:sticky;top:0;background:var(--card2);font-size:12px;color:var(--muted)}
+  .wx td.g{background:var(--g-bg)}.wx td.o{background:var(--o-bg)}.wx td.r{background:var(--r-bg);font-weight:700}
+  .wx tr.win td{border-left:0}.wx tr.cur td:first-child{font-weight:700}
+  .wx tr.ein td{background-image:linear-gradient(#0b63c51a,#0b63c51a)}
+  .amp{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:4px}
+  .inp{flex:1;min-width:180px;height:46px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:16px;background:var(--card);color:var(--txt)}
   .lst .new{color:#0b63c5}
   .lst .chg{color:#b36b00}
   .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  .seg button{border-radius:0;background:#fff;color:var(--acc);height:44px;padding:0 14px}
+  .seg button{border-radius:0;background:var(--card);color:var(--acc);height:44px;padding:0 14px}
   .seg button.on{background:var(--acc);color:#fff}
 
   .roots{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
   .roots button{height:44px;padding:0 14px}
-  .dir{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:0 14px;height:54px;margin-bottom:6px;font-size:17px}
+  .dir{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:0 14px;height:54px;margin-bottom:6px;font-size:17px}
   .dir svg{color:#d9a400}
   #pPath{font-size:14px;color:var(--muted);word-break:break-all;margin-bottom:8px}
 
   .dlg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30}
   .dlg.open{display:flex}
-  .dlg .box{background:#fff;border-radius:14px;width:min(560px,92%);max-height:88%;display:flex;flex-direction:column;padding:16px}
+  .dlg .box{background:var(--card);color:var(--txt);border-radius:14px;width:min(640px,94%);max-height:92%;display:flex;flex-direction:column;padding:16px;overflow:auto}
   .dlg h3{margin:0 0 8px;font-size:19px}
   .dlg .lst{overflow:auto;flex:1;margin:6px 0 12px;color:var(--muted);font-size:15px}
   .dlg .act{display:flex;gap:10px}
   .dlg .act button{flex:1;height:52px}
+
+  /* Wetterseite */
+  #wind .rl{transform-box:fill-box;transform-origin:center;transition:transform .18s linear}
+  .hicon{width:28px;height:28px;margin-right:10px;color:var(--acc)}
+  h3.sec{color:var(--acc);margin:16px 0 8px}
+  .wxwrap{overflow-x:auto}
+  .wxhero{display:flex;gap:14px;align-items:center;background:linear-gradient(135deg,var(--card),var(--card2))}
+  .amp.big{width:30px;height:30px;flex:none;margin:0;box-shadow:0 0 0 4px rgba(0,0,0,.06)}
+  .t1{font-weight:700;font-size:18px;margin-bottom:2px}
+  .sunsvg{width:100%;height:140px;display:block;border-radius:10px;stroke:none}
+  .wxt{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+  .wxl{flex:none;width:122px;border-right:2px solid var(--line);background:var(--card2)}
+  .wxl>div{height:30px;box-sizing:border-box;padding:0 8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:4px;white-space:nowrap;border-bottom:1px solid var(--line2)}
+  .wxl>div small,.wxs small{font-weight:400;color:var(--muted);font-size:10px}
+  .wxl>.wh,.wxs td.wh{height:56px}
+  .wxl>.ws,.wxs td.ws{height:22px;font-size:10px;color:var(--muted);font-weight:400}
+  .wxs{flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+  .wxs table{border-collapse:separate;border-spacing:0}
+  .wxs td{height:30px;box-sizing:border-box;min-width:64px;max-width:64px;padding:0 3px;text-align:center;font-size:14px;white-space:nowrap;border-bottom:1px solid var(--line2);scroll-snap-align:start}
+  .wxs td.wh{vertical-align:top;padding-top:4px;font-size:14px}
+  .wxs td.nd{border-left:2px solid var(--acc)}
+  .wxs .day{font-size:10px;color:var(--muted);height:13px}
+  .sumbar{height:6px;border-radius:3px;margin:4px 6px 0}
+  .wxs td.o{background:var(--o-bg)}.wxs td.r{background:var(--r-bg);font-weight:700}.wxs td.y{background:var(--y-bg)}
+  .arr{display:inline-block;margin-right:3px;color:var(--acc);font-weight:700}
+  #iTitle{display:flex;align-items:center}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand b{color:var(--brand)} body.dark .brand b{color:#e0b98a}
+  #bar .logo{width:48px;height:48px;border-radius:50%;flex:none;box-shadow:0 1px 4px rgba(0,0,0,.3)}
 </style>
 </head>
 <body>
 
 <canvas id="map"></canvas>
 <div id="busy"></div>
+<div id="wind"></div>
+<div id="notam"></div>
+<div id="net"></div>
 <div id="toast"></div>
 
 <div id="ctrl">
   <button id="zIn" title="Vergrößern"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
   <button id="zOut" title="Verkleinern"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
   <button id="bFit" title="Alle Felder anzeigen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  <button id="bWx" title="Wetter"><svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 9.5 4.25 4.25 0 0 0 7 18z"/></svg></button>
+  <button id="bInfo" title="Geozonen-Info: Punkt antippen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
   <button id="bLoc" title="Mein Standort"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
 </div>
 
 <div id="bar">
+  <img class="logo" data-logo alt="Kitzrettung Limburg">
   <div id="count">0 markiert<small>0 Felder</small></div>
   <button id="bNone" class="b-sec" disabled><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Abwählen</button>
   <input id="q" type="search" placeholder="Feld suchen…" autocomplete="off">
@@ -97,13 +173,35 @@
 
 <!-- Einstellungen -->
 <div class="page" id="pgSet">
-  <header><h2>Einstellungen</h2><button class="b-sec" id="setBack">Zurück zur Karte</button></header>
+  <header><img class="logo" data-logo alt=""><h2 class="brand"><span><b>Mission Kitzrettung</b> · Einstellungen</span></h2><button class="b-sec" id="setBack">Zurück zur Karte</button></header>
   <div class="body">
     <div class="set"><div class="l"><div class="t">Quellordner (KMZ aus UAV Editor)</div><div class="v" id="vSrc"></div></div><button class="b-sec" data-pick="src">Ordner wählen</button></div>
     <div class="set"><div class="l"><div class="t">Zielordner (Download)</div><div class="v" id="vDst"></div></div><button class="b-sec" data-pick="dst">Ordner wählen</button></div>
     <div class="set"><div class="l"><div class="t">Verschieben statt kopieren</div><div class="v">Aus = Original bleibt im Quellordner</div></div><label class="sw"><input type="checkbox" id="sMove"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Zielordner vor Download leeren</div><div class="v">Löscht vorher alle .kmz im Zielordner</div></div><label class="sw"><input type="checkbox" id="sClear"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Felder für eine andere Drohne werden umgerechnet.</div></div><div class="seg"><button data-rcdrone="">Keine</button><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
+    <div class="set"><div class="l"><div class="t">Geozonen (dipul) anzeigen</div><div class="v">Flughäfen, Kontrollzonen, Schutzgebiete, Verkehrswege, Stromleitungen u. a. – nur zur Orientierung, maßgeblich ist dipul.de</div></div><label class="sw"><input type="checkbox" id="sGeo"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Fernpilotenzeugnis</div><div class="v" id="vLic"></div></div><div class="seg"><button data-lic="A1A3">A1/A3</button><button data-lic="A2">A2</button></div></div>
+    <div class="set" id="aeBox" style="flex-direction:column;align-items:stretch"><div class="t">Allgemeinerlaubnis (§ 21h LuftVO) liegt vor für</div>
+      <div class="v" id="vAe" style="margin-bottom:8px"></div>
+      <div class="roots" id="aeStates"></div>
+    </div>
+    <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Bundesland-Erkennung</div>
+      <div class="v" id="vReg" style="margin-bottom:8px"></div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:14px;color:var(--muted)">Ersatz, solange keine Grenzdaten geladen sind:</span><div class="seg" id="stateSel"></div></div>
+    </div>
+    <div class="set"><div class="l"><div class="t">Überfluggenehmigung Stromleitungen (Netzbetreiber)</div><div class="v">Genehmigungen der Netzbetreiber liegen vor – Stromtrassen werden grau, in der Info stehen Spannung und Masthöhe</div></div><label class="sw"><input type="checkbox" id="sPower"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Allgemeinverfügung Wildtierrettung (RP Gießen)</div><div class="v" id="vAvgi"></div></div><label class="sw"><input type="checkbox" id="sAvgi"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Saison-Vorschau (Planung)</div><div class="v">Zeigt Naturschutz-, FFH- und Vogelschutzgebiete im RB Gießen so, als wäre Mähsaison (15.04.–30.06.). Nur zur Planung – außerhalb der Saison gilt die Verfügung NICHT.</div></div><label class="sw"><input type="checkbox" id="sSeason"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Mit Kompass: Rose, Windsack und Nadel drehen sich mit der RC (oben = Oberkante der RC) · Nord oben: fest wie die Karte · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt die Blickrichtung der RC.</div></div><div class="seg"><button data-rose="dev">Mit Kompass</button><button data-rose="north">Nord oben</button><button data-rose="off">Aus</button></div></div>
+    <div class="set"><div class="l"><div class="t">Einsatzbeginn bei Mähdatum ohne Uhrzeit</div><div class="v">Für das Wetter-Einsatzfenster (1 h vorher bis 1 h nachher)</div></div><input id="sWxStart" class="inp" type="time" style="flex:none;width:130px;min-width:0"></div>
+    <div class="set"><div class="l"><div class="t">Flugplätze anzeigen</div><div class="v" id="vAf">Flugplätze, Segel-/UL-Plätze und Hubschrauberlandeplätze im Gebiet der Felder (+3 km)</div></div><button class="b-sec" id="bAfList">Liste</button><label class="sw"><input type="checkbox" id="sAf"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">NOTAM / temporäre Betriebseinschränkungen</div><div class="v" id="vNotam"></div></div><button class="b-sec" id="bNotamList">Anzeigen</button></div>
+    <div class="set"><div class="l"><div class="t">Regeln &amp; Auflagen</div><div class="v">Übersicht: Allgemeinverfügung, Allgemeinerlaubnis, was gilt wo</div></div><button class="b-sec" id="bRules">Ansehen</button></div>
+    <div class="set"><div class="l"><div class="t">Wohngrundstücke einbeziehen</div><div class="v">Zeigt auch Wohngrundstücke als Geozone (deckt Ortschaften flächig ab)</div></div><label class="sw"><input type="checkbox" id="sGeoRes"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Geozonen-Daten</div><div class="v" id="vGeo"></div></div><button class="b-sec" id="bGeoNow">Jetzt aktualisieren</button></div>
+    <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
     <div class="set"><div class="l"><div class="t">Kartentyp</div></div><div class="seg"><button data-layer="sat">Satellit</button><button data-layer="osm">Karte</button></div></div>
     <div class="set"><div class="l"><div class="t">Dateizugriff</div><div class="v" id="vAcc"></div></div><button class="b-sec" id="bAcc">Berechtigung</button></div>
     <div class="set" style="flex-direction:column;align-items:stretch">
@@ -117,8 +215,14 @@
       </div>
       <div class="v" style="margin-top:6px">Das Passwort wird verschlüsselt nur auf diesem Gerät gespeichert.</div>
     </div>
-    <div class="set"><div class="l"><div class="t">KMZ Missionen</div><div class="v">Version 1.1</div></div></div>
+    <div class="set"><img class="logo" data-logo alt="" style="width:64px;height:64px;border-radius:50%"><div class="l"><div class="t">Mission Kitzrettung</div><div class="v">Version 2.0 · Kitzrettung Limburg e. V.</div></div></div>
   </div>
+</div>
+
+<!-- Geozonen-Info / Regeln -->
+<div class="page" id="pgInfo">
+  <header><img class="logo" data-logo alt=""><h2 id="iTitle">Geozonen an diesem Punkt</h2><button class="b-sec" id="iBack">Zurück zur Karte</button></header>
+  <div class="body" id="iBody"></div>
 </div>
 
 <!-- Ordnerwahl -->
@@ -137,6 +241,7 @@
     <h3 id="dTitle"></h3>
     <div id="dText" style="color:var(--muted);font-size:15px;word-break:break-all"></div>
     <div class="lst" id="dList"></div>
+    <div id="dExtra" style="margin-bottom:12px"></div>
     <div class="act"><button class="b-sec" id="dNo">Abbrechen</button><button class="b-ok" id="dYes">OK</button></div>
   </div>
 </div>
@@ -145,7 +250,7 @@
 <div class="dlg" id="perm">
   <div class="box">
     <h3>Dateizugriff erlauben</h3>
-    <div style="color:var(--muted);margin-bottom:14px">Damit die App die KMZ-Dateien lesen und in den DJI-Ordner verschieben kann, braucht sie „Zugriff auf alle Dateien“. Im nächsten Fenster den Schalter für „KMZ Missionen“ einschalten und zurückkehren.</div>
+    <div style="color:var(--muted);margin-bottom:14px">Damit die App die KMZ-Dateien lesen und in den DJI-Ordner verschieben kann, braucht sie „Zugriff auf alle Dateien“. Im nächsten Fenster den Schalter für „Mission Kitzrettung“ einschalten und zurückkehren.</div>
     <div class="act"><button class="b-ok" id="permGo">Berechtigung erteilen</button></div>
   </div>
 </div>
@@ -167,7 +272,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { src: ROOT + '/Download', dst: ROOT + '/DJI/Mission/Download', move: '1', clear: '0', labels: '1', layer: 'sat' };
+const DEF = { theme: 'auto', rose: '1', season: '0', compass: '1', wxStart: '05:00', airf: '1', geo: '1', georesi: '0', lic: 'A2', aeStates: 'HE,RP', state: 'HE', avgi: '1', power: '1', drone: '', src: ROOT + '/Download', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'sat' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -190,7 +295,7 @@ const LAYERS = {
 const V = { lat: 50.39, lon: 8.07, z: 12 };
 let W = 0, H = 0, DPR = 1;
 const tiles = new Map();
-const S = { files: [], me: null };
+const S = { files: [], me: null, airfields: [], notams: [], geo: [] };
 
 const lon2x = lon => (lon + 180) / 360;
 const lat2y = lat => { const s = Math.sin(lat * Math.PI / 180); return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI); };
@@ -237,10 +342,32 @@ function paint() {
     const t = tile(tz, ((tx % n) + n) % n, ty);
     if (t.complete && t.naturalWidth) ctx.drawImage(t, Math.round(tx * ts - cx + W / 2), Math.round(ty * ts - cy + mh / 2), Math.ceil(ts) + 1, Math.ceil(ts) + 1);
   }
+  if (P.geo === '1' && S.geo.length && V.z >= 9) paintGeo();
+  if (S.notams.length) S.notams.forEach(drawNotam);
   const vis = S.files.filter(visible);
   vis.filter(f => !f.selected).forEach(drawField);
   vis.filter(f => f.selected).forEach(drawField);
   if (P.labels === '1') vis.forEach(drawLabel);
+  if (P.airf === '1' && S.airfields.length && V.z >= 9) { S.airfields.filter(isVincenz).forEach(drawVincenzRings); S.airfields.forEach(drawAirfield); }
+  if (infoPin) {
+    const [x, y] = toScreen(infoPin[0], infoPin[1]);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y - 22, 9, Math.PI * 0.75, Math.PI * 2.25); ctx.closePath();
+    ctx.fillStyle = '#0b63c5'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
+  }
+  if (S.me && heading != null) {
+    const [x, y] = toScreen(S.me[0], S.me[1]);
+    const a = (heading - 90) * Math.PI / 180, spread = 0.45, r = 46;
+    const grd = ctx.createRadialGradient(x, y, 4, x, y, r);
+    grd.addColorStop(0, 'rgba(11,99,197,.55)'); grd.addColorStop(1, 'rgba(11,99,197,0)');
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r, a - spread, a + spread); ctx.closePath();
+    ctx.fillStyle = grd; ctx.fill();
+  }
+  if (S.me && S.meAcc) {
+    const [x, y] = toScreen(S.me[0], S.me[1]);
+    const [, y2] = toScreen(S.me[0] + S.meAcc / 111200, S.me[1]);
+    const r = Math.abs(y - y2);
+    if (r > 12) { ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fillStyle = 'rgba(11,99,197,.12)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(11,99,197,.5)'; ctx.stroke(); }
+  }
   if (S.me) {
     const [x, y] = toScreen(S.me[0], S.me[1]);
     ctx.beginPath(); ctx.arc(x, y, 10, 0, 7); ctx.fillStyle = '#0b63c5'; ctx.fill();
@@ -248,11 +375,149 @@ function paint() {
   }
 }
 
+// ---------- Geozonen als Vektordaten (dipul WFS, offline gespeichert) ----------
+function loadGeoVectors() {
+  if (!A.geoVectors) return;
+  try {
+    const d = JSON.parse(A.geoVectors() || '{}');
+    const out = [];
+    Object.keys(d).forEach(layer => (d[layer] || []).forEach(f => {
+      const rings = geomRings(f.geometry);
+      if (!rings.length) return;
+      let n = -90, s = 90, e = -180, w = 180;
+      rings.forEach(r => r.forEach(c => { if (c[1] > n) n = c[1]; if (c[1] < s) s = c[1]; if (c[0] > e) e = c[0]; if (c[0] < w) w = c[0]; }));
+      out.push({ layer, props: f.properties || {}, type: f.geometry.type, rings, bb: { n, s, e, w } });
+    }));
+    // große Flächen zuerst zeichnen, kleine obendrauf
+    out.sort((a, b) => (b.bb.n - b.bb.s) * (b.bb.e - b.bb.w) - (a.bb.n - a.bb.s) * (a.bb.e - a.bb.w));
+    S.geo = out;
+  } catch (e) { S.geo = []; }
+  draw();
+}
+function geoLayerOn(layer) { return layer !== 'wohngrundstuecke' || P.georesi === '1'; }
+function paintGeo() {
+  const [n0, w0] = fromScreen(0, 0), [s0, e0] = fromScreen(W, H);
+  ctx.save();
+  ctx.lineJoin = 'round';
+  for (const f of S.geo) {
+    if (!geoLayerOn(f.layer)) continue;
+    if (f.bb.s > n0 || f.bb.n < s0 || f.bb.w > e0 || f.bb.e < w0) continue;
+    const cov = !!coverageOf(f.layer, featRegion(f));
+    ctx.fillStyle = cov ? 'rgba(20,170,60,.24)' : 'rgba(230,30,30,.22)';
+    ctx.strokeStyle = cov ? 'rgba(10,140,45,.95)' : 'rgba(210,20,20,.9)';
+    ctx.lineWidth = cov ? 1.5 : 2;
+    const poly = f.type === 'Polygon' || f.type === 'MultiPolygon';
+    if (f.type === 'Point' || f.type === 'MultiPoint') {
+      f.rings.forEach(r => r.forEach(c => { const [x, y] = toScreen(c[1], c[0]); ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); ctx.stroke(); }));
+      continue;
+    }
+    ctx.beginPath();
+    f.rings.forEach(r => r.forEach((c, i) => { const [x, y] = toScreen(c[1], c[0]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }));
+    if (poly) ctx.fill('evenodd');
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function inRing(lat, lon, ring) {
+  let c = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const yi = ring[i][1], xi = ring[i][0], yj = ring[j][1], xj = ring[j][0];
+    if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+function segDistM(lat, lon, a, b) {
+  const k = Math.cos(lat * Math.PI / 180) * 111320, m = 110540;
+  const px = (lon - a[0]) * k, py = (lat - a[1]) * m, bx = (b[0] - a[0]) * k, by = (b[1] - a[1]) * m;
+  const l = bx * bx + by * by;
+  const t = l ? Math.max(0, Math.min(1, (px * bx + py * by) / l)) : 0;
+  return Math.hypot(px - t * bx, py - t * by);
+}
+/** Alle Geozonen an einem Punkt (offline) */
+function geoAt(lat, lon) {
+  const hits = [];
+  for (const f of S.geo) {
+    if (!geoLayerOn(f.layer)) continue;
+    if (lat > f.bb.n + 0.0003 || lat < f.bb.s - 0.0003 || lon > f.bb.e + 0.0005 || lon < f.bb.w - 0.0005) continue;
+    let hit = false;
+    if (f.type === 'Polygon' || f.type === 'MultiPolygon') {
+      let inside = false;
+      f.rings.forEach(r => { if (inRing(lat, lon, r)) inside = !inside; });   // Löcher werden durch Gerade/Ungerade berücksichtigt
+      hit = inside;
+    } else {
+      f.rings.forEach(r => { for (let i = 0; i < r.length; i++) if (segDistM(lat, lon, r[i], r[Math.min(i + 1, r.length - 1)]) < 25) hit = true; });
+    }
+    if (hit) hits.push({ layer: f.layer, props: f.props });
+  }
+  return hits;
+}
+
+function drawRing(lat, lon, rM, color, dash, label) {
+  const [x, y] = toScreen(lat, lon);
+  const [, y2] = toScreen(lat + rM / 111200, lon);
+  const r = Math.abs(y - y2);
+  if (r < 6) return;
+  ctx.save(); ctx.setLineDash(dash); ctx.lineWidth = 3; ctx.strokeStyle = color;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke(); ctx.restore();
+  if (label && r > 40) {
+    ctx.font = '700 12px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const w = ctx.measureText(label).width + 8;
+    ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillRect(x - w / 2, y - r - 9, w, 18);
+    ctx.fillStyle = color; ctx.fillText(label, x, y - r);
+  }
+}
+function drawVincenzRings(a) {
+  drawRing(a.lat, a.lon, 1500, '#b3131b', [12, 8], '1,5 km HLP – Freigabe nötig');
+  drawRing(a.lat, a.lon, 750, '#d97a00', [8, 6], '750 m – 2. Beobachter');
+  drawRing(a.lat, a.lon, 150, '#7a1fa2', [], '150 m');
+}
+
+function geomRings(g) {
+  if (!g) return [];
+  if (g.type === 'Polygon') return g.coordinates;
+  if (g.type === 'MultiPolygon') return g.coordinates.flat();
+  if (g.type === 'LineString') return [g.coordinates];
+  if (g.type === 'MultiLineString') return g.coordinates;
+  if (g.type === 'Point') return [[g.coordinates]];
+  return [];
+}
+function drawNotam(n) {
+  ctx.save();
+  ctx.setLineDash(n.active ? [14, 6] : [6, 6]);
+  ctx.lineWidth = n.active ? 4 : 2.5;
+  ctx.strokeStyle = n.active ? '#ff2d2d' : '#5d6975';
+  ctx.fillStyle = n.active ? 'rgba(255,45,45,.12)' : 'rgba(93,105,117,.08)';
+  geomRings(n.geom).forEach(ring => {
+    ctx.beginPath();
+    ring.forEach((c, i) => { const [x, y] = toScreen(c[1], c[0]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    if (ring.length > 2) { ctx.closePath(); ctx.fill(); }
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawAirfield(a) {
+  const [x, y] = toScreen(a.lat, a.lon);
+  if (x < -40 || y < -40 || x > W + 40 || y > H + 40) return;
+  const heli = a.kind === 'heliport';
+  ctx.beginPath(); ctx.arc(x, y, 15, 0, 7);
+  ctx.fillStyle = heli ? '#7a1fa2' : '#0b3d91'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = '700 15px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(heli ? 'H' : '✈', x, y + 1);
+  if (V.z >= 11) {
+    const t = a.icao || a.name;
+    ctx.font = '700 13px Roboto,system-ui,sans-serif';
+    const w = ctx.measureText(t).width + 10;
+    ctx.fillStyle = 'rgba(11,61,145,.92)'; ctx.fillRect(x - w / 2, y + 18, w, 19);
+    ctx.fillStyle = '#fff'; ctx.fillText(t, x, y + 28);
+  }
+}
+
 function drawField(f) {
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = f.selected ? '#13a538' : '#e01b1b';
-  ctx.lineWidth = f.selected ? 4 : 3;
-  ctx.fillStyle = f.selected ? 'rgba(19,165,56,.45)' : 'rgba(224,27,27,.32)';
+  ctx.strokeStyle = f.selected ? '#ffd400' : '#1e7bff';
+  ctx.lineWidth = f.selected ? 5 : 3;
+  ctx.fillStyle = f.selected ? 'rgba(13,71,161,.58)' : 'rgba(30,123,255,.30)';
   for (const s of f.shapes) {
     ctx.beginPath();
     s.pts.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
@@ -261,15 +526,16 @@ function drawField(f) {
   }
 }
 
+const LABEL_Z = 15;   // Feldnamen erst bei naher Zoomstufe (markierte Felder immer)
 function drawLabel(f) {
-  if (V.z < 13 && !f.selected) return;
+  if (V.z < LABEL_Z && !f.selected) return;
   const [x, y] = toScreen(f.center[0], f.center[1]);
   if (x < -150 || y < -30 || x > W + 150 || y > H + 30) return;
   ctx.font = '700 15px Roboto,system-ui,sans-serif';
   const w = ctx.measureText(f.title).width + 14;
-  ctx.fillStyle = f.selected ? '#13a538' : 'rgba(255,255,255,.9)';
+  ctx.fillStyle = f.selected ? '#0d47a1' : 'rgba(255,255,255,.9)';
   ctx.fillRect(x - w / 2, y - 12, w, 24);
-  ctx.strokeStyle = f.selected ? '#fff' : '#e01b1b'; ctx.lineWidth = 2; ctx.strokeRect(x - w / 2, y - 12, w, 24);
+  ctx.strokeStyle = f.selected ? '#ffd400' : '#1e7bff'; ctx.lineWidth = 2; ctx.strokeRect(x - w / 2, y - 12, w, 24);
   ctx.fillStyle = f.selected ? '#fff' : '#15202b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(f.title, x, y + 1);
 }
@@ -301,11 +567,14 @@ function fitBounds(b) {
 
 // Touch
 const ptr = new Map();
+let infoMode = false, infoPin = null;
 let g = null;
 cv.addEventListener('pointerdown', e => {
   cv.setPointerCapture(e.pointerId);
   ptr.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (ptr.size === 1) g = { tap: true, sx: e.clientX, sy: e.clientY, d: 0 };
+  if (ptr.size === 1) {
+    g = { tap: true, sx: e.clientX, sy: e.clientY, d: 0 };
+  }
   else if (ptr.size === 2) { const [a, b] = [...ptr.values()]; g = { tap: false, d: Math.hypot(a.x - b.x, a.y - b.y), z: V.z }; }
 });
 cv.addEventListener('pointermove', e => {
@@ -322,7 +591,7 @@ cv.addEventListener('pointermove', e => {
 });
 cv.addEventListener('pointerup', e => {
   const p = ptr.get(e.pointerId); ptr.delete(e.pointerId);
-  if (ptr.size === 0 && g && g.tap && p) hit(p.x, p.y);
+  if (ptr.size === 0 && g && g.tap && p) { if (infoMode) geoInfoAt(p.x, p.y); else hit(p.x, p.y); }
   if (ptr.size === 0) g = null; else if (g) { g.d = 0; g.tap = false; }
 });
 cv.addEventListener('pointercancel', e => { ptr.delete(e.pointerId); g = null; });
@@ -342,10 +611,14 @@ function segD(px, py, a, b) {
   return Math.hypot(px - a[0] - t * dx, py - a[1] - t * dy);
 }
 function hit(x, y) {
+  if (P.airf === '1' && V.z >= 9) for (const a of S.airfields) {
+    const [ax, ay] = toScreen(a.lat, a.lon);
+    if (Math.hypot(x - ax, y - ay) < 20) return showAirfield(a);
+  }
   const vis = S.files.filter(visible);
   // Labels zuerst (liegen oben)
   if (P.labels === '1') for (const f of vis) {
-    if (V.z < 13 && !f.selected) continue;
+    if (V.z < LABEL_Z && !f.selected) continue;
     const [lx, ly] = toScreen(f.center[0], f.center[1]);
     ctx.font = '700 15px Roboto,system-ui,sans-serif';
     if (Math.abs(x - lx) < ctx.measureText(f.title).width / 2 + 7 && Math.abs(y - ly) < 14) return toggle(f);
@@ -390,6 +663,12 @@ function parseKml(text) {
   }
   return shapes.filter(s => s.type !== 'point');
 }
+function droneOf(t) {
+  const e = /<wpml:droneEnumValue>(\d+)</.exec(t), s = /<wpml:droneSubEnumValue>(\d+)</.exec(t);
+  if (!e) return '';
+  const k = e[1] + '/' + (s ? s[1] : '');
+  return { '77/1': 'M3T', '77/0': 'M3E', '99/1': 'M4T', '99/0': 'M4E' }[k] || '';
+}
 function bounds(list) {
   let b = null;
   for (const f of list) for (const s of f.shapes) for (const [la, lo] of s.pts) {
@@ -413,9 +692,10 @@ async function load(keepView) {
     const f = r.files[i];
     if (i % 5 === 0) { busy(`Lade Felder ${i + 1}/${r.files.length}…`); await new Promise(res => setTimeout(res, 0)); }
     try {
-      const shapes = parseKml(A.readKml(f.path));
+      const kmlText = A.readKml(f.path);
+      const shapes = parseKml(kmlText);
       if (!shapes.length) { bad++; continue; }
-      const e = { name: f.name, path: f.path, title: f.name.replace(/\.km[lz]$/i, ''), shapes, selected: keep.has(f.path) };
+      const e = { name: f.name, path: f.path, title: f.name.replace(/\.km[lz]$/i, ''), shapes, selected: keep.has(f.path), drone: droneOf(kmlText) };
       const b = bounds([e]); e.bounds = b; e.center = [(b.n + b.s) / 2, (b.e + b.w) / 2];
       out.push(e);
     } catch (err) { bad++; }
@@ -425,6 +705,9 @@ async function load(keepView) {
   loading = false;
   update();
   if (!keepView) fitAll();
+  geoSyncNow(false);
+  setTimeout(() => wxPrefetch().then(windWidget), 3000);
+  windWidget();
   if (!out.length) toast('Keine KMZ-Felder im Quellordner gefunden:\n' + P.src, true);
   else if (bad) toast(`${bad} Datei(en) ohne lesbare Felder übersprungen.`, true);
 }
@@ -449,36 +732,96 @@ function fitAll() {
 $('zIn').onclick = () => zoomAt(V.z + 1, W / 2, mapH() / 2);
 $('zOut').onclick = () => zoomAt(V.z - 1, W / 2, mapH() / 2);
 $('bFit').onclick = fitAll;
-$('bLoc').onclick = () => { toast('Suche Standort…'); A.locate(); };
-window.onLocation = (lat, lon) => { S.me = [lat, lon]; V.lat = lat; V.lon = lon; V.z = Math.max(V.z, 15); draw(); $('toast').style.display = 'none'; };
+$('bLoc').onclick = () => {
+  if (S.me) { V.lat = S.me[0]; V.lon = S.me[1]; V.z = Math.max(V.z, 15); draw(); }
+  locCentered = !!S.me;
+  toast('Suche Standort…'); A.locate();
+};
+let locCentered = false;
+window.onLocation = (lat, lon, acc, last, ageMin) => {
+  S.me = [lat, lon]; S.meAcc = acc > 0 ? acc : null;
+  if (!locCentered) { V.lat = lat; V.lon = lon; V.z = Math.max(V.z, 15); locCentered = true; }
+  draw();
+  if (last) toast(`Letzte bekannte Position (vor ${ageMin} min) – suche aktuelles GPS…`);
+  else toast(`Standort gefunden${acc > 0 ? ' · Genauigkeit ±' + Math.round(acc) + ' m' : ''}`, false, 2500);
+  windWidget();
+};
+window.onLocationStatus = m => toast(m, false, 4000);
 window.onLocationError = m => toast(m, true);
 $('bNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); toast('Alle Felder abgewählt.'); };
 $('q').oninput = () => { update(); };
 $('q').onkeydown = e => { if (e.key === 'Enter') { $('q').blur(); fitAll(); } };
 
-// Download
+// Download (optional mit Umrechnung auf eine andere Drohne)
+const DRONES = [['', 'Unverändert'], ['M3T', 'Mavic 3T'], ['M4T', 'Matrice 4T']];
+const DRONE_INFO = {
+  M3T: 'Wird beim Übertragen auf Mavic 3T umgerechnet: Flughöhe −20 m (70 → 50 m), Bahnen bleiben gleich.',
+  M4T: 'Wird beim Übertragen auf Matrice 4T umgerechnet: Flughöhe +20 m (50 → 70 m), Bahnen bleiben gleich.'
+};
+
+function doTransfer(paths, drone) {
+  const move = P.move === '1';
+  busy(drone ? 'Rechne um und übertrage…' : 'Übertrage…');
+  setTimeout(async () => {
+    const r = JSON.parse(A.transfer(JSON.stringify(paths), P.dst, move, P.clear === '1', drone || ''));
+    busy('');
+    if (r.error) return toast('Fehler: ' + r.error, true);
+    S.files.forEach(f => f.selected = false);
+    const what = drone ? ` als ${drone === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'}` : '';
+    if (r.errors && r.errors.length) toast(`${r.done} übertragen${what}, ${r.errors.length} Fehler:\n` + r.errors.join('\n'), true, 9000);
+    else toast(`${r.done} Feld${r.done > 1 ? 'er' : ''}${what} ${move ? 'verschoben' : 'kopiert'}.`);
+    await load(true);
+  }, 30);
+}
+
 $('bDl').onclick = () => {
   const sel = S.files.filter(f => f.selected);
   const move = P.move === '1';
-  confirmDlg(`${sel.length} Feld${sel.length > 1 ? 'er' : ''} ${move ? 'verschieben' : 'kopieren'}?`,
+  const verb = move ? 'verschieben' : 'kopieren';
+  let drone = '';
+  const extra = document.createElement('div');
+  const preset = P.drone || '';
+  extra.innerHTML = '<div style="font-weight:700;margin:4px 0 6px">Fliegen mit</div><div class="seg" id="dDrone"></div>' +
+    '<div id="dDroneInfo" style="color:var(--muted);font-size:13px;margin-top:6px"></div>';
+  const seg = extra.querySelector('#dDrone');
+  DRONES.forEach(([k, label]) => {
+    const b = document.createElement('button'); b.textContent = label;
+    b.onclick = () => {
+      drone = k;
+      seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      extra.querySelector('#dDroneInfo').textContent = DRONE_INFO[k] || '';
+      $('dYes').textContent = (k ? 'Umrechnen & ' + verb : verb.charAt(0).toUpperCase() + verb.slice(1));
+    };
+    seg.appendChild(b);
+  });
+  const wxBox = document.createElement('div'); wxBox.style.marginBottom = '10px';
+  extra.prepend(wxBox); wxDialogInfo(sel, wxBox);
+  const vh = vincenzHits(sel);
+  if (vh.length) {
+    const warn = document.createElement('div');
+    warn.style.cssText = 'margin-bottom:10px;padding:10px 12px;border-radius:10px;background:#fff0f0;border:2px solid #b3131b';
+    warn.innerHTML = `<b style="color:#b3131b">⚠ ${[...new Set(vh.map(h => h.f.title))].length} Feld(er) im 1,5-km-Bereich eines Hubschrauberlandeplatzes (St. Vincenz):</b>
+      <div class="meta">${vh.map(h => esc(h.f.title) + ' – ' + Math.round(h.d) + ' m').join(' · ')}</div>${vincenzHtml(vh[0].a, true)}`;
+    extra.prepend(warn);
+  }
+  confirmDlg(`${sel.length} Feld${sel.length > 1 ? 'er' : ''} ${verb}?`,
     'Nach: ' + P.dst + (P.clear === '1' ? '\nVorhandene .kmz im Zielordner werden vorher gelöscht.' : ''),
-    sel.map(f => f.name), move ? 'Verschieben' : 'Kopieren', () => {
-      busy('Übertrage…');
-      setTimeout(async () => {
-        const r = JSON.parse(A.transfer(JSON.stringify(sel.map(f => f.path)), P.dst, move, P.clear === '1'));
-        busy('');
-        if (r.error) return toast('Fehler: ' + r.error, true);
-        S.files.forEach(f => f.selected = false);
-        if (r.errors && r.errors.length) toast(`${r.done} übertragen, ${r.errors.length} Fehler:\n` + r.errors.join('\n'), true, 9000);
-        else toast(`${r.done} Feld${r.done > 1 ? 'er' : ''} ${move ? 'verschoben' : 'kopiert'}.`);
-        await load(true);
-      }, 30);
-    });
+    sel.map(f => f.name + (f.drone ? `  (${f.drone})` : '')), move ? 'Verschieben' : 'Kopieren',
+    () => doTransfer(sel.map(f => f.path), drone), extra);
+  // Vorgabe der Fernsteuerung anwenden (setzt auch Hinweis und Button-Text)
+  seg.querySelectorAll('button')[Math.max(0, DRONES.findIndex(d => d[0] === preset))].onclick();
+  if (preset) {
+    const other = sel.filter(f => f.drone && f.drone !== preset).length;
+    extra.querySelector('#dDroneInfo').textContent = other
+      ? `${other} von ${sel.length} Feld${sel.length > 1 ? 'ern' : ''} werden für ${preset === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} umgerechnet (Flughöhe ${preset === 'M4T' ? '+' : '−'}20 m, Bahnen gleich).`
+      : `Alle Felder sind bereits für ${preset === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} geplant.`;
+  }
 };
 
 // ================= Dialoge =================
 let dlgCb = null, dlgOnCancel = null;
-function confirmDlg(title, text, list, okLabel, cb) {
+function confirmDlg(title, text, list, okLabel, cb, extra) {
+  $('dExtra').innerHTML = ''; if (extra) $('dExtra').appendChild(extra);
   $('dTitle').textContent = title;
   $('dText').textContent = text; $('dText').style.whiteSpace = 'pre-line';
   $('dList').innerHTML = ''; list.forEach(n => { const d = document.createElement('div'); d.textContent = '• ' + n; $('dList').appendChild(d); });
@@ -490,9 +833,14 @@ $('permGo').onclick = () => A.requestAccess();
 
 // ================= Einstellungen =================
 function fillSettings() {
+  try { applyTheme(); } catch (e) { }
   $('vSrc').textContent = P.src; $('vDst').textContent = P.dst;
   $('sMove').checked = P.move === '1'; $('sClear').checked = P.clear === '1'; $('sLabels').checked = P.labels === '1';
   document.querySelectorAll('[data-layer]').forEach(b => b.classList.toggle('on', b.dataset.layer === P.layer));
+  document.querySelectorAll('[data-rcdrone]').forEach(b => b.classList.toggle('on', b.dataset.rcdrone === P.drone));
+  $('sGeo').checked = P.geo === '1'; $('sGeoRes').checked = P.georesi === '1';
+  $('vGeo').textContent = geoText(true);
+  fillRules();
   $('vAcc').textContent = A.hasAccess() ? 'Erteilt' : 'Fehlt – bitte erteilen';
   if (A.uaveUser) {
     $('uUser').value = A.uaveUser();
@@ -512,7 +860,1156 @@ $('sMove').onchange = e => setP('move', e.target.checked ? 1 : 0);
 $('sClear').onchange = e => setP('clear', e.target.checked ? 1 : 0);
 $('sLabels').onchange = e => { setP('labels', e.target.checked ? 1 : 0); draw(); };
 document.querySelectorAll('[data-layer]').forEach(b => b.onclick = () => { setP('layer', b.dataset.layer); fillSettings(); draw(); });
+document.querySelectorAll('[data-rcdrone]').forEach(b => b.onclick = () => { setP('drone', b.dataset.rcdrone); fillSettings(); });
 $('bAcc').onclick = () => A.requestAccess();
+$('sGeo').onchange = e => { setP('geo', e.target.checked ? 1 : 0); geoBadge(); draw(); if (e.target.checked) geoSyncNow(false); };
+$('sGeoRes').onchange = e => { setP('georesi', e.target.checked ? 1 : 0); applyGeoConfig(); fillSettings(); };
+$('bGeoNow').onclick = () => { if (!S.files.length) return toast('Keine Felder geladen – nichts zu aktualisieren.', true); geoSyncNow(true); toast('Geozonen werden aktualisiert…'); };
+
+// ================= Geozonen: Regeln =================
+const GEO_ALL = ['flughaefen','flugplaetze','kontrollzonen','flugbeschraenkungsgebiete','temporaere_betriebseinschraenkungen','modellflugplaetze',
+  'nationalparks','naturschutzgebiete','ffh-gebiete','vogelschutzgebiete','bundesautobahnen','bundesstrassen','bahnanlagen',
+  'binnenwasserstrassen','seewasserstrassen','schifffahrtsanlagen','stromleitungen','windkraftanlagen','umspannwerke','kraftwerke',
+  'industrieanlagen','justizvollzugsanstalten','militaerische_anlagen','labore','behoerden','diplomatische_vertretungen',
+  'internationale_organisationen','polizei','sicherheitsbehoerden','krankenhaeuser','freibaeder','wohngrundstuecke'];
+// Allgemeinerlaubnis (§ 21h Abs. 3 Nr. 3, 4, 5, 7 LuftVO) – nur mit A2
+const AE_LAYERS = ['industrieanlagen','kraftwerke','umspannwerke','stromleitungen','windkraftanlagen','behoerden','polizei',
+  'bundesautobahnen','bundesstrassen','binnenwasserstrassen','seewasserstrassen','bahnanlagen','wohngrundstuecke'];
+// Allgemeinverfügung RP Gießen Wildtierrettung (§ 21h Abs. 3 Nr. 6 LuftVO)
+const AVGI_LAYERS = ['naturschutzgebiete','ffh-gebiete','vogelschutzgebiete'];
+const STATES = [['BW','Baden-Württemberg'],['BY','Bayern'],['BE','Berlin'],['BB','Brandenburg'],['HB','Bremen'],['HH','Hamburg'],
+  ['HE','Hessen'],['MV','Mecklenburg-Vorp.'],['NI','Niedersachsen'],['NW','Nordrhein-Westfalen'],['RP','Rheinland-Pfalz'],
+  ['SL','Saarland'],['SN','Sachsen'],['ST','Sachsen-Anhalt'],['SH','Schleswig-Holstein'],['TH','Thüringen']];
+
+function avgiActive(d) {
+  d = d || new Date();
+  if (d > new Date(2029, 5, 30, 23, 59)) return false;
+  const md = (d.getMonth() + 1) * 100 + d.getDate();
+  return md >= 415 && md <= 630;
+}
+// Saison-Vorschau: außerhalb 15.04.–30.06. so anzeigen, als wäre Mähsaison (zur Planung)
+function avgiInForce() { return avgiActive() || (P.season === '1' && new Date() <= new Date(2029, 5, 30, 23, 59)); }
+const stateName = k => (STATES.find(s => s[0] === k) || ['', k || '?'])[1];
+
+// ---------- Bundesland / Regierungsbezirk pro Ort (OSM-Grenzen, offline gespeichert) ----------
+S.regions = []; S.regFetched = 0;
+const regCache = new Map();
+function loadRegions() {
+  regCache.clear();
+  if (A.regions) try { const r = JSON.parse(A.regions() || '{}'); S.regions = r.list || []; S.regFetched = r.fetched || 0; } catch (e) { S.regions = []; }
+  S.geo.forEach(f => delete f.reg);
+  draw();
+}
+window.onRegions = () => { loadRegions(); if ($('pgSet').classList.contains('open')) fillRules(); };
+function inRegion(lat, lon, r) {
+  const [w, s, e, n] = r.bb;
+  if (lat < s || lat > n || lon < w || lon > e) return false;
+  let c = false;   // Gerade/Ungerade-Regel über alle Grenzsegmente (Reihenfolge egal)
+  for (const ln of r.lines) for (let i = 0; i + 3 < ln.length; i += 2) {
+    const xi = ln[i], yi = ln[i + 1], xj = ln[i + 2], yj = ln[i + 3];
+    if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+/** {st:'HE', rbGi:true, fallback:false} – fällt auf die Einstellung zurück, wenn keine Grenzdaten vorliegen */
+function regionAt(lat, lon) {
+  if (!S.regions.length) return { st: P.state, rbGi: P.state === 'HE', fallback: true };
+  const k = lat.toFixed(3) + ',' + lon.toFixed(3);
+  if (regCache.has(k)) return regCache.get(k);
+  let st = null, rbGi = false;
+  for (const r of S.regions) {
+    if (!inRegion(lat, lon, r)) continue;
+    if (r.lvl === '4' && r.code) st = r.code.replace('DE-', '');
+    else if (r.lvl === '5') rbGi = true;
+  }
+  const res = st ? { st, rbGi: st === 'HE' && rbGi, fallback: false } : { st: P.state, rbGi: false, fallback: true };
+  if (regCache.size > 5000) regCache.clear();
+  regCache.set(k, res);
+  return res;
+}
+function regionText(reg) {
+  return `${stateName(reg.st)}${reg.st === 'HE' ? (reg.rbGi ? ' · Regierungsbezirk Gießen' : ' · nicht RB Gießen') : ''}${reg.fallback ? ' (aus Einstellung – Grenzen noch nicht geladen)' : ''}`;
+}
+function featPoint(f) {
+  if (f.type === 'Polygon' || f.type === 'MultiPolygon') {
+    const c = [(f.bb.n + f.bb.s) / 2, (f.bb.e + f.bb.w) / 2];
+    let ins = false; f.rings.forEach(r => { if (inRing(c[0], c[1], r)) ins = !ins; });
+    if (ins) return c;
+  }
+  const r0 = f.rings[0] || [], p = r0[Math.floor(r0.length / 2)];
+  return p ? [p[1], p[0]] : [(f.bb.n + f.bb.s) / 2, (f.bb.e + f.bb.w) / 2];
+}
+function featRegion(f) { if (!f.reg) { const [la, lo] = featPoint(f); f.reg = regionAt(la, lo); } return f.reg; }
+function aeFor(reg) { return P.lic === 'A2' && (P.aeStates || '').split(',').includes(reg.st); }
+function aeActive() { return aeFor(regionAt(V.lat, V.lon)); }
+/** Welche Ausnahme deckt diese Geozone an diesem Ort ab? '' = keine */
+function coverageOf(layer, reg) {
+  reg = reg || regionAt(V.lat, V.lon);
+  if (P.power === '1' && layer === 'stromleitungen') return 'power';
+  if (AE_LAYERS.includes(layer) && aeFor(reg)) return 'ae';
+  if (AVGI_LAYERS.includes(layer) && P.avgi === '1' && reg.st === 'HE' && reg.rbGi && avgiInForce()) return 'avgi';
+  return '';
+}
+function geoGroups() {
+  const reg = regionAt(V.lat, V.lon);
+  const layers = GEO_ALL.filter(l => l !== 'wohngrundstuecke' || P.georesi === '1');
+  return { r: layers.filter(l => !coverageOf(l, reg)), c: layers.filter(l => coverageOf(l, reg)) };
+}
+function applyGeoConfig() { draw(); geoBadge(); }
+function fillRules() {
+  const a2 = P.lic === 'A2';
+  $('vLic').textContent = a2
+    ? 'A2: Allgemeinerlaubnis nutzbar (für die eingetragenen Bundesländer).'
+    : 'A1/A3: Allgemeinerlaubnis NICHT nutzbar – es gelten die normalen Regeln. Mavic 3T/Matrice 4T (Klasse C2) nur in A3: 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten.';
+  document.querySelectorAll('[data-lic]').forEach(b => b.classList.toggle('on', b.dataset.lic === P.lic));
+  const sel = P.aeStates ? P.aeStates.split(',') : [];
+  $('aeBox').style.opacity = a2 ? '' : '.45';
+  $('vAe').textContent = a2
+    ? 'Grün nur im jeweiligen Bundesland. Abgedeckt (mit Auflagen): Industrie- und Energieanlagen, Behörden/Polizei, Bundesfernstraßen, Bundeswasserstraßen, Bahnanlagen, Wohngrundstücke. Nicht: Naturschutzgebiete, Flughäfen, Kontrollzonen, Flugbeschränkungsgebiete, Militär, JVA, Krankenhäuser u. a.'
+    : 'Nur mit A2-Fernpilotenzeugnis – bei A1/A3 nicht auswählbar.';
+  $('aeStates').innerHTML = '';
+  STATES.forEach(([k, n]) => {
+    const b = document.createElement('button'); b.className = sel.includes(k) && a2 ? 'b-ok' : 'b-sec'; b.textContent = n; b.disabled = !a2;
+    b.onclick = () => { const s2 = new Set(sel); s2.has(k) ? s2.delete(k) : s2.add(k); setP('aeStates', [...s2].join(',')); fillRules(); applyGeoConfig(); };
+    $('aeStates').appendChild(b);
+  });
+  $('stateSel').innerHTML = '';
+  STATES.filter(([k]) => ['HE', 'RP', 'NW', 'BY', 'BW', 'NI', 'TH'].includes(k) || k === P.state).forEach(([k, n]) => {
+    const b = document.createElement('button'); b.textContent = n; b.classList.toggle('on', k === P.state);
+    b.onclick = () => { setP('state', k); loadRegions(); fillRules(); applyGeoConfig(); };
+    $('stateSel').appendChild(b);
+  });
+  const names = [...new Set(S.regions.map(r => r.lvl === '4' ? stateName(r.code.replace('DE-', '')) : 'RB Gießen'))];
+  $('vReg').textContent = S.regions.length
+    ? `Automatisch pro Ort aus Landesgrenzen (OpenStreetMap) · geladen: ${names.join(', ')} · Stand ${fmtDate(S.regFetched)}. Jede Geozone bekommt die Regeln ihres Bundeslands.`
+    : 'Grenzdaten noch nicht geladen – beim nächsten Abgleich mit Internet werden sie gespeichert. Bis dahin gilt das hier gewählte Bundesland für alle Zonen.';
+  $('sAvgi').checked = P.avgi === '1';
+  $('sSeason').checked = P.season === '1';
+  $('sPower').checked = P.power === '1';
+  $('sAf').checked = P.airf === '1';
+  $('sWxStart').value = P.wxStart;
+  const rm = P.rose === '0' ? 'off' : P.compass === '0' ? 'north' : 'dev';
+  document.querySelectorAll('[data-rose]').forEach(b => b.classList.toggle('on', b.dataset.rose === rm));
+  $('vNotam').textContent = (S.notams.length ? `${S.notams.filter(n => n.active).length} aktiv, ${S.notams.filter(n => !n.active).length} geplant` : 'keine im Gebiet') + (S.notamFetched ? ` · Stand ${fmtDate(S.notamFetched)}` : ' · noch nicht geladen');
+  $('vAf').textContent = `${S.airfields.length} Plätze im Gebiet` + (S.afFetched ? ` · Stand ${fmtDate(S.afFetched)}` : ' · noch nicht geladen');
+  const act = avgiActive();
+  $('vAvgi').innerHTML = 'Naturschutz-, FFH- und Vogelschutzgebiete – nur in Hessen, nur Regierungsbezirk Gießen (LK Gießen, Lahn-Dill, Limburg-Weilburg, Marburg-Biedenkopf, Vogelsberg) · jährlich 15.04.–30.06. · gültig bis 30.06.2029 · '
+    + (P.avgi !== '1' ? 'ausgeschaltet' : act ? '<b style="color:#13a538">heute GÜLTIG</b>' : `<b style="color:#b3131b">heute NICHT gültig</b> (außerhalb 15.04.–30.06.)${P.season === '1' ? ' – Saison-Vorschau an' : ''}`);
+}
+document.querySelectorAll('[data-lic]').forEach(b => b.onclick = () => { setP('lic', b.dataset.lic); fillRules(); applyGeoConfig(); });
+$('sPower').onchange = e => { setP('power', e.target.checked ? 1 : 0); fillRules(); applyGeoConfig(); };
+$('sAvgi').onchange = e => { setP('avgi', e.target.checked ? 1 : 0); fillRules(); applyGeoConfig(); };
+$('sSeason').onchange = e => { setP('season', e.target.checked ? 1 : 0); fillRules(); applyGeoConfig(); if (e.target.checked && !avgiActive()) toast('Saison-Vorschau: nur zur Planung. Heute gilt die Allgemeinverfügung nicht.', true, 5000); };
+
+// ================= Geozonen-Info & Auflagen =================
+const LAYER_LABEL = {
+  flughaefen: 'Flughafen', flugplaetze: 'Flugplatz', kontrollzonen: 'Kontrollzone', flugbeschraenkungsgebiete: 'Flugbeschränkungsgebiet',
+  temporaere_betriebseinschraenkungen: 'Temporäre Betriebseinschränkung', modellflugplaetze: 'Modellflugplatz', nationalparks: 'Nationalpark',
+  naturschutzgebiete: 'Naturschutzgebiet', 'ffh-gebiete': 'FFH-Gebiet', vogelschutzgebiete: 'Vogelschutzgebiet',
+  bundesautobahnen: 'Bundesautobahn', bundesstrassen: 'Bundesstraße', bahnanlagen: 'Bahnanlage', binnenwasserstrassen: 'Binnenwasserstraße',
+  seewasserstrassen: 'Seewasserstraße', schifffahrtsanlagen: 'Schifffahrtsanlage', stromleitungen: 'Stromleitung', windkraftanlagen: 'Windkraftanlage',
+  umspannwerke: 'Umspannwerk', kraftwerke: 'Kraftwerk', industrieanlagen: 'Industrieanlage', justizvollzugsanstalten: 'Justizvollzugsanstalt',
+  militaerische_anlagen: 'Militärische Anlage', labore: 'Labor (BSL-4)', behoerden: 'Behörde', diplomatische_vertretungen: 'Diplomatische Vertretung',
+  internationale_organisationen: 'Internationale Organisation', polizei: 'Polizei', sicherheitsbehoerden: 'Sicherheitsbehörde',
+  krankenhaeuser: 'Krankenhaus', freibaeder: 'Freibad / Badestrand', wohngrundstuecke: 'Wohngrundstück'
+};
+const AE_COMMON = 'Voraussetzung: A2-Fernpilotenzeugnis für alle Piloten, gültige Allgemeinerlaubnis mitführen. Die Nebenbestimmungen im Bescheid gehen vor.';
+const AE_RULES = {
+  industrieanlagen: ['Seitlicher Abstand unter 100 m erlaubt – nur Betrieb in A1/A2', 'Direkter Überflug nur mit Zustimmung des Betreibers'],
+  kraftwerke: ['1:1-Regel: seitlicher Abstand mindestens so groß wie die Flughöhe', 'Überflug nur mit Zustimmung des Betreibers'],
+  umspannwerke: ['1:1-Regel: seitlicher Abstand mindestens so groß wie die Flughöhe', 'Überflug nur mit Zustimmung des Betreibers'],
+  stromleitungen: ['1:1-Regel: seitlicher Abstand mindestens so groß wie die Flughöhe', 'Überflug nur mit Zustimmung des Betreibers'],
+  windkraftanlagen: ['1:1-Regel: seitlicher Abstand mindestens so groß wie die Flughöhe', 'Überflug nur mit Zustimmung des Betreibers'],
+  behoerden: ['Seitlicher Abstand unter 100 m erlaubt', 'Direkter Überflug nur mit Zustimmung'],
+  polizei: ['Seitlicher Abstand unter 100 m erlaubt', 'Direkter Überflug nur mit Zustimmung'],
+  bundesautobahnen: ['Nur zügiger Überflug', 'Überflughöhe laut Bescheid (30 m)', 'Gefährdung des Verkehrs ausschließen'],
+  bundesstrassen: ['Nur zügiger Überflug, Überflughöhe laut Bescheid (30 m)', 'Bei Bundesstraßen mit unter 60 km/h: keine 1:1-Regel, keine Überflughöhe, kein seitlicher Abstand'],
+  binnenwasserstrassen: ['Horizontalen Mindestabstand zu Wasserfahrzeugen einhalten', 'Beim Überflug mindestens 50 m vertikal zu Wasserfahrzeugen', 'Länderspezifische Nebenbestimmungen beachten'],
+  seewasserstrassen: ['Horizontalen Mindestabstand zu Wasserfahrzeugen einhalten', 'Beim Überflug mindestens 50 m vertikal zu Wasserfahrzeugen', 'Länderspezifische Nebenbestimmungen beachten'],
+  bahnanlagen: ['Mindestens 5 m über Oberleitungen', '5 m vertikaler Abstand zu gesperrten Gleisen'],
+  wohngrundstuecke: ['Höchstens 4 Tage pro Kalenderjahr', 'Je Tag höchstens 30 Minuten', 'Weitere Nebenbestimmungen im Bescheid beachten (Privatsphäre)']
+};
+const AVGI_RULES = [
+  'Nur zur Wildtierrettung im Zusammenhang mit einer zulässigen Mahd, jährlich 15.04.–30.06.',
+  'Berechtigt: Vereine mit entsprechendem Satzungsziel, Jagdverbände, Landnutzungsberechtigte',
+  'Vorher das zuständige Forstamt bzw. Amt für den ländlichen Raum informieren',
+  'Flughöhe so hoch wie möglich, bei der Tiere noch sicher erkannt werden (empfohlen 40–50 m)',
+  'Ruhig und gleichmäßig fliegen, keine abrupten Manöver, Tiere nicht direkt anfliegen',
+  'Höchstens zwei zusammenhängende Durchgänge; mindestens 50 m Abstand zu Waldrändern',
+  'Höchstens eine aktive Drohne je 15 ha; höchstens fünf begleitende Personen',
+  'Start und Landung möglichst auf Wegen oder Parkplätzen, nicht in Tiernähe',
+  'In der Regel frühmorgens; an stark besuchten Orten möglichst nicht an Wochenenden/Feiertagen',
+  'Passanten über Zweck und Verbotslage informieren',
+  'Bei Reaktionen von Vögeln Abstand halten, ggf. Flug abbrechen',
+  'Abseits der Wege im NSG nur Jagdscheininhaber oder Landnutzungsberechtigte'
+];
+const BLOCKED_RULES = {
+  flughaefen: 'Betrieb nur mit Flugverkehrskontrollfreigabe (DFS) bzw. Zustimmung von Betreiber und Luftaufsicht.',
+  kontrollzonen: 'Betrieb nur mit Flugverkehrskontrollfreigabe der zuständigen Flugsicherung.',
+  flugplaetze: 'Bis 1,5 km um Flugplätze: Zustimmung der Flugaufsicht/des Betreibers nötig. Die Allgemeinerlaubnis deckt hier nur Flüge bis 30 m ab – Kitzrettungsmissionen (50/70 m) nicht.',
+  flugbeschraenkungsgebiete: 'Betrieb nur mit Erlaubnis der zuständigen Stelle (siehe dipul).',
+  temporaere_betriebseinschraenkungen: 'Zeitlich begrenzte Sperre – Gültigkeit und zuständige Stelle in dipul prüfen.',
+  nationalparks: 'Nicht von der Allgemeinverfügung erfasst – nur mit Zustimmung der zuständigen Naturschutzbehörde.',
+  naturschutzgebiete: 'Nur mit Zustimmung der Naturschutzbehörde. Die Allgemeinverfügung RP Gießen gilt nur 15.04.–30.06. und nur im Regierungsbezirk Gießen.',
+  'ffh-gebiete': 'Nur mit Zustimmung der Naturschutzbehörde. Die Allgemeinverfügung RP Gießen gilt nur 15.04.–30.06. und nur im Regierungsbezirk Gießen.',
+  vogelschutzgebiete: 'Nur mit Zustimmung der Naturschutzbehörde. Die Allgemeinverfügung RP Gießen gilt nur 15.04.–30.06. und nur im Regierungsbezirk Gießen.'
+};
+const LINK_AVGI = 'https://rp-giessen.hessen.de/sites/rp-giessen.hessen.de/files/2024-05/allgv_wildtierrettung_mittels_einsatz_von_drohnen_bf.pdf';
+const LINK_AE = 'https://rp-darmstadt.hessen.de/sites/rp-darmstadt.hessen.de/files/2026-02/antrag_allgemeinerlaubnis_rev_12.pdf';
+const LINK_DIPUL = 'https://maptool-dipul.dfs.de/';
+const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function rulesHtml(layer, reg) {
+  reg = reg || regionAt(V.lat, V.lon);
+  const cov = coverageOf(layer, reg);
+  if (cov === 'ae') return `<div><b>Allgemeinerlaubnis ${esc(stateName(reg.st))} – Auflagen:</b><ul>${AE_RULES[layer].map(r => `<li>${esc(r)}</li>`).join('')}</ul><div class="meta" style="margin-top:6px">${esc(AE_COMMON)}</div></div>`;
+  if (cov === 'power') return `<div><b>Überfluggenehmigung des Netzbetreibers liegt vor – Überflug erlaubt mit Auflagen:</b><ul>
+    <li>Genehmigung des jeweiligen Netzbetreibers mitführen; deren Auflagen gehen vor</li>
+    <li>Nur <b>über</b> die Leitung fliegen, mit sicherem Abstand über Mastspitzen und Leiterseilen – nie darunter durch</li>
+    <li>Masthöhe vor dem Queren prüfen: Höchstspannung (220/380 kV) in der Regel 70–80 m</li>
+    <li>Leiterseile sind aus der Luft und im Wärmebild schlecht zu sehen – Abstand großzügig wählen</li>
+    <li>Max. 120 m Flughöhe. Ausnahme Masten über 105 m (EU 2019/947, offene Kategorie): nur auf Anfrage/im Auftrag des Betreibers bis 50 m horizontal an den Mast heran und bis 15 m über die Mastspitze – auch über 120 m</li></ul>
+    <div id="powerBox" class="meta" style="margin-top:8px">Lade Leitungsdaten aus OpenStreetMap…</div></div>`;
+  if (cov === 'avgi') return `<div><b>Allgemeinverfügung RP Gießen – erlaubt mit Auflagen${avgiActive() ? '' : ' <span class="chip grey">Saison-Vorschau – heute NICHT gültig</span>'}:</b><ul>${AVGI_RULES.map(r => `<li>${esc(r)}</li>`).join('')}</ul></div>`;
+  let why = BLOCKED_RULES[layer] || 'Betrieb nur mit Zustimmung bzw. Erlaubnis der zuständigen Stelle (§ 21h/§ 21i LuftVO).';
+  if (AE_LAYERS.includes(layer))
+    why = P.lic !== 'A2'
+      ? 'Mit A1/A3 gilt keine Allgemeinerlaubnis – es gelten die normalen Regeln: Zustimmung des Betreibers/der zuständigen Stelle bzw. Abstand nach § 21h LuftVO.'
+      : `Abdeckbar durch eine Allgemeinerlaubnis – für ${esc(stateName(reg.st))} ist in den Einstellungen aber keine eingetragen.`;
+  if (AVGI_LAYERS.includes(layer)) {
+    const why2 = P.avgi !== '1' ? 'die Allgemeinverfügung ist in den Einstellungen ausgeschaltet'
+      : reg.st !== 'HE' ? `dieser Ort liegt in ${esc(stateName(reg.st))} – die Allgemeinverfügung gilt nur in Hessen (RP Gießen)`
+      : !reg.rbGi ? 'dieser Ort liegt nicht im Regierungsbezirk Gießen'
+      : `heute ist keine Mähsaison – die Allgemeinverfügung gilt nur vom 15.04. bis 30.06.${new Date() > new Date(2029, 5, 30) ? ' (und ist am 30.06.2029 ausgelaufen)' : ''} – zur Planung: Einstellungen → „Saison-Vorschau“`;
+    why = `Nur mit Zustimmung der Naturschutzbehörde. Die Allgemeinverfügung RP Gießen greift hier nicht: ${why2}. Die Allgemeinerlaubnis deckt Naturschutz-, FFH- und Vogelschutzgebiete grundsätzlich nicht ab.`;
+  }
+  return `<div><b>Warum rot:</b> ${why}</div>`;
+}
+const PROP_LABEL = { name: 'Name', type_code: 'Typ', lower_limit_altitude: 'Untergrenze', upper_limit_altitude: 'Obergrenze',
+  lower_limit_unit: 'Einheit unten', upper_limit_unit: 'Einheit oben', lower_limit_alt_ref: 'Bezug unten', upper_limit_alt_ref: 'Bezug oben',
+  legal_ref: 'Rechtsgrundlage', external_reference: 'Referenz' };
+function altText(p) {
+  const lo = p.lower_limit_altitude, hi = p.upper_limit_altitude;
+  if ((lo == null || +lo === 0) && (hi == null || +hi === 0)) return '';
+  const u1 = p.lower_limit_unit || '', u2 = p.upper_limit_unit || '', r1 = p.lower_limit_alt_ref || '', r2 = p.upper_limit_alt_ref || '';
+  return `Höhe: ${lo ?? '?'} ${u1} ${r1} – ${hi ?? '?'} ${u2} ${r2}`.replace(/\s+/g, ' ');
+}
+function openInfoPage(title, html, icon) {
+  $('iTitle').innerHTML = (icon || '') + esc(title); $('iBody').innerHTML = html; $('pgInfo').classList.add('open'); $('iBody').scrollTop = 0;
+  $('iBody').querySelectorAll('[data-url]').forEach(a => a.onclick = () => A.openUrl ? A.openUrl(a.dataset.url) : window.open(a.dataset.url));
+  $('iBody').querySelectorAll('[data-rules]').forEach(a => a.onclick = showRules);
+}
+function geoInfoAt(px, py) {
+  const [lat, lon] = fromScreen(px, py);
+  infoPin = [lat, lon]; draw();
+  if (!S.geo.length) return toast('Geozonen noch nicht gespeichert – einmal mit Internet abgleichen.', true);
+  window.onGeoInfo(JSON.stringify({ ok: true, lat, lon, features: geoAt(lat, lon), offline: true, reg: regionAt(lat, lon) }));
+}
+window.onGeoInfo = raw => {
+  busy('');
+  const r = JSON.parse(raw);
+  if (!r.ok) { toast(r.error || 'Abfrage fehlgeschlagen', true, 7000); return; }
+  const pos = `${r.lat.toFixed(5)}, ${r.lon.toFixed(5)}`;
+  const reg = r.reg || regionAt(r.lat, r.lon);
+  let html = `<div class="meta" style="margin-bottom:10px">Position ${pos} · <b>${esc(regionText(reg))}</b> · Daten: dipul (DFS, BKG) · nur zur Orientierung, maßgeblich ist <span class="lnk" data-url="${LINK_DIPUL}">dipul.de</span> · <span class="lnk" data-rules="1">Alle Regeln &amp; Auflagen</span></div>`;
+  const feats = r.features || [];
+  if (!feats.length && !r.text) html += `<div class="zone"><h4>Keine Geozone an diesem Punkt</h4><div class="meta">Laut dipul liegt hier keine der eingeblendeten Geozonen. Allgemeine Regeln (Kategorie, Abstände, Höhe max. 120 m) gelten trotzdem.</div></div>`;
+  feats.forEach(f => {
+    const p = f.props || {};
+    const cov = coverageOf(f.layer, reg);
+    const label = LAYER_LABEL[f.layer] || f.layer;
+    const extra = Object.keys(p).filter(k => p[k] != null && p[k] !== '' && typeof p[k] !== 'object')
+      .map(k => `<div>${esc(PROP_LABEL[k] || k)}: ${esc(p[k])}</div>`).join('');
+    html += `<div class="zone"><h4>${esc(p.name || label)} <span class="chip ${cov ? 'cov' : ''}">${cov ? 'Ausnahme gilt (grün)' : 'Gesperrt (rot)'}</span></h4>
+      <div class="meta">${esc(label)}${altText(p) ? ' · ' + esc(altText(p)) : ''}${p.legal_ref ? ' · ' + esc(p.legal_ref) : ''}</div>
+      ${rulesHtml(f.layer, reg)}
+      ${extra ? `<details><summary>Alle Angaben von dipul</summary>${extra}</details>` : ''}</div>`;
+  });
+  if (r.text && !feats.length) html += `<div class="zone"><h4>Antwort von dipul</h4><pre style="white-space:pre-wrap;font-size:13px">${esc(r.text)}</pre></div>`;
+  openInfoPage(feats.length === 1 ? '1 Geozone an diesem Punkt' : `${feats.length} Geozonen an diesem Punkt`, html);
+  if (feats.some(f => f.layer === 'stromleitungen')) {
+    if (!$('powerBox')) {   // keine Genehmigung eingestellt: Leitungsdaten trotzdem anhängen
+      const z = [...$('iBody').querySelectorAll('.zone')][feats.findIndex(f => f.layer === 'stromleitungen')];
+      if (z) z.insertAdjacentHTML('beforeend', '<div id="powerBox" class="meta" style="margin-top:8px">Lade Leitungsdaten aus OpenStreetMap…</div>');
+    }
+    if (A.powerInfo) A.powerInfo(r.lat, r.lon); else $('powerBox').textContent = '';
+  }
+};
+
+// ---------- Stromleitungen: Spannung & Masthöhe ----------
+function typicalHeight(kv) {
+  if (kv >= 220) return [70, 80];   // Höchstspannung
+  if (kv >= 110) return [25, 45];
+  if (kv >= 60) return [20, 35];
+  if (kv >= 10) return [8, 15];
+  return [6, 12];
+}
+function flightHeight() {
+  const d = P.drone || (S.files.find(f => f.drone) || {}).drone;
+  return d === 'M4T' ? 70 : d === 'M3T' ? 50 : null;
+}
+window.onPowerInfo = raw => {
+  const box = $('powerBox'); if (!box) return;
+  const r = JSON.parse(raw);
+  if (!r.ok) { box.textContent = 'Leitungsdaten nicht verfügbar: ' + r.error; return; }
+  const els = r.elements || [];
+  const lines = els.filter(e => e.type === 'way');
+  const masts = els.filter(e => e.type === 'node');
+  const mh = masts.map(m => parseFloat(String(m.tags && m.tags.height || '').replace(',', '.'))).filter(h => h > 0);
+  if (!lines.length && !masts.length) { box.innerHTML = 'In OpenStreetMap ist hier keine Leitung erfasst. Höhe vor Ort prüfen.'; return; }
+  const kvs = [];
+  let html = '<b style="color:var(--txt)">Leitungsdaten (OpenStreetMap):</b><ul>';
+  lines.slice(0, 5).forEach(l => {
+    const t = l.tags || {};
+    const v = [...new Set(String(t.voltage || '').split(';').map(x => parseInt(x, 10) / 1000).filter(x => x > 0))];
+    kvs.push(...v);
+    const kind = t.power === 'cable' ? 'Erdkabel' : t.power === 'minor_line' ? 'Mittel-/Niederspannungsleitung' : 'Freileitung';
+    html += `<li>${esc(t.name || t.ref || kind)}${v.length ? ' · ' + v.map(x => x + ' kV').join(' / ') : ''}${t.operator ? ' · ' + esc(t.operator) : ''}${t.power === 'cable' ? ' (unterirdisch)' : ''}</li>`;
+  });
+  html += '</ul>';
+  const fh = flightHeight();
+  if (mh.length) {
+    const lo = Math.min(...mh), hi = Math.max(...mh);
+    html += `<div style="color:var(--txt)"><b>Masthöhe in der Nähe: ${lo === hi ? lo : lo + '–' + hi} m</b> (eingetragen bei ${mh.length} Mast${mh.length > 1 ? 'en' : ''})</div>`;
+  } else if (kvs.length) {
+    const [a, b] = typicalHeight(Math.max(...kvs));
+    html += `<div style="color:var(--txt)"><b>Masthöhe nicht erfasst – typisch für ${Math.max(...kvs)} kV: ca. ${a}–${b} m</b> (Schätzwert!)</div>`;
+  } else {
+    html += '<div style="color:var(--txt)"><b>Masthöhe und Spannung nicht erfasst</b> – Höhe vor Ort prüfen.</div>';
+  }
+  let top = null;
+  if (mh.length) top = Math.max(...mh);
+  else if (kvs.length) top = typicalHeight(Math.max(...kvs))[1];
+  if (fh && top != null) {
+    const margin = fh - top;
+    if (margin < 20) html += `<div style="margin-top:6px;padding:8px 10px;border-radius:8px;background:#b3131b;color:#fff;font-weight:700">⚠ Missionshöhe ${fh} m liegt ${margin < 0 ? 'UNTER' : 'nur ' + margin + ' m über'} der Masthöhe (bis ca. ${top} m)! Mission hier nicht unverändert fliegen – Höhe anpassen oder Leitung meiden.</div>`;
+    else html += `<div style="margin-top:6px">Missionshöhe ${fh} m – ca. ${margin} m über der Masthöhe (bis ca. ${top} m). Geländeunterschiede zwischen Startpunkt und Leitung beachten.</div>`;
+  } else if (fh) html += `<div>Eure Missionshöhe: ${fh} m über Startpunkt – Geländeunterschiede zwischen Startpunkt und Leitung beachten.</div>`;
+  if (top != null && top > 105) html += `<div style="margin-top:6px;padding:8px 10px;border-radius:8px;background:#e7eef7;color:var(--txt)"><b>Mast über 105 m:</b> Im Auftrag des Betreibers darf bis 50 m horizontal an den Mast heran und bis 15 m über die Mastspitze geflogen werden (EU 2019/947) – auch über 120 m.</div>`;
+  let stamp = r.cached ? `gespeichert, Stand ${fmtDate(r.fetched)}` : 'live abgefragt';
+  if (r.cached && Date.now() - r.fetched > 7 * 86400000) stamp = `<b style="color:#b3131b">⚠ veraltet – Stand ${fmtDate(r.fetched)}</b>`;
+  html += `<div style="font-size:12px;margin-top:4px">Daten © OpenStreetMap-Mitwirkende · ${stamp} · ohne Gewähr</div>`;
+  box.innerHTML = html;
+};
+function showRules() {
+  const act = avgiActive(), reg = regionAt(V.lat, V.lon);
+  const li = a => a.map(x => `<li>${x}</li>`).join('');
+  const html = `<div class="rules">
+    <p class="meta">Zusammenfassung zur Orientierung – verbindlich sind die Originaldokumente, der eigene Bescheid und dipul.de.</p>
+    <div class="zone"><h4>Was gilt bei dir gerade?</h4><ul>
+      <li>Fernpilotenzeugnis: <b>${P.lic === 'A2' ? 'A2' : 'A1/A3'}</b></li>
+      <li>Kartenmitte liegt in: <b>${esc(regionText(reg))}</b></li>
+      <li>Allgemeinerlaubnis eingetragen für: <b>${P.lic !== 'A2' ? 'nicht nutzbar (nur mit A2)' : esc((P.aeStates || '').split(',').filter(Boolean).map(stateName).join(', ') || 'kein Bundesland')}</b></li>
+      <li>Allgemeinverfügung RP Gießen: <b>${P.avgi !== '1' ? 'ausgeschaltet' : act ? 'heute gültig (Mähsaison)' : 'heute NICHT gültig – nur 15.04.–30.06.'}</b>${P.season === '1' && !act ? ' · Saison-Vorschau an (nur Planung)' : ''}</li>
+      <li>Überfluggenehmigung Stromleitungen: <b>${P.power === '1' ? 'liegt vor' : 'nicht eingetragen'}</b></li></ul>
+      <p class="meta">Farben auf der Karte: <b style="color:#13a538">grün</b> = Ausnahme deckt die Zone an diesem Ort ab (Auflagen beachten) · <b style="color:#d42020">rot</b> = gesperrt bzw. Zustimmung nötig · <b style="color:#1e7bff">blau</b> = deine Felder (gelb umrandet = markiert). Das Bundesland wird für jede Zone einzeln bestimmt.</p></div>
+
+    <div class="zone"><h4>Allgemeinverfügung Wildtierrettung – RP Gießen</h4>
+      <div class="meta">Az. RPGI-53.3-21a0500/2-2017/4 vom 26.04.2024 · gültig bis 30.06.2029 · nur Regierungsbezirk Gießen</div>
+      <p><b>Was sie erlaubt:</b> Drohnenflüge zur Wildtierrettung über Naturschutzgebieten sowie FFH- und Vogelschutzgebieten (§ 21h Abs. 3 Nr. 6 LuftVO).</p>
+      <b>Voraussetzungen – alle müssen erfüllt sein:</b><ul>${li([
+        'Ort liegt in <b>Hessen, Regierungsbezirk Gießen</b> (LK Gießen, Lahn-Dill, Limburg-Weilburg, Marburg-Biedenkopf, Vogelsberg)',
+        'Zeitraum <b>15.04.–30.06.</b> – außerhalb gilt sie nicht (deshalb sind Naturschutzgebiete jetzt im Oktober rot)',
+        'Zweck: Wildtierrettung im Zusammenhang mit einer zulässigen Mahd',
+        'Berechtigt: Vereine mit entsprechendem Satzungsziel, Jagdverbände, Landnutzungsberechtigte',
+        'Nicht für Nationalparks; alle anderen Geozonen (Flugplätze, Kontrollzonen, Verkehrswege …) gelten weiter'])}</ul>
+      <b>Auflagen:</b><ul>${AVGI_RULES.map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+      <p><b>Wichtig:</b> In Rheinland-Pfalz und anderen Bundesländern gibt es diese Verfügung nicht – dort brauchen Flüge über Naturschutzgebieten die Zustimmung der Naturschutzbehörde. Die Allgemeinerlaubnis ersetzt sie nicht.</p>
+      <p><span class="lnk" data-url="${LINK_AVGI}">Originaldokument öffnen (PDF)</span></p></div>
+
+    <div class="zone"><h4>Allgemeinerlaubnis der Luftfahrtbehörden (§ 21h LuftVO)</h4>
+      <b>Voraussetzungen:</b><ul>${li([
+        '<b>A2-Fernpilotenzeugnis</b> für alle Piloten – mit A1/A3 nicht nutzbar (in der App ausgegraut)',
+        'Eigener gültiger Bescheid der Luftfahrtbehörde des jeweiligen Bundeslands – gilt <b>nur in diesem Bundesland</b>',
+        'Bescheid beim Flug mitführen; Nebenbestimmungen im Bescheid gehen dieser Übersicht vor',
+        'Registrierter Betreiber (e-ID am Fluggerät), Haftpflichtversicherung, Sichtflug (VLOS), max. 120 m',
+        'Befristet (in der Regel 2 Jahre)'])}</ul>
+      <b>Abgedeckt mit Auflagen:</b><ul>${Object.keys(AE_RULES).filter(k => !['kraftwerke','umspannwerke','windkraftanlagen','polizei','seewasserstrassen'].includes(k))
+        .map(k => `<li><b>${esc({ industrieanlagen: 'Industrieanlagen', stromleitungen: 'Energieerzeugung/-verteilung (Kraftwerke, Umspannwerke, Leitungen, Windkraft)', behoerden: 'Behörden, Verfassungsorgane, Polizei', bundesautobahnen: 'Bundesautobahnen', bundesstrassen: 'Bundesstraßen', binnenwasserstrassen: 'Bundeswasserstraßen', bahnanlagen: 'Bahnanlagen', wohngrundstuecke: 'Wohngrundstücke' }[k] || k)}:</b> ${esc(AE_RULES[k].join(' · '))}</li>`).join('')}</ul>
+      <b>Nicht abgedeckt:</b><ul>${li(['Naturschutz-, FFH- und Vogelschutzgebiete, Nationalparks', 'Flugplätze: nur bis 30 m bzw. Gebäudehöhe – für Kitzrettung (50/70 m) praktisch nicht nutzbar', 'Flughäfen und Kontrollzonen: nur mit Flugverkehrskontrollfreigabe', 'Flugbeschränkungsgebiete, Militär, JVA, Krankenhäuser, BSL-4-Labore, diplomatische Vertretungen'])}</ul>
+      <p><span class="lnk" data-url="${LINK_AE}">Antragsformular öffnen (PDF)</span></p></div>
+
+    <div class="zone"><h4>Mit A1/A3 (ohne Allgemeinerlaubnis) – normale Regeln</h4><ul>${li([
+      'Mavic 3T / Matrice 4T (Klasse C2) nur in Unterkategorie A3: mindestens 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten, keine unbeteiligten Personen gefährden',
+      'Alle Geozonen nach § 21h LuftVO nur mit Zustimmung des Betreibers bzw. der zuständigen Stelle oder mit den dort genannten Abständen',
+      'Naturschutzgebiete: auch mit A1/A3 gilt die Allgemeinverfügung RP Gießen (Saison, RB Gießen) – sie hängt nicht am A2'])}</ul></div>
+
+    <div class="zone"><h4>Stromleitungen – Überfluggenehmigung der Netzbetreiber</h4>
+      <p>${P.power === '1' ? 'Eingestellt: Genehmigungen liegen vor – Stromtrassen werden grün angezeigt.' : 'Nicht eingestellt – Stromtrassen sind rot.'}</p>
+      <ul>${li(['Genehmigung mitführen; Auflagen des Netzbetreibers gehen vor', 'Nur über die Leitung fliegen, nie darunter durch; sicherer Abstand über Mastspitzen und Seilen',
+        'Höchstspannungsmasten (220/380 kV) in der Regel 70–80 m hoch – bei 50 m (M3T) bzw. 70 m (M4T) Missionshöhe Leitung meiden oder Höhe anpassen',
+        'Grundsätzlich max. 120 m. Ausnahme Masten über 105 m (EU 2019/947): im Auftrag des Betreibers bis 50 m horizontal heran und bis 15 m über die Mastspitze, auch über 120 m'])}</ul></div>
+    ${vincenzHtml(null).replace('id="ilsPhone"', 'id="ilsPhone2"').replace('id="ilsSave"', 'id="ilsSave2"')}
+    <div class="zone"><h4>Ohne Ausnahme (immer rot)</h4><p>Kontrollzonen, Flugbeschränkungsgebiete, temporäre Einschränkungen (NOTAM), Nationalparks, militärische Anlagen, JVA, BSL-4-Labore, Krankenhäuser, diplomatische Vertretungen, Freibäder – hier nur mit gesonderter Zustimmung/Erlaubnis fliegen.</p></div>
+    <p class="meta">Geozonen: dipul, CC BY-ND 4.0 (DFS, BKG ${new Date().getFullYear()}) · Landesgrenzen © OpenStreetMap-Mitwirkende · ${esc(geoText(true))}</p>
+  </div>`;
+  openInfoPage('Regeln & Auflagen', html);
+  if ($('ilsSave2')) $('ilsSave2').onclick = () => { A.setPref('ils_phone', $('ilsPhone2').value.trim()); toast('Nummer der Rettungsleitstelle gespeichert.'); showRules(); };
+}
+$('iBack').onclick = () => { $('pgInfo').classList.remove('open'); infoPin = null; draw(); };
+$('bRules').onclick = showRules;
+$('bInfo').onclick = () => { infoMode = !infoMode; $('bInfo').classList.toggle('on', infoMode); toast(infoMode ? 'Info-Modus: Punkt auf der Karte antippen. Nochmal ⓘ zum Beenden.' : 'Info-Modus beendet – Antippen wählt wieder Felder.'); if (!infoMode) { infoPin = null; draw(); } };
+
+// ================= Flugplätze =================
+function loadAirfields() {
+  if (!A.airfields) return;
+  try {
+    const r = JSON.parse(A.airfields());
+    S.airfields = r.list || []; S.afFetched = r.fetched || 0;
+  } catch (e) { S.airfields = []; }
+  draw();
+}
+window.onAirfields = () => { loadAirfields(); if ($('pgSet').classList.contains('open')) fillSettings(); };
+function nearestField(a) {
+  let best = null;
+  S.files.forEach(f => f.shapes.forEach(sh => sh.pts.forEach(([la, lo]) => {
+    const d = Math.hypot((la - a.lat) * 111.2, (lo - a.lon) * 111.2 * Math.cos(a.lat * Math.PI / 180));
+    if (!best || d < best.d) best = { d, f };
+  })));
+  return best;
+}
+function afPhones(a) {
+  const own = A.getPref('afphone_' + a.id, '');
+  return { own, osm: a.phone };
+}
+const FREQ_LABEL = { TWR: 'Tower', GND: 'Ground', ATIS: 'ATIS', INFO: 'Info', AFIS: 'AFIS', APP: 'Approach', CTAF: 'CTAF', UNIC: 'Unicom', DEP: 'Departure', 'A/G': 'Bodenfunk' };
+function showAirfield(a) {
+  const nf = nearestField(a);
+  const ph = afPhones(a);
+  const tel = n => `<a class="lnk" style="font-size:20px;font-weight:700" data-url="tel:${esc(n.replace(/[^+\d]/g, ''))}">${esc(n)}</a>`;
+  const kind = a.kind === 'heliport' ? 'Hubschrauberlandeplatz' : a.kind === 'airstrip' ? 'Landebahn / UL-Gelände' : 'Flugplatz';
+  const freqs = (a.freqs || []).map(f => `<li><b>${esc(FREQ_LABEL[f.type] || f.type)}</b> ${esc(f.mhz)} MHz${f.desc ? ' · ' + esc(f.desc) : ''}</li>`).join('');
+  const html = `
+    <div class="zone"><h4>${esc(a.name)} ${a.icao ? `<span class="chip grey">${esc(a.icao)}</span>` : ''}</h4>
+      <div class="meta">${kind}${a.type ? ' · ' + esc(a.type) : ''}${a.ele ? ' · Höhe ' + esc(a.ele) + ' m' : ''}${a.operator ? ' · ' + esc(a.operator) : ''}</div>
+      ${nf ? `<div>Nächstes Feld: <b>${esc(nf.f.title)}</b> – ca. ${nf.d < 1 ? Math.round(nf.d * 1000) + ' m' : nf.d.toFixed(1) + ' km'} entfernt${nf.d < 1.5 && a.kind !== 'heliport' ? ' <b style="color:#b3131b">· innerhalb 1,5 km – Geozone Flugplatz!</b>' : ''}</div>` : ''}
+    </div>
+    <div class="zone"><h4>Telefon</h4>
+      ${ph.own ? `<div>Eigene Nummer: ${tel(ph.own)}</div>` : ''}
+      ${ph.osm ? `<div>Laut OpenStreetMap: ${tel(ph.osm)}</div>` : ''}
+      ${!ph.own && !ph.osm ? '<div class="meta">Keine Nummer bekannt – Tower/Flugleitung bitte aus dem Luftfahrthandbuch (AIP) oder von der Platzwebsite eintragen.</div>' : ''}
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <input id="afPhone" class="inp" type="tel" placeholder="Nummer Tower / Flugleitung" value="${esc(ph.own)}">
+        <button class="b-ok" id="afSave" style="height:46px;padding:0 14px">Speichern</button>
+      </div></div>
+    <div class="zone"><h4>Funkfrequenzen</h4>${freqs ? `<ul>${freqs}</ul>` : '<div class="meta">Keine Frequenzen hinterlegt.</div>'}
+      <div class="meta" style="margin-top:6px">Frequenzen: OurAirports (CC-BY) · Platzdaten: © OpenStreetMap-Mitwirkende · verbindlich ist das AIP der DFS</div></div>
+    ${a.website ? `<div class="zone"><span class="lnk" data-url="${esc(a.website)}">Website des Flugplatzes öffnen</span></div>` : ''}`;
+  openInfoPage(a.kind === 'heliport' ? 'Hubschrauberlandeplatz' : 'Flugplatz', (isVincenz(a) ? vincenzHtml(a) : '') + html);
+  if ($('ilsSave')) $('ilsSave').onclick = () => { A.setPref('ils_phone', $('ilsPhone').value.trim()); toast('Nummer der Rettungsleitstelle gespeichert.'); showAirfield(a); };
+  $('afSave').onclick = () => { A.setPref('afphone_' + a.id, $('afPhone').value.trim()); toast('Nummer gespeichert.'); showAirfield(a); };
+}
+// ---------- Sonderregel St. Vincenz (Limburg / Diez) ----------
+const VINCENZ_MAIL = 'luftsicherheit@st-vincenz.de';
+const VINCENZ_URL = 'https://www.st-vincenz.de/kontakt/drohnenfluege';
+function isVincenz(a) {
+  if (a.kind !== 'heliport') return false;
+  const t = (a.name + ' ' + (a.operator || '')).toLowerCase();
+  return /vincenz/.test(t) || (/diez/.test(t) && /(krankenhaus|klinik|hospital)/.test(t));
+}
+function fieldDistTo(f, lat, lon) {
+  let best = Infinity;
+  f.shapes.forEach(sh => sh.pts.forEach(([la, lo]) => {
+    const d = Math.hypot((la - lat) * 111200, (lo - lon) * 111200 * Math.cos(lat * Math.PI / 180));
+    if (d < best) best = d;
+  }));
+  return best;
+}
+function vincenzHits(files) {
+  const out = [];
+  S.airfields.filter(isVincenz).forEach(a => files.forEach(f => {
+    const d = fieldDistTo(f, a.lat, a.lon);
+    if (d <= 1500) out.push({ a, f, d });
+  }));
+  return out;
+}
+function vincenzHtml(a, short) {
+  const fh = flightHeight();
+  const ils = A.getPref('ils_phone', '');
+  const steps = `
+    <ol>
+      <li><b>Mit Allgemeinerlaubnis (RP)</b> ist keine Freigabe des Verbunds nötig – <b>aber nur</b> wenn: max. Flughöhe <b>unter First-/Baumhöhe</b> im 100-m-Umkreis, 100-m-Zone ums Klinikgelände bleibt frei, <b>Rettungsleitstelle (ILS) vor dem Aufstieg informieren</b>, Luftraum ständig auf Sicht/Gehör überwachen, im <b>750-m-Umkreis eine zweite Person nur als Luftraumbeobachter</b>.</li>
+      <li><b>Sonst Freigabe durch die Luftsicherheit</b> des St. Vincenz-Verbunds – <b>mindestens 10 Arbeitstage vorher</b> per E-Mail an <span class="lnk" data-url="mailto:${VINCENZ_MAIL}">${VINCENZ_MAIL}</span> mit: Name, Anschrift, Registrierungsnummer, Erreichbarkeit während des Flugs · Drohne und Betriebsklasse · Bestätigung der Voraussetzungen (Nebenbestimmungen HE/RP) · Kopie der RP-Erlaubnis · Datum/Zeitraum · Planskizze mit Flugraum und Höhe über Grund · Zweck und Auftraggeber.</li>
+    </ol>`;
+  const heightWarn = fh ? `<div style="margin:8px 0;padding:8px 10px;border-radius:8px;background:#b3131b;color:#fff;font-weight:700">⚠ Eure Missionshöhe ${fh} m liegt über Gebäude-/Baumhöhe – die Allgemeinerlaubnis reicht hier nicht. Freigabe der Luftsicherheit nötig (10 Arbeitstage Vorlauf).</div>` : '';
+  if (short) return heightWarn + steps;
+  return `<div class="zone"><h4>Sonderregeln St. Vincenz <span class="chip">Hubschrauberlandeplatz</span></h4>
+    <div class="meta">1,5 km um den Landeplatz und 100 m ums Krankenhaus grundsätzlich gesperrt (§ 21h LuftVO). Zustimmung nur in begründeten Einzelfällen. Der Verbund erteilt keine Flugfreigabe, sondern bestätigt nur die Kenntnisnahme.</div>
+    ${heightWarn}${steps}
+    <b>Während des Einsatzes:</b><ul>
+      <li>Bemannte Luftfahrzeuge (Rettungshubschrauber!) haben absoluten Vorrang – ausweichen, möglichst nach unten</li>
+      <li>Keine Annäherung auf 150 m an den Landeplatz oberhalb seiner Bezugsebene – auch nicht bei technischen Störungen</li>
+      <li>Genehmigte Maximalhöhe auch kurzzeitig nie überschreiten; Flug jederzeit abbrechbar</li>
+      <li>Bei Aufstieg über Gebäude-/Baumhöhe im 750-m-Bereich: Beobachter melden anfliegende Luftfahrzeuge, Drohne sofort unter Gebäudekanten; Kommunikation per Funk</li>
+      <li>Andere Geozonen (Bundesstraßen, Wohngebäude, Polizei …) bleiben in Pilotenverantwortung</li></ul>
+    <div style="margin-top:10px"><b>Rettungsleitstelle (ILS) – Telefon:</b> ${ils ? `<a class="lnk" style="font-size:20px;font-weight:700" data-url="tel:${esc(ils.replace(/[^+\d]/g, ''))}">${esc(ils)}</a>` : '<span class="meta">nicht eingetragen</span>'}
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><input id="ilsPhone" class="inp" type="tel" placeholder="Nummer der Rettungsleitstelle" value="${esc(ils)}"><button class="b-ok" id="ilsSave" style="height:46px;padding:0 14px">Speichern</button></div></div>
+    <p><span class="lnk" data-url="${VINCENZ_URL}">Originalseite St. Vincenz öffnen</span></p></div>`;
+}
+
+function showAirfieldList() {
+  const list = S.airfields.map(a => ({ a, nf: nearestField(a) })).sort((x, y) => (x.nf ? x.nf.d : 99) - (y.nf ? y.nf.d : 99));
+  const stamp = S.afFetched ? `Stand ${fmtDate(S.afFetched)}` : 'noch nicht geladen';
+  let html = `<div class="meta" style="margin-bottom:10px">${list.length} Plätze im Gebiet der Felder (+3 km) · ${stamp} · sortiert nach Abstand zum nächsten Feld · antippen für Details</div>`;
+  list.forEach(({ a, nf }) => {
+    const ph = afPhones(a).own || a.phone;
+    html += `<div class="zone" data-af="${esc(a.id)}" style="cursor:pointer"><h4>${a.kind === 'heliport' ? 'H' : '✈'} ${esc(a.name)} ${a.icao ? `<span class="chip grey">${esc(a.icao)}</span>` : ''}</h4>
+      <div class="meta">${nf ? 'ca. ' + nf.d.toFixed(1) + ' km zu ' + esc(nf.f.title) : ''}${ph ? ' · ☎ ' + esc(ph) : ' · keine Nummer'}</div></div>`;
+  });
+  if (!list.length) html += '<div class="zone"><div class="meta">Keine Flugplätze im Gebiet gefunden (oder noch nicht geladen – Internet nötig).</div></div>';
+  openInfoPage('Flugplätze im Gebiet', html);
+  $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => showAirfield(S.airfields.find(a => a.id === el.dataset.af)));
+}
+document.querySelectorAll('[data-rose]').forEach(b => b.onclick = () => { const v = b.dataset.rose; setP('rose', v === 'off' ? 0 : 1); if (v !== 'off') setP('compass', v === 'dev' ? 1 : 0); fillSettings(); windWidget(); draw(); });
+$('sWxStart').onchange = e => { if (e.target.value) setP('wxStart', e.target.value); };
+$('sAf').onchange = e => { setP('airf', e.target.checked ? 1 : 0); draw(); };
+$('bAfList').onclick = showAirfieldList;
+
+// ================= Wetter: dipul (DFS, ICON-D2, 24 h) + DWD ICON über Open-Meteo für spätere Termine =================
+const WX_LIMIT = { wind: 12, gustWarn: 10, windWarn: 8 };   // m/s – Mavic 3T / Matrice 4T: max. 12 m/s
+// Bewertung der Stundentabelle (App-Heuristik, keine Flugfreigabe) – zentral anpassbar
+const WX_THR = { wind10: [7, 10], windH: [8, 12], gust: [9, 12], tempLow: [0, -5], rain: [0.1, 0.5] };
+const WX_MAXAGE = 3600 * 1000;                               // online stündlich aktualisieren
+const WX_WH = [10, 50, 100, 150, 200, 250], WX_TH = [2, 50, 100, 150, 200, 250];
+function wxKey(lat, lon) { return (Math.round(lat * 50) / 50).toFixed(2) + ',' + (Math.round(lon * 50) / 50).toFixed(2); }
+function wxCacheGet(k) { try { return JSON.parse(A.getPref('wx2_' + k, '') || 'null'); } catch (e) { return null; } }
+function wxIndex() { try { return JSON.parse(A.getPref('wx2_index', '[]') || '[]'); } catch (e) { return []; } }
+function wxCacheSet(k, v, kind, lat, lon) {
+  try {
+    A.setPref('wx2_' + k, JSON.stringify(v));
+    let idx = wxIndex().filter(x => x.k !== k);
+    idx.push({ k, kind, lat, lon, t: v.t });
+    idx.sort((a, b) => b.t - a.t);
+    idx.slice(30).forEach(x => A.setPref('wx2_' + x.k, ''));   // alte Einträge aufräumen
+    A.setPref('wx2_index', JSON.stringify(idx.slice(0, 30)));
+  } catch (e) { }
+}
+/** Offline: nächstgelegene gespeicherte Vorhersage (max. 30 km), damit der Kartenausschnitt egal ist */
+function wxNearest(kind, lat, lon) {
+  let best = null, bd = 1e9;
+  wxIndex().filter(x => x.kind === kind).forEach(x => {
+    const d = Math.hypot((x.lat - lat) * 111.2, (x.lon - lon) * 111.2 * Math.cos(lat * Math.PI / 180));
+    if (d < 30 && (d < bd - 2 || (Math.abs(d - bd) <= 2 && best && x.t > best.t))) { bd = d; best = x; }
+  });
+  const c = best ? wxCacheGet(best.k) : null;
+  if (c) c.distKm = Math.round(bd);
+  return c;
+}
+const isOnline = () => { try { return A.isOnline ? A.isOnline() : navigator.onLine; } catch (e) { return true; } };
+const wxPending = {};
+window.onDipulWx = (id, raw) => { const p = wxPending[id]; if (p) { delete wxPending[id]; p(JSON.parse(raw)); } };
+function dipulCall(lat, lon) {
+  return new Promise((res, rej) => {
+    if (!A.dipulWeather) return rej(new Error('nicht verfügbar'));
+    const id = 'w' + Date.now() + Math.random().toString(36).slice(2, 6);
+    const to = setTimeout(() => { delete wxPending[id]; rej(new Error('Zeitüberschreitung')); }, 70000);
+    wxPending[id] = r => { clearTimeout(to); r.ok ? res(r.data) : rej(new Error(r.error)); };
+    A.dipulWeather(id, lat, lon);
+  });
+}
+const byHeight = (arr, h, idx) => { arr = arr || []; const v = arr.find(x => x && x.height && +x.height.value === h); return v || (idx != null && arr.length === 1 && h === idx ? arr[0] : null); };
+/** Kurzfassung (labels/w) für Einsatz-Tabellen, Ampel und Windanzeige */
+function wxLegacy(n) {
+  const hs = Object.keys(n.wind).map(Number).sort((a, b) => a - b).filter(h => n.wind[h].some(v => v != null)).slice(0, 4);
+  n.labels = hs.map(h => h + ' m'); n.w = hs.map(h => n.wind[h]);
+  n.temp = n.tempH[2] || []; n.qnh = n.pres;
+  return n;
+}
+function normDipul(d) {
+  const f = ((d.positions || [])[0] || {}).forecasts || [];
+  const n = { v: 2, src: 'dipul', model: 'DFS dipul · DWD ICON-D2', run: d.calculationTime ? new Date(d.calculationTime).getTime() : null,
+    time: [], wind: {}, tempH: {}, gust: [], dir: [], rain: [], snow: [], cloud: [], hum: [], humH: 50, pres: [], presType: 'QNH' };
+  WX_WH.forEach(h => n.wind[h] = []); WX_TH.forEach(h => n.tempH[h] = []);
+  f.forEach(x => {
+    n.time.push(new Date(x.timestamp).getTime());
+    WX_WH.forEach(h => {
+      const w = byHeight(x.wind, h);
+      n.wind[h].push(w && w.uComponent != null ? Math.hypot(w.uComponent, w.vComponent) : null);
+      if (h === 10) {
+        n.gust.push(w && w.windSpeedGust != null ? w.windSpeedGust : null);
+        n.dir.push(w && w.uComponent != null ? (Math.atan2(-w.uComponent, -w.vComponent) * 180 / Math.PI + 360) % 360 : null);   // Herkunftsrichtung
+      }
+    });
+    WX_TH.forEach(h => { const t = byHeight(x.temperature, h, 2); n.tempH[h].push(t && t.value != null ? t.value : null); });
+    n.rain.push(x.rainPrecipitation ? x.rainPrecipitation.value : null);
+    n.snow.push(x.snowPrecipitation ? x.snowPrecipitation.value : null);
+    n.cloud.push(x.totalCloudCover ? x.totalCloudCover.value : null);
+    n.hum.push(x.airHumidity && x.airHumidity[0] ? x.airHumidity[0].value : null);
+    n.pres.push(x.qnh && x.qnh.value != null ? x.qnh.value / 100 : null);
+  });
+  return wxLegacy(n);
+}
+function normIcon(j) {
+  const h = j.hourly;
+  const n = { v: 2, src: 'icon', model: 'DWD ICON (Open-Meteo)', time: h.time.map(t => new Date(t).getTime()),
+    wind: { 10: h.wind_speed_10m, 80: h.wind_speed_80m, 120: h.wind_speed_120m, 180: h.wind_speed_180m || [] },
+    tempH: { 2: h.temperature_2m, 80: h.temperature_80m || [], 120: h.temperature_120m || [], 180: h.temperature_180m || [] },
+    gust: h.wind_gusts_10m, dir: h.wind_direction_10m, rain: h.precipitation, snow: h.snowfall || [], cloud: h.cloud_cover,
+    hum: h.relative_humidity_2m || [], humH: 2, pres: h.pressure_msl || [], presType: 'MSL' };
+  return wxLegacy(n);
+}
+async function wxSource(kind, lat, lon, force) {
+  const k = kind + '_' + wxKey(lat, lon);
+  let c = wxCacheGet(k);
+  if (c && !force && Date.now() - c.t < WX_MAXAGE) return c;
+  if (!isOnline()) {   // offline: sofort aus dem Speicher, nichts blockiert
+    c = c || wxNearest(kind, lat, lon);
+    if (c) { c.offline = true; return c; }
+    throw new Error('offline und keine gespeicherte Vorhersage in der Nähe');
+  }
+  try {
+    let n;
+    if (kind === 'dipul') n = normDipul(await dipulCall(lat, lon));
+    else {
+      const url = `https://api.open-meteo.com/v1/dwd-icon?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&hourly=temperature_2m,temperature_80m,temperature_120m,temperature_180m,relative_humidity_2m,precipitation,snowfall,pressure_msl,wind_speed_10m,wind_speed_80m,wind_speed_120m,wind_speed_180m,wind_gusts_10m,wind_direction_10m,cloud_cover&wind_speed_unit=ms&timezone=Europe%2FBerlin&forecast_days=7&past_days=1`;
+      const r = await fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status);
+      n = normIcon(await r.json());
+    }
+    if (!n.time.length) throw new Error('keine Daten');
+    n.t = Date.now(); n.lat = lat; n.lon = lon; wxCacheSet(k, n, kind, lat, lon); return n;
+  } catch (e) {
+    c = c || wxNearest(kind, lat, lon);
+    if (c) { c.offline = true; return c; }
+    throw e;
+  }
+}
+/** Wetterdaten für einen Zeitraum: bevorzugt dipul, sonst ICON */
+async function wxFor(lat, lon, fromMs, toMs, force) {
+  let d = null, err = null;
+  try { d = await wxSource('dipul', lat, lon, force); } catch (e) { err = e; }
+  const covers = d && d.time.length && d.time[0] <= fromMs + 3600000 && d.time[d.time.length - 1] >= toMs - 3600000;
+  if (covers) return d;
+  try { return await wxSource('icon', lat, lon, force); } catch (e) { if (d) return d; throw err || e; }
+}
+/** Bis zu 48 Stundenspalten: dipul zuerst, danach ICON */
+async function wxHours(lat, lon, force) {
+  let dip = null, ico = null;
+  try { dip = await wxSource('dipul', lat, lon, force); } catch (e) { }
+  const now = hourFloor(Date.now()), end = now + 47 * 3600000;
+  if (!dip || !dip.time.length || dip.time[dip.time.length - 1] < end) try { ico = await wxSource('icon', lat, lon, force); } catch (e) { }
+  const hours = [];
+  for (let t = now; t <= end; t += 3600000) {
+    let d = null, i = -1;
+    if (dip) { i = dip.time.indexOf(t); if (i >= 0) d = dip; }
+    if (!d && ico) { i = ico.time.indexOf(t); if (i >= 0) d = ico; }
+    if (d) hours.push({ t, d, i });
+  }
+  return { hours, dip, ico };
+}
+// Werte je Höhe: Quellwert, sonst gekennzeichnete Schätzung (~), außerhalb vorhandener Höhen „—“
+function windAtH(d, i, H) {
+  const hs = Object.keys(d.wind).map(Number).filter(h => d.wind[h] && d.wind[h][i] != null).sort((a, b) => a - b);
+  if (d.wind[H] && d.wind[H][i] != null) return { v: d.wind[H][i] };
+  const lo = hs.filter(h => h < H).pop(), hi = hs.find(h => h > H);
+  if (lo == null || hi == null) return { v: null };
+  const a = d.wind[lo][i], b = d.wind[hi][i];
+  return { v: a + (b - a) * (H - lo) / (hi - lo), est: true };
+}
+function tempAtH(d, i, H) {
+  const T = d.tempH || {};
+  if (T[H] && T[H][i] != null) return { v: T[H][i] };
+  const hs = Object.keys(T).map(Number).filter(h => T[h] && T[h][i] != null).sort((a, b) => a - b);
+  const lo = hs.filter(h => h < H).pop(), hi = hs.find(h => h > H);
+  if (lo != null && hi != null) return { v: T[lo][i] + (T[hi][i] - T[lo][i]) * (H - lo) / (hi - lo), est: true };
+  if (lo != null) return { v: T[lo][i] - 0.0065 * (H - lo), est: true };   // Standardgradient −0,65 °C/100 m
+  return { v: null };
+}
+function cls(v, warn, bad) { return v == null ? '' : v >= bad ? 'r' : v >= warn ? 'o' : 'g'; }
+function hourFloor(ms) { const d = new Date(ms); d.setMinutes(0, 0, 0); return d.getTime(); }
+const DIR8 = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
+function dirTxt(deg) { return DIR8[Math.round(deg / 45) % 8] + ' ' + Math.round(deg) + '°'; }
+const f1 = v => v == null ? '—' : v.toFixed(1).replace('.', ',');
+function wxRowsHtml(d, fromMs, toMs, markFrom, markTo) {
+  let rows = '';
+  for (let i = 0; i < d.time.length; i++) {
+    const t = d.time[i]; if (t < fromMs || t > toMs) continue;
+    const ein = markFrom != null && t >= markFrom && t <= markTo;
+    const dt = new Date(t);
+    const pr = d.rain[i], sn = d.snow[i], te = d.temp[i];
+    rows += `<tr class="${ein ? 'ein' : ''}"><td>${dt.toLocaleDateString('de-DE', { weekday: 'short' })} ${dt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}${ein ? ' ▸' : ''}</td>`
+      + d.w.map(arr => `<td class="${cls(arr[i], WX_LIMIT.windWarn, WX_LIMIT.wind)}">${f1(arr[i])}</td>`).join('')
+      + `<td class="${cls(d.gust[i], WX_LIMIT.gustWarn, WX_LIMIT.wind)}">${f1(d.gust[i])}</td>
+      <td>${d.dir[i] != null ? dirTxt(d.dir[i]) : '—'}</td>
+      <td class="${pr == null ? '' : pr >= 0.5 ? 'r' : pr > 0 ? 'o' : 'g'}">${f1(pr)}${sn ? ' ❄' + f1(sn) : ''}</td>
+      <td class="${te == null ? '' : te < -10 ? 'r' : te < 0 ? 'o' : ''}">${te != null ? Math.round(te) + '°' : '—'}</td></tr>`;
+  }
+  return `<div class="wxwrap"><table class="wx"><tr><th>Zeit</th>${d.labels.map((l, i) => `<th>${i === 0 ? 'Wind ' : ''}${l}</th>`).join('')}<th>Böen</th><th>Richtung</th><th>Regen</th><th>Temp</th></tr>${rows || `<tr><td colspan="${d.labels.length + 5}">Keine Daten für diesen Zeitraum</td></tr>`}</table></div>`;
+}
+function wxVerdict(d, fromMs, toMs) {
+  let worst = 0; const why = new Set();
+  for (let i = 0; i < d.time.length; i++) {
+    const t = d.time[i]; if (t < fromMs || t > toMs) continue;
+    const wmax = Math.max(d.w[0][i] || 0, (d.w[1] || [])[i] || 0);   // bis ca. 50–80 m (Missionshöhe)
+    const g = d.gust[i] || 0, pr = d.rain[i] || 0, sn = d.snow[i] || 0;
+    if (wmax >= WX_LIMIT.wind || g >= WX_LIMIT.wind || pr >= 0.5 || sn > 0) worst = 2;
+    else if (wmax >= WX_LIMIT.windWarn || g >= WX_LIMIT.gustWarn || pr > 0) worst = Math.max(worst, 1);
+    if (wmax >= WX_LIMIT.windWarn) why.add('Wind'); if (g >= WX_LIMIT.gustWarn) why.add('Böen'); if (pr > 0) why.add('Regen'); if (sn > 0) why.add('Schnee');
+  }
+  return { level: worst, why: [...why] };
+}
+const AMP = ['#13a538', '#e8a200', '#b3131b'];
+function fieldMeta() { try { return A.uaveFieldMeta ? JSON.parse(A.uaveFieldMeta()) : {}; } catch (e) { return {}; } }
+function einsatzWindow(m) {
+  if (!m || !m.cut) return null;
+  const d = new Date(m.cut); if (isNaN(d)) return null;
+  const dateOnly = (d.getHours() === 0 && d.getMinutes() === 0) || (d.getUTCHours() === 0 && d.getUTCMinutes() === 0) || /T2[23]:00:00/.test(m.cut);
+  let start = new Date(d);
+  if (dateOnly) {
+    const local = /T2[23]:00:00/.test(m.cut) ? new Date(d.getTime() + 3 * 3600000) : d;
+    const [hh, mm] = P.wxStart.split(':').map(Number);
+    start = new Date(local.getFullYear(), local.getMonth(), local.getDate(), hh, mm);
+  }
+  const dur = Math.max(15 * 60000, (m.ft || 0) * 1000 * 1.3);
+  return { start: start.getTime(), end: start.getTime() + dur, dateOnly };
+}
+function ageTxt(ms) { const m = Math.round((Date.now() - ms) / 60000); return m < 60 ? `${m} min` : m < 2880 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} Tage`; }
+function wxSrcLine(d) {
+  const now = Date.now();
+  return `${esc(d.model)}${d.run ? ' · Modelllauf ' + fmtDate(d.run) : ''} · abgerufen ${fmtDate(d.t)} (vor ${ageTxt(d.t)})${d.offline ? ' · <b style="color:#b3131b">offline – gespeicherte Daten' + (d.distKm ? `, ${d.distKm} km entfernt` : '') + '</b>' : ''}${now - d.t > 24 * 3600000 ? ' · <b style="color:#b3131b">⚠ älter als 24 h</b>' : ''}`;
+}
+
+// ---------- Sonnenstand (lokal berechnet, keine API) ----------
+const RAD = Math.PI / 180;
+function sunElev(ms, lat, lon) {
+  const d = ms / 86400000 - 10957.5;   // Tage seit J2000.0
+  const g = (357.529 + 0.98560028 * d) * RAD, q = 280.459 + 0.98564736 * d;
+  const L = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * RAD, e = (23.439 - 0.00000036 * d) * RAD;
+  const ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L)), dec = Math.asin(Math.sin(e) * Math.sin(L));
+  const gmst = ((18.697374558 + 24.06570982441908 * d) % 24 + 24) % 24;
+  const H = (gmst * 15 + lon) * RAD - ra;
+  return Math.asin(Math.sin(lat * RAD) * Math.sin(dec) + Math.cos(lat * RAD) * Math.cos(dec) * Math.cos(H)) / RAD;
+}
+const sunDays = new Map();
+/** Tagesgang für den lokalen Kalendertag von ms (Sommerzeit-Tage mit 23/25 h berücksichtigt) */
+function sunDay(ms, lat, lon) {
+  const dt = new Date(ms), t0 = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime(), t1 = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + 1).getTime();
+  const key = t0 + ':' + lat.toFixed(2) + ':' + lon.toFixed(2);
+  if (sunDays.has(key)) return sunDays.get(key);
+  const samples = [];
+  for (let t = t0; t <= t1; t += 15 * 60000) samples.push([t, sunElev(t, lat, lon)]);
+  const ev = lvl => { const r = { up: null, down: null }; let p = sunElev(t0, lat, lon);
+    for (let t = t0 + 120000; t <= t1; t += 120000) { const v = sunElev(t, lat, lon);
+      if ((p < lvl) !== (v < lvl)) { const x = t - 120000 + (lvl - p) / (v - p) * 120000; if (v > p) r.up = r.up || x; else r.down = x; } p = v; }
+    return r; };
+  const rise = ev(-0.833), civ = ev(-6);
+  const maxE = Math.max(...samples.map(s => s[1]));
+  const day = { t0, t1, samples, sunrise: rise.up, sunset: rise.down, dawn: civ.up, dusk: civ.down, maxE,
+    polar: rise.up == null && rise.down == null ? (maxE > 0 ? 'Polartag' : 'Polarnacht') : null,
+    daylight: rise.up != null && rise.down != null ? rise.down - rise.up : maxE > 0 ? t1 - t0 : 0 };
+  sunDays.set(key, day);
+  return day;
+}
+const hm = ms => new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+const durTxt = ms => `${Math.floor(ms / 3600000)} h ${Math.round(ms % 3600000 / 60000)} min`;
+function sunSvg(day, ms, lat, lon, Wd) {
+  Wd = Math.max(280, Math.round(Wd || 360)); const Hd = 140, top = Math.max(15, Math.ceil(day.maxE / 10) * 10 + 5), bot = -25;
+  const X = t => (t - day.t0) / (day.t1 - day.t0) * Wd, Y = e => 8 + (top - Math.max(bot, Math.min(top, e))) / (top - bot) * (Hd - 16);
+  let bands = '';
+  day.samples.forEach(([t, e], k) => { if (k === day.samples.length - 1) return;
+    const c = e > 0 ? 'var(--sunday)' : e > -6 ? 'var(--suntw)' : 'var(--sunnight)';
+    bands += `<rect x="${X(t).toFixed(1)}" y="0" width="${(X(day.samples[k + 1][0]) - X(t) + .6).toFixed(1)}" height="${Hd}" fill="${c}"/>`; });
+  const path = day.samples.map(([t, e], k) => `${k ? 'L' : 'M'}${X(t).toFixed(1)} ${Y(e).toFixed(1)}`).join(' ');
+  const hours = [0, 3, 6, 9, 12, 15, 18, 21].map(h => { const t = new Date(new Date(day.t0).setHours(h)).getTime();
+    return `<line x1="${X(t)}" y1="${Hd - 4}" x2="${X(t)}" y2="${Hd}" stroke="var(--muted)"/><text x="${X(t) + 2}" y="${Hd - 6}" font-size="9" fill="var(--muted)">${h}</text>`; }).join('');
+  const evm = (t, up) => t == null ? '' : `<line x1="${X(t)}" y1="${Y(-0.833)}" x2="${X(t)}" y2="${Y(top - 4)}" stroke="#e8a200" stroke-dasharray="2 3"/>
+    <text x="${X(t) + (up ? 3 : -3)}" y="12" font-size="10" font-weight="700" text-anchor="${up ? 'start' : 'end'}" fill="#c77800">${up ? '↑' : '↓'} ${hm(t)}</text>`;
+  const e = sunElev(ms, lat, lon), mx = X(Math.min(day.t1, Math.max(day.t0, ms))), my = Y(e);
+  return `<svg viewBox="0 0 ${Wd} ${Hd}" class="sunsvg">${bands}
+    <line x1="0" y1="${Y(0)}" x2="${Wd}" y2="${Y(0)}" stroke="var(--txt)" stroke-width=".8"/>
+    <line x1="0" y1="${Y(-6)}" x2="${Wd}" y2="${Y(-6)}" stroke="var(--muted)" stroke-width=".6" stroke-dasharray="3 3"/>
+    <text x="3" y="${Y(0) - 3}" font-size="9" fill="var(--txt)">Horizont 0°</text><text x="3" y="${Y(-6) + 10}" font-size="9" fill="var(--muted)">−6° Dämmerung</text>
+    ${evm(day.sunrise, true)}${evm(day.sunset, false)}${hours}
+    <path d="${path}" fill="none" stroke="#f0b400" stroke-width="2.6" stroke-linejoin="round"/>
+    <line x1="${mx}" y1="0" x2="${mx}" y2="${Hd}" stroke="var(--acc)" stroke-width="1"/>
+    <circle cx="${mx}" cy="${my}" r="9" fill="#ffd54a" opacity=".35"/><circle cx="${mx}" cy="${my}" r="5.5" fill="${e > 0 ? '#ffc400' : '#8a93a6'}" stroke="#fff" stroke-width="1.6"/></svg>`;
+}
+function sunLine(day, ms, lat, lon) {
+  const e = sunElev(ms, lat, lon);
+  const d = new Date(ms).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+  return `<b>${d} ${hm(ms)}</b> · Sonne ${f1(Math.abs(e))}° ${e >= 0 ? 'über' : 'unter'} Horizont${e < 0 && e > -6 ? ' (Dämmerung)' : e <= -6 ? ' (Nacht)' : ''} · `
+    + (day.polar ? day.polar : `↑ ${hm(day.sunrise)} · ↓ ${hm(day.sunset)} · ${durTxt(day.daylight)} Tageslicht`)
+    + (day.dawn ? ` · Dämmerung ab ${hm(day.dawn)} bis ${day.dusk ? hm(day.dusk) : '—'}` : '');
+}
+
+// ---------- Wetterseite ----------
+const CLOUD_ICON = '<svg viewBox="0 0 24 24" class="hicon"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 9.5 4.25 4.25 0 0 0 7 18z"/></svg>';
+function wxLoc() {
+  if (S.files.length) { const b = bounds(S.files); return { lat: (b.n + b.s) / 2, lon: (b.e + b.w) / 2, what: 'Gebiet deiner Felder' }; }
+  if (S.me) return { lat: S.me[0], lon: S.me[1], what: 'dein Standort' };
+  const [lat, lon] = fromScreen(W / 2, mapH() / 2); return { lat, lon, what: 'Kartenmitte' };
+}
+function evalCell(kind, v, extra) {
+  if (v == null) return '';
+  const T = WX_THR;
+  if (kind === 'w10') return v > T.wind10[1] ? 'r' : v > T.wind10[0] ? 'o' : '';
+  if (kind === 'wh') return v > T.windH[1] ? 'r' : v > T.windH[0] ? 'o' : '';
+  if (kind === 'gust') return v > T.gust[1] ? 'r' : v > T.gust[0] ? 'o' : '';
+  if (kind === 'temp') return v < T.tempLow[1] ? 'r' : v < T.tempLow[0] ? 'o' : '';
+  if (kind === 'rain') return v > T.rain[1] ? 'r' : v > T.rain[0] ? 'o' : '';
+  if (kind === 'hum') { const t = extra; if (t == null) return ''; return t < 0 && v >= 80 ? 'r' : t <= 5 && v >= 90 ? 'o' : ''; }
+  if (kind === 'kp') return v >= 6 ? 'r' : v >= 5 ? 'o' : v >= 3 ? 'y' : '';
+  return '';
+}
+function wxTable(hours, kpc) {
+  const rows = [];
+  const add = (label, unit, fn) => rows.push({ label, unit, fn });
+  WX_TH.forEach(h => add(`Temp ${h} m`, '°C', x => { const r = tempAtH(x.d, x.i, h); return { t: r.v == null ? '—' : (r.est ? '~' : '') + f1(r.v) + '°', c: evalCell('temp', r.v) }; }));
+  WX_WH.forEach(h => add(`Wind ${h} m`, 'm/s', x => { const r = windAtH(x.d, x.i, h); return { t: r.v == null ? '—' : (r.est ? '~' : '') + f1(r.v), c: evalCell(h === 10 ? 'w10' : 'wh', r.v) }; }));
+  add('Böen 10 m', 'm/s', x => { const v = x.d.gust[x.i]; return { t: f1(v), c: evalCell('gust', v) }; });
+  add('Richtung', 'woher', x => { const v = x.d.dir[x.i], w = x.d.wind[10] && x.d.wind[10][x.i];
+    return { t: v == null ? '—' : w != null && w < 0.5 ? 'still' : `<span class="arr" style="transform:rotate(${(v + 180) % 360}deg)">↑</span>${DIR8[Math.round(v / 45) % 8]} ${Math.round(v)}°` }; });
+  add('Wolken', '%', x => { const v = x.d.cloud[x.i]; return { t: v == null ? '—' : Math.round(v) + ' %' }; });
+  add('Regen', 'mm/h', x => { const v = x.d.rain[x.i], sn = x.d.snow[x.i]; return { t: f1(v) + (sn ? ' ❄' : ''), c: sn ? 'r' : evalCell('rain', v) }; });
+  add('Feuchte', '%', x => { const v = x.d.hum[x.i], t = (x.d.tempH[2] || [])[x.i]; return { t: v == null ? '—' : Math.round(v) + ' %' + (x.d.humH === 50 ? '' : ''), c: evalCell('hum', v, t) }; });
+  add('Luftdruck', 'hPa', x => { const v = x.d.pres[x.i]; return { t: v == null ? '—' : `${Math.round(v)}<small>${x.d.presType === 'QNH' ? ' QNH' : ' MSL'}</small>` }; });
+  add('Kp-Index', '', x => { const k = kpc ? kpAt(kpc, x.t) : null; return { t: k ? f1(k.kp) : '—', c: k ? evalCell('kp', k.kp) : '' }; });
+  const cells = rows.map(r => hours.map(x => r.fn(x)));
+  const sum = hours.map((x, k) => { const cs = cells.map(rw => rw[k].c); return cs.includes('r') ? 2 : cs.includes('o') ? 1 : 0; });
+  let lab = `<div class="wh">Uhrzeit</div><div class="ws">Quelle</div>` + rows.map(r => `<div class="wr">${r.label}${r.unit ? ` <small>${r.unit}</small>` : ''}</div>`).join('');
+  let head = '', src = '';
+  hours.forEach((x, k) => {
+    const dt = new Date(x.t), newDay = k === 0 || dt.getHours() === 0;
+    head += `<td class="wh${newDay ? ' nd' : ''}"><div class="day">${newDay ? dt.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : '&nbsp;'}</div><b>${String(dt.getHours()).padStart(2, '0')}:00</b><div class="sumbar" style="background:${AMP[sum[k]]}"></div></td>`;
+    src += `<td class="ws">${x.d.src === 'dipul' ? 'dipul' : 'ICON'}</td>`;
+  });
+  const body = rows.map((r, ri) => `<tr>${hours.map((x, k) => `<td class="wr ${cells[ri][k].c || ''}">${cells[ri][k].t}</td>`).join('')}</tr>`).join('');
+  return `<div class="wxt"><div class="wxl">${lab}</div><div class="wxs" id="wxs"><table><tr>${head}</tr><tr>${src}</tr>${body}</table></div></div>`;
+}
+async function showWeather(force) {
+  const loc = wxLoc();
+  openInfoPage('Wetter', '<div class="meta">Lade Vorhersage…</div>', CLOUD_ICON);
+  let html = '';
+  const now = Date.now();
+  const kpc = await kpLoad(force);
+  let hours = [];
+  try {
+    const r = await wxHours(loc.lat, loc.lon, force);
+    hours = r.hours;
+    if (!hours.length) throw new Error(isOnline() ? 'keine Daten' : 'offline und keine gespeicherte Vorhersage in der Nähe');
+    const d0 = hours[0].d, v = wxVerdict(d0, hourFloor(now), now + 24 * 3600000);
+    const w10 = d0.wind[10] && d0.wind[10][hours[0].i], dir = d0.dir[hours[0].i];
+    html += `<div class="zone wxhero"><div class="amp big" style="background:${AMP[v.level]}"></div><div style="flex:1;min-width:0">
+        <div class="t1">Nächste 24 h ${v.why.length ? '– ' + v.why.join(', ') : '– unauffällig'}</div>
+        <div class="meta">Jetzt: Wind 10 m ${w10 != null ? f1(w10) + ' m/s' : '—'}${dir != null && w10 >= 0.5 ? ' aus ' + dirTxt(dir) : ''} · ${loc.what} ${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)}</div>
+        <div class="meta">${wxSrcLine(d0)}${r.ico && r.dip ? ' · ab Stunde 25: DWD ICON' : ''} · <span class="lnk" id="wxReload">jetzt neu laden</span></div></div></div>
+      <div class="zone"><h4>☀ Sonnenlauf</h4><div id="sunBox"></div><div class="meta" id="sunTxt" style="margin-top:6px"></div></div>
+      <div class="zone" style="padding:8px"><h4 style="margin:4px 6px 8px">Tagesgang <span class="meta" style="font-weight:400;margin:0">· nach links/rechts wischen – Bezug: linke Spalte</span></h4>${wxTable(hours, kpc)}
+        <div class="meta" style="margin:8px 6px 0">~ = geschätzt (Temperatur über Standardgradient −0,65 °C/100 m bzw. zwischen Quellhöhen interpoliert) · — = nicht verfügbar · Luftdruck: QNH (dipul) bzw. MSL (ICON, auf Meereshöhe reduziert) · Farben: Hinweis/kritisch nach App-Schwellen, keine Flugfreigabe · Grenze Mavic 3T/Matrice 4T: 12 m/s</div></div>`;
+  } catch (e) {
+    html += `<div class="zone"><h4>Keine Wetterdaten</h4><div class="meta">${esc(e.message)}. Mit Internet wird die Vorhersage für das Gebiet deiner Felder gespeichert und ist dann offline verfügbar.</div></div>`;
+  }
+  const meta = fieldMeta();
+  const upcoming = S.files.map(f => ({ f, w: einsatzWindow(meta[f.name]) }))
+    .filter(x => x.w && x.w.end > now - 6 * 3600000 && x.w.start < now + 7 * 86400000)
+    .sort((a, b) => a.w.start - b.w.start);
+  if (upcoming.length) {
+    html += `<h3 class="sec">Einsätze mit Mähdatum (${upcoming.length})</h3>`;
+    for (const x of upcoming) {
+      try {
+        const from = hourFloor(x.w.start) - 3600000, to = hourFloor(x.w.end) + 3600000;
+        const d = await wxFor(x.f.center[0], x.f.center[1], from, to, false);
+        const v = wxVerdict(d, from, to);
+        const far = x.w.start > now + 48 * 3600000;
+        const sd = sunDay(x.w.start, x.f.center[0], x.f.center[1]);
+        html += `<div class="zone"><h4><span class="amp" style="background:${AMP[v.level]}"></span>${esc(x.f.title)}</h4>
+          <div class="meta">Mähdatum ${new Date(x.w.start).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' })} · Einsatz ca. ${hm(x.w.start)}–${hm(x.w.end)}${x.w.dateOnly ? ` (Startzeit ${P.wxStart} angenommen)` : ''} · Sonnenaufgang ${sd.sunrise ? hm(sd.sunrise) : '—'}${v.why.length ? ' · ' + v.why.join(', ') : ''} · ${esc(d.model)}${far ? ' · <b>mehr als 48 h voraus – unsicherer</b>' : ''}</div>
+          ${wxRowsHtml(d, from, to, hourFloor(x.w.start), x.w.end)}</div>`;
+      } catch (e) { html += `<div class="zone"><h4>${esc(x.f.title)}</h4><div class="meta">Keine Wetterdaten (${esc(e.message)})</div></div>`; }
+    }
+  }
+  if (kpc) html += `<div class="meta" style="margin-top:4px">Kp-Index: ${KP_HINT} Grün &lt; 3 · Gelb 3–5 · Orange 5–6 · Rot ≥ 6 · NOAA SWPC, Stand ${fmtDate(kpc.t)}${kpc.offline ? ' (offline)' : ''}</div>`;
+  html += '<div class="meta" style="margin-top:6px">Wetter: DFS dipul Weather Service (DWD ICON-D2) für 24 h, danach DWD ICON über Open-Meteo.com (CC BY 4.0) · für offline gespeichert, online stündlich aktualisiert · Sonnenstand lokal berechnet (Gelände/Gebäude nicht berücksichtigt)</div>';
+  openInfoPage('Wetter', html, CLOUD_ICON);
+  if ($('wxReload')) $('wxReload').onclick = () => showWeather(true);
+  const sc = $('wxs');
+  if (sc && hours.length) {
+    let curDay = null;
+    const upd = () => {
+      const col = sc.querySelector('td.wh'); const cw = col ? col.getBoundingClientRect().width : 60;
+      const pos = Math.max(0, sc.scrollLeft / cw), li = Math.min(hours.length - 1, Math.floor(pos)), ri = Math.min(li + 1, hours.length - 1);
+      const t = hours[li].t + (hours[ri].t - hours[li].t) * (pos - li);
+      const day = sunDay(t, loc.lat, loc.lon);
+      $('sunBox').innerHTML = sunSvg(day, t, loc.lat, loc.lon, $('sunBox').clientWidth);
+      $('sunTxt').innerHTML = sunLine(day, t, loc.lat, loc.lon);
+      curDay = day.t0;
+    };
+    let raf = 0; sc.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; upd(); }); }, { passive: true });
+    upd();
+  }
+}
+$('bWx').onclick = () => showWeather(false);
+// Online: stündlich für das Gebiet der Felder und anstehende Einsätze vorladen, damit offline aktuell gespeichert ist
+async function wxPrefetch() {
+  if (!isOnline()) return;
+  const loc = wxLoc();
+  try { await wxHours(loc.lat, loc.lon, false); } catch (e) { }
+  const meta = fieldMeta();
+  for (const f of S.files) {
+    const w = einsatzWindow(meta[f.name]);
+    if (w && w.end > Date.now() && w.start < Date.now() + 7 * 86400000)
+      try { await wxFor(f.center[0], f.center[1], hourFloor(w.start) - 3600000, hourFloor(w.end) + 3600000, false); } catch (e) { }
+  }
+  kpLoad(false);
+}
+setInterval(wxPrefetch, WX_MAXAGE);
+window.addEventListener('online', () => setTimeout(wxPrefetch, 3000));
+
+// ---------- Kp-Index (NOAA SWPC) ----------
+const fetchPending = {};
+window.onFetch = (id, raw) => { const p = fetchPending[id]; if (p) { delete fetchPending[id]; p(JSON.parse(raw)); } };
+function getText(url) {
+  return new Promise((res, rej) => {
+    if (!A.fetchText) return fetch(url).then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status))).then(res, rej);
+    const id = 'f' + Date.now() + Math.random().toString(36).slice(2, 6);
+    const to = setTimeout(() => { delete fetchPending[id]; rej(new Error('Zeitüberschreitung')); }, 35000);
+    fetchPending[id] = r => { clearTimeout(to); r.ok ? res(r.body) : rej(new Error(r.error || 'HTTP ' + r.code)); };
+    A.fetchText(id, url);
+  });
+}
+function parseKpTable(txt) {
+  const j = JSON.parse(txt);
+  if (!Array.isArray(j) || !j.length) return [];
+  let rows;
+  if (Array.isArray(j[0])) {   // erste Zeile = Spaltennamen
+    const hd = j[0].map(h => String(h).toLowerCase());
+    const it = hd.findIndex(h => h.includes('time')), ik = hd.findIndex(h => h === 'kp' || h.startsWith('kp'));
+    rows = j.slice(1).map(r => ({ t: r[it], kp: r[ik], obs: (r[hd.indexOf('observed')] || '') }));
+  } else rows = j.map(r => { const k = Object.keys(r); const kt = k.find(x => /time/i.test(x)), kk = k.find(x => /^kp/i.test(x)); return { t: r[kt], kp: r[kk], obs: r.observed || '' }; });
+  return rows.map(r => ({ t: new Date(String(r.t).replace(' ', 'T') + (/Z|[+-]\d\d:?\d\d$/.test(r.t) ? '' : 'Z')).getTime(), kp: parseFloat(r.kp), obs: String(r.obs) }))
+    .filter(r => !isNaN(r.t) && !isNaN(r.kp));
+}
+async function kpLoad(force) {
+  let c = null; try { c = JSON.parse(A.getPref('kp_cache', '') || 'null'); } catch (e) { }
+  if (c && !force && Date.now() - c.t < 3 * 3600000) return c;
+  try {
+    const rows = parseKpTable(await getText('https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json'));
+    if (!rows.length) throw new Error('leer');
+    c = { t: Date.now(), rows }; A.setPref('kp_cache', JSON.stringify(c)); return c;
+  } catch (e) { if (c) { c.offline = true; return c; } return null; }
+}
+function kpAt(c, ms) {
+  if (!c || !c.rows.length) return null;
+  let best = null;
+  c.rows.forEach(r => { if (r.t <= ms && (!best || r.t > best.t)) best = r; });   // 3-Stunden-Blöcke
+  return best || c.rows[0];
+}
+const kpColor = kp => kp >= 6 ? '#b3131b' : kp >= 5 ? '#e06a00' : kp >= 3 ? '#d4a800' : '#13a538';
+const KP_HINT = 'Erhöhte geomagnetische Aktivität kann GNSS- und Kompassstörungen begünstigen – muss am Standort aber nicht auftreten.';
+
+// ---------- Windrose oben links (ein gerätebezogenes Bezugssystem) ----------
+// Rose, Buchstaben, Nordnadel und Windsack liegen in EINER Gruppe, die sich um −Kompasskurs dreht.
+// Oben = Oberkante der RC. Windsack: breite Öffnung zur Herkunft des Windes, schmales Ende in Strömungsrichtung.
+function roseSvg(to) {
+  const C = 50;
+  const ticks = Array.from({ length: 36 }, (_, k) => k * 10).map(a => {
+    const main = a % 90 === 0, mid = a % 30 === 0;
+    return `<line x1="${C}" y1="${main ? 3 : 4}" x2="${C}" y2="${main ? 11 : mid ? 8 : 6}" stroke="${main ? 'var(--rose-tick)' : 'var(--rose-tick2)'}" stroke-width="${main ? 2.2 : mid ? 1.3 : .8}" stroke-linecap="round" transform="rotate(${a} ${C} ${C})"/>`; }).join('');
+  const letters = [['N', 0, '#e2531f'], ['O', 90, 'var(--rose-txt)'], ['S', 180, 'var(--rose-txt)'], ['W', 270, 'var(--rose-txt)']]
+    .map(([t, a, c]) => { const r = 31, x = C + r * Math.sin(a * RAD), y = C - r * Math.cos(a * RAD);
+      return `<text x="${x.toFixed(1)}" y="${(y + 5).toFixed(1)}" font-size="13.5" font-weight="800" text-anchor="middle" fill="${c}" font-family="Roboto,system-ui,sans-serif" class="rl">${t}</text>`; }).join('');
+  // Nordnadel am Rand: rote Spitze = Norden, weiße Spitze = Süden
+  const needle = `<path d="M${C} 13 L${C + 4} 22 L${C - 4} 22 Z" fill="#e2392b" stroke="#fff" stroke-width=".8"/><path d="M${C} 87 L${C + 4} 78 L${C - 4} 78 Z" fill="#fff" stroke="#9aa6bb" stroke-width=".8"/>`;
+  let sock = '';
+  if (to != null) {   // grafischer Nullwinkel: schmales Ende zeigt nach oben (0°), Öffnung unten
+    const y0 = 70, y1 = 30, w0 = 9.5, w1 = 4, n = 5; let parts = '';
+    for (let k = 0; k < n; k++) {
+      const ya = y0 + (y1 - y0) * k / n, yb = y0 + (y1 - y0) * (k + 1) / n, wa = w0 + (w1 - w0) * k / n, wb = w0 + (w1 - w0) * (k + 1) / n;
+      parts += `<path d="M${C - wa} ${ya} L${C + wa} ${ya} L${C + wb} ${yb} L${C - wb} ${yb} Z" fill="${k % 2 ? '#fff' : '#e2392b'}" stroke="rgba(0,0,0,.25)" stroke-width=".4"/>`;
+    }
+    sock = `<g transform="rotate(${to} ${C} ${C})"><ellipse cx="${C}" cy="${y0}" rx="${w0}" ry="2.2" fill="#a51d14"/>${parts}</g>`;
+  }
+  return `<svg viewBox="0 0 100 100"><g id="rose" style="transform-origin:50px 50px;transition:transform .18s linear">
+      <circle cx="${C}" cy="${C}" r="48" fill="var(--rose-bg)" stroke="var(--rose-ring)" stroke-width="1.5"/>
+      <circle cx="${C}" cy="${C}" r="40" fill="none" stroke="var(--rose-ring)" stroke-width="1" stroke-dasharray="2 3"/>
+      ${ticks}${letters}${needle}${sock}</g>
+    <path id="hdgMark" d="M${C} 0.5 L${C - 4.5} 7 L${C + 4.5} 7 Z" fill="var(--acc)" style="display:none"/>
+    <circle cx="${C}" cy="${C}" r="2.6" fill="var(--rose-txt)"/></svg>`;
+}
+const windColor = v => v == null ? '#5d6975' : v >= WX_LIMIT.wind ? '#b3131b' : v >= WX_LIMIT.windWarn ? '#e06a00' : '#13a538';
+const fde = v => v == null ? '—' : v.toFixed(1).replace('.', ',');
+let compassAcc = 3;
+window.onCompassAcc = a => { compassAcc = a; windWidget(); };
+async function windWidget() {
+  const el = $('wind');
+  if (P.rose === '0' || (!S.files.length && !S.me)) { el.style.display = 'none'; return; }
+  const loc = wxLoc();
+  let d = null;
+  try { d = await wxFor(loc.lat, loc.lon, hourFloor(Date.now()), Date.now() + 3600000, false); } catch (e) { }
+  const kpc = await kpLoad(false);
+  const kp = kpAt(kpc, Date.now());
+  let i = -1;
+  if (d) { const now = Date.now(); d.time.forEach((t, k) => { if (t <= now + 1800000) i = k; }); if (i >= 0 && d.time[i] < Date.now() - 3 * 3600000) i = -1; }
+  const comp = P.compass !== '0' && heading == null ? '<div class="sub">kein Kompass – Rose nordausgerichtet</div>'
+    : P.compass !== '0' && compassAcc <= 1 ? '<div class="sub" style="color:#e06a00"><b>⚠ Kompass kalibrieren</b> (RC in Achterform bewegen)</div>' : '';
+  if (!d || i < 0) {
+    el.innerHTML = roseSvg(null) + `<div class="card"><div class="big">Wind nicht verfügbar</div><div class="sub">${isOnline() ? 'Vorhersage wird geladen…' : 'offline – keine aktuelle Vorhersage gespeichert'}</div>${kp ? `<div class="sub">Kp <b style="color:${kpColor(kp.kp)}">${fde(kp.kp)}</b></div>` : ''}${comp}</div>`;
+    el.style.display = 'flex'; roseRot = 0; applyHeading(); return;
+  }
+  const w10 = d.w[0][i], dir = d.dir[i], g = d.gust[i];
+  const calm = w10 != null && w10 < 0.5;
+  const to = dir == null || calm ? null : (dir + 180) % 360;   // Windsack zeigt dahin, wohin der Wind weht
+  const old = Date.now() - d.t > 3 * 3600000;
+  el.innerHTML = roseSvg(to) + `<div class="card"><div class="big" style="color:${windColor(w10)}">${calm ? 'Windstill' : `${fde(w10)} m/s · ${dir != null ? dirTxt(dir) : '—'}`}</div>
+    <div class="sub">Bodenwind 10 m${calm ? ' · Richtung unbestimmt' : ''}</div>
+    <div class="sub">${d.labels[1] || ''} ${fde(d.w[1] && d.w[1][i])} · ${d.labels[2] || ''} ${fde(d.w[2] && d.w[2][i])} · Böen <b style="color:${windColor(g)}">${fde(g)}</b></div>
+    <div class="sub">${kp ? `Kp <b style="color:${kpColor(kp.kp)}">${fde(kp.kp)}</b> · ` : ''}${d.src === 'dipul' ? 'dipul' : 'DWD ICON'}${old || d.offline ? ` · <b style="color:#b3131b">Stand ${hm(d.t)} (vor ${ageTxt(d.t)})</b>` : ''}</div>${comp}</div>`;
+  el.style.display = 'flex';
+  applyHeading();
+}
+$('wind').onclick = () => showWeather(false);
+let heading = null, roseRot = 0;
+function applyHeading() {
+  const g = document.getElementById('rose'), m = document.getElementById('hdgMark');
+  if (!g) return;
+  const rotating = P.compass !== '0' && heading != null;
+  const target = rotating ? -heading : 0;
+  roseRot += ((target - roseRot) % 360 + 540) % 360 - 180;   // kürzester Weg: 359° → 1° sind 2°
+  g.style.transform = `rotate(${roseRot.toFixed(1)}deg)`;
+  g.querySelectorAll('.rl').forEach(t => t.style.transform = `rotate(${(-roseRot).toFixed(1)}deg)`);   // Buchstaben bleiben lesbar aufrecht
+  if (m) m.style.display = rotating ? '' : 'none';
+}
+let lastHdgDraw = 0, hadHeading = false;
+window.onHeading = h => {
+  heading = h; applyHeading();
+  if ((h != null) !== hadHeading) { hadHeading = h != null; windWidget(); }
+  if (S.me && Date.now() - lastHdgDraw > 200) { lastHdgDraw = Date.now(); draw(); }
+};
+setInterval(windWidget, 10 * 60 * 1000);
+// Ampel für den Download-Dialog
+async function wxDialogInfo(sel, box) {
+  const meta = fieldMeta();
+  const items = sel.map(f => ({ f, w: einsatzWindow(meta[f.name]) })).filter(x => x.w && x.w.end > Date.now() - 3600000);
+  if (!items.length) return;
+  let html = '<div style="font-weight:700;margin:4px 0">Wetter im Einsatzfenster</div>';
+  for (const x of items) {
+    try {
+      const from = hourFloor(x.w.start) - 3600000, to = hourFloor(x.w.end) + 3600000;
+      const d = await wxFor(x.f.center[0], x.f.center[1], from, to, false);
+      const v = wxVerdict(d, from, to);
+      html += `<div><span class="amp" style="background:${AMP[v.level]}"></span>${esc(x.f.title)} · ${new Date(x.w.start).toLocaleString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}${v.why.length ? ' · ' + v.why.join(', ') : ' · ok'}</div>`;
+    } catch (e) { }
+  }
+  box.innerHTML = html;
+}
+
+// ================= NOTAM / temporäre Betriebseinschränkungen =================
+const LINK_TBE = 'https://www.dipul.de/homepage/de/temporaere-betriebseinschraenkungen/';
+const LINK_MAPTOOL = 'https://maptool-dipul.dfs.de/?language=de';
+const NOTAM_LABEL = { name: 'Name', type_code: 'Typ', type_code_detail: 'Art', legal_ref: 'Rechtsgrundlage', reason: 'Grund',
+  lower_limit_altitude: 'Untergrenze', upper_limit_altitude: 'Obergrenze', lower_limit_unit: 'Einheit unten', upper_limit_unit: 'Einheit oben',
+  lower_limit_alt_ref: 'Bezug unten', upper_limit_alt_ref: 'Bezug oben', valid_from: 'Gültig ab', valid_to: 'Gültig bis', start: 'Beginn', end: 'Ende',
+  begin: 'Beginn', authority: 'Behörde', contact: 'Kontakt', phone: 'Telefon', email: 'E-Mail', description: 'Beschreibung', message: 'Hinweis', url: 'Link' };
+const isDateStr = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v);
+function loadNotams() {
+  if (!A.notams) return;
+  try {
+    const r = JSON.parse(A.notams() || '{}');
+    S.notamFetched = r.fetched || 0;
+    const d = r.data || {};
+    const list = [];
+    (d.temporaere_betriebseinschraenkungen || []).forEach(f => list.push({ active: true, props: f.properties || {}, geom: f.geometry }));
+    (d.inaktive_temporaere_betriebseinschraenkungen || []).forEach(f => list.push({ active: false, props: f.properties || {}, geom: f.geometry }));
+    S.notams = list;
+  } catch (e) { S.notams = []; }
+  notamChip(); draw();
+}
+window.onNotams = () => { loadNotams(); if ($('pgSet').classList.contains('open')) fillSettings(); };
+function notamChip() {
+  const el = $('notam');
+  const act = S.notams.filter(n => n.active).length, inact = S.notams.length - act;
+  if (!S.notams.length) { el.style.display = 'none'; return; }
+  el.className = act ? '' : 'inact';
+  el.textContent = act ? `⚠ ${act} aktive Einschränkung${act > 1 ? 'en' : ''} (NOTAM)` : `${inact} geplante Einschränkung${inact > 1 ? 'en' : ''}`;
+  el.style.display = 'block';
+}
+// Detailseite auf dipul.de aus dem Namen ableiten, z. B. „ED-R Eickhofer Heide (NOTAM D1659/26)“ -> /ed-r-eickhofer-heide/
+function notamSlug(name) {
+  return String(name || '').replace(/\([^)]*\)/g, ' ').toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+function notamLink(n) { const sl = notamSlug(n.props.name); return sl ? LINK_TBE + sl + '/' : LINK_TBE; }
+function notamTitle(n) {
+  const p = n.props;
+  return p.name || p.type_code_detail || p.type_code || 'Temporäre Betriebseinschränkung';
+}
+function showNotams() {
+  const stamp = S.notamFetched ? `Stand ${fmtDate(S.notamFetched)}` + (Date.now() - S.notamFetched > 7 * 86400000 ? ' <b style="color:#b3131b">⚠ veraltet</b>' : '') : 'noch nicht geladen';
+  let html = `<div class="meta" style="margin-bottom:10px">Temporäre Betriebseinschränkungen im Gebiet der Felder (+3 km) · ${stamp} · online stündlich aktualisiert · Quelle: dipul, CC BY-ND 4.0 ·
+    <span class="lnk" data-url="${LINK_TBE}">Infos zu temporären Betriebseinschränkungen</span> · <span class="lnk" data-url="${LINK_MAPTOOL}">dipul-Karte öffnen</span> · <span class="lnk" id="nReload">jetzt neu laden</span></div>`;
+  const sorted = [...S.notams].sort((a, b) => b.active - a.active);
+  sorted.forEach((n, i) => {
+    const p = n.props;
+    const rows = Object.keys(p).filter(k => p[k] != null && p[k] !== '' && typeof p[k] !== 'object')
+      .map(k => `<div><b>${esc(NOTAM_LABEL[k] || k)}:</b> ${isDateStr(p[k]) ? esc(fmtDate(new Date(p[k]).getTime())) : /^https?:/.test(p[k]) ? `<span class="lnk" data-url="${esc(p[k])}">${esc(p[k])}</span>` : esc(p[k])}</div>`).join('');
+    const nf = S.files.length ? S.files.map(f => ({ f, d: Math.min(...geomRings(n.geom).flat().map(c => fieldDistTo(f, c[1], c[0]))) })).sort((a, b) => a.d - b.d)[0] : null;
+    html += `<div class="zone"><h4>${esc(notamTitle(n))} <span class="chip ${n.active ? '' : 'grey'}">${n.active ? 'Aktiv' : 'Geplant / inaktiv'}</span></h4>
+      ${nf ? `<div class="meta">Nächstes Feld: ${esc(nf.f.title)} – ${nf.d < 1000 ? Math.round(nf.d) + ' m' : (nf.d / 1000).toFixed(1) + ' km'}</div>` : ''}
+      <div style="margin-top:6px">${rows || '<span class="meta">Keine Details</span>'}</div>
+      <div style="margin-top:8px;display:flex;gap:18px;flex-wrap:wrap"><span class="lnk" data-zoom="${i}">Auf der Karte zeigen</span>
+        ${n.props.name ? `<span class="lnk" data-url="${esc(notamLink(n))}">Details auf dipul.de</span>` : ''}</div></div>`;
+  });
+  if (!sorted.length) html += `<div class="zone"><h4>Keine temporären Einschränkungen</h4><div class="meta">Im Gebiet der Felder ist laut dipul derzeit nichts eingetragen. Vor dem Flug trotzdem kurz in der dipul-Karte prüfen.</div></div>`;
+  openInfoPage('NOTAM / temporäre Einschränkungen', html);
+  if ($('nReload')) $('nReload').onclick = () => { if (A.notamSync) { A.notamSync(true); toast('Wird aktualisiert…'); } };
+  $('iBody').querySelectorAll('[data-zoom]').forEach(el => el.onclick = () => {
+    const n = sorted[+el.dataset.zoom];
+    const pts = geomRings(n.geom).flat();
+    if (!pts.length) return;
+    fitBounds({ n: Math.max(...pts.map(c => c[1])), s: Math.min(...pts.map(c => c[1])), e: Math.max(...pts.map(c => c[0])), w: Math.min(...pts.map(c => c[0])) });
+    $('iBack').onclick();
+  });
+}
+$('notam').onclick = showNotams;
+$('bNotamList').onclick = showNotams;
+setInterval(() => { if (A.notamSync) A.notamSync(false); }, 3600 * 1000);
+
+// ================= Geozonen: Abgleich & Hinweis =================
+let geoProgress = null;
+function geoSyncNow(force) {
+  if (!A.geoSync || P.geo !== '1' || !S.files.length) return;
+  const b = bounds(S.files);
+  if (!b) return;
+  const rim = 3;                                   // km Rand um das äußerste Feld
+  const dLat = rim / 111.2, dLon = rim / (111.2 * Math.cos((b.n + b.s) / 2 * Math.PI / 180));
+  A.geoSync(JSON.stringify({ n: b.n + dLat, s: b.s - dLat, e: b.e + dLon, w: b.w - dLon }), !!force);
+}
+function fmtDate(ms) {
+  const d = new Date(ms);
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ', ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+function geoText(long) {
+  if (!A.geoStatus) return '';
+  const st = JSON.parse(A.geoStatus() || '{}');
+  const year = new Date().getFullYear();
+  const src = `Quelle: dipul, CC BY-ND 4.0 (DFS, BKG ${year})`;
+  if (geoProgress) return `Geozonen werden geladen… ${geoProgress}`;
+  if (!st.fetched) return 'Geozonen noch nicht geladen – Internet nötig';
+  const age = Date.now() - st.fetched;
+  const days = Math.floor(age / 86400000);
+  if (age > 7 * 86400000) return `⚠ Geozonen veraltet – Stand ${fmtDate(st.fetched)} (${days} Tage alt). Bitte mit Internet aktualisieren. · ${src}`;
+  const osm = st.osmFetched ? ` · Leitungsdaten (OSM) Stand ${fmtDate(st.osmFetched)}` + (Date.now() - st.osmFetched > 7 * 86400000 ? ' ⚠ veraltet' : '') : ' · Leitungsdaten noch nicht gespeichert';
+  return `Geozonen · Stand ${fmtDate(st.fetched)} · ${src}` + (long ? ` · ${st.tiles} Zonen gespeichert` + osm : '');
+}
+// Kein Textbalken mehr auf der Karte: Status steht in den Einstellungen, Warnung bei veralteten Daten einmalig als Hinweis
+let geoWarned = false;
+function geoBadge() {
+  if ($('pgSet').classList.contains('open') && $('vGeo')) $('vGeo').textContent = geoText(true);
+  if (!A.geoStatus || P.geo !== '1' || geoProgress || geoWarned) return;
+  const st = JSON.parse(A.geoStatus() || '{}');
+  if (st.fetched && Date.now() - st.fetched > 7 * 86400000) { geoWarned = true; toast(`⚠ Geozonen veraltet (Stand ${fmtDate(st.fetched)}) – bitte mit Internet aktualisieren.`, true, 6000); }
+}
+window.onGeo = raw => {
+  const ev = JSON.parse(raw);
+  if (ev.type === 'progress') { geoProgress = `${ev.done}/${ev.total}`; geoBadge(); return; }
+  geoProgress = null;
+  if (ev.type === 'error') toast(ev.message, true, 6000);
+  if (ev.type === 'done' && ev.ok) loadGeoVectors();
+  geoBadge(); draw();
+  if ($('pgSet').classList.contains('open')) fillSettings();
+};
+setInterval(() => { geoSyncNow(false); geoBadge(); }, 60 * 60 * 1000);   // stündlich prüfen, lädt nur nach 24 h neu
 $('uSave').onclick = () => {
   const u = $('uUser').value.trim(), pw = $('uPw').value;
   if (!u) return toast('Bitte E-Mail / Login eintragen.', true);
@@ -523,8 +2020,20 @@ $('uForget').onclick = () => { A.uaveForget(); fillSettings(); toast('Zugang gel
 
 // ================= Abgleich mit UAV Editor =================
 let syncing = false;
+function netBadge() {
+  let on = true;
+  try { on = A.isOnline ? A.isOnline() : navigator.onLine; } catch (e) { }
+  const wifi = '<path d="M2 8.5a15 15 0 0 1 20 0"/><path d="M5 12a10 10 0 0 1 14 0"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/>';
+  $('net').innerHTML = `<svg viewBox="0 0 24 24">${wifi}${on ? '' : '<path d="M3 3l18 18"/>'}</svg>${on ? 'Online' : 'Offline'}`;
+  $('net').classList.toggle('off', !on);
+}
+window.addEventListener('online', netBadge); window.addEventListener('offline', netBadge);
+setInterval(netBadge, 5000);
 $('bSync').onclick = () => {
   if (syncing) return;
+  let online = true;
+  try { online = A.isOnline ? A.isOnline() : navigator.onLine; } catch (e) { }
+  if (!online) return toast('Offline – Abgleich mit UAV Editor gerade nicht möglich. Alles Vorhandene bleibt nutzbar.', true, 5000);
   if (!A.uaveCheck) return toast('In dieser Version nicht verfügbar.', true);
   if (!A.uaveUser() || !A.uaveHasPassword()) { toast('Bitte zuerst den UAV-Editor-Zugang eintragen.', true); $('bSet').onclick(); return; }
   syncing = true; $('bSync').disabled = true;
@@ -552,6 +2061,18 @@ window.onUave = raw => {
         A.uaveDownload(JSON.stringify(todo.map(f => f.id)), P.src, String(new Date().getTimezoneOffset()));
       });
     dlgOnCancel = syncEnd;
+    return;
+  }
+  if (ev.type === 'droneDone') {
+    syncEnd();
+    const files = Object.values(ev.files || {});
+    if (ev.errors && ev.errors.length) toast(`${ev.ok} neu exportiert, ${ev.errors.length} Fehler:\n` + ev.errors.join('\n'), true, 10000);
+    if (!files.length) return;
+    const base = P.src.replace(/\/+$/, '') + '/';
+    load(true).then(() => {
+      S.files.forEach(f => f.selected = files.includes(f.name)); update();
+      doTransfer(files.map(n => base + n));
+    });
     return;
   }
   if (ev.type === 'done') {
@@ -597,19 +2118,56 @@ $('pOk').onclick = () => { setP(pick.key, pick.path); $('pgPick').classList.remo
 window.onBack = () => {
   if ($('dlg').classList.contains('open')) { $('dNo').onclick(); return true; }
   if ($('pgPick').classList.contains('open')) { $('pgPick').classList.remove('open'); return true; }
+  if ($('pgInfo').classList.contains('open')) { $('iBack').onclick(); return true; }
   if ($('pgSet').classList.contains('open')) { closeSettings(); return true; }
   return false;
 };
 window.onAppResume = () => {
+  windWidget();
+  netBadge();
+  geoBadge(); geoSyncNow(false);
+  if (A.notamSync) A.notamSync(false);
   if ($('pgSet').classList.contains('open')) fillSettings();
   if ($('perm').classList.contains('open') && A.hasAccess()) load(false);
 };
+
+// ================= Logo, Tag-/Nachtmodus =================
+const LOGO = 'data:image/png;base64,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';
+document.querySelectorAll('[data-logo]').forEach(i => i.src = LOGO);
+/** Auto: dunkel zwischen Sonnenuntergang und Sonnenaufgang am Einsatzort (lokal berechneter Sonnenstand) */
+function themeInfo() {
+  const loc = wxLoc(), now = Date.now(), day = sunDay(now, loc.lat, loc.lon);
+  let dark = P.theme === 'night';
+  if (P.theme === 'auto') dark = day.polar ? day.polar === 'Polarnacht' : !(day.sunrise && day.sunset && now >= day.sunrise && now < day.sunset);
+  return { dark, day };
+}
+function applyTheme() {
+  const t = themeInfo();
+  document.body.classList.toggle('dark', t.dark);
+  document.querySelectorAll('[data-theme]').forEach(b => b.classList.toggle('on', b.dataset.theme === P.theme));
+  if ($('vTheme')) $('vTheme').textContent = P.theme === 'auto'
+    ? `Schaltet mit der Sonne um · heute ↑ ${t.day.sunrise ? hm(t.day.sunrise) : '—'} · ↓ ${t.day.sunset ? hm(t.day.sunset) : '—'} · gerade ${t.dark ? 'Nacht' : 'Tag'}`
+    : P.theme === 'day' ? 'Immer hell' : 'Immer dunkel (Karte abgedunkelt)';
+  if (A.setDark) try { A.setDark(t.dark); } catch (e) { }
+  draw();
+}
+document.querySelectorAll('[data-theme]').forEach(b => b.onclick = () => { setP('theme', b.dataset.theme); applyTheme(); });
+setInterval(applyTheme, 60 * 1000);
 
 // ================= Start =================
 addEventListener('resize', resize);
 resize();
 update();
+loadRegions();
+loadGeoVectors();
+applyTheme();
 load(false);
+netBadge();
+loadAirfields();
+loadNotams();
+geoBadge();
+// Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
+setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
 </script>
 </body>

@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
-        android:label="KMZ Missionen"
+        android:label="Mission Kitzrettung"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true"
         android:hardwareAccelerated="true"
