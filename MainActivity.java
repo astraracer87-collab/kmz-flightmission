@@ -372,8 +372,15 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 String ln = en.getKey().toLowerCase(Locale.ROOT);
                 if (ln.endsWith(".kml") || ln.endsWith(".wpml")) {
                     String t = new String(v, StandardCharsets.UTF_8)
-                            .replaceAll("<wpml:createTime>\\d+</wpml:createTime>", "<wpml:createTime>" + now + "</wpml:createTime>")
-                            .replaceAll("<wpml:updateTime>\\d+</wpml:updateTime>", "<wpml:updateTime>" + now + "</wpml:updateTime>");
+                            .replaceAll("<wpml:createTime>[^<]*</wpml:createTime>", "<wpml:createTime>" + now + "</wpml:createTime>")
+                            .replaceAll("<wpml:updateTime>[^<]*</wpml:updateTime>", "<wpml:updateTime>" + now + "</wpml:updateTime>");
+                    // fehlen die Zeitstempel in der Planung (template.kml), nach <Document> einfügen – Pilot 2 zeigt diese Zeit an
+                    if (ln.endsWith("template.kml")) {
+                        String add = "";
+                        if (!t.contains("<wpml:createTime>")) add += "<wpml:createTime>" + now + "</wpml:createTime>";
+                        if (!t.contains("<wpml:updateTime>")) add += "<wpml:updateTime>" + now + "</wpml:updateTime>";
+                        if (!add.isEmpty()) t = t.replaceFirst("<Document>", "<Document>\n    " + java.util.regex.Matcher.quoteReplacement(add));
+                    }
                     v = t.getBytes(StandardCharsets.UTF_8);
                 }
                 ZipEntry ze = new ZipEntry(en.getKey());
@@ -550,6 +557,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public String transfer(String pathsJson, String dstPath, boolean move, boolean clear, String drone) {
             JSONObject res = new JSONObject();
             JSONArray errors = new JSONArray();
+            List<String> scanned = new ArrayList<>();
             int done = 0;
             try {
                 File dst = new File(dstPath);
@@ -580,11 +588,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         if (target.exists() && !target.delete()) { tmp.delete(); throw new Exception("alte Datei im Zielordner lässt sich nicht ersetzen"); }
                         if (!tmp.renameTo(target)) { copy(tmp, target); tmp.delete(); }
                         target.setLastModified(System.currentTimeMillis());
-                        if (move && !src.delete()) errors.put(src.getName() + ": kopiert, Original konnte nicht gelöscht werden");
+                        scanned.add(target.getAbsolutePath());
+                        if (move) { if (!src.delete()) errors.put(src.getName() + ": kopiert, Original konnte nicht gelöscht werden"); else scanned.add(src.getAbsolutePath()); }
                         done++;
                     } catch (Exception e) {
                         errors.put(src.getName() + ": " + e.getMessage());
                     }
+                }
+                // Android-Dateiindex aktualisieren: sonst zeigen Dateiauswahl/Pilot 2 noch das alte Datum der ersetzten Datei
+                if (!scanned.isEmpty()) {
+                    try { android.media.MediaScannerConnection.scanFile(MainActivity.this, scanned.toArray(new String[0]), null, null); } catch (Exception ignored) { }
                 }
                 res.put("ok", errors.length() == 0);
                 res.put("done", done);
@@ -892,6 +905,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             try { return new JSONObject().put("pts", pts).put("rails", rails).put("places", places).toString(); } catch (Exception e) { return "{}"; }
         }
 
+        /** Gespeicherte Orts- und Flurnamen [{n,t,lat,lon}] */
+        @JavascriptInterface
+        public String places() {
+            try { return placeFile().isFile() ? readFile(placeFile()) : "[]"; } catch (Exception e) { return "[]"; }
+        }
+
         /** Gespeicherte Grenzen der Bundesländer / RB Gießen im Gebiet */
         @JavascriptInterface
         public String regions() {
@@ -1184,6 +1203,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return null;
     }
 
+    private final Map<String, JSONObject> uaveMapMeta = new HashMap<>();
+
     private void uaveFetchOutlines() throws Exception {
         if (uaveAuthHeader == null) return;
         JSONObject out = outlineFile().isFile() ? new JSONObject(readFile(outlineFile())) : new JSONObject();
@@ -1200,6 +1221,36 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             for (int i = 0; i < fs.length(); i++) {
                 JSONObject f = fs.getJSONObject(i);
                 String id = f.optString("_id", f.optString("id", ""));
+                try {   // Zusatzinfos für den Auswahl-Dialog: Drohnentyp und Planungsjahr(e)
+                    JSONObject ms = f.optJSONObject("missionSettings"), p2 = ms != null ? ms.optJSONObject("djiPilot2") : null;
+                    JSONArray yrs = new JSONArray(), pi = f.optJSONArray("planningInfos");
+                    if (pi != null) for (int k = 0; k < pi.length(); k++) { JSONObject p = pi.optJSONObject(k); if (p != null && !p.optString("planningName").isEmpty()) yrs.put(p.optString("planningName")); }
+                    JSONObject cb = f.optJSONObject("contributor"), asl = f.optJSONObject("aboveSeaLevel"), fc = f.optJSONObject("featureCount");
+                    String by = cb != null ? (cb.optString("firstname", "") + " " + cb.optString("name", "")).trim() : "";
+                    JSONObject mm = new JSONObject().put("dt", p2 != null ? p2.optString("droneType", "") : "")
+                            .put("h", p2 != null ? p2.optDouble("height", 0) : 0).put("years", yrs).put("created", f.optString("createdAt", ""))
+                            .put("by", by).put("asl", asl != null ? asl.optDouble("value", 0) : 0).put("wp", fc != null ? fc.optInt("waypoints", 0) : 0);
+                    JSONArray ctr = f.optJSONArray("center");
+                    if (ctr != null && ctr.length() == 2) mm.put("c", ctr);
+                    String enc0 = f.optString("polygonLineString", "");
+                    if (!enc0.isEmpty()) {   // Kontur für die Kartenvorschau im Auswahl-Dialog
+                        JSONArray r = new JSONArray();
+                        List<double[]> op = decodePolyline(enc0);
+                        boolean latFirst = !op.isEmpty() && Math.abs(op.get(0)[0]) > Math.abs(op.get(0)[1]);
+                        for (double[] p : op) { if (latFirst) r.put(p[1]).put(p[0]); else r.put(p[0]).put(p[1]); }
+                        mm.put("r", r);
+                    }
+                    String ls = f.optString("lineString", "");
+                    if (!ls.isEmpty()) {   // Flugroute (vereinfacht) für die Vorschau
+                        JSONArray r = new JSONArray();
+                        List<double[]> pts = decodePolyline(ls);
+                        int step = Math.max(1, pts.size() / 120);
+                        boolean latFirst = !pts.isEmpty() && Math.abs(pts.get(0)[0]) > Math.abs(pts.get(0)[1]);   // Reihenfolge erkennen (in DE: Breite > Länge)
+                        for (int k = 0; k < pts.size(); k += step) { double[] p = pts.get(k); if (latFirst) r.put(p[1]).put(p[0]); else r.put(p[0]).put(p[1]); }
+                        mm.put("route", r);
+                    }
+                    if (!id.isEmpty()) uaveMapMeta.put(id, mm);
+                } catch (Exception ignored) { }
                 String enc = f.optString("polygonLineString", "");
                 if (id.isEmpty() || enc.isEmpty()) continue;
                 List<double[]> pts = decodePolyline(enc);   // Feldgrenze, Reihenfolge Breite/Länge
@@ -1335,7 +1386,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 result.put(new JSONObject().put("id", id).put("name", name).put("status", status)
                         .put("file", found != null ? found.getName() : JSONObject.NULL)
                         .put("arch", f.optBoolean("_arch")).put("area", f.optDouble("area", 0)).put("mod", mod)
-                        .put("cut", f.optJSONObject("orderData") != null ? f.optJSONObject("orderData").optString("cuttingDate", "") : ""));
+                        .put("cut", f.optJSONObject("orderData") != null ? f.optJSONObject("orderData").optString("cuttingDate", "") : "")
+                        .put("ft", f.optDouble("flightTime", 0))
+                        .put("lm", f.optString("lastModified", ""))
+                        .put("created", f.optString("createdAt", ""))
+                        .put("meta", uaveMapMeta.containsKey(id) ? uaveMapMeta.get(id) : JSONObject.NULL));
             }
             prefs.edit().putString("uave_manifest", man.toString()).apply();
             uaveEvent(new JSONObject().put("type", "list").put("fields", result)
@@ -1767,6 +1822,35 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private long osmCacheLoaded = 0;
 
     private File osmFile() { return new File(getFilesDir(), "osm_power.json"); }
+    private File placeFile() { return new File(getFilesDir(), "osm_places.json"); }
+
+    /** Orts- und Flurnamen für die Suche: Gebiet der Felder + 25 km, alle 60 Tage oder wenn das Gebiet größer wird */
+    private void placeSync(double n, double s, double e, double w, boolean force) {
+        double dLa = 25 / 111.2, dLo = 25 / (111.2 * Math.cos(Math.toRadians((n + s) / 2)));
+        n += dLa; s -= dLa; e += dLo; w -= dLo;
+        try {
+            JSONObject b = new JSONObject(prefs.getString("place_bbox", "{}"));
+            boolean covers = b.has("n") && b.getDouble("n") >= n - dLa / 2 && b.getDouble("s") <= s + dLa / 2 && b.getDouble("e") >= e - dLo / 2 && b.getDouble("w") <= w + dLo / 2;
+            if (!force && covers && placeFile().isFile() && System.currentTimeMillis() - prefs.getLong("place_fetched", 0) < 60 * DAY) return;
+        } catch (Exception ignored) { }
+        try {
+            String bb = String.format(Locale.ROOT, "%.5f,%.5f,%.5f,%.5f", s, w, n, e);
+            String q = "[out:json][timeout:90];(node[\"place\"~\"^(city|town|village|hamlet|suburb|quarter|neighbourhood|isolated_dwelling|farm|locality)$\"][\"name\"](" + bb + "););out body;";
+            JSONArray els = new JSONObject(overpass(q, 120000)).getJSONArray("elements");
+            JSONArray out = new JSONArray();
+            for (int i = 0; i < els.length(); i++) {
+                JSONObject el = els.getJSONObject(i), t = el.optJSONObject("tags");
+                if (t == null || !el.has("lat")) continue;
+                out.put(new JSONObject().put("n", t.optString("name")).put("t", t.optString("place"))
+                        .put("lat", Math.round(el.getDouble("lat") * 1e5) / 1e5).put("lon", Math.round(el.getDouble("lon") * 1e5) / 1e5));
+            }
+            if (out.length() > 0) {
+                writeFileAtomic(placeFile(), out.toString());
+                prefs.edit().putLong("place_fetched", System.currentTimeMillis())
+                        .putString("place_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
+            }
+        } catch (Exception ignored) { }
+    }
 
     private boolean osmCovers(double n, double s, double e, double w) {
         try {
@@ -1832,7 +1916,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             String lay = u.getPath().contains("_grau/") ? "bmg" : "bmf";
             return new String[]{lay + "/" + seg.get(n - 3) + "/" + seg.get(n - 1).replace(".png", "") + "/" + seg.get(n - 2) + ".png", "image/png"};
         }
-        if (host.equals("dop.local") && n == 3) return new String[]{"dop/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".jpg", "image/jpeg"};
+        if (host.equals("dop.local") && n == 3) return new String[]{"dop2/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".jpg", "image/jpeg"};
         if (host.equals("tile.openstreetmap.org") && n == 3) return new String[]{"osm/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2), "image/png"};
         if (host.equals("server.arcgisonline.com") && n >= 3 && u.getPath().contains("/tile/"))   // .../tile/{z}/{y}/{x}
             return new String[]{"sat/" + seg.get(n - 3) + "/" + seg.get(n - 1) + "/" + seg.get(n - 2) + ".jpg", "image/jpeg"};
@@ -1850,9 +1934,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (!on) return new WebResourceResponse(km[1], null, 404, "offline", null, new ByteArrayInputStream(new byte[0]));
             byte[] b = null;
             try {
-                if (km[0].startsWith("dop/")) {
+                if (km[0].startsWith("dop2/")) {
                     List<String> seg = u.getPathSegments();
-                    b = dopTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)));
+                    b = dopTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("s"));
                     if (b == null) {   // außerhalb HE/RP: Esri nur zum Ansehen
                         byte[] e = httpBytes("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + seg.get(0) + "/" + seg.get(2) + "/" + seg.get(1));
                         if (e != null) return new WebResourceResponse("image/jpeg", null, new ByteArrayInputStream(e));
@@ -1886,17 +1970,41 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     /** Luftbild-Kachel aus den Orthophotos von RP (unten) und HE (oben) zusammensetzen; null = an dieser Stelle kein DOP */
-    private static byte[] dopTile(int z, int x, int y) throws Exception {
+    private static final java.util.concurrent.ExecutorService DOP_POOL = java.util.concurrent.Executors.newFixedThreadPool(8);
+
+    /** states: "HE", "RP" oder "HE,RP" (Kachel an der Landesgrenze) – nur die nötigen Dienste, parallel */
+    private static byte[] dopTile(int z, int x, int y, String states) throws Exception {
         double R = 20037508.342789244, size = 2 * R / (1 << z);
         double x0 = -R + x * size, y1 = R - y * size, x1 = x0 + size, y0 = y1 - size;
         String bbox = String.format(Locale.ROOT, "%.3f,%.3f,%.3f,%.3f", x0, y0, x1, y1);
+        if (states == null || states.isEmpty()) states = "HE,RP";
+        boolean he = states.contains("HE"), rp = states.contains("RP");
+        java.util.concurrent.Future<byte[]> fRp = rp ? DOP_POOL.submit(() -> httpBytes(DOP_RP + bbox)) : null;
+        java.util.concurrent.Future<byte[]> fHe = he ? DOP_POOL.submit(() -> httpBytes(DOP_HE + bbox)) : null;
+        // nur ein Land und das Bild ist vollständig: direkt weitergeben (kein Umrechnen)
+        if (!(he && rp)) {
+            byte[] b = null;
+            try { b = (he ? fHe : fRp).get(40, java.util.concurrent.TimeUnit.SECONDS); } catch (Exception ignored) { }
+            if (b == null) return null;
+            android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
+            if (bm == null || !hasContent(bm)) { if (bm != null) bm.recycle(); return null; }
+            android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas cv = new android.graphics.Canvas(out);
+            cv.drawColor(0xffd9d9d0);
+            cv.drawBitmap(bm, null, new android.graphics.Rect(0, 0, 256, 256), null);
+            bm.recycle();
+            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            out.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, bo);
+            out.recycle();
+            return bo.toByteArray();
+        }
         android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas cv = new android.graphics.Canvas(out);
         cv.drawColor(0xffd9d9d0);
         boolean any = false;
-        for (String base : new String[]{DOP_RP, DOP_HE}) {
+        for (java.util.concurrent.Future<byte[]> fu : new java.util.concurrent.Future[]{fRp, fHe}) {
             byte[] b = null;
-            try { b = httpBytes(base + bbox); } catch (Exception ignored) { }
+            try { b = fu.get(40, java.util.concurrent.TimeUnit.SECONDS); } catch (Exception ignored) { }
             if (b == null) continue;
             android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
             if (bm == null) continue;
@@ -1954,11 +2062,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         ex.submit(() -> {
                             if (prefetchStop) return;
                             try {
-                                String key = lay.equals("dop") ? "dop/" + t[0] + "/" + t[1] + "/" + t[2] + ".jpg" : lay + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png";
+                                String key = lay.equals("dop") ? "dop2/" + t[0] + "/" + t[1] + "/" + t[2] + ".jpg" : lay + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png";
                                 File f = new File(tileDir(), key);
                                 if (f.isFile() && f.length() > 0) { synchronized (cnt) { cnt[1]++; } }
                                 else {
-                                    byte[] b = lay.equals("dop") ? dopTile(t[0], t[1], t[2])
+                                    if (lay.equals("dop") && t[0] < 12) { synchronized (cnt) { cnt[1]++; } return; }   // Luftbild-Übersicht kommt von Esri (nur beim Ansehen)
+                                    byte[] b = lay.equals("dop") ? dopTile(t[0], t[1], t[2], "HE,RP")
                                             : httpBytes(BM + (lay.equals("bmg") ? "de_basemapde_web_raster_grau" : "de_basemapde_web_raster_farbe") + "/default/GLOBAL_WEBMERCATOR/" + t[0] + "/" + t[2] + "/" + t[1] + ".png");
                                     if (b != null && b.length > 0) { saveTile(f, b); synchronized (cnt) { cnt[0]++; bytes[0] += b.length; } }
                                     else synchronized (cnt) { cnt[2]++; }
@@ -2418,6 +2527,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             new Thread(() -> {
                 regionSync(fn, fs, fe, fw, force);
                 js("window.onRegions && window.onRegions()");
+                placeSync(fn, fs, fe, fw, force);
+                js("window.onPlaces && window.onPlaces()");
                 osmSync(fn, fs, fe, fw, force);
                 js("window.onOsmLines && window.onOsmLines()");
                 airfieldSync(fn, fs, fe, fw, force);

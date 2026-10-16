@@ -189,6 +189,16 @@
   .t1{font-weight:700;font-size:18px;margin-bottom:2px}
   .picksearch{flex:1;min-width:160px;height:46px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:17px;background:var(--card2);color:var(--txt)}
   .pickcnt{font-size:13px;color:var(--muted);align-self:center;white-space:nowrap}
+  .pick .pv{flex:none;width:44px;height:40px;border-radius:10px;background:var(--sec);color:var(--acc);display:flex;align-items:center;justify-content:center;margin-left:6px}
+  .pick .pv svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
+  .pick .pv.on{background:var(--acc);color:#fff}
+  .pvbox{padding:4px 0 10px 40px}
+  .pvbox canvas{width:100%;height:200px;border-radius:12px;display:block;border:1px solid var(--line)}
+  .pickfacets{display:flex;gap:14px;width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .pickfacet{display:flex;gap:6px;align-items:center;flex:none;font-size:14px;color:var(--muted)}
+  .pickfacet span{font-weight:700}
+  .chipbtn{height:36px;padding:0 12px;border-radius:18px;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:14px}
+  .chipbtn.on{background:var(--acc);border-color:var(--acc);color:#fff}
   .wx4{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
   .wx4 .tile{border-radius:12px;padding:10px 12px;background:var(--card2);border-left:6px solid #13a538;min-width:0}
   .wx4 .tile.o{border-left-color:#e8a200;background:var(--o-bg)}
@@ -403,7 +413,15 @@ const BV = { ok: false, lat: 0, lon: 0, z: 0, M: 0, bw: 0, bh: 0, t: 0 };
 // Karte/Grau: basemap.de (amtliche Karte, BKG); Luftbild: Orthophotos HE/RP (außerhalb Esri) – alles auf der RC gespeichert
 const BM_URL = l => (z, x, y) => `https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_${l}/default/GLOBAL_WEBMERCATOR/${z}/${y}/${x}.png`;
 const LAYERS = {
-  sat: (z, x, y) => `https://dop.local/${z}/${x}/${y}`,
+  sat: (z, x, y) => {
+    const esri = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+    if (z < 12) return esri;   // Übersicht: Esri (amtliche Luftbilder erst ab Zoom 12 sinnvoll)
+    const n = 1 << z, st = new Set();
+    if (S.regions.length) [[0, 0], [1, 0], [0, 1], [1, 1], [.5, .5]].forEach(([a, b]) => { const r = regionAt(y2lat((y + b) / n), x2lon((x + a) / n)); if (r.st) st.add(r.st); });
+    else { st.add('HE'); st.add('RP'); }
+    const s = [...st].filter(k => k === 'HE' || k === 'RP');
+    return s.length ? `https://dop.local/${z}/${x}/${y}?s=${s.join(',')}` : esri;   // nur den nötigen Landesdienst abfragen
+  },
   osm: BM_URL('farbe'),
   grey: BM_URL('grau')
 };
@@ -465,7 +483,7 @@ function draw() { dirty = true; if (!pend) { pend = true; requestAnimationFrame(
 /** Nur der Ausschnitt hat sich geändert (Wischen, Zoomen, Kompass) → vorgerendertes Bild verschieben; kurz danach scharf neu rendern */
 function drawLive(settle) {
   if (!pend) { pend = true; requestAnimationFrame(paint); }
-  if (settle) { lastMove = Date.now(); clearTimeout(settleT); settleT = setTimeout(draw, 200); }
+  if (settle) { lastMove = Date.now(); clearTimeout(settleT); settleT = setTimeout(() => { if (!fling) draw(); }, 200); }
 }
 
 // Viele Kacheln kommen kurz nacheinander an: gesammelt neu zeichnen statt einmal pro Kachel
@@ -512,7 +530,7 @@ function bufPlace() {
 let lastMove = 0;
 function paint() {
   pend = false;
-  const gest = ptr.size > 0 && Date.now() - lastMove < 180;   // Finger bewegt sich gerade
+  const gest = (ptr.size > 0 || fling) && Date.now() - lastMove < 180;   // Finger (oder Schwung) bewegt die Karte gerade
   let cover = false;
   if (BV.ok) { const [x, y, k] = bufPlace(); cover = k > .55 && k < 1.8 && x <= 0 && y <= 0 && x + BV.bw * k >= W && y + BV.bh * k >= H; }
   // Ebenen (Zonen, Felder, Hindernisse) nur neu rendern, wenn nicht gerade gewischt wird – beim Wischen wird das fertige Bild verschoben
@@ -1079,7 +1097,24 @@ function fitBounds(b) {
 const ptr = new Map();
 let infoMode = false, infoPin = null;
 let g = null;
+// Schwung: schnelles Wischen läuft weich aus (wie bei üblichen Karten-Apps)
+let fling = null, trail = [];
+function stopFling() { if (fling) { cancelAnimationFrame(fling.raf); fling = null; } }
+function startFling(vx, vy) {
+  stopFling();
+  fling = { vx, vy, t: performance.now(), raf: 0 };
+  const step = now => {
+    if (!fling) return;
+    const dt = Math.min(40, now - fling.t); fling.t = now;
+    panBy(fling.vx * dt, fling.vy * dt);
+    const k = Math.exp(-dt / 320); fling.vx *= k; fling.vy *= k;
+    if (Math.hypot(fling.vx, fling.vy) < 0.03) { fling = null; clearTimeout(settleT); draw(); return; }
+    fling.raf = requestAnimationFrame(step);
+  };
+  fling.raf = requestAnimationFrame(step);
+}
 cv.addEventListener('pointerdown', e => {
+  stopFling(); trail = [];
   cv.setPointerCapture(e.pointerId);
   ptr.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (ptr.size === 1) {
@@ -1092,6 +1127,7 @@ cv.addEventListener('pointermove', e => {
   if (ptr.size === 1) {
     panBy(e.clientX - p.x, e.clientY - p.y);
     if (g && Math.hypot(e.clientX - g.sx, e.clientY - g.sy) > 10) g.tap = false;
+    const now = performance.now(); trail.push([now, e.clientX, e.clientY]); while (trail.length && now - trail[0][0] > 100) trail.shift();
   }
   p.x = e.clientX; p.y = e.clientY;
   if (ptr.size === 2 && g && g.d) {
@@ -1102,7 +1138,17 @@ cv.addEventListener('pointermove', e => {
 cv.addEventListener('pointerup', e => {
   const p = ptr.get(e.pointerId); ptr.delete(e.pointerId);
   if (ptr.size === 0 && g && g.tap && p) { if (infoMode) geoInfoAt(p.x, p.y); else hit(p.x, p.y); }
-  if (ptr.size === 0) { if (g && !g.tap) { clearTimeout(settleT); draw(); } g = null; } else if (g) { g.d = 0; g.tap = false; }
+  if (ptr.size === 0) {
+    if (g && !g.tap) {
+      // Geschwindigkeit der letzten 100 ms: schnell gewischt → mit Schwung weiter, sonst sofort scharf zeichnen
+      const now = performance.now(); trail = trail.filter(t => now - t[0] <= 100);
+      const a = trail[0], b = trail[trail.length - 1], dt = a && b ? b[0] - a[0] : 0;
+      const vx = dt > 8 ? (b[1] - a[1]) / dt : 0, vy = dt > 8 ? (b[2] - a[2]) / dt : 0;
+      if (!g.z && Math.hypot(vx, vy) > 0.35) startFling(vx, vy);
+      else { clearTimeout(settleT); draw(); }
+    }
+    g = null; trail = [];
+  } else if (g) { g.d = 0; g.tap = false; }
 });
 cv.addEventListener('pointercancel', e => { ptr.delete(e.pointerId); g = null; draw(); });
 cv.addEventListener('wheel', e => { e.preventDefault(); zoomAt(V.z - Math.sign(e.deltaY) * 0.5, e.clientX, e.clientY); }, { passive: false });
@@ -1359,7 +1405,37 @@ $('bNone').onclick = () => { S.files.forEach(f => f.selected = false); update();
 // Orte (Dörfer, Ortsteile, Flurnamen) aus OpenStreetMap – offline gespeichert
 const PLACE_RANK = { city: 0, town: 1, village: 2, suburb: 3, quarter: 4, hamlet: 4, neighbourhood: 5, isolated_dwelling: 6, farm: 6, locality: 7 };
 const PLACE_Z = { city: 13, town: 13.5, village: 14.5, suburb: 14.5, quarter: 15, hamlet: 15, neighbourhood: 15.5, isolated_dwelling: 16, farm: 16, locality: 15.5 };
-const PLACE_LBL = { city: 'Stadt', town: 'Stadt', village: 'Dorf', suburb: 'Ortsteil', quarter: 'Ortsteil', hamlet: 'Weiler', neighbourhood: 'Wohngebiet', isolated_dwelling: 'Einzelhof', farm: 'Hof', locality: 'Flurname' };
+const PLACE_LBL = { city: 'Stadt', town: 'Ort', village: 'Ort', suburb: 'Ortsteil', quarter: 'Ortsteil', hamlet: 'Weiler', neighbourhood: 'Wohngebiet', isolated_dwelling: 'Einzelhof', farm: 'Hof', locality: 'Flurname' };
+function loadPlaces() {
+  let a = [];
+  try { a = A.places ? JSON.parse(A.places() || '[]') : []; } catch (e) { }
+  const seen = new Set(), out = [];
+  [...a, ...(S.osmPlaces || [])].forEach(p => {
+    if (!p || !p.n) return;
+    const k = p.n + '|' + (+p.lat).toFixed(3) + '|' + (+p.lon).toFixed(3);
+    if (seen.has(k)) return; seen.add(k);
+    out.push(Object.assign({}, p, { k: foldTxt(p.n) }));
+  });
+  S.places = out;
+}
+window.onPlaces = () => { loadPlaces(); if ($('searchBox').classList.contains('open')) searchHits(); };
+// Online-Ortssuche beim Tippen über Photon (OpenStreetMap-Daten, für Suche-beim-Tippen gedacht)
+let photon = { q: '', list: [] }, photonT = 0;
+function photonSearch(q) {
+  clearTimeout(photonT);
+  if (q.length < 3 || !isOnline()) return;
+  photonT = setTimeout(async () => {
+    try {
+      const c = wxLoc();
+      const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lang=de&limit=6&lat=${c.lat.toFixed(3)}&lon=${c.lon.toFixed(3)}&layer=city&layer=district&layer=locality`);
+      const j = await r.json();
+      const list = (j.features || []).filter(f => f.properties && f.properties.name && (!f.properties.countrycode || f.properties.countrycode === 'DE')).map(f => ({
+        n: f.properties.name, t: f.properties.osm_value || 'village', lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
+        sub: [f.properties.city !== f.properties.name ? f.properties.city : '', f.properties.county || f.properties.state || ''].filter(Boolean).join(', '), online: true }));
+      if ($('q').value.trim() === q) { photon = { q, list }; searchHits(); }
+    } catch (e) { }
+  }, 400);
+}
 function placeHits(q) {
   const k = foldTxt(q);
   if (k.length < 2) return [];
@@ -1384,13 +1460,16 @@ function searchHits() {
   const fq = foldTxt(q);
   const hits = S.files.filter(f => !f.dup && ftitle(f).includes(fq))   // Umlaute/Groß-Klein egal
     .sort((a, b) => a.title.localeCompare(b.title, 'de', { numeric: true }));
-  placeHits(q).forEach(p => {
+  const loc = placeHits(q);
+  const raw = $('q').value.trim();
+  const extra = photon.q === raw ? photon.list.filter(p => !loc.some(l => foldTxt(l.n) === foldTxt(p.n) && Math.abs(l.lat - p.lat) < .03 && Math.abs(l.lon - p.lon) < .04)) : [];
+  [...loc, ...extra].slice(0, 8).forEach(p => {
     const b = document.createElement('button'); b.className = 'place';
-    b.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>${esc(p.n)} <small>${PLACE_LBL[p.t] || ''}</small>`;
+    b.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>${esc(p.n)} <small>${esc(PLACE_LBL[p.t] || '')}${p.sub ? ' · ' + esc(p.sub) : ''}</small>`;
     b.onclick = () => goPlace(p);
     box.appendChild(b);
   });
-  if (!hits.length) { if (!box.children.length) box.innerHTML = `<span class="more">Kein Feld oder Ort gefunden${isOnline() ? ' – Enter sucht online' : ''}</span>`; return; }
+  if (!hits.length) { if (!box.children.length) box.innerHTML = `<span class="more">${isOnline() && raw.length >= 3 && photon.q !== raw ? 'Suche Ort online…' : 'Kein Feld oder Ort gefunden' + (isOnline() ? ' – Enter sucht online' : ' (offline nur gespeicherte Orte)')}</span>`; return; }
   hits.slice(0, 12).forEach(f => {
     const b = document.createElement('button');
     b.textContent = f.title; b.className = f.selected ? 'sel' : '';
@@ -1427,7 +1506,7 @@ function closeSearch(clear) {
 }
 $('bSearch').onclick = () => $('searchBox').classList.contains('open') ? closeSearch(false) : openSearch();
 $('qX').onclick = () => closeSearch(true);
-$('q').oninput = () => { update(); };
+$('q').oninput = () => { update(); photonSearch($('q').value.trim()); };
 $('q').onkeydown = e => {
   if (e.key === 'Enter') {
     $('q').blur();
@@ -1435,6 +1514,7 @@ $('q').onkeydown = e => {
     if (S.files.some(f => !f.dup && ftitle(f).includes(foldTxt(q)))) return fitAll();
     const ph = placeHits(q);
     if (ph.length) return goPlace(ph[0]);
+    if (photon.q === q && photon.list.length) return goPlace(photon.list[0]);
     if (q.length >= 2 && isOnline()) geocodeOnline(q);
   }
   else if (e.key === 'Escape') closeSearch(false);
@@ -1625,29 +1705,62 @@ function pickDlg(title, text, items, okWord, cb) {
   // Suche: Umlaute/Groß-Klein egal; „Alle“/„Keine“/„Nur …“ wirken bei aktiver Suche nur auf die Treffer
   const fold = t => String(t || '').toLowerCase().replace(/ß/g, 'ss').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   let q = '';
-  const shown = x => !q || fold(x.label + ' ' + (x.info || '') + ' ' + (x.tag || '')).includes(q);
+  const fsel = {};   // Filter: Jahr / Drohne / Stand – leer = alle
+  const shown = x => (!q || fold(x.label + ' ' + (x.info || '') + ' ' + (x.tag || '')).includes(q))
+    && Object.keys(fsel).every(k => !fsel[k].size || (x.facets && (x.facets[k] || []).some(v => fsel[k].has(v))));
+  const filtering = () => !!q || Object.values(fsel).some(s => s.size);
   [['Alle', () => true], ['Keine', () => false], ...tags.map(t => [`Nur ${t}`, x => x.tag === t])].forEach(([l, f]) => {
     const b = document.createElement('button'); b.className = 'b-sec'; b.textContent = l;
-    b.onclick = () => { items.forEach(x => { if (shown(x)) x.on = f(x); else if (!q) x.on = f(x); }); upd(); }; bar.appendChild(b);
+    b.onclick = () => { items.forEach(x => { if (shown(x) || !filtering()) x.on = f(x); }); upd(); }; bar.appendChild(b);
   });
   if (items.length > 5) {
     const inp = document.createElement('input');
     inp.type = 'search'; inp.placeholder = 'Feld suchen…'; inp.className = 'picksearch'; inp.autocomplete = 'off';
     const cnt = document.createElement('span'); cnt.className = 'pickcnt';
-    inp.oninput = () => {
-      q = fold(inp.value.trim());
-      let n = 0;
-      box.querySelectorAll('label.pick').forEach((l, i) => { const v = shown(items[i]); l.style.display = v ? '' : 'none'; if (v) n++; });
-      cnt.textContent = q ? `${n} Treffer · Laden gilt für alle angehakten` : '';
-    };
+    inp.oninput = () => { q = fold(inp.value.trim()); refilter(); };
     inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
     bar.appendChild(inp); bar.appendChild(cnt);
   }
+  var cntEl = bar.querySelector('.pickcnt');
+  function refilter() {
+    let n = 0;
+    box.querySelectorAll('label.pick').forEach((l, i) => { const v = shown(items[i]); l.style.display = v ? '' : 'none'; if (v) n++; });
+    if (cntEl) cntEl.textContent = filtering() ? `${n} Treffer · Laden gilt für alle angehakten` : '';
+  }
+  // Filter-Chips je Merkmal (nur wenn es mehr als einen Wert gibt)
+  const fkeys = [...new Set(items.flatMap(x => Object.keys(x.facets || {})))];
+  const frow = document.createElement('div'); frow.className = 'pickfacets';
+  fkeys.forEach(k => {
+    const vals = [...new Set(items.flatMap(x => (x.facets && x.facets[k]) || []))].sort((a, b) => String(b).localeCompare(String(a), 'de', { numeric: true }));
+    if (vals.length < 2) return;
+    fsel[k] = new Set();
+    const row = document.createElement('div'); row.className = 'pickfacet';
+    row.innerHTML = `<span>${esc(k)}</span>`;
+    vals.forEach(v => {
+      const c = document.createElement('button'); c.className = 'chipbtn';
+      const n = items.filter(x => ((x.facets && x.facets[k]) || []).includes(v)).length;
+      c.textContent = `${v} (${n})`;
+      c.onclick = () => { fsel[k].has(v) ? fsel[k].delete(v) : fsel[k].add(v); c.classList.toggle('on', fsel[k].has(v)); refilter(); };
+      row.appendChild(c);
+    });
+    frow.appendChild(row);
+  });
+  if (frow.children.length) bar.appendChild(frow);
   box.appendChild(bar);
   items.forEach((x, i) => {
     const l = document.createElement('label'); l.className = 'pick';
-    l.innerHTML = `<input type="checkbox"><span>${esc(x.label)}${x.info ? `<em>${esc(x.info)}</em>` : ''}</span>${x.tag ? `<small class="${x.tag === 'geändert' ? 'chg' : 'new'}">${esc(x.tag)}</small>` : ''}`;
+    l.innerHTML = `<input type="checkbox"><span>${esc(x.label)}${x.info ? `<em>${esc(x.info).replace(/\n/g, '<br>')}</em>` : ''}</span>${x.tag ? `<small class="${x.tag === 'geändert' ? 'chg' : 'new'}">${esc(x.tag)}</small>` : ''}${x.preview ? '<button class="pv" title="Kartenvorschau"><svg viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg></button>' : ''}`;
     l.querySelector('input').onchange = e => { x.on = e.target.checked; upd(); };
+    const pvb = l.querySelector('.pv');
+    if (pvb) pvb.onclick = ev2 => {
+      ev2.preventDefault(); ev2.stopPropagation();
+      const open = l.nextElementSibling && l.nextElementSibling.classList.contains('pvbox');
+      box.querySelectorAll('.pvbox').forEach(p => p.remove()); box.querySelectorAll('.pv.on').forEach(p => p.classList.remove('on'));
+      if (open) return;
+      const pb = document.createElement('div'); pb.className = 'pvbox'; pb.innerHTML = '<canvas></canvas>';
+      l.after(pb); pvb.classList.add('on');
+      requestAnimationFrame(() => { x.preview(pb.querySelector('canvas')); pb.scrollIntoView({ block: 'nearest' }); });
+    };
     box.appendChild(l);
   });
   upd();
@@ -2089,8 +2202,9 @@ function loadObstacles() {
     S.rails = (d.rails || []).map(r => { const pts = toLatLon(r.g); let n = -90, s = 90, e = -180, w = 180;
       pts.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); });
       return { e: r.e, n: r.n, pts, bb: { n, s, e, w } }; });
-    S.places = (d.places || []).filter(p => p.n).map(p => Object.assign(p, { k: foldTxt(p.n) }));
+    S.osmPlaces = (d.places || []).filter(p => p.n);
   } catch (e) { S.obs = []; S.rails = []; }
+  loadPlaces();
   draw();
 }
 const OBS_NAME = { wind: 'Windrad', mast: 'Mast', tower: 'Turm', chimney: 'Schornstein' };
@@ -3202,6 +3316,67 @@ function otherVariant(f, all) {
   const b = baseName(f.name);
   return all.some(x => x !== f && baseName(x.name) === b && nameDrone(x.name) === P.drone);
 }
+// Zusatzinfos eines UAV-Editor-Feldes für den Auswahl-Dialog
+const DT_NAME = { mavic3T: 'M3T', mavic3E: 'M3E', mavic3M: 'M3M', matrice4T: 'M4T', m4t: 'M4T', matrice30T: 'M30T', matrice300: 'M300' };
+const dOk = v => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d : null; };
+function nearPlace(lat, lon) {
+  let best = null, bd = 6;
+  (S.places || []).forEach(p => { if ((PLACE_RANK[p.t] ?? 9) > 4) return; const d = Math.hypot((p.lat - lat) * 111.2, (p.lon - lon) * 71); if (d < bd) { bd = d; best = p; } });
+  return best ? { p: best, d: bd } : null;
+}
+function uaveInfo(f) {
+  const m = f.meta || {};
+  // Drohne: Kürzel im Namen ist am verlässlichsten, sonst Drohnentyp aus UAV Editor
+  const fromName = nameDrone(f.name), fromUave = DT_NAME[m.dt] || (m.dt || '');
+  const drone = fromName || fromUave;
+  const created = dOk(f.created || m.created), lm = dOk(f.lm), cut = dOk(f.cut);
+  let years = (m.years || []).filter(Boolean);
+  if (!years.length) years = [String((created || lm || new Date()).getFullYear())];
+  const dd = d => d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const c = m.c ? [m.c[1], m.c[0]] : null, np = c ? nearPlace(c[0], c[1]) : null;
+  const l1 = [drone ? (drone === 'M3T' ? 'Mavic 3T' : drone === 'M4T' ? 'Matrice 4T' : drone) + (fromName ? '' : ' (laut UAV Editor)') : 'Drohne unbekannt',
+    m.h ? Math.round(m.h) + ' m Flughöhe' : '', f.area ? fieldArea(f.area) : '', m.wp ? m.wp + ' Wegpunkte' : '', f.ft ? Math.round(f.ft / 60) + ' min Flug' : '',
+    np ? (np.d < 1 ? 'in ' : 'bei ') + np.p.n : '', m.asl ? Math.round(m.asl) + ' m ü. NN' : ''].filter(Boolean).join(' · ');
+  const l2 = [created ? 'erstellt ' + dd(created) : '', lm && (!created || Math.abs(lm - created) > 60000) ? 'geändert ' + dd(lm) : '',
+    'Planung ' + years.join('/'), f.arch ? 'Archiv' : 'aktiv', cut ? 'Mähdatum ' + dd(cut) : '', m.by ? 'von ' + m.by : ''].filter(Boolean).join(' · ');
+  return { drone, years, info: l1 + '\n' + l2, ring: m.r ? toLatLon(m.r) : null, route: m.route ? toLatLon(m.route) : null, c };
+}
+/** Kleine Kartenvorschau (Kacheln der gewählten Kartenart + Feldkontur/Route + eigene Felder in der Nähe) */
+function miniMap(cv, ring, route, center) {
+  const dpr = window.devicePixelRatio || 1, Wm = cv.clientWidth || 300, Hm = cv.clientHeight || 180;
+  cv.width = Math.round(Wm * dpr); cv.height = Math.round(Hm * dpr);
+  const g = cv.getContext('2d');
+  const pts = [...(ring || []), ...(route || [])];
+  if (!pts.length && center) pts.push(center);
+  if (!pts.length) return;
+  let n = -90, s2 = 90, e = -180, w = 180;
+  pts.forEach(([la, lo]) => { n = Math.max(n, la); s2 = Math.min(s2, la); e = Math.max(e, lo); w = Math.min(w, lo); });
+  const bx = Math.max(1e-7, lon2x(e) - lon2x(w)), by = Math.max(1e-7, lat2y(s2) - lat2y(n));
+  const z = Math.max(10, Math.min(17, Math.floor(Math.log2(Math.min((Wm * .55) / (bx * 256), (Hm * .55) / (by * 256))))));
+  const ws2 = 256 * Math.pow(2, z), cx = (lon2x(e) + lon2x(w)) / 2 * ws2, cy = (lat2y(s2) + lat2y(n)) / 2 * ws2;
+  const P2 = (la, lo) => [lon2x(lo) * ws2 - cx + Wm / 2, lat2y(la) * ws2 - cy + Hm / 2];
+  const imgs = [];
+  const paintMini = () => {
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = '#cfd6dc'; g.fillRect(0, 0, Wm, Hm);
+    imgs.forEach(t => { if (t.img.complete && t.img.naturalWidth) g.drawImage(t.img, t.dx, t.dy, 257, 257); });
+    // eigene Felder in der Nähe (blau) als Orientierung
+    S.files.filter(f => !f.dup && f.bounds && f.bounds.n > s2 - .01 && f.bounds.s < n + .01 && f.bounds.e > w - .015 && f.bounds.w < e + .015).forEach(f => {
+      (f.outline ? [f.outline] : f.shapes.map(sh => sh.pts)).forEach(r => { g.beginPath(); r.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.strokeStyle = '#1e7bff'; g.lineWidth = 1.5; g.stroke(); });
+    });
+    if (ring) { g.beginPath(); ring.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath(); g.fillStyle = 'rgba(255,122,0,.3)'; g.fill(); g.strokeStyle = '#ff7a00'; g.lineWidth = 2.5; g.stroke(); }
+    if (route) { g.beginPath(); route.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.strokeStyle = '#c75a00'; g.lineWidth = 1.5; g.stroke(); }
+    g.font = '11px Roboto,system-ui,sans-serif'; g.fillStyle = 'rgba(255,255,255,.75)'; const at = P.layer === 'sat' ? '© Luftbild GeoBasis-DE / Esri' : '© GeoBasis-DE / BKG';
+    g.fillRect(Wm - g.measureText(at).width - 8, Hm - 15, 300, 15); g.fillStyle = '#334'; g.textAlign = 'right'; g.fillText(at, Wm - 4, Hm - 4);
+  };
+  const lz = Math.min(z, LAYER_MAXZ[P.layer] || 18), k = Math.pow(2, z - lz), ts = 256 * k, nT = 1 << lz;
+  const x0 = Math.floor((cx - Wm / 2) / ts), x1 = Math.floor((cx + Wm / 2) / ts), y0 = Math.floor((cy - Hm / 2) / ts), y1 = Math.floor((cy + Hm / 2) / ts);
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    const img = new Image(); img.onload = paintMini; img.src = LAYERS[P.layer](lz, ((tx % nT) + nT) % nT, ty);
+    imgs.push({ img, dx: tx * ts - cx + Wm / 2, dy: ty * ts - cy + Hm / 2 });
+  }
+  paintMini();
+}
 function syncEnd() { syncing = false; $('bSync').disabled = false; busy(''); }
 window.onUave = raw => {
   const ev = JSON.parse(raw);
@@ -3218,9 +3393,10 @@ window.onUave = raw => {
     if (ev.missing) parts.push(`${ev.missing} neu`);
     if (ev.changed) parts.push(`${ev.changed} geändert`);
     pickDlg(`Felder aus UAV Editor laden`,
-      `${parts.join(', ')} · ${ev.total} Felder insgesamt · Häkchen setzen oder entfernen\nAb 11 Feldern wird schneller in ZIP-Paketen (je 25) geladen und automatisch entpackt.\nZiel: ${P.src}`,
-      todo.map(f => ({ label: f.name, tag: f.status === 'changed' ? 'geändert' : 'neu', on: !otherVariant(f, ev.fields),
-        info: [f.arch ? 'Archiv' : 'aktiv', f.area ? fieldArea(f.area) : '', f.mod ? 'geändert ' + new Date(f.mod).toLocaleDateString('de-DE') : '', f.cut ? 'Mähdatum ' + new Date(f.cut).toLocaleDateString('de-DE') : ''].filter(Boolean).join(' · ') })),
+      `${parts.join(', ')} · ${ev.total} Felder im UAV Editor · Ziel: ${P.src}`,
+      todo.map(f => { const x = uaveInfo(f); return { label: f.name, tag: f.status === 'changed' ? 'geändert' : 'neu', on: !otherVariant(f, ev.fields),
+        info: x.info, facets: { Jahr: x.years, Drohne: [x.drone || '?'], Stand: [f.arch ? 'Archiv' : 'aktiv'] },
+        preview: x.ring || x.route || x.c ? cv => miniMap(cv, x.ring, x.route, x.c) : null }; }),
       'Felder laden', idx => {
         const ids = idx.map(i => todo[i].id);
         syncStop = false; syncing = true;
