@@ -297,6 +297,7 @@
     <div class="set"><div class="l"><div class="t">Saison-Vorschau (Planung)</div><div class="v">Zeigt Naturschutz-, FFH- und Vogelschutzgebiete im RB Gießen so, als wäre Mähsaison (15.04.–30.06.). Nur zur Planung – außerhalb der Saison gilt die Verfügung NICHT.</div></div><label class="sw"><input type="checkbox" id="sSeason"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Die Rose steht mit Norden oben wie die Karte, der Windsack zeigt die Windrichtung (schwarze Marke = woher der Wind kommt). Mit Kompassnadel: die rote Nadelspitze zeigt, wohin die RC schaut · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt ebenfalls die Blickrichtung.</div></div><div class="seg"><button data-rose="dev">Mit Kompassnadel</button><button data-rose="north">Ohne Nadel</button><button data-rose="off">Aus</button></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzbeginn bei Mähdatum ohne Uhrzeit</div><div class="v">Für das Wetter-Einsatzfenster (1 h vorher bis 1 h nachher)</div></div><input id="sWxStart" class="inp" type="time" style="flex:none;width:130px;min-width:0"></div>
+    <div class="set"><div class="l"><div class="t">Leistungsanzeige</div><div class="v">Zeigt oben auf der Karte Bilder pro Sekunde und Zeichenzeiten – zum Finden von Rucklern</div></div><label class="sw"><input type="checkbox" id="sPerf"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Wetter: Höhen anzeigen bis</div><div class="v">Nur die Höhen, in denen ihr fliegt – Wind, Temperatur und Böen in der Wettertabelle</div></div><div class="seg" id="sWxMax"><button data-wxmax="50">50 m</button><button data-wxmax="100">100 m</button><button data-wxmax="250">alle</button></div></div>
     <div class="set"><div class="l"><div class="t">Flugplätze anzeigen</div><div class="v" id="vAf">Flugplätze, Segel-/UL-Plätze und Hubschrauberlandeplätze im Gebiet der Felder (+3 km)</div></div><button class="b-sec" id="bAfList">Liste</button><label class="sw"><input type="checkbox" id="sAf"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">NOTAM / temporäre Betriebseinschränkungen</div><div class="v" id="vNotam"></div></div><button class="b-sec" id="bNotamList">Anzeigen</button></div>
@@ -376,7 +377,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { perf: '0', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -532,12 +533,16 @@ function bufPlace(B) {
 const covers = (B, lo, hi) => { if (!B.ok) return false; const [x, y, k] = bufPlace(B); return k > lo && k < hi && x <= 0 && y <= 0 && x + B.bw * k >= W && y + B.bh * k >= H; };
 // Kachel-Ebene: ebenfalls vorgerendert mit Rand und per CSS verschoben – exakt im Gleichschritt mit den Zonen/Feldern
 const TV = { ok: false }; let tilesDirty = true;
+// Auflösung der vorgerenderten Bilder begrenzen: kleinere Grafik-Texturen = viel flüssiger auf der RC
+const TILE_DPR = 1, LAYER_DPR = 1.5;
+const PERF = { tiles: 0, layers: 0, frames: [], last: 0 };
 function renderTiles() {
-  const M = Math.round(Math.max(W, H) * 0.3), Wr = W, Hr = H, bw = W + 2 * M, bh = H + 2 * M;
+  const t0 = performance.now(), D0 = DPR; DPR = Math.min(D0, TILE_DPR);
+  const M = Math.round(Math.max(W, H) * 0.25), Wr = W, Hr = H, bw = W + 2 * M, bh = H + 2 * M;
   if (tcv.width !== Math.round(bw * DPR) || tcv.height !== Math.round(bh * DPR)) { tcv.width = Math.round(bw * DPR); tcv.height = Math.round(bh * DPR); tcv.style.width = bw + 'px'; tcv.style.height = bh + 'px'; }
   ctx = tctx; W = bw; H = bh;
   try { ctx.setTransform(DPR, 0, 0, DPR, 0, 0); paintTiles(); }
-  finally { W = Wr; H = Hr; ctx = mctx; }
+  finally { W = Wr; H = Hr; ctx = mctx; DPR = D0; PERF.tiles = performance.now() - t0; }
   Object.assign(TV, { ok: true, lat: V.lat, lon: V.lon, z: V.z, M, bw, bh, hx: bw / 2, hy: (bh - BAR) / 2 });
   tilesDirty = false;
 }
@@ -562,14 +567,15 @@ function paint() {
   paintLive();
 }
 function renderBuf() {
-  const M = Math.round(Math.max(W, H) * 0.3), Wr = W, Hr = H;
+  const t0 = performance.now(), D0 = DPR; DPR = Math.min(D0, LAYER_DPR);
+  const M = Math.round(Math.max(W, H) * 0.25), Wr = W, Hr = H;
   const bw = W + 2 * M, bh = H + 2 * M;
   if (buf.width !== Math.round(bw * DPR) || buf.height !== Math.round(bh * DPR)) { buf.width = Math.round(bw * DPR); buf.height = Math.round(bh * DPR); buf.style.width = bw + 'px'; buf.style.height = bh + 'px'; }
   ctx = bctx; W = bw; H = bh;
   try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, buf.width, buf.height); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); paintStatic(); }
-  finally { W = Wr; H = Hr; ctx = mctx; }
+  finally { W = Wr; H = Hr; ctx = mctx; DPR = D0; PERF.layers = performance.now() - t0; }
   labelBoxes.forEach(b => { b.x -= M; b.y -= M; });   // Etiketten-Treffer in Bildschirmkoordinaten
-  Object.assign(BV, { ok: true, lat: V.lat, lon: V.lon, z: V.z, M, bw, bh, hx: bw / 2, hy: (bh - BAR) / 2, sw: Wr, sh: Hr, dpr: DPR, t: Date.now() });
+  Object.assign(BV, { ok: true, lat: V.lat, lon: V.lon, z: V.z, M, bw, bh, hx: bw / 2, hy: (bh - BAR) / 2, sw: Wr, sh: Hr, dpr: D0, t: Date.now() });
   dirty = false;
 }
 function paintTiles() {
@@ -610,6 +616,13 @@ function paintStatic() {
 
 /** Schnell wechselnde Teile direkt auf den Bildschirm: Markierung, eigene Position, Blickrichtung, Quellenangabe */
 function paintLive() {
+  if (P.perf === '1') {   // Leistungsanzeige (Einstellungen): Bilder pro Sekunde und Zeichenzeiten
+    const now = performance.now(); PERF.frames.push(now); while (PERF.frames.length && now - PERF.frames[0] > 1000) PERF.frames.shift();
+    const t = `${PERF.frames.length} fps · Kacheln ${Math.round(PERF.tiles)} ms · Ebenen ${Math.round(PERF.layers)} ms · DPR ${DPR} · ${W}×${H}`;
+    ctx.font = '700 12px Roboto,system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    const tw = ctx.measureText(t).width; ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(170, 60, tw + 12, 20); ctx.fillStyle = '#7CFC00'; ctx.fillText(t, 176, 64);
+    if (!PERF.raf) PERF.raf = requestAnimationFrame(() => { PERF.raf = 0; drawLive(false); });   // laufend messen
+  }
   { // Pflicht-Quellenangabe der Kartendienste, klein unten rechts
     const at = P.layer === 'sat' ? 'Luftbild © GeoBasis-DE / HVBG, LVermGeoRP (dl-de/by-2-0) · außerhalb © Esri' : '© GeoBasis-DE / BKG ' + new Date().getFullYear() + ' CC BY 4.0';
     const at2 = at + (P.osmPower === '1' ? ' · Hindernisse © OpenStreetMap' : '');
@@ -2047,6 +2060,7 @@ function fillRules() {
   $('sAf').checked = P.airf === '1';
   $('sWxStart').value = P.wxStart;
   document.querySelectorAll('[data-wxmax]').forEach(b => b.classList.toggle('on', b.dataset.wxmax === P.wxMaxH));
+  $('sPerf').checked = P.perf === '1';
   const rm = P.rose === '0' ? 'off' : P.compass === '0' ? 'north' : 'dev';
   document.querySelectorAll('[data-rose]').forEach(b => b.classList.toggle('on', b.dataset.rose === rm));
   $('vNotam').textContent = (S.notams.length ? `${S.notams.filter(n => n.active).length} aktiv, ${S.notams.filter(n => !n.active).length} geplant` : 'keine im Gebiet') + (S.notamFetched ? ` · Stand ${fmtDate(S.notamFetched)}` : ' · noch nicht geladen');
@@ -2605,6 +2619,7 @@ function showAirfieldList() {
   $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => showAirfield(S.airfields.find(a => a.id === el.dataset.af)));
 }
 document.querySelectorAll('[data-rose]').forEach(b => b.onclick = () => { const v = b.dataset.rose; setP('rose', v === 'off' ? 0 : 1); if (v !== 'off') setP('compass', v === 'dev' ? 1 : 0); fillSettings(); windWidget(); draw(); });
+$('sPerf').onchange = e => { setP('perf', e.target.checked ? 1 : 0); draw(); };
 document.querySelectorAll('[data-wxmax]').forEach(b => b.onclick = () => { setP('wxMaxH', b.dataset.wxmax); fillSettings(); });
 $('sWxStart').onchange = e => { if (e.target.value) setP('wxStart', e.target.value); };
 $('sAf').onchange = e => { setP('airf', e.target.checked ? 1 : 0); draw(); };
