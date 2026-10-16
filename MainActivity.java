@@ -598,6 +598,24 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             return out.toString();
         }
 
+        /** Feldgrenzen je lokaler Datei: {datei: [lon,lat,lon,lat,…]} (aus dem letzten Abgleich) */
+        @JavascriptInterface
+        public String uaveOutlines() {
+            JSONObject res = new JSONObject();
+            try {
+                if (!outlineFile().isFile()) return "{}";
+                JSONObject ol = new JSONObject(readFile(outlineFile()));
+                JSONObject man = manifest();
+                Iterator<String> it = man.keys();
+                while (it.hasNext()) {
+                    String id = it.next();
+                    JSONObject m = man.optJSONObject(id);
+                    if (m != null && ol.has(id) && !m.optString("file").isEmpty()) res.put(m.optString("file"), ol.get(id));
+                }
+            } catch (Exception ignored) { }
+            return res.toString();
+        }
+
         /** Ordnet lokale Dateinamen den UAV-Editor-Feld-IDs zu (aus dem letzten Abgleich). Ergebnis: {datei: id} */
         @JavascriptInterface
         public String uaveIdsForFiles(String filesJson) {
@@ -954,6 +972,54 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         throw new Exception("Feldliste konnte nicht geladen werden" + (lastErr != null ? ": " + lastErr : ""));
     }
 
+    // ---------- Feldgrenzen (Kontur) aus UAV Editor – Feature mit properties.type == 1 im geojson des Feldes ----------
+    private File outlineFile() { return new File(getFilesDir(), "field_outlines.json"); }
+
+    private void uaveFetchOutlines() throws Exception {
+        if (uaveAuthHeader == null) return;
+        JSONObject out = outlineFile().isFile() ? new JSONObject(readFile(outlineFile())) : new JSONObject();
+        int got = 0;
+        for (boolean archived : new boolean[]{true, false}) {
+            JSONObject vars = new JSONObject().put("fieldsFilter", new JSONObject().put("archived", archived).put("removed", false));
+            JSONObject res = gql("query getFieldsMapData($planningId: String, $fieldsFilter: FieldFilterInput, $pilotCoordinationId: String, $pilotGroupId: String, $useFieldCatalogFields: Boolean) { "
+                    + "getFieldsMapData(useFieldCatalogFields: $useFieldCatalogFields pilotGroupId: $pilotGroupId planningId: $planningId fieldsFilter: $fieldsFilter pilotCoordinationId: $pilotCoordinationId) }", vars, uaveAuthHeader);
+            if (gqlError(res) != null) continue;
+            JSONObject data = res.optJSONObject("data");
+            JSONObject md = data != null ? data.optJSONObject("getFieldsMapData") : null;
+            JSONArray fs = md != null ? md.optJSONArray("fields") : null;
+            if (fs == null) continue;
+            for (int i = 0; i < fs.length(); i++) {
+                JSONObject f = fs.getJSONObject(i);
+                String id = f.optString("_id", f.optString("id", ""));
+                String enc = f.optString("polygonLineString", "");
+                if (id.isEmpty() || enc.isEmpty()) continue;
+                List<double[]> pts = decodePolyline(enc);   // Feldgrenze, Reihenfolge Breite/Länge
+                if (pts.size() < 3) continue;
+                JSONArray ring = new JSONArray();
+                for (double[] p : pts) ring.put(p[1]).put(p[0]);   // gespeichert als Länge, Breite
+                out.put(id, ring); got++;
+            }
+        }
+        if (got > 0) writeFileAtomic(outlineFile(), out.toString());
+    }
+
+    /** Google-Polyline (Genauigkeit 1e-5) dekodieren */
+    private static List<double[]> decodePolyline(String s) {
+        List<double[]> out = new ArrayList<>();
+        int i = 0, a = 0, b = 0;
+        while (i < s.length()) {
+            int[] v = new int[2];
+            for (int k = 0; k < 2; k++) {
+                int r = 0, sh = 0, c;
+                do { if (i >= s.length()) return out; c = s.charAt(i++) - 63; r |= (c & 31) << sh; sh += 5; } while (c >= 32);
+                v[k] = (r & 1) != 0 ? ~(r >> 1) : (r >> 1);
+            }
+            a += v[0]; b += v[1];
+            out.add(new double[]{a / 1e5, b / 1e5});
+        }
+        return out;
+    }
+
     private static long parseIso(String s) {
         if (s == null || s.isEmpty() || "null".equals(s)) return 0;
         for (String f : new String[]{"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "yyyy-MM-dd'T'HH:mm:ss'Z'"}) {
@@ -1021,6 +1087,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     f.put("_arch", archive);   // für die Anzeige im Auswahl-Dialog (Archiv / aktiv)
                     uaveFields.put(f.getString("id"), f);
                 }
+            }
+            if (!uaveCancel) {
+                uaveProgress("Lade Feldgrenzen…");
+                try { uaveFetchOutlines(); } catch (Exception ignored) { /* optional – Abgleich läuft trotzdem */ }
             }
             File dir = new File(srcDir);
             File[] local = dir.listFiles();
@@ -1531,7 +1601,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     // ---------- Kartenkacheln (Karte + Satellit) dauerhaft auf der RC speichern ----------
     // Jede angezeigte Kachel wird gespeichert und offline von dort geladen. Kein Massen-Download
     // (Nutzungsbedingungen von OpenStreetMap/Esri) – was einmal angesehen wurde, ist offline da.
-    private static final long TILE_FRESH = 30L * 24 * 3600 * 1000, TILE_MAX_BYTES = 500L * 1024 * 1024;
+    // Karten-/Satellitenbilder ändern sich selten: gespeicherte Kacheln 1 Jahr lang direkt nutzen (auch online)
+    private static final long TILE_FRESH = 365L * 24 * 3600 * 1000, TILE_MAX_BYTES = 1024L * 1024 * 1024;
     private File tileDir() { return new File(getFilesDir(), "tiles"); }
 
     private WebResourceResponse tileFromCache(Uri u) {
@@ -1586,7 +1657,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return bo.toByteArray();
     }
 
-    /** Speicher begrenzen: über 500 MB die am längsten nicht aktualisierten Kacheln löschen */
+    /** Speicher begrenzen: über 1 GB die am längsten nicht aktualisierten Kacheln löschen */
     private void tileCacheTrim() {
         try {
             List<File> all = new ArrayList<>();
@@ -1629,49 +1700,57 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             } catch (Exception ignored) { }
             boolean fresh = System.currentTimeMillis() - prefs.getLong("reg_fetched", 0) < 60 * DAY;   // Grenzen ändern sich kaum
             if (!force && fresh && covers && regionFile().isFile()) return;
+            // Schnell: nur Grenzstücke im Gebiet + Zugehörigkeit der Gebietsmitte (statt kompletter Landesgrenzen)
             String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
-            String q = "[out:json][timeout:180];("
-                    + "relation[\"boundary\"=\"administrative\"][\"admin_level\"=\"4\"][\"ISO3166-2\"~\"^DE-\"](" + bb + ");"
-                    + "relation[\"boundary\"=\"administrative\"][\"admin_level\"=\"5\"][\"name\"~\"Gie(ß|ss)en\"](" + bb + ");"
-                    + ");out tags geom;";
-            JSONArray els = new JSONObject(overpass(q, 200000)).getJSONArray("elements");
-            JSONArray out = new JSONArray();
+            double clat = (n + s) / 2, clon = (e + w) / 2;
+            String q = "[out:json][timeout:90];"
+                    + "rel[\"boundary\"=\"administrative\"][\"admin_level\"~\"^(4|5)$\"](" + bb + ")->.r;"
+                    + ".r out body;"
+                    + "way(r.r)(" + bb + ");out geom;"
+                    + String.format(Locale.ROOT, "is_in(%.6f,%.6f)->.a;", clat, clon)
+                    + "area.a[\"boundary\"=\"administrative\"][\"admin_level\"~\"^(4|5)$\"];out tags;";
+            JSONArray els = new JSONObject(overpass(q, 120000)).getJSONArray("elements");
+            Map<Long, JSONArray> wayGeom = new HashMap<>();
+            Set<Long> centerIn = new java.util.HashSet<>();
+            List<JSONObject> rels = new ArrayList<>();
             for (int i = 0; i < els.length(); i++) {
-                JSONObject r = els.getJSONObject(i);
-                JSONObject t = r.optJSONObject("tags");
-                if (t == null) continue;
-                JSONArray mem = r.optJSONArray("members");
-                if (mem == null) continue;
-                JSONArray lines = new JSONArray();
-                double bn = -90, bs = 90, be = -180, bw = 180;
-                for (int k = 0; k < mem.length(); k++) {
-                    JSONObject m = mem.getJSONObject(k);
-                    if (!"way".equals(m.optString("type"))) continue;
-                    String role = m.optString("role");
-                    if (!role.isEmpty() && !"outer".equals(role) && !"inner".equals(role)) continue;
-                    JSONArray g = m.optJSONArray("geometry");
+                JSONObject el = els.getJSONObject(i);
+                String ty = el.optString("type");
+                if ("way".equals(ty)) {
+                    JSONArray g = el.optJSONArray("geometry");
                     if (g == null || g.length() < 2) continue;
                     double[] la = new double[g.length()], lo = new double[g.length()];
                     int c = 0;
-                    for (int j = 0; j < g.length(); j++) {
-                        JSONObject pt = g.optJSONObject(j);
-                        if (pt == null) continue;
-                        la[c] = pt.getDouble("lat"); lo[c] = pt.getDouble("lon"); c++;
-                    }
+                    for (int k = 0; k < g.length(); k++) { JSONObject pt = g.optJSONObject(k); if (pt == null) continue; la[c] = pt.getDouble("lat"); lo[c] = pt.getDouble("lon"); c++; }
                     if (c < 2) continue;
-                    boolean[] keep = new boolean[c];
-                    keep[0] = keep[c - 1] = true;
-                    simplify(la, lo, 0, c - 1, 0.0002, keep);   // ca. 20 m – Endpunkte bleiben, Ring bleibt geschlossen
+                    boolean[] keep = new boolean[c]; keep[0] = keep[c - 1] = true;
+                    simplify(la, lo, 0, c - 1, 0.0001, keep);   // ca. 10 m
                     JSONArray ln = new JSONArray();
-                    for (int j = 0; j < c; j++) if (keep[j]) {
-                        ln.put(Math.round(lo[j] * 1e5) / 1e5).put(Math.round(la[j] * 1e5) / 1e5);
-                        bn = Math.max(bn, la[j]); bs = Math.min(bs, la[j]); be = Math.max(be, lo[j]); bw = Math.min(bw, lo[j]);
-                    }
-                    lines.put(ln);
+                    for (int k = 0; k < c; k++) if (keep[k]) ln.put(Math.round(lo[k] * 1e5) / 1e5).put(Math.round(la[k] * 1e5) / 1e5);
+                    wayGeom.put(el.getLong("id"), ln);
+                } else if ("area".equals(ty)) {
+                    centerIn.add(el.getLong("id") - 3600000000L);
+                } else if ("relation".equals(ty)) rels.add(el);
+            }
+            JSONArray out = new JSONArray();
+            for (JSONObject r : rels) {
+                JSONObject t = r.optJSONObject("tags");
+                if (t == null) continue;
+                String lvl = t.optString("admin_level"), name = t.optString("name"), code = t.optString("ISO3166-2");
+                if ("4".equals(lvl) && !code.startsWith("DE-")) continue;
+                if ("5".equals(lvl) && !name.matches(".*Gie(ß|ss)en.*")) continue;
+                JSONArray mem = r.optJSONArray("members"), lines = new JSONArray();
+                if (mem != null) for (int k = 0; k < mem.length(); k++) {
+                    JSONObject m = mem.getJSONObject(k);
+                    if (!"way".equals(m.optString("type"))) continue;
+                    JSONArray ln = wayGeom.get(m.getLong("ref"));
+                    if (ln != null) lines.put(ln);
                 }
-                if (lines.length() == 0) continue;
-                out.put(new JSONObject().put("lvl", t.optString("admin_level")).put("code", t.optString("ISO3166-2"))
-                        .put("name", t.optString("name")).put("bb", new JSONArray().put(bw).put(bs).put(be).put(bn)).put("lines", lines));
+                boolean in = centerIn.contains(r.getLong("id"));
+                if (lines.length() == 0 && !in) continue;   // weder Grenze im Gebiet noch Mitte drin
+                out.put(new JSONObject().put("lvl", lvl).put("code", code).put("name", name)
+                        .put("ref", new JSONArray().put(clat).put(clon)).put("refIn", in)
+                        .put("bb", new JSONArray().put(w).put(s).put(e).put(n)).put("lines", lines));
             }
             if (out.length() == 0) return;   // nichts überschreiben, wenn die Antwort leer ist
             writeFileAtomic(regionFile(), out.toString());
@@ -1960,6 +2039,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     /** areaJson: {n,s,e,w} – Gesamtgebiet aller Felder inkl. Rand. force = alles neu laden */
     private void geoSyncImpl(String areaJson, boolean force) {
         if (geoRunning) return;
+        if (!online()) {   // offline: nichts versuchen, gespeicherte Geozonen bleiben einfach aktiv
+            try { geoEvent(new JSONObject().put("type", "offline").put("fetched", geoFetched())); } catch (Exception ignored) { }
+            return;
+        }
         geoRunning = true;
         geoLastError = null;
         try {
@@ -2012,8 +2095,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         .putString("geo_vec_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             }
             if (ok == 0) {
-                geoEvent(new JSONObject().put("type", "error").put("message", "Geozonen konnten nicht aktualisiert werden"
-                        + (geoLastError != null ? ": " + geoLastError : " (keine Verbindung zu dipul?)")).put("fetched", geoFetched()));
+                String why = !online() || (geoLastError != null && geoLastError.contains("resolve host")) ? "keine Internetverbindung"
+                        : geoLastError != null && geoLastError.toLowerCase(Locale.ROOT).contains("timeout") ? "dipul antwortet nicht"
+                        : geoLastError != null ? geoLastError : "keine Verbindung zu dipul";
+                geoEvent(new JSONObject().put("type", "error").put("message", "Geozonen nicht aktualisiert (" + why + ")."
+                        + (geoFetched() > 0 ? " Die gespeicherten Geozonen bleiben aktiv." : "")).put("fetched", geoFetched()).put("force", force));
             } else {
                 geoEvent(new JSONObject().put("type", "done").put("ok", ok).put("fail", fail).put("fetched", geoFetched()).put("tiles", count));
             }

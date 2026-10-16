@@ -43,12 +43,12 @@
   /* Meldungen */
   #toast{white-space:pre-line;position:fixed;left:50%;top:14px;transform:translateX(-50%);max-width:70%;background:#15202b;color:#fff;padding:12px 18px;border-radius:10px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none;z-index:50}
   #toast.err{background:#b3131b}
-  #wind{position:fixed;left:10px;top:8px;display:none;flex-direction:column;align-items:center;gap:4px;cursor:pointer;z-index:5}
-  #wind svg{width:132px;height:132px;flex:none;stroke:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))}
-  #wind .card{background:var(--ctrl);color:var(--txt);backdrop-filter:blur(6px);border-radius:10px;box-shadow:0 1px 5px rgba(0,0,0,.3);padding:5px 10px;font-size:12px;line-height:1.35;text-align:center;white-space:nowrap}
-  #wind .big{font-size:15px;font-weight:700}
+  #wind{position:fixed;left:10px;top:8px;display:none;flex-direction:column;align-items:flex-start;gap:6px;cursor:pointer;z-index:5;width:190px}
+  #wind svg{width:132px;height:132px;flex:none;stroke:none;margin-left:14px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))}
+  #wind .card{width:100%;box-sizing:border-box;background:var(--ctrl);color:var(--txt);backdrop-filter:blur(6px);border-radius:10px;border-left:5px solid #13a538;box-shadow:0 1px 5px rgba(0,0,0,.3);padding:5px 9px;font-size:12px;line-height:1.35;text-align:left;white-space:normal}
+  #wind .big{font-size:15px;font-weight:700;white-space:nowrap}
   #wind .sub{color:var(--muted)}
-  #notam{position:fixed;left:156px;top:12px;background:#b3131b;color:#fff;font-weight:700;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none;cursor:pointer;z-index:5}
+  #notam{position:fixed;left:200px;top:12px;background:#b3131b;color:#fff;font-weight:700;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none;cursor:pointer;z-index:5}
   #notam.inact{background:#5d6975}
   #net{position:fixed;right:80px;top:12px;padding:6px 12px 6px 9px;border-radius:20px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;background:#0e7a2c;color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.35);pointer-events:none;z-index:4}
   #net.off{background:#b3131b;color:#fff}
@@ -134,6 +134,14 @@
   label.pick em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
 
   /* Wetterseite */
+  #layerPop{position:fixed;display:none;gap:8px;padding:8px;background:var(--ctrl);backdrop-filter:blur(6px);border-radius:16px;box-shadow:0 3px 14px rgba(0,0,0,.35);z-index:30}
+  #layerPop.open{display:flex}
+  #layerPop button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;background:transparent;color:var(--txt);font-size:13px;border:2px solid transparent;border-radius:12px}
+  #layerPop button.on{border-color:var(--acc);color:var(--acc)}
+  #layerPop i{width:64px;height:44px;border-radius:8px;display:block;border:1px solid var(--line)}
+  .sw-grey{background:linear-gradient(135deg,#e9ebe8 0 40%,#cfd3cf 40% 55%,#f3f3f1 55% 75%,#d8dcd6 75%)}
+  .sw-osm{background:linear-gradient(135deg,#f2efe9 0 35%,#cde6b9 35% 55%,#f7d9a8 55% 62%,#aad3df 62%)}
+  .sw-sat{background:linear-gradient(135deg,#3d5a2e 0 30%,#6f7f4c 30% 50%,#a39a7a 50% 60%,#25402a 60%)}
   .hicon{width:28px;height:28px;margin-right:10px;color:var(--acc)}
   h3.sec{color:var(--acc);margin:16px 0 8px}
   .wxwrap{overflow-x:auto}
@@ -170,12 +178,13 @@
 <div id="notam"></div>
 <div id="net"></div>
 <div id="toast"></div>
+<div id="layerPop"><button data-ly="grey"><i class="sw-grey"></i>Grau</button><button data-ly="osm"><i class="sw-osm"></i>Karte</button><button data-ly="sat"><i class="sw-sat"></i>Satellit</button></div>
 
 <div id="ctrl">
   <button id="zIn" title="Vergrößern"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
   <button id="zOut" title="Verkleinern"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
   <button id="bFit" title="Alle Felder anzeigen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-  <button id="bWx" title="Wetter"><svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 9.5 4.25 4.25 0 0 0 7 18z"/></svg></button>
+  <button id="bLayer" title="Kartenart wechseln: Grau → Karte → Satellit"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/><path d="M3 17.5l9 5 9-5" opacity=".55"/></svg></button>
   <button id="bInfo" title="Geozonen-Info: Punkt antippen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
   <button id="bLoc" title="Mein Standort"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
 </div>
@@ -220,7 +229,8 @@
     <div class="set"><div class="l"><div class="t">Wohngrundstücke einbeziehen</div><div class="v">Zeigt auch Wohngrundstücke als Geozone (deckt Ortschaften flächig ab)</div></div><label class="sw"><input type="checkbox" id="sGeoRes"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Geozonen-Daten</div><div class="v" id="vGeo"></div></div><button class="b-sec" id="bGeoNow">Jetzt aktualisieren</button></div>
     <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
-    <div class="set"><div class="l"><div class="t">Kartentyp</div><div class="v" id="vTiles">Angesehene Kacheln werden auf der RC gespeichert und sind danach offline verfügbar.</div></div><button class="b-sec" id="bTilesClear">Leeren</button><div class="seg"><button data-layer="sat">Satellit</button><button data-layer="osm">Karte</button><button data-layer="grey">Grau</button></div></div>
+    <div class="set"><div class="l"><div class="t">Kartentyp</div><div class="v" id="vTiles">Angesehene Kacheln werden auf der RC gespeichert und sind danach offline verfügbar.</div></div><button class="b-sec" id="bTilesClear">Leeren</button><div class="seg"><button data-layer="grey">Grau</button><button data-layer="osm">Karte</button><button data-layer="sat">Satellit</button></div></div>
+    <div class="set"><div class="l"><div class="t">Wetter</div><div class="v">Tagesgang, Sonnenlauf und Einsatzwetter – auch per Tipp auf die Windanzeige</div></div><button class="b-sec" id="bWxSet">Wetter öffnen</button></div>
     <div class="set"><div class="l"><div class="t">Dateizugriff</div><div class="v" id="vAcc"></div></div><button class="b-sec" id="bAcc">Berechtigung</button></div>
     <div class="set" style="flex-direction:column;align-items:stretch">
       <div class="t">UAV Editor – Zugang für „Abgleichen“</div>
@@ -290,7 +300,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'sat' };
+const DEF = { theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -352,14 +362,32 @@ function resize() {
 let pend = false;
 function draw() { if (!pend) { pend = true; requestAnimationFrame(paint); } }
 
+const tileFail = new Map();   // Kachel-Schlüssel -> Zeitpunkt des letzten Fehlschlags (für erneuten Versuch)
+const tKey = (z, x, y) => (P.layer === 'grey' ? 'osm' : P.layer) + z + '/' + x + '/' + y;
 function tile(z, x, y) {
-  const k = (P.layer === 'grey' ? 'osm' : P.layer) + z + '/' + x + '/' + y;
+  const k = tKey(z, x, y);
   let t = tiles.get(k);
   if (!t) {
-    t = new Image(); t.onload = draw; t.src = LAYERS[P.layer](z, x, y); tiles.set(k, t);
-    if (tiles.size > 500) tiles.delete(tiles.keys().next().value);
+    const f = tileFail.get(k);
+    if (f && Date.now() - f.t < Math.min(60000, 4000 * f.n)) return null;   // kurz warten, dann neu versuchen
+    t = new Image();
+    t.onload = () => { tileFail.delete(k); draw(); };
+    t.onerror = () => { tiles.delete(k); const o = tileFail.get(k); tileFail.set(k, { t: Date.now(), n: o ? o.n + 1 : 1 }); setTimeout(draw, 4500); };
+    t.src = LAYERS[P.layer](z, x, y); tiles.set(k, t);
+    if (tiles.size > 700) tiles.delete(tiles.keys().next().value);
   }
   return t;
+}
+/** Bereits geladene gröbere Kachel als Platzhalter (bis zu 5 Zoomstufen höher), damit keine leeren Flecken bleiben */
+function parentTile(z, x, y) {
+  for (let d = 1; d <= 5 && z - d >= 1; d++) {
+    const p = tiles.get(tKey(z - d, x >> d, y >> d));
+    if (p && p.complete && p.naturalWidth) {
+      const n = 1 << d, sz = p.naturalWidth / n;
+      return { img: p, sx: (x % n) * sz, sy: (y % n) * sz, sz };
+    }
+  }
+  return null;
 }
 
 function paint() {
@@ -373,8 +401,10 @@ function paint() {
   const y0 = Math.max(0, Math.floor((cy - mh / 2) / ts)), y1 = Math.min(n - 1, Math.floor((cy + (H - mh / 2)) / ts));
   ctx.filter = LAYER_FILTER[P.layer] || 'none';
   for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
-    const t = tile(tz, ((tx % n) + n) % n, ty);
-    if (t.complete && t.naturalWidth) ctx.drawImage(t, Math.round(tx * ts - cx + W / 2), Math.round(ty * ts - cy + mh / 2), Math.ceil(ts) + 1, Math.ceil(ts) + 1);
+    const xx = ((tx % n) + n) % n, t = tile(tz, xx, ty);
+    const dx = Math.round(tx * ts - cx + W / 2), dy = Math.round(ty * ts - cy + mh / 2), dw = Math.ceil(ts) + 1;
+    if (t && t.complete && t.naturalWidth) ctx.drawImage(t, dx, dy, dw, dw);
+    else { const pt = parentTile(tz, xx, ty); if (pt) ctx.drawImage(pt.img, pt.sx, pt.sy, pt.sz, pt.sz, dx, dy, dw, dw); }
   }
   ctx.filter = 'none';
   { // Pflicht-Quellenangabe der Kartendienste, klein unten rechts
@@ -388,8 +418,9 @@ function paint() {
   if (P.geo === '1' && S.geo.length && V.z >= 9) paintGeo();
   if (S.notams.length) S.notams.forEach(drawNotam);
   const vis = S.files.filter(visible);
-  vis.filter(f => !f.selected).forEach(drawField);
-  vis.filter(f => f.selected).forEach(drawField);
+  const ord = [...vis].sort(byAreaDesc);
+  ord.forEach(f => { drawOutline(f); drawField(f); });
+  ord.filter(f => f.selected).forEach(drawField);   // Route markierter Felder obenauf
   if (P.labels === '1') vis.forEach(drawLabel);
   if (P.geo === '1' && S.geo.length && V.z >= 9) {
     const icons = geoAirIcons();
@@ -582,18 +613,31 @@ function drawAirfield(a) {
   }
 }
 
+// Farben: Felder blau, markierte Felder türkis mit dunkelblauem Rand (statt Gelb)
+const FC = { route: '#1e7bff', routeSel: '#19e3ff', halo: '#0a2a66', fill: 'rgba(30,123,255,.16)', fillSel: 'rgba(25,227,255,.30)' };
+/** Feldkontur aus UAV Editor als Hintergrund der Flugroute (nicht eigenständig wählbar) */
+function drawOutline(f) {
+  if (!f.outline) return;
+  ctx.beginPath();
+  f.outline.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+  ctx.closePath();
+  ctx.fillStyle = f.selected ? FC.fillSel : FC.fill; ctx.fill();
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = f.selected ? 3 : 2; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.stroke();   // weiße Kante: Grenze zum Nachbarfeld sichtbar
+  ctx.setLineDash([6, 4]); ctx.lineWidth = f.selected ? 2 : 1.5; ctx.strokeStyle = f.selected ? FC.halo : FC.route; ctx.stroke(); ctx.setLineDash([]);
+}
 function drawField(f) {
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = f.selected ? '#ffd400' : '#1e7bff';
-  ctx.lineWidth = f.selected ? 5 : 3;
-  ctx.fillStyle = f.selected ? 'rgba(13,71,161,.58)' : 'rgba(30,123,255,.30)';
   for (const s of f.shapes) {
     ctx.beginPath();
     s.pts.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
-    if (s.type === 'poly') { ctx.closePath(); ctx.fill(); }
-    ctx.stroke();
+    if (s.type === 'poly') { ctx.closePath(); if (!f.outline) { ctx.fillStyle = f.selected ? FC.fillSel : FC.fill; ctx.fill(); } }
+    if (f.selected) { ctx.lineWidth = 6; ctx.strokeStyle = FC.halo; ctx.stroke(); }
+    ctx.lineWidth = f.selected ? 3 : 2.5; ctx.strokeStyle = f.selected ? FC.routeSel : FC.route; ctx.stroke();
   }
 }
+// große Felder unten, kleine oben – so sieht man, wo welches Feld endet und das nächste beginnt
+const byAreaDesc = (a, b) => (b.areaM2 || 0) - (a.areaM2 || 0);
 
 const LABEL_Z = 15;   // Feldnamen erst bei naher Zoomstufe (markierte Felder immer)
 function drawLabel(f) {
@@ -601,12 +645,13 @@ function drawLabel(f) {
   const [x, y] = toScreen(f.center[0], f.center[1]);
   if (x < -150 || y < -30 || x > W + 150 || y > H + 30) return;
   ctx.font = '700 15px Roboto,system-ui,sans-serif';
-  const w = ctx.measureText(f.title).width + 14;
-  ctx.fillStyle = f.selected ? '#0d47a1' : 'rgba(255,255,255,.9)';
+  const t = f.selected && f.height ? `${f.title} · ${f.height} m${f.drone ? ' · ' + f.drone : ''}` : f.title;   // markiert: Flughöhe anzeigen
+  const w = ctx.measureText(t).width + 14;
+  ctx.fillStyle = f.selected ? FC.halo : 'rgba(255,255,255,.9)';
   ctx.fillRect(x - w / 2, y - 12, w, 24);
-  ctx.strokeStyle = f.selected ? '#ffd400' : '#1e7bff'; ctx.lineWidth = 2; ctx.strokeRect(x - w / 2, y - 12, w, 24);
+  ctx.strokeStyle = f.selected ? FC.routeSel : FC.route; ctx.lineWidth = 2; ctx.strokeRect(x - w / 2, y - 12, w, 24);
   ctx.fillStyle = f.selected ? '#fff' : '#15202b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(f.title, x, y + 1);
+  ctx.fillText(t, x, y + 1);
 }
 
 function zoomAt(nz, px, py) {
@@ -696,6 +741,8 @@ function hit(x, y) {
     ctx.font = '700 15px Roboto,system-ui,sans-serif';
     if (Math.abs(x - lx) < ctx.measureText(f.title).width / 2 + 7 && Math.abs(y - ly) < 14) return toggle(f);
   }
+  const small = [...vis].sort(byAreaDesc).reverse();   // oben liegende (kleine) Felder zuerst
+  for (const f of small) if (f.outline && inPoly(x, y, f.outline.map(p => toScreen(p[0], p[1])))) return toggle(f);
   for (let i = vis.length - 1; i >= 0; i--) {
     const f = vis[i];
     for (const s of f.shapes) {
@@ -746,6 +793,12 @@ function droneOf(t) {
   if (h) { const v = +h[1]; if (v >= 45 && v <= 55) return 'M3T'; if (v >= 65 && v <= 75) return 'M4T'; }
   return '';
 }
+const toLatLon = flat => { const o = []; for (let i = 0; i + 1 < flat.length; i += 2) o.push([flat[i + 1], flat[i]]); return o; };
+function ringArea(r) {   // Fläche in m² (Shoelace, lokal eben)
+  let a = 0; const k = Math.cos(r[0][0] * Math.PI / 180) * 111320, m = 110540;
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) a += (r[j][1] * k) * (r[i][0] * m) - (r[i][1] * k) * (r[j][0] * m);
+  return Math.abs(a / 2);
+}
 // Feldname ohne Fläche/Wegpunkte und ohne Drohnenkürzel: „Low-17-M3T_2.247ha_31WP“ -> „low-17“
 function baseName(n) {
   return String(n).replace(/\.km[lz]$/i, '').replace(/_[\d.,]+ha_\d+WP$/i, '').replace(/[-_ ]?M[34][TE]$/i, '').replace(/[-_ ]+$/, '')
@@ -759,6 +812,26 @@ function markDups() {
   if (P.drone) groups.forEach(g => {
     if (g.length < 2 || !g.some(f => f.drone === P.drone)) return;
     g.forEach(f => { if (f.drone && f.drone !== P.drone) { f.dup = true; f.selected = false; } });
+  });
+  // Gleicher Name, gleiche Drohne und fast deckungsgleich (z. B. „Wunike-Linter-4-“ und „Wunike-Linter-4-M3T“): nur eins zeigen.
+  // Bevorzugt die Version mit passendem Drohnenkürzel im Namen.
+  const ov = (a, b) => {
+    const x = Math.max(0, Math.min(a.e, b.e) - Math.max(a.w, b.w)), y = Math.max(0, Math.min(a.n, b.n) - Math.max(a.s, b.s));
+    const ar = r => (r.e - r.w) * (r.n - r.s);
+    return x * y / Math.max(1e-12, Math.min(ar(a), ar(b)));
+  };
+  groups.forEach(g => {
+    const left = g.filter(f => !f.dup);
+    if (left.length < 2) return;
+    const score = f => (P.drone && nameDrone(f.title) === P.drone ? 2 : nameDrone(f.title) ? 1 : 0);
+    left.sort((a, b) => score(b) - score(a));
+    left.forEach((f, i) => {
+      if (f.dup) return;
+      for (let j = i + 1; j < left.length; j++) {
+        const o = left[j];
+        if (!o.dup && (o.drone || '') === (f.drone || '') && ov(f.bounds, o.bounds) > 0.6) { o.dup = true; o.selected = false; }
+      }
+    });
   });
 }
 function bounds(list) {
@@ -779,6 +852,7 @@ async function load(keepView) {
   const keep = new Set(S.files.filter(f => f.selected).map(f => f.path));
   const r = JSON.parse(A.listKmz(P.src));
   if (!r.ok) { loading = false; S.files = []; update(); return toast(r.error + ' – Quellordner in den Einstellungen prüfen.', true); }
+  let outlines = {}; try { outlines = A.uaveOutlines ? JSON.parse(A.uaveOutlines() || '{}') : {}; } catch (e) { }
   const out = []; let bad = 0, stop = false;
   for (let i = 0; i < r.files.length; i++) {
     const f = r.files[i];
@@ -788,8 +862,11 @@ async function load(keepView) {
       const kmlText = A.readKml(f.path);
       const shapes = parseKml(kmlText);
       if (!shapes.length) { bad++; continue; }
-      const e = { name: f.name, path: f.path, title: f.name.replace(/\.km[lz]$/i, ''), shapes, selected: keep.has(f.path), drone: droneOf(kmlText) };
+      const hm_ = /<wpml:globalHeight>([\d.]+)</.exec(kmlText) || /<wpml:executeHeight>([\d.]+)</.exec(kmlText);
+      const e = { name: f.name, path: f.path, title: f.name.replace(/\.km[lz]$/i, ''), shapes, selected: keep.has(f.path), drone: droneOf(kmlText),
+        height: hm_ ? Math.round(+hm_[1]) : null, outline: outlines[f.name] ? toLatLon(outlines[f.name]) : null };
       const b = bounds([e]); e.bounds = b; e.center = [(b.n + b.s) / 2, (b.e + b.w) / 2];
+      e.areaM2 = e.outline ? ringArea(e.outline) : (b.n - b.s) * 111200 * (b.e - b.w) * 71000;
       out.push(e);
     } catch (err) { bad++; }
   }
@@ -917,7 +994,7 @@ $('bDl').onclick = () => {
       else if (!f.drone) b = `<small class="dk">Drohne nicht erkannt – wird nicht umgerechnet</small>`;
       else if (f.drone === drone) b = `<small class="dk ok">✓ schon ${DN[drone]} – passt</small>`;
       else b = `<small class="dk cv">↻ ${f.drone} → wird auf ${DN[drone]} umgerechnet (${drone === 'M3T' ? '70 → 50 m' : '50 → 70 m'})</small>`;
-      return `<div class="dlrow"><span>${esc(f.title)}</span>${b}</div>`;
+      return `<div class="dlrow"><span>${esc(f.title)}${f.height ? ` <small style="color:var(--muted)">· ${f.height} m</small>` : ''}</span>${b}</div>`;
     }).join('');
   }
   confirmDlg(`${sel.length} Feld${sel.length > 1 ? 'er' : ''} ${verb}?`,
@@ -975,7 +1052,7 @@ function fillSettings() {
   $('vSrc').textContent = P.src; $('vDst').textContent = P.dst;
   $('sMove').checked = P.move === '1'; $('sClear').checked = P.clear === '1'; $('sLabels').checked = P.labels === '1';
   document.querySelectorAll('[data-layer]').forEach(b => b.classList.toggle('on', b.dataset.layer === P.layer));
-  if (A.tileCacheInfo) { const mb = +A.tileCacheInfo() / 1048576; $('vTiles').textContent = `Angesehene Kacheln (Karte, Grau, Satellit) werden auf der RC gespeichert und sind danach offline verfügbar – zum Vorbereiten das Einsatzgebiet einmal mit Internet in den nötigen Zoomstufen ansehen · belegt ${mb < 1 ? '< 1' : Math.round(mb)} MB (max. 500 MB)`; }
+  if (A.tileCacheInfo) { const mb = +A.tileCacheInfo() / 1048576; $('vTiles').textContent = `Angesehene Kacheln (Karte, Grau, Satellit) werden auf der RC gespeichert und sind danach offline verfügbar – zum Vorbereiten das Einsatzgebiet einmal mit Internet in den nötigen Zoomstufen ansehen · bleiben dauerhaft gespeichert (erst nach 1 Jahr neu geladen) · belegt ${mb < 1 ? '< 1' : Math.round(mb)} MB (max. 1 GB)`; }
   document.querySelectorAll('[data-rcdrone]').forEach(b => b.classList.toggle('on', b.dataset.rcdrone === P.drone));
   $('sGeo').checked = P.geo === '1'; $('sGeoRes').checked = P.georesi === '1';
   $('vGeo').textContent = geoText(true);
@@ -998,6 +1075,7 @@ $('setBack').onclick = closeSettings;
 $('sMove').onchange = e => setP('move', e.target.checked ? 1 : 0);
 $('sClear').onchange = e => setP('clear', e.target.checked ? 1 : 0);
 $('sLabels').onchange = e => { setP('labels', e.target.checked ? 1 : 0); draw(); };
+$('bWxSet').onclick = () => { $('pgSet').classList.remove('open'); showWeather(false); };
 $('bTilesClear').onclick = () => { if (A.tileCacheClear) { A.tileCacheClear(); toast('Kartenspeicher wird geleert…'); } };
 window.onTileCache = () => { tiles.clear(); fillSettings(); toast('Kartenspeicher geleert.'); };
 document.querySelectorAll('[data-layer]').forEach(b => b.onclick = () => { setP('layer', b.dataset.layer); fillSettings(); draw(); });
@@ -1042,7 +1120,19 @@ function loadRegions() {
   draw();
 }
 window.onRegions = () => { loadRegions(); if ($('pgSet').classList.contains('open')) fillRules(); };
+// Kreuzen sich die Strecken a–b und c–d? (x = lon, y = lat)
+function segX(ax, ay, bx, by, cx, cy, dx, dy) {
+  const d1 = (dx - cx) * (ay - cy) - (dy - cy) * (ax - cx), d2 = (dx - cx) * (by - cy) - (dy - cy) * (bx - cx);
+  const d3 = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax), d4 = (bx - ax) * (dy - ay) - (by - ay) * (dx - ax);
+  return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
+}
 function inRegion(lat, lon, r) {
+  if (r.ref) {   // schnelles Format: Zugehörigkeit der Gebietsmitte + Anzahl Grenzkreuzungen bis zum Punkt
+    const [rl, ro] = r.ref; let c = 0;
+    for (const ln of r.lines) for (let i = 0; i + 3 < ln.length; i += 2)
+      if (segX(ro, rl, lon, lat, ln[i], ln[i + 1], ln[i + 2], ln[i + 3])) c++;
+    return r.refIn !== (c % 2 === 1);
+  }
   const [w, s, e, n] = r.bb;
   if (lat < s || lat > n || lon < w || lon > e) return false;
   let c = false;   // Gerade/Ungerade-Regel über alle Grenzsegmente (Reihenfolge egal)
@@ -1890,7 +1980,25 @@ async function showWeather(force) {
     upd();
   }
 }
-$('bWx').onclick = () => showWeather(false);
+const LAYER_NAME = { grey: 'Grau', osm: 'Karte', sat: 'Satellit' };
+// Kartenart: Auswahl links neben dem Knopf aufklappen, Wahl bleibt dauerhaft gespeichert
+$('bLayer').onclick = e => {
+  e.stopPropagation();
+  const pop = $('layerPop');
+  if (pop.classList.contains('open')) { pop.classList.remove('open'); return; }
+  const r = $('bLayer').getBoundingClientRect();
+  pop.style.top = Math.max(8, r.top + r.height / 2 - 34) + 'px';
+  pop.style.right = (innerWidth - r.left + 10) + 'px';
+  pop.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.ly === P.layer));
+  pop.classList.add('open');
+};
+document.querySelectorAll('#layerPop button').forEach(b => b.onclick = e => {
+  e.stopPropagation();
+  setP('layer', b.dataset.ly); $('layerPop').classList.remove('open');
+  if ($('pgSet').classList.contains('open')) fillSettings();
+  draw();
+});
+document.addEventListener('pointerdown', e => { if (!e.target.closest('#layerPop') && !e.target.closest('#bLayer')) $('layerPop').classList.remove('open'); });
 // Online: stündlich für das Gebiet der Felder und anstehende Einsätze vorladen, damit offline aktuell gespeichert ist
 async function wxPrefetch() {
   if (!isOnline()) return;
@@ -1954,7 +2062,7 @@ const KP_HINT = 'Erhöhte geomagnetische Aktivität kann GNSS- und Kompassstöru
 // Oben = Oberkante der RC. Windsack: breite Öffnung zur Herkunft des Windes, schmales Ende in Strömungsrichtung.
 // Wie die Referenz-App: Rose steht fest (Norden oben, wie die Karte), der Windsack zeigt geografisch
 // (breite Öffnung zur Herkunft, schwarze Marke = woher der Wind kommt), nur die Kompassnadel dreht mit der RC.
-function roseSvg(to) {
+function roseSvg(to, limp) {
   const C = 50;
   const ticks = [0, 90, 180, 270].map(a => `<line x1="${C}" y1="3" x2="${C}" y2="10" stroke="#7d8aa3" stroke-width="2.4" stroke-linecap="round" transform="rotate(${a} ${C} ${C})"/>`).join('');
   const letters = [['N', 0, '#e08a1e'], ['O', 90, '#4a5a78'], ['S', 180, '#4a5a78'], ['W', 270, '#4a5a78']]
@@ -1969,11 +2077,18 @@ function roseSvg(to) {
     }
     // schwarze Marke am Rand auf der Herkunftsseite (unten im Nullwinkel = gegenüber der Spitze)
     sock = `<g transform="rotate(${to} ${C} ${C})">${parts}<path d="M${C} 80 L${C - 4.5} 73 L${C + 4.5} 73 Z" fill="#1d2738"/></g>`;
+  } else if (limp) {   // Windstille bzw. keine Daten: Windsack hängt schlaff und blass nach unten – keine Richtung vortäuschen
+    const y0 = 40, y1 = 70, w0 = 7, w1 = 3, n = 4; let parts = '';
+    for (let k = 0; k < n; k++) {
+      const ya = y0 + (y1 - y0) * k / n, yb = y0 + (y1 - y0) * (k + 1) / n, wa = w0 + (w1 - w0) * k / n, wb = w0 + (w1 - w0) * (k + 1) / n;
+      parts += `<path d="M${C - wa} ${ya} L${C + wa} ${ya} L${C + wb} ${yb} L${C - wb} ${yb} Z" fill="${k % 2 ? '#f2f2f2' : '#c98a86'}"/>`;
+    }
+    sock = `<g opacity="${limp === 'nodata' ? .45 : .8}" transform="rotate(4 ${C} ${y0})">${parts}</g><circle cx="${C}" cy="${y0}" r="2" fill="#5d6975"/>`;
   }
   // Kompassnadel: rote Spitze = Blickrichtung der RC, weiße Spitze gegenüber
   const needle = `<g id="needle" style="display:none"><path d="M${C} 12 L${C + 3} ${C} L${C - 3} ${C} Z" fill="#e2392b"/><path d="M${C} 88 L${C + 3} ${C} L${C - 3} ${C} Z" fill="#fff"/></g>`;
   return `<svg viewBox="0 0 100 100">
-      <circle cx="${C}" cy="${C}" r="48" fill="rgba(190,204,230,.62)" stroke="rgba(140,155,185,.7)" stroke-width="1.5"/>
+      <circle cx="${C}" cy="${C}" r="48" fill="rgba(200,212,235,.8)" stroke="rgba(140,155,185,.8)" stroke-width="1.5"/>
       <circle cx="${C}" cy="${C}" r="40" fill="none" stroke="rgba(110,125,160,.5)" stroke-width="1.2" stroke-dasharray="3 3"/>
       ${ticks}${letters}${sock}${needle}</svg>`;
 }
@@ -1992,18 +2107,18 @@ async function windWidget() {
   let i = -1;
   if (d) { const now = Date.now(); d.time.forEach((t, k) => { if (t <= now + 1800000) i = k; }); if (i >= 0 && d.time[i] < Date.now() - 3 * 3600000) i = -1; }
   const comp = P.compass !== '0' && heading == null ? '<div class="sub">kein Kompass – keine Nadel</div>'
-    : P.compass !== '0' && compassAcc <= 1 ? '<div class="sub" style="color:#e06a00"><b>⚠ Kompass kalibrieren</b> (RC in Achterform bewegen)</div>' : '';
+    : P.compass !== '0' && compassAcc <= 1 ? '<div class="sub" style="color:#e06a00"><b>⚠ Kompass kalibrieren</b> (Achterform)</div>' : '';
   if (!d || i < 0) {
-    el.innerHTML = roseSvg(null) + `<div class="card"><div class="big">Wind nicht verfügbar</div><div class="sub">${isOnline() ? 'Vorhersage wird geladen…' : 'offline – noch keine Vorhersage gespeichert. Einmal mit Internet öffnen, dann ist sie offline da.'}</div>${kp ? `<div class="sub">Kp <b style="color:${kpColor(kp.kp)}">${fde(kp.kp)}</b></div>` : ''}${comp}</div>`;
+    el.innerHTML = roseSvg(null, 'nodata') + `<div class="card" style="border-left-color:#8a96a3"><div class="big">Wind nicht verfügbar</div><div class="sub">${isOnline() ? 'Vorhersage wird geladen…' : 'offline · noch keine Vorhersage gespeichert'}</div>${kp ? `<div class="sub">Kp <b style="color:${kpColor(kp.kp)}">${fde(kp.kp)}</b></div>` : ''}${comp}</div>`;
     el.style.display = 'flex'; roseRot = 0; applyHeading(); return;
   }
   const w10 = d.w[0][i], dir = d.dir[i], g = d.gust[i];
   const calm = w10 != null && w10 < 0.5;
   const to = dir == null || calm ? null : (dir + 180) % 360;   // Windsack zeigt dahin, wohin der Wind weht
   const old = Date.now() - d.t > 3 * 3600000;
-  el.innerHTML = roseSvg(to) + `<div class="card"><div class="big" style="color:${windColor(w10)}">${calm ? 'Windstill' : `${fde(w10)} m/s · ${dir != null ? dirTxt(dir) : '—'}`}</div>
-    <div class="sub">Bodenwind 10 m${calm ? ' · Richtung unbestimmt' : ''}</div>
-    <div class="sub">${d.labels[1] || ''} ${fde(d.w[1] && d.w[1][i])} · ${d.labels[2] || ''} ${fde(d.w[2] && d.w[2][i])} · Böen <b style="color:${windColor(g)}">${fde(g)}</b></div>
+  el.innerHTML = roseSvg(to, calm ? 'calm' : null) + `<div class="card" style="border-left-color:${windColor(w10)}"><div class="big" style="color:${windColor(w10)}">${calm ? 'Windstill' : `${fde(w10)} m/s · ${dir != null ? dirTxt(dir) : '—'}`}</div>
+    <div class="sub">${calm ? 'ohne Richtung · ' : ''}in 10 m · Böen <b style="color:${windColor(g)}">${fde(g)}</b></div>
+    <div class="sub">${d.labels[1] || ''} ${fde(d.w[1] && d.w[1][i])} · ${d.labels[2] || ''} ${fde(d.w[2] && d.w[2][i])}</div>
     <div class="sub">${kp ? `Kp <b style="color:${kpColor(kp.kp)}">${fde(kp.kp)}</b> · ` : ''}${d.src === 'dipul' ? 'dipul' : 'DWD ICON'}${old || d.offline ? ` · <b style="color:#b3131b">Stand ${hm(d.t)} (vor ${ageTxt(d.t)})</b>` : ''}</div>${comp}</div>`;
   el.style.display = 'flex';
   applyHeading();
@@ -2186,7 +2301,10 @@ function netBadge() {
   const wifi = '<path d="M2 8.5a15 15 0 0 1 20 0"/><path d="M5 12a10 10 0 0 1 14 0"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/>';
   $('net').innerHTML = `<svg viewBox="0 0 24 24">${wifi}${on ? '' : '<path d="M3 3l18 18"/>'}</svg>${on ? 'Online' : 'Offline'}`;
   $('net').classList.toggle('off', !on);
+  if (on && wasOffline) { tileFail.clear(); draw(); setTimeout(() => { geoSyncNow(false); wxPrefetch().then(windWidget); }, 1500); }   // wieder online: Fehlendes nachladen
+  wasOffline = !on;
 }
+let wasOffline = false;
 window.addEventListener('online', netBadge); window.addEventListener('offline', netBadge);
 setInterval(netBadge, 5000);
 $('bSync').onclick = () => {
@@ -2336,7 +2454,7 @@ loadRegions();
 loadGeoVectors();
 applyTheme();
 setTimeout(() => geoSyncNow(false), 4000);   // auch ohne Felder
-window.addEventListener('online', () => setTimeout(() => geoSyncNow(false), 2000));
+window.addEventListener('online', () => { tileFail.clear(); draw(); setTimeout(() => geoSyncNow(false), 2000); });
 load(false);
 netBadge();
 loadAirfields();
