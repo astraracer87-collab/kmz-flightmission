@@ -654,14 +654,27 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public String uaveOutlines() {
             JSONObject res = new JSONObject();
             try {
-                if (!outlineFile().isFile()) return "{}";
-                JSONObject ol = new JSONObject(readFile(outlineFile()));
+                JSONObject ol = outlineFile().isFile() ? new JSONObject(readFile(outlineFile())) : new JSONObject();
                 JSONObject man = manifest();
                 Iterator<String> it = man.keys();
                 while (it.hasNext()) {
                     String id = it.next();
                     JSONObject m = man.optJSONObject(id);
-                    if (m != null && ol.has(id) && !m.optString("file").isEmpty()) res.put(m.optString("file"), ol.get(id));
+                    if (m != null && ol.has(id) && !m.optString("file").isEmpty()) res.put(m.optString("file"), ringOf(ol.opt(id)));
+                }
+                // Alle Konturen mit Namen: die App ordnet Dateien ohne Eintrag über Namen bzw. Lage zu
+                JSONArray all = new JSONArray();
+                Iterator<String> it2 = ol.keys();
+                while (it2.hasNext()) {
+                    Object v = ol.opt(it2.next());
+                    JSONArray r = ringOf(v);
+                    if (r != null) all.put(new JSONObject().put("n", v instanceof JSONObject ? ((JSONObject) v).optString("n", "") : "").put("r", r));
+                }
+                res.put("_all", all);
+                if (outlineFileByKmz().isFile()) {   // genaue Grenze aus der Export-JSON hat Vorrang
+                    JSONObject bk = new JSONObject(readFile(outlineFileByKmz()));
+                    Iterator<String> it3 = bk.keys();
+                    while (it3.hasNext()) { String k = it3.next(); res.put(k, bk.get(k)); }
                 }
             } catch (Exception ignored) { }
             return res.toString();
@@ -1092,6 +1105,69 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     // ---------- Feldgrenzen (Kontur) aus UAV Editor – Feature mit properties.type == 1 im geojson des Feldes ----------
     private File outlineFile() { return new File(getFilesDir(), "field_outlines.json"); }
+    /** Feldgrenzen aus den JSON-Beigaben des UAV-Editor-Exports, je KMZ-Datei: {datei.kmz: [lon,lat,…]} */
+    private File outlineFileByKmz() { return new File(getFilesDir(), "field_outlines_kmz.json"); }
+
+    /** Aus der Export-JSON nur die Feldgrenze lesen (Feature mit properties.type == 1); persönliche Angaben werden nicht gespeichert */
+    private static JSONArray outlineFromExportJson(byte[] json) {
+        try {
+            JSONObject d = new JSONObject(new String(json, StandardCharsets.UTF_8));
+            JSONObject gj = d.optJSONObject("geojson");
+            JSONArray fs = gj != null ? gj.optJSONArray("features") : null;
+            if (fs == null) return null;
+            for (int i = 0; i < fs.length(); i++) {
+                JSONObject f = fs.optJSONObject(i);
+                if (f == null) continue;
+                JSONObject p = f.optJSONObject("properties"), g = f.optJSONObject("geometry");
+                if (p == null || g == null || p.optInt("type", -1) != 1) continue;
+                JSONArray c = g.optJSONArray("coordinates");
+                if ("Polygon".equals(g.optString("type")) && c != null) c = c.optJSONArray(0);
+                if (c == null || c.length() < 3) continue;
+                JSONArray ring = new JSONArray();
+                for (int k = 0; k < c.length(); k++) { JSONArray q = c.optJSONArray(k); if (q != null && q.length() >= 2) ring.put(q.getDouble(0)).put(q.getDouble(1)); }
+                if (ring.length() >= 6) return ring;
+            }
+        } catch (Exception ignored) { }
+        return null;
+    }
+
+    /** JSON-Beigaben eines Export-ZIPs auswerten: Feldgrenze je gleichnamiger KMZ speichern */
+    private void saveExportOutlines(Map<String, byte[]> jsons, java.util.Collection<String> kmzNames) {
+        if (jsons.isEmpty()) return;
+        try {
+            File of = outlineFileByKmz();
+            JSONObject out = of.isFile() ? new JSONObject(readFile(of)) : new JSONObject();
+            int n = 0;
+            for (String kmz : kmzNames) {
+                String base = kmz.replaceAll("(?i)\\.kmz$", "");
+                byte[] j = jsons.get(base.toLowerCase(Locale.ROOT));
+                if (j == null) continue;
+                JSONArray ring = outlineFromExportJson(j);
+                if (ring != null) { out.put(kmz, ring); n++; }
+            }
+            if (n > 0) writeFileAtomic(of, out.toString());
+        } catch (Exception ignored) { }
+    }
+
+    /** Alle .json-Einträge eines ZIPs: {basisname klein: bytes} */
+    private static Map<String, byte[]> zipJsons(byte[] zip) {
+        Map<String, byte[]> m = new HashMap<>();
+        try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(zip))) {
+            ZipEntry e;
+            while ((e = z.getNextEntry()) != null) {
+                String n = new File(e.getName()).getName();
+                if (e.isDirectory() || !n.toLowerCase(Locale.ROOT).endsWith(".json")) continue;
+                m.put(safeFileName(n).replaceAll("(?i)\\.json$", "").toLowerCase(Locale.ROOT), readBytes(z));
+            }
+        } catch (Exception ignored) { }
+        return m;
+    }
+    /** Kontur aus altem (nur Ring) oder neuem Format ({r: Ring, n: Name}) */
+    private static JSONArray ringOf(Object v) {
+        if (v instanceof JSONArray) return (JSONArray) v;
+        if (v instanceof JSONObject) return ((JSONObject) v).optJSONArray("r");
+        return null;
+    }
 
     private void uaveFetchOutlines() throws Exception {
         if (uaveAuthHeader == null) return;
@@ -1115,7 +1191,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 if (pts.size() < 3) continue;
                 JSONArray ring = new JSONArray();
                 for (double[] p : pts) ring.put(p[1]).put(p[0]);   // gespeichert als Länge, Breite
-                out.put(id, ring); got++;
+                out.put(id, new JSONObject().put("r", ring).put("n", f.optString("name", ""))); got++;
             }
         }
         if (got > 0) writeFileAtomic(outlineFile(), out.toString());
@@ -1365,6 +1441,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 }
             }
             if (first == null) throw new Exception("Leeres Export-Archiv");
+            saveExportOutlines(zipJsons(d.body), java.util.Collections.singletonList(first));
             return first;
         }
         if (!fname.toLowerCase(Locale.ROOT).endsWith(".kmz")) fname = fname.replaceAll("\\.[A-Za-z0-9]{1,4}$", "") + ".kmz";
@@ -1418,6 +1495,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
             out.put(id, hit);
         }
+        saveExportOutlines(zipJsons(d.body), out.values());
         return out;
     }
 

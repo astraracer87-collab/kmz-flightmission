@@ -438,7 +438,7 @@ function draw() { dirty = true; if (!pend) { pend = true; requestAnimationFrame(
 /** Nur der Ausschnitt hat sich geändert (Wischen, Zoomen, Kompass) → vorgerendertes Bild verschieben; kurz danach scharf neu rendern */
 function drawLive(settle) {
   if (!pend) { pend = true; requestAnimationFrame(paint); }
-  if (settle) { clearTimeout(settleT); settleT = setTimeout(() => { if (!ptr.size) draw(); }, 160); }
+  if (settle) { lastMove = Date.now(); clearTimeout(settleT); settleT = setTimeout(draw, 200); }
 }
 
 // Viele Kacheln kommen kurz nacheinander an: gesammelt neu zeichnen statt einmal pro Kachel
@@ -446,7 +446,7 @@ let tileT = 0, tileAt = 0;
 function tileDraw(ms) {
   const at = Date.now() + ms;
   if (tileT && tileAt <= at) return;
-  clearTimeout(tileT); tileAt = at; tileT = setTimeout(() => { tileT = 0; draw(); }, ms);
+  clearTimeout(tileT); tileAt = at; tileT = setTimeout(() => { tileT = 0; drawLive(false); }, ms);
 }
 const tileFail = new Map();   // Kachel-Schlüssel -> Zeitpunkt des letzten Fehlschlags (für erneuten Versuch)
 const tKey = (z, x, y) => (P.layer === 'grey' ? 'osm' : P.layer) + z + '/' + x + '/' + y;
@@ -482,19 +482,21 @@ function bufPlace() {
   const X0 = lon2x(BV.lon) - (W / 2 + BV.M) / ss, Y0 = lat2y(BV.lat) - (mapH() / 2 + BV.M) / ss;
   return [(X0 - lon2x(V.lon)) * s + W / 2, (Y0 - lat2y(V.lat)) * s + mapH() / 2, k];
 }
+let lastMove = 0;
 function paint() {
   pend = false;
-  const gest = ptr.size > 0;
+  const gest = ptr.size > 0 && Date.now() - lastMove < 180;   // Finger bewegt sich gerade
   let cover = false;
   if (BV.ok) { const [x, y, k] = bufPlace(); cover = k > .55 && k < 1.8 && x <= 0 && y <= 0 && x + BV.bw * k >= W && y + BV.bh * k >= H; }
-  // Neu rendern: wenn Inhalt geändert (beim Wischen höchstens alle 300 ms) oder das Bild den Ausschnitt nicht mehr abdeckt
-  if (!cover || (dirty && (!gest || Date.now() - BV.t > 300))) renderBuf();
-  // Zusammensetzen: vorgerendertes Bild + aktuelle Position/Kompass + Quellenangabe
+  // Ebenen (Zonen, Felder, Hindernisse) nur neu rendern, wenn nicht gerade gewischt wird – beim Wischen wird das fertige Bild verschoben
+  if (!gest && (dirty || !cover)) renderBuf();
   ctx = mctx;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = '#cfd6dc'; ctx.fillRect(0, 0, cv.width, cv.height);
-  { const [x, y, k] = bufPlace(); ctx.imageSmoothingEnabled = k !== 1; ctx.drawImage(buf, x * DPR, y * DPR, buf.width * k, buf.height * k); ctx.imageSmoothingEnabled = true; }
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  paintTiles();   // Kartenkacheln immer live (schnell), dadurch nie leere Ränder
+  if (BV.ok) {
+    const [x, y, k] = bufPlace();
+    if (k > .3 && k < 3.5) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(buf, x * DPR, y * DPR, buf.width * k, buf.height * k); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); }
+  }
   paintLive();
 }
 function renderBuf() {
@@ -502,34 +504,34 @@ function renderBuf() {
   const bw = W + 2 * M, bh = H + 2 * M;
   if (buf.width !== Math.round(bw * DPR) || buf.height !== Math.round(bh * DPR)) { buf.width = Math.round(bw * DPR); buf.height = Math.round(bh * DPR); }
   ctx = bctx; W = bw; H = bh;
-  try { paintStatic(); }
+  try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, buf.width, buf.height); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); paintStatic(); }
   finally { W = Wr; H = Hr; ctx = mctx; }
   labelBoxes.forEach(b => { b.x -= M; b.y -= M; });   // Etiketten-Treffer in Bildschirmkoordinaten
   Object.assign(BV, { ok: true, lat: V.lat, lon: V.lon, z: V.z, M, bw, bh, t: Date.now() });
   dirty = false;
 }
-function paintStatic() {
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+function paintTiles() {
   ctx.fillStyle = '#cfd6dc'; ctx.fillRect(0, 0, W, H);
   const tz = Math.max(1, Math.min(19, Math.round(V.z)));
   const n = Math.pow(2, tz), ts = 256 * Math.pow(2, V.z - tz);
   const cx = lon2x(V.lon) * n * ts, cy = lat2y(V.lat) * n * ts, mh = mapH();
   const x0 = Math.floor((cx - W / 2) / ts), x1 = Math.floor((cx + W / 2) / ts);
   const y0 = Math.max(0, Math.floor((cy - mh / 2) / ts)), y1 = Math.min(n - 1, Math.floor((cy + (H - mh / 2)) / ts));
-  // Graue Karte: statt Filter je Kachel (auf der RC sehr langsam) einmal über das ganze Bild entsättigen und aufhellen
-  const img = t => t;
   for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
     const xx = ((tx % n) + n) % n, t = tile(tz, xx, ty);
     const dx = Math.round(tx * ts - cx + W / 2), dy = Math.round(ty * ts - cy + mh / 2), dw = Math.ceil(ts) + 1;
-    if (t && t.complete && t.naturalWidth) ctx.drawImage(img(t), dx, dy, dw, dw);
-    else { const pt = parentTile(tz, xx, ty); if (pt) ctx.drawImage(img(pt.img), pt.sx, pt.sy, pt.sz, pt.sz, dx, dy, dw, dw); }
+    if (t && t.complete && t.naturalWidth) ctx.drawImage(t, dx, dy, dw, dw);
+    else { const pt = parentTile(tz, xx, ty); if (pt) ctx.drawImage(pt.img, pt.sx, pt.sy, pt.sz, pt.sz, dx, dy, dw, dw); }
   }
+  // Graue Karte: einmal über das ganze Bild entsättigen und aufhellen (Filter je Kachel ist auf der RC sehr langsam)
   if (P.layer === 'grey') {
     ctx.save();
     ctx.globalCompositeOperation = 'saturation'; ctx.globalAlpha = .72; ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = .16; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
     ctx.restore();
   }
+}
+function paintStatic() {
   if (P.geo === '1' && S.geo.length && V.z >= 9) paintGeo();
   if (P.osmPower === '1' && (S.obs.length || S.rails.length) && V.z >= 11) paintObstacles();
   if (P.osmPower === '1' && S.osm.length && V.z >= 11) paintOsmLines();
@@ -843,7 +845,7 @@ function drawAirfield(a) {
 }
 
 // Farben: unmarkiert alles blau, markiert alles orange
-const FC = { route: '#1e7bff', routeSel: '#ff7a00', halo: '#c75a00', fill: 'rgba(30,123,255,.16)', fillSel: 'rgba(255,122,0,.22)' };
+const FC = { route: '#1e7bff', routeSel: '#ff7a00', halo: '#c75a00', fill: 'rgba(30,123,255,.22)', fillSel: 'rgba(255,122,0,.28)' };
 /** Feldkontur aus UAV Editor als Hintergrund der Flugroute (nicht eigenständig wählbar) */
 function drawOutline(f) {
   if (!f.outline) return;
@@ -854,6 +856,15 @@ function drawOutline(f) {
   ctx.lineJoin = 'round';
   ctx.lineWidth = f.selected ? 3 : 2; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.stroke();   // weiße Kante: Grenze zum Nachbarfeld sichtbar
   ctx.setLineDash([6, 4]); ctx.lineWidth = f.selected ? 2 : 1.5; ctx.strokeStyle = f.selected ? FC.routeSel : FC.route; ctx.stroke(); ctx.setLineDash([]);
+}
+/** Abstand der Bahnen einer Mäander-Route in m (Median der kurzen Verbindungsstücke) */
+function trackSpacing(pts) {
+  const d = [];
+  for (let i = 0; i + 1 < pts.length; i++) d.push(Math.hypot((pts[i + 1][0] - pts[i][0]) * 111200, (pts[i + 1][1] - pts[i][1]) * 111200 * Math.cos(pts[i][0] * Math.PI / 180)));
+  if (d.length < 3) return 0;
+  const sorted = [...d].sort((a, b) => a - b), short = sorted.slice(0, Math.max(1, Math.floor(sorted.length / 2)));
+  const m = short[Math.floor(short.length / 2)];
+  return m >= 4 && m <= 120 && m < sorted[sorted.length - 1] / 2 ? m : 0;
 }
 function fieldOnScreen(f) {
   const b = f._bb || (f._bb = bounds([f]));
@@ -866,6 +877,10 @@ function drawField(f) {
   for (const s of f.shapes) {
     const pp = projPath(s, [s.pts], false, s.type === 'poly'), k = usePath(pp);
     if (s.type === 'poly' && !f.outline) { ctx.fillStyle = f.selected ? FC.fillSel : FC.fill; ctx.fill(pp.p); }
+    else if (!f.outline && s.pts.length > 3) {   // ohne Feldgrenze: überflogene Fläche aus der Route (Bahnbreite = Abstand der Bahnen)
+      const sp = s._sp || (s._sp = trackSpacing(s.pts));
+      if (sp) { ctx.lineCap = 'butt'; ctx.lineJoin = 'miter'; ctx.miterLimit = 2.5; ctx.lineWidth = sp * 256 * 4096 / 40075016 / Math.cos(f.center[0] * Math.PI / 180); ctx.strokeStyle = f.selected ? FC.fillSel : FC.fill; ctx.stroke(pp.p); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; }
+    }
     ctx.lineWidth = (f.selected ? 3.5 : 2.5) / k; ctx.strokeStyle = f.selected ? FC.routeSel : FC.route; ctx.stroke(pp.p);
     resetTf();
   }
@@ -1079,6 +1094,36 @@ function bounds(list) {
 }
 
 let loading = false;
+// Feldkonturen aus UAV Editor zuordnen: über die Datei, sonst über den Namen, sonst über die Lage der Route
+const normName = t => String(t || '').replace(/\.km[lz]$/i, '').replace(/_[\d.,]+\s*ha(_\d+\s*WP)?$/i, '')
+  .toLowerCase().replace(/ß/g, 'ss').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+function applyOutlines() {
+  let d = {}; try { d = A.uaveOutlines ? JSON.parse(A.uaveOutlines() || '{}') : {}; } catch (e) { }
+  const all = (d._all || []).map(o => { const r = toLatLon(o.r); let n = -90, s = 90, e = -180, w = 180;
+    r.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); });
+    return { k: normName(o.n), r, bb: { n, s, e, w }, a: ringArea(r) }; });
+  const byName = new Map(); all.forEach(o => { if (o.k && !byName.has(o.k)) byName.set(o.k, o.r); });
+  let n = 0;
+  S.files.forEach(f => {
+    const nk = normName(f.title);
+    let r = d[f.name] ? toLatLon(d[f.name]) : byName.get(nk) || byName.get(nk.replace(/m[34]t$/, ''));
+    if (!r) {   // Lage: Kontur, in der fast die ganze Route liegt (kleinste gewinnt)
+      const pts = f.shapes.flatMap(sh => sh.pts), [cla, clo] = f.center;
+      let best = null;
+      all.forEach(o => {
+        if (cla > o.bb.n || cla < o.bb.s || clo > o.bb.e || clo < o.bb.w) return;
+        const ring = o.r.map(p => [p[1], p[0]]);
+        const inside = pts.filter(([la, lo]) => inRing(la, lo, ring)).length;
+        if (inside >= pts.length * 0.8 && (!best || o.a < best.a)) best = o;
+      });
+      r = best && best.r;
+    }
+    f.outline = r || null; if (r) n++;
+    const b = f.bounds; f.areaM2 = f.outline ? ringArea(f.outline) : (b.n - b.s) * 111200 * (b.e - b.w) * 71000;
+  });
+  S.outlineCount = n;
+  return n;
+}
 async function load(keepView) {
   if (loading) return;
   if (!A.hasAccess()) { $('perm').classList.add('open'); return; }
@@ -1087,7 +1132,6 @@ async function load(keepView) {
   const keep = new Set(S.files.filter(f => f.selected).map(f => f.path));
   const r = JSON.parse(A.listKmz(P.src));
   if (!r.ok) { loading = false; S.files = []; update(); return toast(r.error + ' – Quellordner in den Einstellungen prüfen.', true); }
-  let outlines = {}; try { outlines = A.uaveOutlines ? JSON.parse(A.uaveOutlines() || '{}') : {}; } catch (e) { }
   const out = []; let bad = 0, stop = false;
   for (let i = 0; i < r.files.length; i++) {
     const f = r.files[i];
@@ -1099,14 +1143,14 @@ async function load(keepView) {
       if (!shapes.length) { bad++; continue; }
       const hm_ = /<wpml:globalHeight>([\d.]+)</.exec(kmlText) || /<wpml:executeHeight>([\d.]+)</.exec(kmlText);
       const e = { name: f.name, path: f.path, title: f.name.replace(/\.km[lz]$/i, ''), shapes, selected: keep.has(f.path), drone: droneOf(kmlText),
-        height: hm_ ? Math.round(+hm_[1]) : null, outline: outlines[f.name] ? toLatLon(outlines[f.name]) : null };
+        height: hm_ ? Math.round(+hm_[1]) : null, outline: null };
       const b = bounds([e]); e.bounds = b; e.center = [(b.n + b.s) / 2, (b.e + b.w) / 2];
-      e.areaM2 = e.outline ? ringArea(e.outline) : (b.n - b.s) * 111200 * (b.e - b.w) * 71000;
       out.push(e);
     } catch (err) { bad++; }
   }
   busy('');
   S.files = out;
+  applyOutlines();
   markDups();
   loading = false;
   update();
@@ -2863,8 +2907,9 @@ window.onUave = raw => {
   if (ev.type === 'progress') { busy('Lade Felder aus UAV Editor', { sub: ev.name, done: ev.done, total: ev.total, cancel: syncAbort }); return; }
   if (ev.type === 'list') {
     busy('');
+    if (S.files.length) { applyOutlines(); draw(); }   // gerade geladene Feldgrenzen sofort anzeigen, auch wenn nichts neu ist
     const todo = ev.fields.filter(f => f.status !== 'ok').sort((a, b) => a.name.localeCompare(b.name, 'de', { numeric: true }));
-    if (!todo.length) { syncEnd(); toast(`Alles aktuell – ${ev.total} Felder in UAV Editor, alle vorhanden.`); return; }
+    if (!todo.length) { syncEnd(); toast(`Alles aktuell – ${ev.total} Felder in UAV Editor, alle vorhanden. Feldgrenzen: ${S.outlineCount || 0} von ${S.files.filter(f => !f.dup).length} Feldern.`, false, 5000); return; }
     const parts = [];
     if (ev.missing) parts.push(`${ev.missing} neu`);
     if (ev.changed) parts.push(`${ev.changed} geändert`);
