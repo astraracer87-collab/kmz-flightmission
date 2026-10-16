@@ -108,7 +108,14 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         s.setBuiltInZoomControls(false);
         s.setSupportZoom(false);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+                WebResourceResponse r = tileFromCache(req.getUrl());
+                return r != null ? r : super.shouldInterceptRequest(view, req);
+            }
+        });
+        new Thread(this::tileCacheTrim).start();
         web.addJavascriptInterface(new Bridge(), "Android");
         web.loadUrl("file:///android_asset/index.html");
 
@@ -225,6 +232,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return new String(bos.toByteArray(), StandardCharsets.UTF_8);
     }
 
+    /** Datei mit gleichem Namen bis auf Leerzeichen/Bindestriche/Groß-Klein im selben Ordner */
+    private static File findSimilar(File f) {
+        File dir = f.getParentFile();
+        File[] all = dir != null ? dir.listFiles() : null;
+        if (all == null) return null;
+        String k = f.getName().toLowerCase(Locale.ROOT).replaceAll("[\\s_-]+", "");
+        for (File x : all) if (x.isFile() && x.getName().toLowerCase(Locale.ROOT).replaceAll("[\\s_-]+", "").equals(k)) return x;
+        return null;
+    }
+
     private static void copy(File src, File dst) throws Exception {
         try (InputStream in = new FileInputStream(src); OutputStream out = new FileOutputStream(dst, false)) {
             byte[] buf = new byte[65536];
@@ -248,10 +265,18 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private static String droneOfKml(String kml) {
         Matcher e = Pattern.compile("<wpml:droneEnumValue>(\\d+)<").matcher(kml);
         Matcher s = Pattern.compile("<wpml:droneSubEnumValue>(\\d+)<").matcher(kml);
-        if (!e.find()) return null;
-        int en = Integer.parseInt(e.group(1)), sub = s.find() ? Integer.parseInt(s.group(1)) : -1;
-        for (Map.Entry<String, int[]> d : DRONES.entrySet())
-            if (d.getValue()[0] == en && d.getValue()[1] == sub) return d.getKey();
+        if (e.find()) {
+            int en = Integer.parseInt(e.group(1)), sub = s.find() ? Integer.parseInt(s.group(1)) : -1;
+            for (Map.Entry<String, int[]> d : DRONES.entrySet())
+                if (d.getValue()[0] == en && d.getValue()[1] == sub) return d.getKey();
+        }
+        // ohne Drohnenkennung: über die Flughöhe (Kitzrettung: Mavic 3T 50 m, Matrice 4T 70 m)
+        Matcher h = Pattern.compile("<wpml:globalHeight>([\\d.]+)<").matcher(kml);
+        if (h.find()) {
+            double v = Double.parseDouble(h.group(1));
+            if (v >= 45 && v <= 55 && DRONES.containsKey("M3T")) return "M3T";
+            if (v >= 65 && v <= 75 && DRONES.containsKey("M4T")) return "M4T";
+        }
         return null;
     }
 
@@ -314,6 +339,63 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 zo.putNextEntry(new ZipEntry(en.getKey()));
                 zo.write(en.getValue());
                 zo.closeEntry();
+            }
+        }
+        return out.toByteArray();
+    }
+
+    /** Muss die Datei für die Zieldrohne umgerechnet werden? */
+    private static boolean needsConvert(File src, String to) {
+        try (ZipInputStream z = new ZipInputStream(new FileInputStream(src))) {
+            ZipEntry e;
+            while ((e = z.getNextEntry()) != null) {
+                if (!e.getName().toLowerCase(Locale.ROOT).endsWith("template.kml")) continue;
+                String t = new String(readBytes(z), StandardCharsets.UTF_8);
+                String from = droneOfKml(t);
+                return from != null && !from.equals(to);
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    /** KMZ neu packen: optional umrechnen (to != null), Zeitstempel createTime/updateTime und Zip-Einträge auf jetzt */
+    private static byte[] rewriteKmz(File src, String to) throws Exception {
+        if (to != null) {
+            byte[] c = convertKmz(src, to);   // null = gleiche Drohne, nichts umzurechnen
+            if (c != null) return stampKmz(c);
+        }
+        try (InputStream in = new FileInputStream(src)) { return stampKmz(readBytes(in)); }
+    }
+
+    private static byte[] stampKmz(byte[] kmz) throws Exception {
+        String now = String.valueOf(System.currentTimeMillis());
+        java.util.LinkedHashMap<String, byte[]> entries = new java.util.LinkedHashMap<>();
+        try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(kmz))) {
+            ZipEntry e;
+            while ((e = z.getNextEntry()) != null) { if (!e.isDirectory()) entries.put(e.getName(), readBytes(z)); }
+        }
+        if (entries.isEmpty()) return kmz;   // keine Zip-Datei: unverändert übernehmen
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zo = new java.util.zip.ZipOutputStream(out)) {
+            for (Map.Entry<String, byte[]> en : entries.entrySet()) {
+                byte[] v = en.getValue();
+                String ln = en.getKey().toLowerCase(Locale.ROOT);
+                if (ln.endsWith(".kml") || ln.endsWith(".wpml")) {
+                    String t = new String(v, StandardCharsets.UTF_8)
+                            .replaceAll("<wpml:createTime>[^<]*</wpml:createTime>", "<wpml:createTime>" + now + "</wpml:createTime>")
+                            .replaceAll("<wpml:updateTime>[^<]*</wpml:updateTime>", "<wpml:updateTime>" + now + "</wpml:updateTime>");
+                    // fehlen die Zeitstempel in der Planung (template.kml), nach <Document> einfügen – Pilot 2 zeigt diese Zeit an
+                    if (ln.endsWith("template.kml")) {
+                        String add = "";
+                        if (!t.contains("<wpml:createTime>")) add += "<wpml:createTime>" + now + "</wpml:createTime>";
+                        if (!t.contains("<wpml:updateTime>")) add += "<wpml:updateTime>" + now + "</wpml:updateTime>";
+                        if (!add.isEmpty()) t = t.replaceFirst("<Document>", "<Document>\n    " + java.util.regex.Matcher.quoteReplacement(add));
+                    }
+                    v = t.getBytes(StandardCharsets.UTF_8);
+                }
+                ZipEntry ze = new ZipEntry(en.getKey());
+                ze.setTime(System.currentTimeMillis());
+                zo.putNextEntry(ze); zo.write(v); zo.closeEntry();
             }
         }
         return out.toByteArray();
@@ -485,6 +567,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public String transfer(String pathsJson, String dstPath, boolean move, boolean clear, String drone) {
             JSONObject res = new JSONObject();
             JSONArray errors = new JSONArray();
+            List<String> scanned = new ArrayList<>();
             int done = 0;
             try {
                 File dst = new File(dstPath);
@@ -498,27 +581,50 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 JSONArray paths = new JSONArray(pathsJson);
                 for (int i = 0; i < paths.length(); i++) {
                     File src = new File(paths.getString(i));
+                    if (!src.isFile()) {   // inzwischen umbenannt/ersetzt (z. B. durch einen Abgleich)? Gleichnamige Datei im Ordner suchen
+                        File alt = findSimilar(src);
+                        if (alt == null) { errors.put(src.getName() + ": nicht mehr im Quellordner (verschoben, gelöscht oder umbenannt)"); continue; }
+                        src = alt;
+                    }
                     try {
-                        byte[] converted = (drone == null || drone.isEmpty()) ? null : convertKmz(src, drone);
-                        String name = converted != null ? swapDroneInName(src.getName(), drone) : src.getName();
+                        boolean conv = drone != null && !drone.isEmpty() && needsConvert(src, drone);
+                        // immer neu schreiben: Zeitstempel in der Planung (createTime/updateTime) auf jetzt, ggf. umrechnen
+                        byte[] converted = rewriteKmz(src, conv ? drone : null);
+                        String name = conv ? swapDroneInName(src.getName(), drone) : src.getName();
                         File target = new File(dst, name);
                         if (src.getCanonicalPath().equals(target.getCanonicalPath())) {
                             errors.put(src.getName() + ": liegt bereits im Zielordner");
                             continue;
                         }
-                        if (converted != null) {
-                            try (OutputStream o = new FileOutputStream(target, false)) { o.write(converted); }
-                            target.setLastModified(System.currentTimeMillis());
-                            if (target.length() != converted.length) throw new Exception("Schreiben unvollständig");
-                        } else {
-                            copy(src, target);
-                            if (target.length() != src.length()) throw new Exception("Kopie unvollständig");
+                        // alte Zieldatei löschen und neu anlegen -> auch das Erstelldatum der Datei ist "jetzt"
+                        File tmp = new File(dst, "." + name + ".tmp");
+                        try (OutputStream o = new FileOutputStream(tmp, false)) { o.write(converted); }
+                        if (tmp.length() != converted.length) { tmp.delete(); throw new Exception("Schreiben unvollständig"); }
+                        if (target.exists() && !target.delete()) { tmp.delete(); throw new Exception("alte Datei im Zielordner lässt sich nicht ersetzen"); }
+                        if (!tmp.renameTo(target)) { copy(tmp, target); tmp.delete(); }
+                        target.setLastModified(System.currentTimeMillis());
+                        scanned.add(target.getAbsolutePath());
+                        if (!res.has("check")) {   // zur Kontrolle: was tatsächlich in der Datei steht
+                            java.util.regex.Matcher cm = java.util.regex.Pattern.compile("<wpml:createTime>(\\d+)<").matcher(new String(converted, StandardCharsets.ISO_8859_1));
+                            String inner = "";
+                            try (ZipInputStream zc = new ZipInputStream(new ByteArrayInputStream(converted))) {
+                                ZipEntry ze; while ((ze = zc.getNextEntry()) != null) if (ze.getName().toLowerCase(Locale.ROOT).endsWith("template.kml")) { inner = new String(readBytes(zc), StandardCharsets.UTF_8); break; }
+                            } catch (Exception ignored) { }
+                            java.util.regex.Matcher cm2 = java.util.regex.Pattern.compile("<wpml:createTime>(\\d+)<").matcher(inner);
+                            java.util.regex.Matcher um2 = java.util.regex.Pattern.compile("<wpml:updateTime>(\\d+)<").matcher(inner);
+                            res.put("check", new JSONObject().put("name", name).put("path", target.getAbsolutePath())
+                                    .put("file", target.lastModified()).put("create", cm2.find() ? Long.parseLong(cm2.group(1)) : 0)
+                                    .put("update", um2.find() ? Long.parseLong(um2.group(1)) : 0));
                         }
-                        if (move && !src.delete()) errors.put(src.getName() + ": kopiert, Original konnte nicht gelöscht werden");
+                        if (move) { if (!src.delete()) errors.put(src.getName() + ": kopiert, Original konnte nicht gelöscht werden"); else scanned.add(src.getAbsolutePath()); }
                         done++;
                     } catch (Exception e) {
                         errors.put(src.getName() + ": " + e.getMessage());
                     }
+                }
+                // Android-Dateiindex aktualisieren: sonst zeigen Dateiauswahl/Pilot 2 noch das alte Datum der ersetzten Datei
+                if (!scanned.isEmpty()) {
+                    try { android.media.MediaScannerConnection.scanFile(MainActivity.this, scanned.toArray(new String[0]), null, null); } catch (Exception ignored) { }
                 }
                 res.put("ok", errors.length() == 0);
                 res.put("done", done);
@@ -581,6 +687,37 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 }
             } catch (Exception ignored) { }
             return out.toString();
+        }
+
+        /** Feldgrenzen je lokaler Datei: {datei: [lon,lat,lon,lat,…]} (aus dem letzten Abgleich) */
+        @JavascriptInterface
+        public String uaveOutlines() {
+            JSONObject res = new JSONObject();
+            try {
+                JSONObject ol = outlineFile().isFile() ? new JSONObject(readFile(outlineFile())) : new JSONObject();
+                JSONObject man = manifest();
+                Iterator<String> it = man.keys();
+                while (it.hasNext()) {
+                    String id = it.next();
+                    JSONObject m = man.optJSONObject(id);
+                    if (m != null && ol.has(id) && !m.optString("file").isEmpty()) res.put(m.optString("file"), ringOf(ol.opt(id)));
+                }
+                // Alle Konturen mit Namen: die App ordnet Dateien ohne Eintrag über Namen bzw. Lage zu
+                JSONArray all = new JSONArray();
+                Iterator<String> it2 = ol.keys();
+                while (it2.hasNext()) {
+                    Object v = ol.opt(it2.next());
+                    JSONArray r = ringOf(v);
+                    if (r != null) all.put(new JSONObject().put("n", v instanceof JSONObject ? ((JSONObject) v).optString("n", "") : "").put("r", r));
+                }
+                res.put("_all", all);
+                if (outlineFileByKmz().isFile()) {   // genaue Grenze aus der Export-JSON hat Vorrang
+                    JSONObject bk = new JSONObject(readFile(outlineFileByKmz()));
+                    Iterator<String> it3 = bk.keys();
+                    while (it3.hasNext()) { String k = it3.next(); res.put(k, bk.get(k)); }
+                }
+            } catch (Exception ignored) { }
+            return res.toString();
         }
 
         /** Ordnet lokale Dateinamen den UAV-Editor-Feld-IDs zu (aus dem letzten Abgleich). Ergebnis: {datei: id} */
@@ -694,6 +831,113 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
 
         /** Temporäre Betriebseinschränkungen (NOTAM) im Gebiet: gespeicherte Daten */
+        @JavascriptInterface
+        public String tileCacheInfo() { return String.valueOf(tileCacheBytes()); }
+
+        /** Einsatzgebiet vorab laden: {layers:["bmg","bmf","dop"], area:[w,s,e,n], fields:[[w,s,e,n],…], zMin, zArea, zMax} */
+        @JavascriptInterface
+        public void prefetchStart(String json) { prefetchImpl(json); }
+
+        @JavascriptInterface
+        public void prefetchCancel() { prefetchStop = true; }
+
+        @JavascriptInterface
+        public boolean prefetchRunning() { return prefetchRun; }
+
+        @JavascriptInterface
+        public void tileCacheClear() {
+            new Thread(() -> {
+                java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
+                List<File> dirs = new ArrayList<>();
+                st.push(tileDir());
+                while (!st.isEmpty()) {
+                    File d = st.pop(); dirs.add(d);
+                    File[] fs = d.listFiles();
+                    if (fs == null) continue;
+                    for (File x : fs) { if (x.isDirectory()) st.push(x); else x.delete(); }
+                }
+                js("window.onTileCache && window.onTileCache()");
+            }).start();
+        }
+
+        /** Gespeicherte Stromleitungen (OSM) kompakt für die Karte: [{kv, p, n, o, g:[lon,lat,…]}] */
+        @JavascriptInterface
+        public String osmLines() {
+            JSONArray out = new JSONArray();
+            try {
+                if (!osmFile().isFile()) return "[]";
+                JSONArray els = new JSONArray(readFile(osmFile()));
+                for (int i = 0; i < els.length(); i++) {
+                    JSONObject el = els.getJSONObject(i);
+                    if (!"way".equals(el.optString("type"))) continue;
+                    JSONObject t = el.optJSONObject("tags");
+                    JSONArray g = el.optJSONArray("geometry");
+                    if (t == null || g == null || g.length() < 2) continue;
+                    if (!t.optString("power").matches("line|minor_line")) continue;   // nur Freileitungen (Erdkabel/Bahn/Windräder separat)
+                    JSONArray pts = new JSONArray();
+                    for (int k = 0; k < g.length(); k++) {
+                        JSONObject pt = g.optJSONObject(k);
+                        if (pt != null) pts.put(Math.round(pt.optDouble("lon") * 1e5) / 1e5).put(Math.round(pt.optDouble("lat") * 1e5) / 1e5);
+                    }
+                    int kv = 0;
+                    for (String v : t.optString("voltage").split(";")) { try { kv = Math.max(kv, Integer.parseInt(v.trim()) / 1000); } catch (Exception ignored) { } }
+                    out.put(new JSONObject().put("kv", kv).put("p", t.optString("power")).put("n", t.optString("name", t.optString("ref", "")))
+                            .put("o", t.optString("operator")).put("g", pts));
+                }
+            } catch (Exception ignored) { }
+            return out.toString();
+        }
+
+        /** Hindernisse aus OSM: {pts:[{t,h,hub,rot,n,lat,lon}], rails:[{e,n,g}]} – t = wind|mast|tower|chimney */
+        @JavascriptInterface
+        public String osmObstacles() {
+            JSONArray pts = new JSONArray(), rails = new JSONArray(), places = new JSONArray();
+            try {
+                if (osmFile().isFile()) {
+                    JSONArray els = new JSONArray(readFile(osmFile()));
+                    for (int i = 0; i < els.length(); i++) {
+                        JSONObject el = els.getJSONObject(i), t = el.optJSONObject("tags");
+                        if (t == null) continue;
+                        String ty = el.optString("type");
+                        if (t.has("place") && "node".equals(ty)) {
+                            places.put(new JSONObject().put("n", t.optString("name")).put("t", t.optString("place"))
+                                    .put("lat", el.optDouble("lat")).put("lon", el.optDouble("lon")));
+                            continue;
+                        }
+                        if (t.has("railway") && "way".equals(ty)) {
+                            JSONArray g = el.optJSONArray("geometry"), ln = new JSONArray();
+                            if (g == null) continue;
+                            for (int k = 0; k < g.length(); k++) { JSONObject p = g.optJSONObject(k); if (p != null) ln.put(Math.round(p.optDouble("lon") * 1e5) / 1e5).put(Math.round(p.optDouble("lat") * 1e5) / 1e5); }
+                            String elc = t.optString("electrified");
+                            rails.put(new JSONObject().put("e", elc.equals("contact_line") || elc.equals("yes")).put("n", t.optString("name", t.optString("ref", ""))).put("g", ln));
+                            continue;
+                        }
+                        boolean wind = "generator".equals(t.optString("power")) && "wind".equals(t.optString("generator:source"));
+                        String mm = t.optString("man_made");
+                        if (!wind && mm.isEmpty()) continue;
+                        double lat = el.optDouble("lat", Double.NaN), lon = el.optDouble("lon", Double.NaN);
+                        JSONArray g = el.optJSONArray("geometry");
+                        if (Double.isNaN(lat) && g != null && g.length() > 0) {   // als Fläche kartiert: Mittelpunkt
+                            double a2 = 0, b2 = 0; for (int k = 0; k < g.length(); k++) { a2 += g.getJSONObject(k).optDouble("lat"); b2 += g.getJSONObject(k).optDouble("lon"); }
+                            lat = a2 / g.length(); lon = b2 / g.length();
+                        }
+                        if (Double.isNaN(lat)) continue;
+                        pts.put(new JSONObject().put("t", wind ? "wind" : mm.replace("communications_tower", "tower"))
+                                .put("h", num(t.optString("height"))).put("hub", num(t.optString("generator:hub_height", t.optString("hub_height"))))
+                                .put("rot", num(t.optString("rotor:diameter", t.optString("generator:rotor_diameter"))))
+                                .put("n", t.optString("name", t.optString("operator", ""))).put("lat", lat).put("lon", lon));
+                    }
+                }
+            } catch (Exception ignored) { }
+            try { return new JSONObject().put("pts", pts).put("rails", rails).put("places", places).toString(); } catch (Exception e) { return "{}"; }
+        }
+
+        /** Gespeicherte Orts- und Flurnamen [{n,t,lat,lon}] */
+        @JavascriptInterface
+        public String places() {
+            try { return placeFile().isFile() ? readFile(placeFile()) : "[]"; } catch (Exception e) { return "[]"; }
+        }
+
         /** Gespeicherte Grenzen der Bundesländer / RB Gießen im Gebiet */
         @JavascriptInterface
         public String regions() {
@@ -920,6 +1164,149 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         throw new Exception("Feldliste konnte nicht geladen werden" + (lastErr != null ? ": " + lastErr : ""));
     }
 
+    // ---------- Feldgrenzen (Kontur) aus UAV Editor – Feature mit properties.type == 1 im geojson des Feldes ----------
+    private File outlineFile() { return new File(getFilesDir(), "field_outlines.json"); }
+    /** Feldgrenzen aus den JSON-Beigaben des UAV-Editor-Exports, je KMZ-Datei: {datei.kmz: [lon,lat,…]} */
+    private File outlineFileByKmz() { return new File(getFilesDir(), "field_outlines_kmz.json"); }
+
+    /** Aus der Export-JSON nur die Feldgrenze lesen (Feature mit properties.type == 1); persönliche Angaben werden nicht gespeichert */
+    private static JSONArray outlineFromExportJson(byte[] json) {
+        try {
+            JSONObject d = new JSONObject(new String(json, StandardCharsets.UTF_8));
+            JSONObject gj = d.optJSONObject("geojson");
+            JSONArray fs = gj != null ? gj.optJSONArray("features") : null;
+            if (fs == null) return null;
+            for (int i = 0; i < fs.length(); i++) {
+                JSONObject f = fs.optJSONObject(i);
+                if (f == null) continue;
+                JSONObject p = f.optJSONObject("properties"), g = f.optJSONObject("geometry");
+                if (p == null || g == null || p.optInt("type", -1) != 1) continue;
+                JSONArray c = g.optJSONArray("coordinates");
+                if ("Polygon".equals(g.optString("type")) && c != null) c = c.optJSONArray(0);
+                if (c == null || c.length() < 3) continue;
+                JSONArray ring = new JSONArray();
+                for (int k = 0; k < c.length(); k++) { JSONArray q = c.optJSONArray(k); if (q != null && q.length() >= 2) ring.put(q.getDouble(0)).put(q.getDouble(1)); }
+                if (ring.length() >= 6) return ring;
+            }
+        } catch (Exception ignored) { }
+        return null;
+    }
+
+    /** JSON-Beigaben eines Export-ZIPs auswerten: Feldgrenze je gleichnamiger KMZ speichern */
+    private void saveExportOutlines(Map<String, byte[]> jsons, java.util.Collection<String> kmzNames) {
+        if (jsons.isEmpty()) return;
+        try {
+            File of = outlineFileByKmz();
+            JSONObject out = of.isFile() ? new JSONObject(readFile(of)) : new JSONObject();
+            int n = 0;
+            for (String kmz : kmzNames) {
+                String base = kmz.replaceAll("(?i)\\.kmz$", "");
+                byte[] j = jsons.get(base.toLowerCase(Locale.ROOT));
+                if (j == null) continue;
+                JSONArray ring = outlineFromExportJson(j);
+                if (ring != null) { out.put(kmz, ring); n++; }
+            }
+            if (n > 0) writeFileAtomic(of, out.toString());
+        } catch (Exception ignored) { }
+    }
+
+    /** Alle .json-Einträge eines ZIPs: {basisname klein: bytes} */
+    private static Map<String, byte[]> zipJsons(byte[] zip) {
+        Map<String, byte[]> m = new HashMap<>();
+        try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(zip))) {
+            ZipEntry e;
+            while ((e = z.getNextEntry()) != null) {
+                String n = new File(e.getName()).getName();
+                if (e.isDirectory() || !n.toLowerCase(Locale.ROOT).endsWith(".json")) continue;
+                m.put(safeFileName(n).replaceAll("(?i)\\.json$", "").toLowerCase(Locale.ROOT), readBytes(z));
+            }
+        } catch (Exception ignored) { }
+        return m;
+    }
+    /** Kontur aus altem (nur Ring) oder neuem Format ({r: Ring, n: Name}) */
+    private static JSONArray ringOf(Object v) {
+        if (v instanceof JSONArray) return (JSONArray) v;
+        if (v instanceof JSONObject) return ((JSONObject) v).optJSONArray("r");
+        return null;
+    }
+
+    private final Map<String, JSONObject> uaveMapMeta = new HashMap<>();
+
+    private void uaveFetchOutlines() throws Exception {
+        if (uaveAuthHeader == null) return;
+        JSONObject out = outlineFile().isFile() ? new JSONObject(readFile(outlineFile())) : new JSONObject();
+        int got = 0;
+        for (boolean archived : new boolean[]{true, false}) {
+            JSONObject vars = new JSONObject().put("fieldsFilter", new JSONObject().put("archived", archived).put("removed", false));
+            JSONObject res = gql("query getFieldsMapData($planningId: String, $fieldsFilter: FieldFilterInput, $pilotCoordinationId: String, $pilotGroupId: String, $useFieldCatalogFields: Boolean) { "
+                    + "getFieldsMapData(useFieldCatalogFields: $useFieldCatalogFields pilotGroupId: $pilotGroupId planningId: $planningId fieldsFilter: $fieldsFilter pilotCoordinationId: $pilotCoordinationId) }", vars, uaveAuthHeader);
+            if (gqlError(res) != null) continue;
+            JSONObject data = res.optJSONObject("data");
+            JSONObject md = data != null ? data.optJSONObject("getFieldsMapData") : null;
+            JSONArray fs = md != null ? md.optJSONArray("fields") : null;
+            if (fs == null) continue;
+            for (int i = 0; i < fs.length(); i++) {
+                JSONObject f = fs.getJSONObject(i);
+                String id = f.optString("_id", f.optString("id", ""));
+                try {   // Zusatzinfos für den Auswahl-Dialog: Drohnentyp und Planungsjahr(e)
+                    JSONObject ms = f.optJSONObject("missionSettings"), p2 = ms != null ? ms.optJSONObject("djiPilot2") : null;
+                    JSONArray yrs = new JSONArray(), pi = f.optJSONArray("planningInfos");
+                    if (pi != null) for (int k = 0; k < pi.length(); k++) { JSONObject p = pi.optJSONObject(k); if (p != null && !p.optString("planningName").isEmpty()) yrs.put(p.optString("planningName")); }
+                    JSONObject cb = f.optJSONObject("contributor"), asl = f.optJSONObject("aboveSeaLevel"), fc = f.optJSONObject("featureCount");
+                    String by = cb != null ? (cb.optString("firstname", "") + " " + cb.optString("name", "")).trim() : "";
+                    JSONObject mm = new JSONObject().put("dt", p2 != null ? p2.optString("droneType", "") : "")
+                            .put("h", p2 != null ? p2.optDouble("height", 0) : 0).put("years", yrs).put("created", f.optString("createdAt", ""))
+                            .put("by", by).put("asl", asl != null ? asl.optDouble("value", 0) : 0).put("wp", fc != null ? fc.optInt("waypoints", 0) : 0);
+                    JSONArray ctr = f.optJSONArray("center");
+                    if (ctr != null && ctr.length() == 2) mm.put("c", ctr);
+                    String enc0 = f.optString("polygonLineString", "");
+                    if (!enc0.isEmpty()) {   // Kontur für die Kartenvorschau im Auswahl-Dialog
+                        JSONArray r = new JSONArray();
+                        List<double[]> op = decodePolyline(enc0);
+                        boolean latFirst = !op.isEmpty() && Math.abs(op.get(0)[0]) > Math.abs(op.get(0)[1]);
+                        for (double[] p : op) { if (latFirst) r.put(p[1]).put(p[0]); else r.put(p[0]).put(p[1]); }
+                        mm.put("r", r);
+                    }
+                    String ls = f.optString("lineString", "");
+                    if (!ls.isEmpty()) {   // Flugroute (vereinfacht) für die Vorschau
+                        JSONArray r = new JSONArray();
+                        List<double[]> pts = decodePolyline(ls);
+                        int step = Math.max(1, pts.size() / 120);
+                        boolean latFirst = !pts.isEmpty() && Math.abs(pts.get(0)[0]) > Math.abs(pts.get(0)[1]);   // Reihenfolge erkennen (in DE: Breite > Länge)
+                        for (int k = 0; k < pts.size(); k += step) { double[] p = pts.get(k); if (latFirst) r.put(p[1]).put(p[0]); else r.put(p[0]).put(p[1]); }
+                        mm.put("route", r);
+                    }
+                    if (!id.isEmpty()) uaveMapMeta.put(id, mm);
+                } catch (Exception ignored) { }
+                String enc = f.optString("polygonLineString", "");
+                if (id.isEmpty() || enc.isEmpty()) continue;
+                List<double[]> pts = decodePolyline(enc);   // Feldgrenze, Reihenfolge Breite/Länge
+                if (pts.size() < 3) continue;
+                JSONArray ring = new JSONArray();
+                for (double[] p : pts) ring.put(p[1]).put(p[0]);   // gespeichert als Länge, Breite
+                out.put(id, new JSONObject().put("r", ring).put("n", f.optString("name", ""))); got++;
+            }
+        }
+        if (got > 0) writeFileAtomic(outlineFile(), out.toString());
+    }
+
+    /** Google-Polyline (Genauigkeit 1e-5) dekodieren */
+    private static List<double[]> decodePolyline(String s) {
+        List<double[]> out = new ArrayList<>();
+        int i = 0, a = 0, b = 0;
+        while (i < s.length()) {
+            int[] v = new int[2];
+            for (int k = 0; k < 2; k++) {
+                int r = 0, sh = 0, c;
+                do { if (i >= s.length()) return out; c = s.charAt(i++) - 63; r |= (c & 31) << sh; sh += 5; } while (c >= 32);
+                v[k] = (r & 1) != 0 ? ~(r >> 1) : (r >> 1);
+            }
+            a += v[0]; b += v[1];
+            out.add(new double[]{a / 1e5, b / 1e5});
+        }
+        return out;
+    }
+
     private static long parseIso(String s) {
         if (s == null || s.isEmpty() || "null".equals(s)) return 0;
         for (String f : new String[]{"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "yyyy-MM-dd'T'HH:mm:ss'Z'"}) {
@@ -937,7 +1324,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         List<String> out = new ArrayList<>();
         String t = name.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("Ä", "Ae")
                 .replace("Ö", "Oe").replace("Ü", "Ue").replace("ß", "ss");
-        for (String base : new String[]{name, t}) {
+        // UAV Editor entfernt Umlaut-Punkte im Dateinamen (Jörg -> Jorg), behält Leerzeichen und schreibt teils klein
+        String plain = java.text.Normalizer.normalize(name.replace("ß", "ss"), java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        out.add(safeFileName(plain).toLowerCase(Locale.ROOT) + "_");
+        out.add(safeFileName(name).toLowerCase(Locale.ROOT) + "_");
+        for (String base : new String[]{name, t, plain}) {
             out.add(base.replaceAll("[^A-Za-z0-9_\\-]", "").toLowerCase(Locale.ROOT) + "_");
             out.add(base.replace(' ', '_').replaceAll("[^A-Za-z0-9_\\-]", "").toLowerCase(Locale.ROOT) + "_");
             out.add(base.replace(' ', '-').replaceAll("[^A-Za-z0-9_\\-]", "").toLowerCase(Locale.ROOT) + "_");
@@ -984,6 +1375,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     uaveFields.put(f.getString("id"), f);
                 }
             }
+            if (!uaveCancel) {
+                uaveProgress("Lade Feldgrenzen…");
+                try { uaveFetchOutlines(); } catch (Exception ignored) { /* optional – Abgleich läuft trotzdem */ }
+            }
             File dir = new File(srcDir);
             File[] local = dir.listFiles();
             JSONObject man = manifest();
@@ -1018,7 +1413,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 result.put(new JSONObject().put("id", id).put("name", name).put("status", status)
                         .put("file", found != null ? found.getName() : JSONObject.NULL)
                         .put("arch", f.optBoolean("_arch")).put("area", f.optDouble("area", 0)).put("mod", mod)
-                        .put("cut", f.optJSONObject("orderData") != null ? f.optJSONObject("orderData").optString("cuttingDate", "") : ""));
+                        .put("cut", f.optJSONObject("orderData") != null ? f.optJSONObject("orderData").optString("cuttingDate", "") : "")
+                        .put("ft", f.optDouble("flightTime", 0))
+                        .put("lm", f.optString("lastModified", ""))
+                        .put("created", f.optString("createdAt", ""))
+                        .put("meta", uaveMapMeta.containsKey(id) ? uaveMapMeta.get(id) : JSONObject.NULL));
             }
             prefs.edit().putString("uave_manifest", man.toString()).apply();
             uaveEvent(new JSONObject().put("type", "list").put("fields", result)
@@ -1053,7 +1452,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     /** Export eines Feldes anstoßen, auf Fertigstellung warten und KMZ speichern. Gibt den Dateinamen zurück. */
-    private String uaveExportOne(String fieldId, String name, File dir, String tzOffset) throws Exception {
+    /** Startet einen Export in UAV Editor, wartet bis fertig und lädt das Ergebnis (KMZ oder ZIP). */
+    private Object[] uaveExportRaw(JSONArray fieldIds, String tzOffset, long maxWaitMs) throws Exception {
         Map<String, String> form = new java.util.LinkedHashMap<>();
         form.put("app", "uav");
         form.put("token", uaveToken);
@@ -1069,7 +1469,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         JSONArray items = new JSONArray().put(new JSONObject()
                 .put("type", "fields")
                 .put("customFieldLabelSettings", new JSONObject())
-                .put("fieldIds", new JSONArray().put(fieldId))
+                .put("fieldIds", fieldIds)
                 .put("outputs", new JSONArray().put(new JSONObject().put("format", "kml-pilot-2"))));
         form.put("items", items.toString());
 
@@ -1081,10 +1481,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (!m.find()) throw new Exception("Export-Auftrag nicht erkannt");
         String stateId = m.group(1);
 
-        // Status abfragen, bis fertig (max. 3 Minuten)
+        // Status abfragen, bis fertig
         JSONObject state = null;
-        long until = System.currentTimeMillis() + 180000;
+        long until = System.currentTimeMillis() + maxWaitMs;
         while (System.currentTimeMillis() < until) {
+            if (uaveCancel) throw new Exception("abgebrochen");
             Thread.sleep(800);
             Resp s = http("GET", UAVE_SERVICES + "/export-state/" + stateId + "?t=" + System.currentTimeMillis(), null, null);
             if (s.code >= 400) continue;
@@ -1098,6 +1499,14 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         String dl = state.optString("downloadUrl", "/download-export/" + stateId);
         Resp d = http("GET", dl.startsWith("http") ? dl : UAVE_SERVICES + dl, null, null);
         if (d.code >= 400 || d.body.length == 0) throw new Exception("Download fehlgeschlagen (" + d.code + ")");
+
+        return new Object[]{d, state};
+    }
+
+    private String uaveExportOne(String fieldId, String name, File dir, String tzOffset) throws Exception {
+        Object[] raw = uaveExportRaw(new JSONArray().put(fieldId), tzOffset, 180000);
+        Resp d = (Resp) raw[0];
+        JSONObject state = (JSONObject) raw[1];
 
         // Dateiname: Server-Vorgabe, sonst Feldname
         String fname = null;
@@ -1129,6 +1538,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 }
             }
             if (first == null) throw new Exception("Leeres Export-Archiv");
+            saveExportOutlines(zipJsons(d.body), java.util.Collections.singletonList(first));
             return first;
         }
         if (!fname.toLowerCase(Locale.ROOT).endsWith(".kmz")) fname = fname.replaceAll("\\.[A-Za-z0-9]{1,4}$", "") + ".kmz";
@@ -1136,42 +1546,129 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return fname;
     }
 
-    /** Exportiert die Felder nacheinander in den Ordner. Liefert {files:{id:datei}, ok, errors} */
+    /** Ab dieser Anzahl werden Felder als ZIP-Pakete exportiert (schneller), darunter einzeln */
+    private static final int ZIP_FROM = 11, ZIP_BATCH = 25;
+
+    /** Ein ZIP-Paket exportieren und entpacken. Liefert {feldId: dateiname} für alle zuordenbaren Felder. */
+    private Map<String, String> uaveExportZip(List<String> ids, File dir, String tzOffset) throws Exception {
+        JSONArray arr = new JSONArray();
+        for (String id : ids) arr.put(id);
+        Object[] raw = uaveExportRaw(arr, tzOffset, 120000 + 6000L * ids.size());
+        Resp d = (Resp) raw[0];
+        if (!dir.isDirectory() && !dir.mkdirs()) throw new Exception("Quellordner kann nicht angelegt werden");
+        // KMZ-Einträge aus dem ZIP lesen (JSON-Beigaben werden ignoriert)
+        Map<String, byte[]> entries = new java.util.LinkedHashMap<>();
+        try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(d.body))) {
+            ZipEntry e;
+            while ((e = z.getNextEntry()) != null) {
+                if (e.isDirectory() || !e.getName().toLowerCase(Locale.ROOT).endsWith(".kmz")) continue;
+                java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+                byte[] buf = new byte[65536]; int k;
+                while ((k = z.read(buf)) > 0) bo.write(buf, 0, k);
+                entries.put(safeFileName(new File(e.getName()).getName()), bo.toByteArray());
+            }
+        }
+        if (entries.isEmpty()) throw new Exception("Export-Archiv ohne KMZ");
+        // Zuordnung über den Namen: Datei = "<Feldname>_<Fläche>ha_<n>WP.kmz". Längster passender Feldname gewinnt,
+        // damit „Egenolf-3-“ und „Egenolf-3-M3T“ nicht verwechselt werden.
+        List<String> order = new ArrayList<>(ids);
+        java.util.Collections.sort(order, (a, b) -> nameOf(b).length() - nameOf(a).length());
+        Map<String, String> out = new HashMap<>();
+        Set<String> used = new java.util.HashSet<>();
+        for (String id : order) {
+            List<String> pres = namePrefixes(nameOf(id));
+            String hit = null;
+            for (String fn : entries.keySet()) {
+                if (used.contains(fn)) continue;
+                String l = fn.toLowerCase(Locale.ROOT);
+                for (String pre : pres) if (pre.length() > 1 && (l.startsWith(pre) || l.equals(pre.substring(0, pre.length() - 1) + ".kmz"))) { hit = fn; break; }
+                if (hit != null) break;
+            }
+            if (hit == null) continue;   // wird danach einzeln geladen
+            used.add(hit);
+            File tmp = new File(dir, hit + ".tmp");
+            try (OutputStream o = new FileOutputStream(tmp)) { o.write(entries.get(hit)); }
+            File f = new File(dir, hit);
+            if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
+            out.put(id, hit);
+        }
+        saveExportOutlines(zipJsons(d.body), out.values());
+        return out;
+    }
+
+    private String nameOf(String id) {
+        JSONObject f = uaveFields.get(id);
+        return f != null ? f.optString("name", id) : id;
+    }
+
+    /** Exportiert die Felder in den Ordner – ab 11 Feldern in ZIP-Paketen, sonst einzeln. Liefert {files:{id:datei}, ok, errors} */
     private JSONObject uaveExportLoop(JSONArray ids, File dir, String tzOffset) throws Exception {
         int ok = 0;
         JSONArray errors = new JSONArray();
         JSONObject files = new JSONObject();
         JSONObject man = manifest();
-        for (int i = 0; i < ids.length(); i++) {
+        int total = ids.length();
+        List<String> all = new ArrayList<>();
+        for (int i = 0; i < total; i++) all.add(ids.getString(i));
+        List<String> single = new ArrayList<>();
+        int done = 0;
+        if (total >= ZIP_FROM) {
+            for (int b = 0; b < total && !uaveCancel; b += ZIP_BATCH) {
+                List<String> part = all.subList(b, Math.min(total, b + ZIP_BATCH));
+                uaveEvent(new JSONObject().put("type", "progress").put("done", done).put("total", total)
+                        .put("name", "Paket " + (b / ZIP_BATCH + 1) + " von " + ((total + ZIP_BATCH - 1) / ZIP_BATCH) + " (ZIP, " + part.size() + " Felder)"));
+                Map<String, String> got;
+                try {
+                    try { got = uaveExportZip(part, dir, tzOffset); }
+                    catch (Exception first) { if (uaveCancel) throw first; uaveLogin(); got = uaveExportZip(part, dir, tzOffset); }
+                } catch (Exception e) {
+                    if (uaveCancel) break;
+                    got = new HashMap<>();   // ganzes Paket fehlgeschlagen -> einzeln nachladen
+                }
+                for (String id : part) {
+                    String file = got.get(id);
+                    if (file == null) { single.add(id); continue; }
+                    remember(man, id, file, dir);
+                    files.put(id, file);
+                    ok++; done++;
+                }
+            }
+        } else single.addAll(all);
+        for (String id : single) {
             if (uaveCancel) break;   // sauber zwischen zwei Feldern aufhören – fertige Dateien bleiben
-            String id = ids.getString(i);
-            JSONObject f = uaveFields.get(id);
-            String name = f != null ? f.optString("name", id) : id;
+            String name = nameOf(id);
             try {
-                uaveEvent(new JSONObject().put("type", "progress").put("done", i).put("total", ids.length()).put("name", name));
+                uaveEvent(new JSONObject().put("type", "progress").put("done", done).put("total", total).put("name", name));
                 String file;
                 try {
                     file = uaveExportOne(id, name, dir, tzOffset);
                 } catch (Exception first) {
+                    if (uaveCancel) break;
                     // Token evtl. abgelaufen: einmal neu anmelden und wiederholen
                     uaveLogin();
                     file = uaveExportOne(id, name, dir, tzOffset);
                 }
-                // alte Datei mit anderem Namen entfernen, damit keine Dubletten entstehen
-                JSONObject old = man.optJSONObject(id);
-                if (old != null && !file.equals(old.optString("file"))) {
-                    File of = new File(dir, old.optString("file"));
-                    if (of.isFile()) of.delete();
-                }
-                man.put(id, withMeta(new JSONObject().put("file", file).put("mod", System.currentTimeMillis()), f));
-                prefs.edit().putString("uave_manifest", man.toString()).apply();
+                remember(man, id, file, dir);
                 files.put(id, file);
                 ok++;
             } catch (Exception e) {
+                if (uaveCancel) break;
                 errors.put(name + ": " + friendlyError(e));
             }
+            done++;
         }
         return new JSONObject().put("ok", ok).put("errors", errors).put("files", files).put("cancelled", uaveCancel);
+    }
+
+    /** Manifest pflegen; alte Datei mit anderem Namen entfernen, damit keine Dubletten entstehen */
+    private void remember(JSONObject man, String id, String file, File dir) throws Exception {
+        JSONObject old = man.optJSONObject(id);
+        if (old != null && !file.equals(old.optString("file"))) {
+            File of = new File(dir, old.optString("file"));
+            if (of.isFile()) of.delete();
+        }
+        man.put(id, withMeta(new JSONObject().put("file", file).put("mod", System.currentTimeMillis()), uaveFields.get(id)));
+        prefs.edit().putString("uave_manifest", man.toString()).apply();
     }
 
     private void uaveDownloadImpl(String idsJson, String srcDir, String tzOffset) {
@@ -1352,6 +1849,35 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private long osmCacheLoaded = 0;
 
     private File osmFile() { return new File(getFilesDir(), "osm_power.json"); }
+    private File placeFile() { return new File(getFilesDir(), "osm_places.json"); }
+
+    /** Orts- und Flurnamen für die Suche: Gebiet der Felder + 25 km, alle 60 Tage oder wenn das Gebiet größer wird */
+    private void placeSync(double n, double s, double e, double w, boolean force) {
+        double dLa = 25 / 111.2, dLo = 25 / (111.2 * Math.cos(Math.toRadians((n + s) / 2)));
+        n += dLa; s -= dLa; e += dLo; w -= dLo;
+        try {
+            JSONObject b = new JSONObject(prefs.getString("place_bbox", "{}"));
+            boolean covers = b.has("n") && b.getDouble("n") >= n - dLa / 2 && b.getDouble("s") <= s + dLa / 2 && b.getDouble("e") >= e - dLo / 2 && b.getDouble("w") <= w + dLo / 2;
+            if (!force && covers && placeFile().isFile() && System.currentTimeMillis() - prefs.getLong("place_fetched", 0) < 60 * DAY) return;
+        } catch (Exception ignored) { }
+        try {
+            String bb = String.format(Locale.ROOT, "%.5f,%.5f,%.5f,%.5f", s, w, n, e);
+            String q = "[out:json][timeout:90];(node[\"place\"~\"^(city|town|village|hamlet|suburb|quarter|neighbourhood|isolated_dwelling|farm|locality)$\"][\"name\"](" + bb + "););out body;";
+            JSONArray els = new JSONObject(overpass(q, 120000)).getJSONArray("elements");
+            JSONArray out = new JSONArray();
+            for (int i = 0; i < els.length(); i++) {
+                JSONObject el = els.getJSONObject(i), t = el.optJSONObject("tags");
+                if (t == null || !el.has("lat")) continue;
+                out.put(new JSONObject().put("n", t.optString("name")).put("t", t.optString("place"))
+                        .put("lat", Math.round(el.getDouble("lat") * 1e5) / 1e5).put("lon", Math.round(el.getDouble("lon") * 1e5) / 1e5));
+            }
+            if (out.length() > 0) {
+                writeFileAtomic(placeFile(), out.toString());
+                prefs.edit().putLong("place_fetched", System.currentTimeMillis())
+                        .putString("place_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
+            }
+        } catch (Exception ignored) { }
+    }
 
     private boolean osmCovers(double n, double s, double e, double w) {
         try {
@@ -1362,36 +1888,285 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     /** Lädt alle Leitungen/Masten im Gebiet (alle 24 h oder wenn das Gebiet größer wird) */
     private void osmSync(double n, double s, double e, double w, boolean force) {
+        // gespeichertes Gebiet behalten: mit dem neuen zusammenfassen, solange es klein bleibt (< ca. 80 km)
+        try {
+            JSONObject ob = new JSONObject(prefs.getString("osm_bbox", "{}"));
+            if (ob.has("n") && osmFile().isFile()) {
+                double un = Math.max(n, ob.getDouble("n")), us = Math.min(s, ob.getDouble("s"));
+                double ue = Math.max(e, ob.getDouble("e")), uw = Math.min(w, ob.getDouble("w"));
+                if (Math.hypot((un - us) * 111.2, (ue - uw) * 111.2 * Math.cos(Math.toRadians((un + us) / 2))) < 80) { n = un; s = us; e = ue; w = uw; }
+            }
+        } catch (Exception ignored) { }
         long fetched = prefs.getLong("osm_fetched", 0);
-        boolean fresh = System.currentTimeMillis() - fetched < DAY;
-        if (!force && fresh && osmCovers(n, s, e, w) && osmFile().isFile()) return;
+        boolean fresh = System.currentTimeMillis() - fetched < 7 * DAY;   // Leitungen ändern sich selten
+        boolean oldFormat = prefs.getInt("osm_ver", 1) < 3;   // ältere Daten ohne Hindernisse/Ortsnamen: einmal neu laden
+        if (!force && fresh && !oldFormat && osmCovers(n, s, e, w) && osmFile().isFile()) return;
         try {
             String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
             String q = "[out:json][timeout:120];("
                     + "way[\"power\"~\"^(line|minor_line|cable)$\"](" + bb + ");"
                     + "node[\"power\"~\"^(tower|portal)$\"](" + bb + ");"
                     + "node[\"power\"=\"pole\"][\"height\"](" + bb + ");"
+                    // Hindernisse: Windräder, hohe Bauwerke, Bahnstrecken
+                    + "nwr[\"power\"=\"generator\"][\"generator:source\"=\"wind\"](" + bb + ");"
+                    + "node[\"man_made\"~\"^(mast|tower|chimney|communications_tower)$\"](" + bb + ");"
+                    + "way[\"railway\"~\"^(rail|light_rail)$\"](" + bb + ");"
+                    // Orts- und Flurnamen für die Suche (offline)
+                    + "node[\"place\"~\"^(city|town|village|hamlet|suburb|quarter|neighbourhood|isolated_dwelling|farm|locality)$\"][\"name\"](" + bb + ");"
                     + ");out tags geom;";
-            HttpURLConnection c = (HttpURLConnection) new URL("https://overpass-api.de/api/interpreter").openConnection();
-            c.setRequestMethod("POST");
-            c.setConnectTimeout(15000); c.setReadTimeout(150000);
-            c.setDoOutput(true);
-            c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            c.setRequestProperty("User-Agent", "KMZMissionen/1.5 (Kitzrettung, nicht-kommerziell)");
-            try (OutputStream o = c.getOutputStream()) { o.write(("data=" + URLEncoder.encode(q, "UTF-8")).getBytes(StandardCharsets.UTF_8)); }
-            if (c.getResponseCode() != 200) return;
-            String txt;
-            try (InputStream in = c.getInputStream()) { txt = readAll(in); }
-            c.disconnect();
-            JSONArray els = new JSONObject(txt).getJSONArray("elements");   // prüft, ob die Antwort gültig ist
-            File tmp = new File(osmFile().getPath() + ".tmp");
-            try (OutputStream o = new FileOutputStream(tmp)) { o.write(els.toString().getBytes(StandardCharsets.UTF_8)); }
-            if (!tmp.renameTo(osmFile())) { osmFile().delete(); tmp.renameTo(osmFile()); }
-            prefs.edit().putLong("osm_fetched", System.currentTimeMillis())
+            JSONArray els = new JSONObject(overpass(q, 180000)).getJSONArray("elements");   // mit Ausweichservern
+            writeFileAtomic(osmFile(), els.toString());
+            prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 3)
                     .putString("osm_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             osmCache = els;
             osmCacheLoaded = System.currentTimeMillis();
         } catch (Exception ignored) { }
+    }
+
+    // ---------- Kartenkacheln dauerhaft auf der RC speichern + Einsatzgebiet vorab laden ----------
+    // Karte/Grau: basemap.de (BKG, CC BY 4.0, keine Zugriffsbeschränkung) – Vorab-Download erlaubt.
+    // Luftbild: amtliche Orthophotos DOP20 Hessen (frei nutzbar) und Rheinland-Pfalz (dl-de/by-2-0), als Kacheln zusammengesetzt.
+    // Außerhalb HE/RP: Esri World Imagery nur beim Ansehen (kein Vorab-Download – Nutzungsbedingungen).
+    private static final long TILE_FRESH = 365L * 24 * 3600 * 1000, TILE_MAX_BYTES = 12L * 1024 * 1024 * 1024;
+    private File tileDir() { return new File(getFilesDir(), "tiles"); }
+    private static final String BM = "https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/";
+    private static final String DOP_HE = "https://www.gds-srv.hessen.de/cgi-bin/lika-services/ogc-free-images.ows?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=he_dop20_rgb&STYLES=&CRS=EPSG:3857&FORMAT=image/png&TRANSPARENT=TRUE&WIDTH=256&HEIGHT=256&BBOX=";
+    private static final String DOP_RP = "https://geo4.service24.rlp.de/wms/rp_dop20.fcgi?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rp_dop20&STYLES=&CRS=EPSG:3857&FORMAT=image/png&TRANSPARENT=TRUE&WIDTH=256&HEIGHT=256&BBOX=";
+
+    /** Kachel-Schlüssel (Datei im Speicher) und Typ aus der Kachel-Adresse; null = keine Kartenkachel */
+    private static String[] tileKey(Uri u) {
+        String host = u.getHost();
+        if (host == null) return null;
+        List<String> seg = u.getPathSegments();
+        int n = seg.size();
+        if (host.equals("sgx.geodatenzentrum.de") && n >= 5 && u.getPath().contains("/wmts_basemapde/")) {   // .../{layer}/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png
+            String lay = u.getPath().contains("_grau/") ? "bmg" : "bmf";
+            return new String[]{lay + "/" + seg.get(n - 3) + "/" + seg.get(n - 1).replace(".png", "") + "/" + seg.get(n - 2) + ".png", "image/png"};
+        }
+        if (host.equals("dop.local") && n == 3) return new String[]{"dop3/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".jpg", "image/jpeg"};
+        if (host.equals("tile.openstreetmap.org") && n == 3) return new String[]{"osm/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2), "image/png"};
+        if (host.equals("server.arcgisonline.com") && n >= 3 && u.getPath().contains("/tile/"))   // .../tile/{z}/{y}/{x}
+            return new String[]{"sat/" + seg.get(n - 3) + "/" + seg.get(n - 1) + "/" + seg.get(n - 2) + ".jpg", "image/jpeg"};
+        return null;
+    }
+
+    private WebResourceResponse tileFromCache(Uri u) {
+        try {
+            String[] km = tileKey(u);
+            if (km == null) return null;
+            File f = new File(tileDir(), km[0]);
+            boolean have = f.isFile() && f.length() > 0;
+            boolean on = online();
+            if (have && (!on || System.currentTimeMillis() - f.lastModified() < TILE_FRESH)) return tileResp(f, km[1]);
+            if (!on) return new WebResourceResponse(km[1], null, 404, "offline", null, new ByteArrayInputStream(new byte[0]));
+            byte[] b = null;
+            try {
+                if (km[0].startsWith("dop3/")) {
+                    List<String> seg = u.getPathSegments();
+                    b = dopTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("s"));
+                    if (b == null) {   // außerhalb HE/RP: Esri nur zum Ansehen
+                        byte[] e = httpBytes("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + seg.get(0) + "/" + seg.get(2) + "/" + seg.get(1));
+                        if (e != null) return new WebResourceResponse("image/jpeg", null, new ByteArrayInputStream(e));
+                    }
+                } else b = httpBytes(u.toString());
+            } catch (Exception netErr) { /* Netz weg mitten im Laden */ }
+            if (b != null && b.length > 0) { saveTile(f, b); return new WebResourceResponse(km[1], null, new ByteArrayInputStream(b)); }
+            return have ? tileResp(f, km[1]) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static void saveTile(File f, byte[] b) throws Exception {
+        f.getParentFile().mkdirs();
+        File tmp = new File(f.getPath() + "." + Thread.currentThread().getId() + ".tmp");
+        try (OutputStream o = new FileOutputStream(tmp)) { o.write(b); }
+        if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
+    }
+
+    private static byte[] httpBytes(String url) throws Exception {
+        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        try {
+            c.setConnectTimeout(10000); c.setReadTimeout(30000);
+            c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Android; Kitzrettung Limburg e.V., nicht-kommerziell)");
+            if (c.getResponseCode() != 200) return null;
+            String ct = c.getContentType();
+            if (ct != null && !ct.startsWith("image/")) return null;   // WMS-Fehlermeldung statt Bild
+            try (InputStream in = c.getInputStream()) { return readBytes(in); }
+        } finally { c.disconnect(); }
+    }
+
+    /** Luftbild-Kachel aus den Orthophotos von RP (unten) und HE (oben) zusammensetzen; null = an dieser Stelle kein DOP */
+    private static final java.util.concurrent.ExecutorService DOP_POOL = java.util.concurrent.Executors.newFixedThreadPool(8);
+
+    /** states: "HE", "RP" oder "HE,RP" (Kachel an der Landesgrenze) – nur die nötigen Dienste, parallel */
+    private static byte[] dopTile(int z, int x, int y, String states) throws Exception {
+        double R = 20037508.342789244, size = 2 * R / (1 << z);
+        double x0 = -R + x * size, y1 = R - y * size, x1 = x0 + size, y0 = y1 - size;
+        String bbox = String.format(Locale.ROOT, "%.3f,%.3f,%.3f,%.3f", x0, y0, x1, y1);
+        if (states == null || states.isEmpty()) states = "HE,RP";
+        boolean he = states.contains("HE"), rp = states.contains("RP");
+        boolean both = he && rp;
+        java.util.concurrent.Future<byte[]> fRp = both ? DOP_POOL.submit(() -> httpBytes(DOP_RP + bbox)) : null;
+        java.util.concurrent.Future<byte[]> fHe = both ? DOP_POOL.submit(() -> httpBytes(DOP_HE + bbox)) : null;
+        // nur ein Land: das JPEG des Landesdienstes direkt übernehmen (keine Transparenz, kein Umrechnen – schnell und farbecht)
+        if (!(he && rp)) {
+            byte[] b = null;
+            try { b = httpBytes((he ? DOP_HE : DOP_RP).replace("FORMAT=image/png&TRANSPARENT=TRUE", "FORMAT=image/jpeg") + bbox); } catch (Exception ignored) { }
+            if (b == null) return null;
+            android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
+            boolean ok = bm != null && hasContent(bm);
+            if (bm != null) bm.recycle();
+            return ok ? b : null;
+        }
+        android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas cv = new android.graphics.Canvas(out);
+        cv.drawColor(0xffd9d9d0);
+        boolean any = false;
+        for (java.util.concurrent.Future<byte[]> fu : new java.util.concurrent.Future[]{fRp, fHe}) {
+            byte[] b = null;
+            try { b = fu.get(40, java.util.concurrent.TimeUnit.SECONDS); } catch (Exception ignored) { }
+            if (b == null) continue;
+            android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
+            if (bm == null) continue;
+            if (hasContent(bm)) { cv.drawBitmap(bm, null, new android.graphics.Rect(0, 0, 256, 256), null); any = true; }
+            bm.recycle();
+        }
+        if (!any) { out.recycle(); return null; }
+        ByteArrayOutputStream bo = new ByteArrayOutputStream();
+        out.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, bo);
+        out.recycle();
+        return bo.toByteArray();
+    }
+
+    /** Hat das Bild sichtbare (nicht transparente, nicht rein weiße) Pixel? Stichprobe 16×16 */
+    private static boolean hasContent(android.graphics.Bitmap bm) {
+        int w = bm.getWidth(), h = bm.getHeight(), hits = 0;
+        for (int i = 0; i < 16; i++) for (int j = 0; j < 16; j++) {
+            int p = bm.getPixel(Math.min(w - 1, i * w / 16 + w / 32), Math.min(h - 1, j * h / 16 + h / 32));
+            int a = p >>> 24, r = (p >> 16) & 255, g = (p >> 8) & 255, b = p & 255;
+            if (a > 40 && !(r > 250 && g > 250 && b > 250)) hits++;
+        }
+        return hits > 3;
+    }
+
+    // ---------- Vorab-Download ----------
+    private volatile boolean prefetchStop = false, prefetchRun = false;
+
+    private void prefetchImpl(String json) {
+        if (prefetchRun) return;
+        prefetchRun = true; prefetchStop = false;
+        new Thread(() -> {
+            final int[] cnt = new int[4];   // geladen, schon da, Fehler, Gesamt
+            final long[] bytes = new long[1];
+            try {
+                JSONObject p = new JSONObject(json);
+                JSONArray layers = p.getJSONArray("layers"), area = p.getJSONArray("area"), fields = p.optJSONArray("fields");
+                int zMin = p.optInt("zMin", 8), zArea = p.optInt("zArea", 15), zMax = p.optInt("zMax", 18);
+                List<int[]> list = new ArrayList<>();
+                for (int z = zMin; z <= zMax; z++) {
+                    java.util.Set<Long> seen = new java.util.HashSet<>();
+                    List<double[]> boxes = new ArrayList<>();
+                    if (z <= zArea) boxes.add(new double[]{area.getDouble(0), area.getDouble(1), area.getDouble(2), area.getDouble(3)});
+                    else if (fields != null) for (int i = 0; i < fields.length(); i++) { JSONArray b = fields.getJSONArray(i); boxes.add(new double[]{b.getDouble(0), b.getDouble(1), b.getDouble(2), b.getDouble(3)}); }
+                    for (double[] b : boxes) {
+                        int xa = lon2tile(b[0], z), xb = lon2tile(b[2], z), ya = lat2tile(b[3], z), yb = lat2tile(b[1], z);
+                        for (int x = xa; x <= xb; x++) for (int y = ya; y <= yb; y++) if (seen.add(((long) x << 32) | y)) list.add(new int[]{z, x, y});
+                    }
+                }
+                cnt[3] = list.size() * layers.length();
+                java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(4);
+                final long[] lastEv = {0};
+                for (int li = 0; li < layers.length(); li++) {
+                    final String lay = layers.getString(li);
+                    for (int[] t : list) {
+                        ex.submit(() -> {
+                            if (prefetchStop) return;
+                            try {
+                                String key = lay.equals("dop") ? "dop3/" + t[0] + "/" + t[1] + "/" + t[2] + ".jpg" : lay + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png";
+                                File f = new File(tileDir(), key);
+                                if (f.isFile() && f.length() > 0) { synchronized (cnt) { cnt[1]++; } }
+                                else {
+                                    if (lay.equals("dop") && t[0] < 12) { synchronized (cnt) { cnt[1]++; } return; }   // Luftbild-Übersicht kommt von Esri (nur beim Ansehen)
+                                    byte[] b = lay.equals("dop") ? dopTile(t[0], t[1], t[2], "HE,RP")
+                                            : httpBytes(BM + (lay.equals("bmg") ? "de_basemapde_web_raster_grau" : "de_basemapde_web_raster_farbe") + "/default/GLOBAL_WEBMERCATOR/" + t[0] + "/" + t[2] + "/" + t[1] + ".png");
+                                    if (b != null && b.length > 0) { saveTile(f, b); synchronized (cnt) { cnt[0]++; bytes[0] += b.length; } }
+                                    else synchronized (cnt) { cnt[2]++; }
+                                }
+                            } catch (Exception e) { synchronized (cnt) { cnt[2]++; } }
+                            long now = System.currentTimeMillis();
+                            if (now - lastEv[0] > 700) { lastEv[0] = now; prefetchEvent(cnt, bytes[0], false); }
+                        });
+                    }
+                }
+                ex.shutdown();
+                while (!ex.awaitTermination(500, java.util.concurrent.TimeUnit.MILLISECONDS)) { if (prefetchStop) ex.shutdownNow(); }
+            } catch (Exception e) {
+                js("window.onPrefetch && window.onPrefetch(" + JSONObject.quote(new JSONObject().toString()) + ")");
+            } finally {
+                prefetchRun = false;
+                prefetchEvent(cnt, bytes[0], true);
+            }
+        }).start();
+    }
+
+    private void prefetchEvent(int[] cnt, long bytes, boolean fin) {
+        try {
+            JSONObject o;
+            synchronized (cnt) {
+                o = new JSONObject().put("done", cnt[0]).put("have", cnt[1]).put("fail", cnt[2]).put("total", cnt[3])
+                        .put("bytes", bytes).put("finished", fin).put("cancelled", prefetchStop);
+            }
+            js("window.onPrefetch && window.onPrefetch(" + JSONObject.quote(o.toString()) + ")");
+        } catch (Exception ignored) { }
+    }
+
+    private static int lon2tile(double lon, int z) { return Math.max(0, Math.min((1 << z) - 1, (int) Math.floor((lon + 180) / 360 * (1 << z)))); }
+    private static int lat2tile(double lat, int z) {
+        double r = Math.toRadians(lat);
+        return Math.max(0, Math.min((1 << z) - 1, (int) Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * (1 << z))));
+    }
+
+    private static WebResourceResponse tileResp(File f, String mime) throws Exception {
+        return new WebResourceResponse(mime, null, new FileInputStream(f));
+    }
+
+    private static byte[] readBytes(InputStream in) throws Exception {
+        ByteArrayOutputStream bo = new ByteArrayOutputStream();
+        byte[] buf = new byte[32768]; int k;
+        while ((k = in.read(buf)) > 0) bo.write(buf, 0, k);
+        return bo.toByteArray();
+    }
+
+    /** Speicher begrenzen: über 12 GB die am längsten nicht aktualisierten Kacheln löschen */
+    private void tileCacheTrim() {
+        try {
+            List<File> all = new ArrayList<>();
+            java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
+            st.push(tileDir());
+            long total = 0;
+            while (!st.isEmpty()) {
+                File[] fs = st.pop().listFiles();
+                if (fs == null) continue;
+                for (File x : fs) { if (x.isDirectory()) st.push(x); else { all.add(x); total += x.length(); } }
+            }
+            if (total <= TILE_MAX_BYTES) return;
+            Collections.sort(all, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+            for (File x : all) { if (total <= TILE_MAX_BYTES * 8 / 10) break; total -= x.length(); x.delete(); }
+        } catch (Exception ignored) { }
+    }
+
+    /** Größe des Kachelspeichers für die Einstellungen */
+    private long tileCacheBytes() {
+        long total = 0;
+        java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
+        st.push(tileDir());
+        while (!st.isEmpty()) {
+            File[] fs = st.pop().listFiles();
+            if (fs == null) continue;
+            for (File x : fs) { if (x.isDirectory()) st.push(x); else total += x.length(); }
+        }
+        return total;
     }
 
     // ---------- Bundesländer + Regierungsbezirk Gießen (OSM-Grenzen, vereinfacht, offline) ----------
@@ -1406,55 +2181,68 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             } catch (Exception ignored) { }
             boolean fresh = System.currentTimeMillis() - prefs.getLong("reg_fetched", 0) < 60 * DAY;   // Grenzen ändern sich kaum
             if (!force && fresh && covers && regionFile().isFile()) return;
+            // Schnell: nur Grenzstücke im Gebiet + Zugehörigkeit der Gebietsmitte (statt kompletter Landesgrenzen)
             String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
-            String q = "[out:json][timeout:180];("
-                    + "relation[\"boundary\"=\"administrative\"][\"admin_level\"=\"4\"][\"ISO3166-2\"~\"^DE-\"](" + bb + ");"
-                    + "relation[\"boundary\"=\"administrative\"][\"admin_level\"=\"5\"][\"name\"~\"Gie(ß|ss)en\"](" + bb + ");"
-                    + ");out tags geom;";
-            JSONArray els = new JSONObject(overpass(q, 200000)).getJSONArray("elements");
-            JSONArray out = new JSONArray();
+            double clat = (n + s) / 2, clon = (e + w) / 2;
+            String q = "[out:json][timeout:90];"
+                    + "rel[\"boundary\"=\"administrative\"][\"admin_level\"~\"^(4|5)$\"](" + bb + ")->.r;"
+                    + ".r out body;"
+                    + "way(r.r)(" + bb + ");out geom;"
+                    + String.format(Locale.ROOT, "is_in(%.6f,%.6f)->.a;", clat, clon)
+                    + "area.a[\"boundary\"=\"administrative\"][\"admin_level\"~\"^(4|5)$\"];out tags;";
+            JSONArray els = new JSONObject(overpass(q, 120000)).getJSONArray("elements");
+            Map<Long, JSONArray> wayGeom = new HashMap<>();
+            Set<Long> centerIn = new java.util.HashSet<>();
+            List<JSONObject> rels = new ArrayList<>();
             for (int i = 0; i < els.length(); i++) {
-                JSONObject r = els.getJSONObject(i);
-                JSONObject t = r.optJSONObject("tags");
-                if (t == null) continue;
-                JSONArray mem = r.optJSONArray("members");
-                if (mem == null) continue;
-                JSONArray lines = new JSONArray();
-                double bn = -90, bs = 90, be = -180, bw = 180;
-                for (int k = 0; k < mem.length(); k++) {
-                    JSONObject m = mem.getJSONObject(k);
-                    if (!"way".equals(m.optString("type"))) continue;
-                    String role = m.optString("role");
-                    if (!role.isEmpty() && !"outer".equals(role) && !"inner".equals(role)) continue;
-                    JSONArray g = m.optJSONArray("geometry");
+                JSONObject el = els.getJSONObject(i);
+                String ty = el.optString("type");
+                if ("way".equals(ty)) {
+                    JSONArray g = el.optJSONArray("geometry");
                     if (g == null || g.length() < 2) continue;
                     double[] la = new double[g.length()], lo = new double[g.length()];
                     int c = 0;
-                    for (int j = 0; j < g.length(); j++) {
-                        JSONObject pt = g.optJSONObject(j);
-                        if (pt == null) continue;
-                        la[c] = pt.getDouble("lat"); lo[c] = pt.getDouble("lon"); c++;
-                    }
+                    for (int k = 0; k < g.length(); k++) { JSONObject pt = g.optJSONObject(k); if (pt == null) continue; la[c] = pt.getDouble("lat"); lo[c] = pt.getDouble("lon"); c++; }
                     if (c < 2) continue;
-                    boolean[] keep = new boolean[c];
-                    keep[0] = keep[c - 1] = true;
-                    simplify(la, lo, 0, c - 1, 0.0002, keep);   // ca. 20 m – Endpunkte bleiben, Ring bleibt geschlossen
+                    boolean[] keep = new boolean[c]; keep[0] = keep[c - 1] = true;
+                    simplify(la, lo, 0, c - 1, 0.0001, keep);   // ca. 10 m
                     JSONArray ln = new JSONArray();
-                    for (int j = 0; j < c; j++) if (keep[j]) {
-                        ln.put(Math.round(lo[j] * 1e5) / 1e5).put(Math.round(la[j] * 1e5) / 1e5);
-                        bn = Math.max(bn, la[j]); bs = Math.min(bs, la[j]); be = Math.max(be, lo[j]); bw = Math.min(bw, lo[j]);
-                    }
-                    lines.put(ln);
+                    for (int k = 0; k < c; k++) if (keep[k]) ln.put(Math.round(lo[k] * 1e5) / 1e5).put(Math.round(la[k] * 1e5) / 1e5);
+                    wayGeom.put(el.getLong("id"), ln);
+                } else if ("area".equals(ty)) {
+                    centerIn.add(el.getLong("id") - 3600000000L);
+                } else if ("relation".equals(ty)) rels.add(el);
+            }
+            JSONArray out = new JSONArray();
+            for (JSONObject r : rels) {
+                JSONObject t = r.optJSONObject("tags");
+                if (t == null) continue;
+                String lvl = t.optString("admin_level"), name = t.optString("name"), code = t.optString("ISO3166-2");
+                if ("4".equals(lvl) && !code.startsWith("DE-")) continue;
+                if ("5".equals(lvl) && !name.matches(".*Gie(ß|ss)en.*")) continue;
+                JSONArray mem = r.optJSONArray("members"), lines = new JSONArray();
+                if (mem != null) for (int k = 0; k < mem.length(); k++) {
+                    JSONObject m = mem.getJSONObject(k);
+                    if (!"way".equals(m.optString("type"))) continue;
+                    JSONArray ln = wayGeom.get(m.getLong("ref"));
+                    if (ln != null) lines.put(ln);
                 }
-                if (lines.length() == 0) continue;
-                out.put(new JSONObject().put("lvl", t.optString("admin_level")).put("code", t.optString("ISO3166-2"))
-                        .put("name", t.optString("name")).put("bb", new JSONArray().put(bw).put(bs).put(be).put(bn)).put("lines", lines));
+                boolean in = centerIn.contains(r.getLong("id"));
+                if (lines.length() == 0 && !in) continue;   // weder Grenze im Gebiet noch Mitte drin
+                out.put(new JSONObject().put("lvl", lvl).put("code", code).put("name", name)
+                        .put("ref", new JSONArray().put(clat).put(clon)).put("refIn", in)
+                        .put("bb", new JSONArray().put(w).put(s).put(e).put(n)).put("lines", lines));
             }
             if (out.length() == 0) return;   // nichts überschreiben, wenn die Antwort leer ist
             writeFileAtomic(regionFile(), out.toString());
             prefs.edit().putLong("reg_fetched", System.currentTimeMillis())
                     .putString("reg_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
         } catch (Exception ignored) { }
+    }
+
+    /** "142 m" / "142,5" -> 142.5, sonst 0 */
+    private static double num(String v) {
+        try { Matcher m = Pattern.compile("([\\d]+(?:[.,]\\d+)?)").matcher(v == null ? "" : v); return m.find() ? Double.parseDouble(m.group(1).replace(',', '.')) : 0; } catch (Exception e) { return 0; }
     }
 
     /** Douglas-Peucker (iterativ genug für Grenzlinien) */
@@ -1697,6 +2485,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 JSONArray near = new JSONArray();
                 for (int i = 0; i < osmCache.length(); i++) {
                     JSONObject el = osmCache.getJSONObject(i);
+                    JSONObject tg = el.optJSONObject("tags");
+                    String pw = tg != null ? tg.optString("power") : "";
+                    if (!pw.matches("line|minor_line|cable|tower|portal|pole")) continue;   // nur Stromnetz (keine Bahn/Windräder)
                     if ("node".equals(el.optString("type"))) {
                         if (distM(lat, lon, el.optDouble("lat"), el.optDouble("lon")) <= 350) near.put(el);
                     } else {
@@ -1717,6 +2508,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 return;
             }
         } catch (Exception ignored) { }
+        if (!online()) {
+            try {
+                js("window.onPowerInfo && window.onPowerInfo(" + JSONObject.quote(new JSONObject().put("ok", false)
+                        .put("error", "offline – für diese Stelle noch keine Leitungsdaten gespeichert").toString()) + ")");
+            } catch (Exception ignored) { }
+            return;
+        }
         powerInfoOnline(lat, lon);   // außerhalb des gespeicherten Gebiets: live abfragen
     }
 
@@ -1737,6 +2535,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     /** areaJson: {n,s,e,w} – Gesamtgebiet aller Felder inkl. Rand. force = alles neu laden */
     private void geoSyncImpl(String areaJson, boolean force) {
         if (geoRunning) return;
+        if (!online()) {   // offline: nichts versuchen, gespeicherte Geozonen bleiben einfach aktiv
+            try { geoEvent(new JSONObject().put("type", "offline").put("fetched", geoFetched())); } catch (Exception ignored) { }
+            return;
+        }
         geoRunning = true;
         geoLastError = null;
         try {
@@ -1746,7 +2548,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             new Thread(() -> {
                 regionSync(fn, fs, fe, fw, force);
                 js("window.onRegions && window.onRegions()");
+                placeSync(fn, fs, fe, fw, force);
+                js("window.onPlaces && window.onPlaces()");
                 osmSync(fn, fs, fe, fw, force);
+                js("window.onOsmLines && window.onOsmLines()");
                 airfieldSync(fn, fs, fe, fw, force);
                 notamSyncImpl(fn, fs, fe, fw, force);
                 js("window.onNotams && window.onNotams()");
@@ -1763,6 +2568,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 geoEvent(new JSONObject().put("type", "done").put("ok", 0).put("fail", 0).put("fetched", geoFetched()).put("tiles", geoTileCount()));
                 return;
             }
+            // Bereits gespeichertes Gebiet nicht verlieren: zusammenfassen, solange das Gesamtgebiet klein bleibt (< ca. 80 km)
+            try {
+                JSONObject ob = new JSONObject(prefs.getString("geo_vec_bbox", "{}"));
+                if (ob.has("n") && !force) {
+                    double un = Math.max(n, ob.getDouble("n")), us = Math.min(s, ob.getDouble("s"));
+                    double ue = Math.max(e, ob.getDouble("e")), uw = Math.min(w, ob.getDouble("w"));
+                    double km = Math.hypot((un - us) * 111.2, (ue - uw) * 111.2 * Math.cos(Math.toRadians((un + us) / 2)));
+                    if (km < 80) { n = un; s = us; e = ue; w = uw; }
+                }
+            } catch (Exception ignored) { }
             File dir = geoVecDir();
             if (!dir.isDirectory()) dir.mkdirs();
             int ok = 0, fail = 0, count = 0, k = 0;
@@ -1779,8 +2594,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         .putString("geo_vec_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             }
             if (ok == 0) {
-                geoEvent(new JSONObject().put("type", "error").put("message", "Geozonen konnten nicht aktualisiert werden"
-                        + (geoLastError != null ? ": " + geoLastError : " (keine Verbindung zu dipul?)")).put("fetched", geoFetched()));
+                String why = !online() || (geoLastError != null && geoLastError.contains("resolve host")) ? "keine Internetverbindung"
+                        : geoLastError != null && geoLastError.toLowerCase(Locale.ROOT).contains("timeout") ? "dipul antwortet nicht"
+                        : geoLastError != null ? geoLastError : "keine Verbindung zu dipul";
+                geoEvent(new JSONObject().put("type", "error").put("message", "Geozonen nicht aktualisiert (" + why + ")."
+                        + (geoFetched() > 0 ? " Die gespeicherten Geozonen bleiben aktiv." : "")).put("fetched", geoFetched()).put("force", force));
             } else {
                 geoEvent(new JSONObject().put("type", "done").put("ok", ok).put("fail", fail).put("fetched", geoFetched()).put("tiles", count));
             }
@@ -1797,6 +2615,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (web != null) runOnUiThread(() -> web.evaluateJavascript("window.onCompassAcc && window.onCompassAcc(" + accuracy + ")", null));
     }
 
+    private double lastSentHeading = -999;
+
     @SuppressLint("MissingPermission")
     @Override
     public void onSensorChanged(android.hardware.SensorEvent ev) {
@@ -1811,7 +2631,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 case android.view.Surface.ROTATION_270: android.hardware.SensorManager.remapCoordinateSystem(rotMat, my, ax, remapMat); break;
                 default: System.arraycopy(rotMat, 0, remapMat, 0, 9);
             }
-            android.hardware.SensorManager.getOrientation(remapMat, orient);
+            // Blickrichtung robust bei jeder Neigung: Oberkante (Y) und Rückseite (−Z) der RC auf die Waagerechte projiziert.
+            // getOrientation allein wird instabil, wenn die RC wie beim Fliegen schräg/aufrecht gehalten wird.
+            double e = remapMat[1] - remapMat[2], nn = remapMat[4] - remapMat[5];
+            boolean flatOk = Math.hypot(e, nn) > 0.2;
+            if (!flatOk) android.hardware.SensorManager.getOrientation(remapMat, orient);
             // Missweisung (magnetisch -> geografisch Nord), alle 10 min aus letzter Position
             long now = System.currentTimeMillis();
             if (now - declinationAt > 600000) {
@@ -1827,13 +2651,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         (float) best.getLongitude(), (float) best.getAltitude(), now).getDeclination();
                 else declination = 2.5f;   // Mitteldeutschland ca. +2,5° (2026)
             }
-            double h = (Math.toDegrees(orient[0]) + declination + 360) % 360;
+            double az = flatOk ? Math.toDegrees(Math.atan2(e, nn)) : Math.toDegrees(orient[0]);
+            double h = (az + declination + 720) % 360;
             if (Double.isNaN(headingSmooth)) headingSmooth = h;
             else {
                 double diff = ((h - headingSmooth + 540) % 360) - 180;   // kürzester Weg über 0°/360°
-                headingSmooth = (headingSmooth + diff * 0.25 + 360) % 360;
+                if (Math.abs(diff) < 0.8) diff = 0;   // Zittern unter 1° ignorieren
+                headingSmooth = (headingSmooth + diff * (Math.abs(diff) > 30 ? 0.35 : 0.12) + 360) % 360;
             }
-            if (now - headingSent > 150) {
+            if (now - headingSent > 150 && Math.abs(((headingSmooth - lastSentHeading + 540) % 360) - 180) >= 0.5) {
+                lastSentHeading = headingSmooth;
                 headingSent = now;
                 final String v = String.format(Locale.ROOT, "%.1f", headingSmooth);
                 web.evaluateJavascript("window.onHeading && window.onHeading(" + v + ")", null);

@@ -15,38 +15,65 @@
     --o-bg:#5a3d10;--r-bg:#5c1d1d;--y-bg:#4d4510;--g-bg:#173d24;
     --sunday:#25405e;--suntw:#2e2a4c;--sunnight:#0d1220;
     --rose-bg:rgba(22,30,40,.86);--rose-ring:rgba(140,155,180,.6);--rose-tick:#c9d3e0;--rose-tick2:#7d8aa0;--rose-txt:#e6edf3}
-  body.dark #map{filter:brightness(.72) saturate(.9)}
+  body.dark #mapWrap{filter:brightness(.72) saturate(.9)}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font:16px/1.3 Roboto,system-ui,sans-serif;user-select:none}
-  #map{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block}
+  #mapWrap{position:fixed;inset:0;overflow:hidden;background:#cfd6dc}
+  #map{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
+  #mapT{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform;display:block}
+  #mapWrap.grey #mapT{filter:saturate(.3) brightness(1.1) contrast(.85)}
+  #mapO{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform}
   button{font:inherit;border:0;border-radius:10px;font-weight:700;cursor:pointer}
   button:disabled{opacity:.4}
   svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 
   /* Bedienelemente auf der Karte */
-  #ctrl{position:fixed;right:12px;top:12px;bottom:84px;display:flex;flex-direction:column;justify-content:center;gap:10px}
-  #ctrl button{width:56px;height:56px;background:var(--ctrl);color:var(--ctrltxt);display:flex;align-items:center;justify-content:center;border-radius:16px;box-shadow:0 3px 12px rgba(0,0,0,.28);backdrop-filter:blur(6px)}
+  #ctrl{position:fixed;z-index:15;right:12px;top:12px;bottom:84px;display:flex;flex-direction:column;justify-content:center;gap:10px}
+  #ctrl button{width:56px;height:56px;background:var(--ctrl);color:var(--ctrltxt);display:flex;align-items:center;justify-content:center;border-radius:16px;box-shadow:0 3px 12px rgba(0,0,0,.28);}
   #ctrl button svg{width:28px;height:28px}
 
   /* Leiste unten */
-  #bar{position:fixed;left:0;right:0;bottom:0;height:72px;background:var(--bar);backdrop-filter:blur(8px);color:var(--txt);display:flex;align-items:center;gap:8px;padding:0 12px;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
+  #bar{position:fixed;left:0;right:0;bottom:0;height:72px;background:var(--bar);color:var(--txt);display:flex;align-items:center;gap:8px;padding:0 12px;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
   #bar button{height:52px;padding:0 14px;border-radius:14px;flex:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
   .b-sec{background:var(--sec);color:var(--acc)}
   .b-ok{background:linear-gradient(180deg,#27b057,#1a8f40);color:#fff;box-shadow:0 2px 6px rgba(26,143,64,.35)}
-  #count{min-width:96px;flex:none;font-weight:700;font-size:17px}
-  #count small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
-  #q{flex:1;min-width:60px;width:60px;height:52px;border:1px solid var(--line);border-radius:14px;padding:0 14px;font-size:17px;background:var(--card);color:var(--txt)}
+  #count{min-width:96px;max-width:200px;flex:0 1 auto;font-weight:700;font-size:17px;overflow:hidden;white-space:nowrap}
+  #count small{display:block;font-weight:400;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #bar{overflow:hidden}
+  #bar button{min-width:0}
+  #bar .sp{flex:1;min-width:0}
+  #bSearch{width:56px;padding:0;justify-content:center;position:relative}
+  #bSearch svg{width:26px;height:26px}
+  #bSearch.on{background:var(--acc);color:#fff}
+  #bSearch.on::after{content:'';position:absolute;top:7px;right:8px;width:10px;height:10px;border-radius:50%;background:#ff7a00;border:2px solid #fff}
+  #searchBox{position:fixed;left:50%;top:10px;transform:translateX(-50%);width:min(560px,calc(100vw - 180px));background:var(--card);color:var(--txt);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:10px;display:none;z-index:30}
+  #searchBox.open{display:block}
+  #searchBox .row{display:flex;gap:8px;align-items:center}
+  #searchBox svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;flex:none}
+  #searchBox .ic{color:var(--muted);margin-left:6px}
+  #q{flex:1;min-width:0;height:52px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:18px;background:var(--card2);color:var(--txt);outline:none}
+  #q:focus{border-color:var(--acc)}
+  #q::-webkit-search-cancel-button{display:none}
+  #qX{height:52px;width:52px;border-radius:12px;background:var(--sec);color:var(--acc);display:flex;align-items:center;justify-content:center;flex:none}
+  #qHits{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:132px;overflow-y:auto}
+  #qHits:empty{display:none}
+  #qHits button{height:40px;padding:0 12px;border-radius:10px;background:var(--sec);color:var(--txt);font-size:15px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #qHits button.sel{background:#ff7a00;color:#fff}
+  #qHits button.place{background:var(--card);border:1px solid var(--line);display:flex;align-items:center;gap:4px}
+  #qHits button.place svg{width:18px;height:18px;stroke:var(--acc)}
+  #qHits button.place small{color:var(--muted);font-size:12px}
+  #qHits .more{font-size:14px;color:var(--muted);align-self:center;padding:0 6px}
   #bDl{font-size:17px}
 
   /* Meldungen */
   #toast{white-space:pre-line;position:fixed;left:50%;top:14px;transform:translateX(-50%);max-width:70%;background:#15202b;color:#fff;padding:12px 18px;border-radius:10px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none;z-index:50}
   #toast.err{background:#b3131b}
-  #wind{position:fixed;left:10px;top:8px;display:none;flex-direction:column;align-items:center;gap:4px;cursor:pointer;z-index:5}
-  #wind svg{width:132px;height:132px;flex:none;stroke:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))}
-  #wind .card{background:var(--ctrl);color:var(--txt);backdrop-filter:blur(6px);border-radius:10px;box-shadow:0 1px 5px rgba(0,0,0,.3);padding:5px 10px;font-size:12px;line-height:1.35;text-align:center;white-space:nowrap}
-  #wind .big{font-size:15px;font-weight:700}
+  #wind{position:fixed;left:10px;top:8px;display:none;flex-direction:column;align-items:flex-start;gap:6px;cursor:pointer;z-index:5;width:190px}
+  #wind svg{width:132px;height:132px;flex:none;stroke:none;margin-left:14px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))}
+  #wind .card{width:100%;box-sizing:border-box;background:var(--ctrl);color:var(--txt);border-radius:10px;border-left:5px solid #13a538;box-shadow:0 1px 5px rgba(0,0,0,.3);padding:5px 9px;font-size:12px;line-height:1.35;text-align:left;white-space:normal}
+  #wind .big{font-size:15px;font-weight:700;white-space:nowrap}
   #wind .sub{color:var(--muted)}
-  #notam{position:fixed;left:156px;top:12px;background:#b3131b;color:#fff;font-weight:700;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none;cursor:pointer;z-index:5}
+  #notam{position:fixed;left:200px;top:12px;background:#b3131b;color:#fff;font-weight:700;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none;cursor:pointer;z-index:5}
   #notam.inact{background:#5d6975}
   #net{position:fixed;right:80px;top:12px;padding:6px 12px 6px 9px;border-radius:20px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;background:#0e7a2c;color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.35);pointer-events:none;z-index:4}
   #net.off{background:#b3131b;color:#fff}
@@ -83,6 +110,7 @@
   .zone h4{margin:0 0 4px;font-size:17px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .chip{font-size:12px;font-weight:700;padding:3px 8px;border-radius:20px;color:#fff;background:#b3131b}
   .chip.cov{background:#13a538}
+  .chip.dist{background:#e07800}
   .chip.grey{background:#5d6975}
   .zone .meta{color:var(--muted);font-size:14px;margin-bottom:6px}
   .zone ul{margin:6px 0 0;padding-left:20px}
@@ -132,12 +160,56 @@
   label.pick em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
 
   /* Wetterseite */
+  #bInfo{position:relative}
+  #infoPop{position:fixed;display:none;flex-direction:column;gap:4px;padding:8px;background:var(--card);border-radius:16px;box-shadow:0 3px 14px rgba(0,0,0,.35);z-index:30;width:300px}
+  #infoPop.open{display:flex}
+  #infoPop .ph{font-size:12px;color:var(--muted);padding:2px 6px 4px}
+  #infoPop button{display:flex;align-items:center;gap:10px;padding:8px;background:transparent;color:var(--txt);text-align:left;border-radius:10px;border:2px solid transparent}
+  #infoPop button span{flex:1;display:flex;flex-direction:column}
+  #infoPop small{font-weight:400;font-size:12px;color:var(--muted)}
+  #infoPop .ck{width:24px;height:24px;border-radius:6px;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px}
+  #infoPop button.on{border-color:var(--acc)}
+  #infoPop button.on .ck{background:var(--acc);border-color:var(--acc)}
+  #infoPop button.on .ck::after{content:'✓'}
+  #infoPop .dot{width:12px;height:12px;border-radius:50%;flex:none}
+  #layerPop{position:fixed;display:none;gap:8px;padding:8px;background:var(--ctrl);border-radius:16px;box-shadow:0 3px 14px rgba(0,0,0,.35);z-index:30}
+  #layerPop.open{display:flex}
+  #layerPop button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;background:transparent;color:var(--txt);font-size:13px;border:2px solid transparent;border-radius:12px}
+  #layerPop button.on{border-color:var(--acc);color:var(--acc)}
+  #layerPop i{width:64px;height:44px;border-radius:8px;display:block;border:1px solid var(--line)}
+  .sw-grey{background:linear-gradient(135deg,#e9ebe8 0 40%,#cfd3cf 40% 55%,#f3f3f1 55% 75%,#d8dcd6 75%)}
+  .sw-osm{background:linear-gradient(135deg,#f2efe9 0 35%,#cde6b9 35% 55%,#f7d9a8 55% 62%,#aad3df 62%)}
+  .sw-sat{background:linear-gradient(135deg,#3d5a2e 0 30%,#6f7f4c 30% 50%,#a39a7a 50% 60%,#25402a 60%)}
   .hicon{width:28px;height:28px;margin-right:10px;color:var(--acc)}
   h3.sec{color:var(--acc);margin:16px 0 8px}
   .wxwrap{overflow-x:auto}
   .wxhero{display:flex;gap:14px;align-items:center;background:linear-gradient(135deg,var(--card),var(--card2))}
   .amp.big{width:30px;height:30px;flex:none;margin:0;box-shadow:0 0 0 4px rgba(0,0,0,.06)}
   .t1{font-weight:700;font-size:18px;margin-bottom:2px}
+  .picksearch{flex:1;min-width:160px;height:46px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:17px;background:var(--card2);color:var(--txt)}
+  .pickcnt{font-size:13px;color:var(--muted);align-self:center;white-space:nowrap}
+  .pick .pv{flex:none;width:44px;height:40px;border-radius:10px;background:var(--sec);color:var(--acc);display:flex;align-items:center;justify-content:center;margin-left:6px}
+  .pick .pv svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
+  .pick .pv.on{background:var(--acc);color:#fff}
+  .pvbox{padding:4px 0 10px 40px}
+  .pvbox canvas{width:100%;height:200px;border-radius:12px;display:block;border:1px solid var(--line)}
+  .pickfacets{display:flex;gap:14px;width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .pickfacet{display:flex;gap:6px;align-items:center;flex:none;font-size:14px;color:var(--muted)}
+  .pickfacet span{font-weight:700}
+  .chipbtn{height:36px;padding:0 12px;border-radius:18px;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:14px}
+  .chipbtn.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  .wx4{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .wx4 .tile{border-radius:12px;padding:10px 12px;background:var(--card2);border-left:6px solid #13a538;min-width:0}
+  .wx4 .tile.o{border-left-color:#e8a200;background:var(--o-bg)}
+  .wx4 .tile.r{border-left-color:#b3131b;background:var(--r-bg)}
+  .wx4 .tile .k{font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .wx4 .tile .v{font-size:22px;font-weight:800;margin:2px 0}
+  .wx4 .tile .d{font-size:13px;color:var(--muted)}
+  .wx4h{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
+  .wx4h div{border-radius:10px;background:var(--card2);padding:6px 4px;text-align:center;font-size:13px;line-height:1.35;border-top:5px solid #13a538}
+  .wx4h div.o{border-top-color:#e8a200}.wx4h div.r{border-top-color:#b3131b}
+  .wx4h b{font-size:15px}
+  @media (max-width:560px){.wx4{grid-template-columns:1fr}.wx4h{grid-template-columns:repeat(3,1fr)}}
   .sunsvg{width:100%;height:140px;display:block;border-radius:10px;stroke:none}
   .wxt{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
   .wxl{flex:none;width:122px;border-right:2px solid var(--line);background:var(--card2)}
@@ -162,19 +234,21 @@
 </head>
 <body>
 
-<canvas id="map"></canvas>
+<div id="mapWrap"><canvas id="mapT"></canvas><canvas id="mapO"></canvas><canvas id="map"></canvas></div>
 <div id="busy"></div>
 <div id="wind"></div>
 <div id="notam"></div>
 <div id="net"></div>
 <div id="toast"></div>
+<div id="infoPop"><div class="ph">Infos auf der Karte</div><button data-inf="geo"><b class="ck"></b><span><b>Geozonen</b><small>Antippen zeigt die Geozonen und Regeln an der Stelle · lange drücken markiert das Feld</small></span><i class="dot" style="background:#d42020"></i></button><button data-inf="fld"><b class="ck"></b><span><b>Felder</b><small>Feldnamen auf der Karte anzeigen</small></span><i class="dot" style="background:#1e7bff"></i></button></div>
+<div id="layerPop"><button data-ly="grey"><i class="sw-grey"></i>Grau</button><button data-ly="osm"><i class="sw-osm"></i>Karte</button><button data-ly="sat"><i class="sw-sat"></i>Luftbild</button></div>
 
 <div id="ctrl">
   <button id="zIn" title="Vergrößern"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
   <button id="zOut" title="Verkleinern"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
   <button id="bFit" title="Alle Felder anzeigen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-  <button id="bWx" title="Wetter"><svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 9.5 4.25 4.25 0 0 0 7 18z"/></svg></button>
-  <button id="bInfo" title="Geozonen-Info: Punkt antippen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
+  <button id="bLayer" title="Kartenart wechseln: Grau → Karte → Satellit"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/><path d="M3 17.5l9 5 9-5" opacity=".55"/></svg></button>
+  <button id="bInfo" title="Infos: Geozonen und/oder Feldnamen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
   <button id="bLoc" title="Mein Standort"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
 </div>
 
@@ -182,10 +256,20 @@
   <img class="logo" data-logo alt="Kitzrettung Limburg">
   <div id="count">0 markiert<small>0 Felder</small></div>
   <button id="bNone" class="b-sec" disabled><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Abwählen</button>
-  <input id="q" type="search" placeholder="Feld suchen…" autocomplete="off">
+  <div class="sp"></div>
+  <button id="bSearch" class="b-sec" title="Feld suchen"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button>
   <button id="bSync" class="b-sec" title="Mit UAV Editor abgleichen"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-14.3-4.9M4 12a8 8 0 0 0 14.3 4.9"/><path d="M5.5 3v4.5H10M18.5 21v-4.5H14"/></svg>Abgleichen</button>
-  <button id="bDl" class="b-ok" disabled><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download</button>
+  <button id="bDl" class="b-ok" disabled title="Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen"><svg viewBox="0 0 24 24" style="width:32px;height:32px"><path d="M1.5 4.5h7M15.5 4.5h7"/><path d="M5 4.5l3.5 5M19 4.5l-3.5 5"/><rect x="8" y="8" width="8" height="5" rx="2" fill="currentColor"/><path d="M12 14.5v7M9 18.5l3 3 3-3"/></svg>In Pilot 2</button>
   <button id="bSet" class="b-sec" title="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+</div>
+
+<div id="searchBox">
+  <div class="row">
+    <svg class="ic" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+    <input id="q" type="search" placeholder="Feld oder Ort suchen…" autocomplete="off" enterkeyhint="search">
+    <button id="qX" title="Suche löschen und schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div id="qHits"></div>
 </div>
 
 <!-- Einstellungen -->
@@ -196,8 +280,8 @@
     <div class="set"><div class="l"><div class="t">Zielordner (Download)</div><div class="v" id="vDst"></div></div><button class="b-sec" data-pick="dst">Ordner wählen</button></div>
     <div class="set"><div class="l"><div class="t">Verschieben statt kopieren</div><div class="v">Aus = Original bleibt im Quellordner</div></div><label class="sw"><input type="checkbox" id="sMove"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Zielordner vor Download leeren</div><div class="v">Löscht vorher alle .kmz im Zielordner</div></div><label class="sw"><input type="checkbox" id="sClear"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Felder für eine andere Drohne werden umgerechnet.</div></div><div class="seg"><button data-rcdrone="">Keine</button><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
+    <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div><div class="v">Auch über ⓘ → „Felder“ schaltbar</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Gibt es ein Feld als M3T und M4T, zeigt die Karte nur die passende Version; Felder, die es nur einmal gibt, immer (sie werden beim Download bei Bedarf umgerechnet).</div></div><div class="seg"><button data-rcdrone="">Keine</button><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
     <div class="set"><div class="l"><div class="t">Geozonen (dipul) anzeigen</div><div class="v">Flughäfen, Kontrollzonen, Schutzgebiete, Verkehrswege, Stromleitungen u. a. – nur zur Orientierung, maßgeblich ist dipul.de</div></div><label class="sw"><input type="checkbox" id="sGeo"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Fernpilotenzeugnis</div><div class="v" id="vLic"></div></div><div class="seg"><button data-lic="A1A3">A1/A3</button><button data-lic="A2">A2</button></div></div>
     <div class="set" id="aeBox" style="flex-direction:column;align-items:stretch"><div class="t">Allgemeinerlaubnis (§ 21h LuftVO) liegt vor für</div>
@@ -207,18 +291,23 @@
     <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Bundesland-Erkennung</div>
       <div class="v" id="vReg"></div>
     </div>
+    <div class="set"><div class="l"><div class="t">Hindernisse aus OpenStreetMap</div><div class="v">Windräder (grün, mit Gesamthöhe), Masten/Türme/Schornsteine (braunes Dreieck), Bahnstrecken (schwarz-weiß) und alle Freileitungen nach Spannung: violett dick = Höchstspannung (220/380 kV), violett = Hochspannung (110 kV), orange = Mittelspannung, grau gestrichelt = Nieder-/unbekannte Spannung. Auch Leitungen ohne dipul-Geozone – Hindernis beim Start und Tiefflug.</div></div><label class="sw"><input type="checkbox" id="sOsmPower"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Überfluggenehmigung Stromleitungen (Netzbetreiber)</div><div class="v">Genehmigungen der Netzbetreiber liegen vor – Stromtrassen werden grau, in der Info stehen Spannung und Masthöhe</div></div><label class="sw"><input type="checkbox" id="sPower"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Allgemeinverfügung Wildtierrettung (RP Gießen)</div><div class="v" id="vAvgi"></div></div><label class="sw"><input type="checkbox" id="sAvgi"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Saison-Vorschau (Planung)</div><div class="v">Zeigt Naturschutz-, FFH- und Vogelschutzgebiete im RB Gießen so, als wäre Mähsaison (15.04.–30.06.). Nur zur Planung – außerhalb der Saison gilt die Verfügung NICHT.</div></div><label class="sw"><input type="checkbox" id="sSeason"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Mit Kompass: Rose, Windsack und Nadel drehen sich mit der RC (oben = Oberkante der RC) · Nord oben: fest wie die Karte · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt die Blickrichtung der RC.</div></div><div class="seg"><button data-rose="dev">Mit Kompass</button><button data-rose="north">Nord oben</button><button data-rose="off">Aus</button></div></div>
+    <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Die Rose steht mit Norden oben wie die Karte, der Windsack zeigt die Windrichtung (schwarze Marke = woher der Wind kommt). Mit Kompassnadel: die rote Nadelspitze zeigt, wohin die RC schaut · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt ebenfalls die Blickrichtung.</div></div><div class="seg"><button data-rose="dev">Mit Kompassnadel</button><button data-rose="north">Ohne Nadel</button><button data-rose="off">Aus</button></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzbeginn bei Mähdatum ohne Uhrzeit</div><div class="v">Für das Wetter-Einsatzfenster (1 h vorher bis 1 h nachher)</div></div><input id="sWxStart" class="inp" type="time" style="flex:none;width:130px;min-width:0"></div>
+    <div class="set"><div class="l"><div class="t">Leistungsanzeige</div><div class="v">Zeigt oben auf der Karte Bilder pro Sekunde und Zeichenzeiten – zum Finden von Rucklern</div></div><label class="sw"><input type="checkbox" id="sPerf"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Wetter: Höhen anzeigen bis</div><div class="v">Nur die Höhen, in denen ihr fliegt – Wind, Temperatur und Böen in der Wettertabelle</div></div><div class="seg" id="sWxMax"><button data-wxmax="50">50 m</button><button data-wxmax="100">100 m</button><button data-wxmax="250">alle</button></div></div>
     <div class="set"><div class="l"><div class="t">Flugplätze anzeigen</div><div class="v" id="vAf">Flugplätze, Segel-/UL-Plätze und Hubschrauberlandeplätze im Gebiet der Felder (+3 km)</div></div><button class="b-sec" id="bAfList">Liste</button><label class="sw"><input type="checkbox" id="sAf"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">NOTAM / temporäre Betriebseinschränkungen</div><div class="v" id="vNotam"></div></div><button class="b-sec" id="bNotamList">Anzeigen</button></div>
     <div class="set"><div class="l"><div class="t">Regeln &amp; Auflagen</div><div class="v">Übersicht: Allgemeinverfügung, Allgemeinerlaubnis, was gilt wo</div></div><button class="b-sec" id="bRules">Ansehen</button></div>
     <div class="set"><div class="l"><div class="t">Wohngrundstücke einbeziehen</div><div class="v">Zeigt auch Wohngrundstücke als Geozone (deckt Ortschaften flächig ab)</div></div><label class="sw"><input type="checkbox" id="sGeoRes"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Geozonen-Daten</div><div class="v" id="vGeo"></div></div><button class="b-sec" id="bGeoNow">Jetzt aktualisieren</button></div>
     <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
-    <div class="set"><div class="l"><div class="t">Kartentyp</div></div><div class="seg"><button data-layer="sat">Satellit</button><button data-layer="osm">Karte</button></div></div>
+    <div class="set"><div class="l"><div class="t">Kartentyp</div><div class="v" id="vTiles">Angesehene Kacheln werden auf der RC gespeichert und sind danach offline verfügbar.</div></div><button class="b-sec" id="bTilesClear">Leeren</button><div class="seg"><button data-layer="grey">Grau</button><button data-layer="osm">Karte</button><button data-layer="sat">Luftbild</button></div></div>
+    <div class="set"><div class="l"><div class="t">Einsatzgebiet offline speichern</div><div class="v" id="vPrefetch">Lädt Grau, Karte und Luftbild für das Gebiet aller Felder (+ 3 km) einmal komplett auf die RC – danach ruckelfrei und ohne Internet.</div></div><button class="b-ok" id="bPrefetch">Herunterladen</button></div>
+    <div class="set"><div class="l"><div class="t">Wetter</div><div class="v">Tagesgang, Sonnenlauf und Einsatzwetter – auch per Tipp auf die Windanzeige</div></div><button class="b-sec" id="bWxSet">Wetter öffnen</button></div>
     <div class="set"><div class="l"><div class="t">Dateizugriff</div><div class="v" id="vAcc"></div></div><button class="b-sec" id="bAcc">Berechtigung</button></div>
     <div class="set" style="flex-direction:column;align-items:stretch">
       <div class="t">UAV Editor – Zugang für „Abgleichen“</div>
@@ -288,7 +377,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'sat' };
+const DEF = { perf: '0', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -316,11 +405,29 @@ function busy(t, o) {
 window.addEventListener('error', e => toast('Fehler: ' + e.message, true));
 
 // ================= Karte =================
-const cv = $('map'), ctx = cv.getContext('2d');
+const cv = $('map'), mctx = cv.getContext('2d');
+let ctx = mctx;
+// Vorgerenderte Karte mit Rand: beim Wischen/Zoomen wird nur dieses Bild verschoben, neu gezeichnet erst danach
+const buf = $('mapO'), bctx = buf.getContext('2d');
+const tcv = $('mapT'), tctx = tcv.getContext('2d', { alpha: false });
+const BV = { ok: false, lat: 0, lon: 0, z: 0, M: 0, bw: 0, bh: 0, t: 0 };
+// Karte/Grau: basemap.de (amtliche Karte, BKG); Luftbild: Orthophotos HE/RP (außerhalb Esri) – alles auf der RC gespeichert
+const BM_URL = l => (z, x, y) => `https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_${l}/default/GLOBAL_WEBMERCATOR/${z}/${y}/${x}.png`;
 const LAYERS = {
-  sat: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
-  osm: (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+  sat: (z, x, y) => {
+    const esri = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+    if (z < 12) return esri;   // Übersicht: Esri (amtliche Luftbilder erst ab Zoom 12 sinnvoll)
+    const n = 1 << z, st = new Set();
+    if (S.regions.length) [[0, 0], [1, 0], [0, 1], [1, 1], [.5, .5]].forEach(([a, b]) => { const r = regionAt(y2lat((y + b) / n), x2lon((x + a) / n)); if (r.st) st.add(r.st); });
+    else { st.add('HE'); st.add('RP'); }
+    const s = [...st].filter(k => k === 'HE' || k === 'RP');
+    return s.length ? `https://dop.local/${z}/${x}/${y}?s=${s.join(',')}` : esri;   // nur den nötigen Landesdienst abfragen
+  },
+  osm: BM_URL('farbe'),
+  grey: BM_URL('grau')
 };
+const LAYER_MAXZ = { sat: 19, osm: 18, grey: 18 };
+const LAYER_FILTER = { grey: 'saturate(.3) brightness(1.1) contrast(.85)' };
 const V = { lat: 50.39, lon: 8.07, z: 12 };
 let W = 0, H = 0, DPR = 1;
 const tiles = new Map();
@@ -333,51 +440,198 @@ const y2lat = y => 90 - 360 * Math.atan(Math.exp((y - 0.5) * 2 * Math.PI)) / Mat
 const ws = () => 256 * Math.pow(2, V.z);
 const BAR = 72;
 const mapH = () => H - BAR;  // sichtbarer Kartenbereich über der Leiste
-function toScreen(lat, lon) {
-  const s = ws();
-  return [(lon2x(lon) - lon2x(V.lon)) * s + W / 2, (lat2y(lat) - lat2y(V.lat)) * s + mapH() / 2];
+// Bildkonstanten nur neu rechnen, wenn sich Ausschnitt oder Größe ändern (spart Rechenzeit pro Punkt)
+const FR = { lat: NaN, lon: NaN, z: NaN, W: -1, H: -1, s: 0, cx: 0, cy: 0, hx: 0, hy: 0 };
+function frame() {
+  if (FR.lat !== V.lat || FR.lon !== V.lon || FR.z !== V.z || FR.W !== W || FR.H !== H) {
+    FR.lat = V.lat; FR.lon = V.lon; FR.z = V.z; FR.W = W; FR.H = H;
+    FR.s = ws(); FR.cx = lon2x(V.lon); FR.cy = lat2y(V.lat); FR.hx = W / 2; FR.hy = mapH() / 2;
+  }
+  return FR;
 }
+function toScreen(lat, lon) {
+  const f = frame();
+  return [(lon2x(lon) - f.cx) * f.s + f.hx, (lat2y(lat) - f.cy) * f.s + f.hy];
+}
+// Vektorpfade einmalig in Weltkoordinaten (Zoom 12) vorberechnen und per Transformation zeichnen – deutlich flüssiger beim Verschieben
+const WS12 = 256 * 4096;
+function projPath(o, rings, lonFirst, close) {
+  if (o._pp) return o._pp;
+  let ox = Infinity, oy = Infinity;
+  const P2 = rings.map(r => r.map(c => { const X = lon2x(lonFirst ? c[0] : c[1]) * WS12, Y = lat2y(lonFirst ? c[1] : c[0]) * WS12; if (X < ox) ox = X; if (Y < oy) oy = Y; return [X, Y]; }));
+  const p = new Path2D();
+  P2.forEach(r => { r.forEach(([X, Y], i) => i ? p.lineTo(X - ox, Y - oy) : p.moveTo(X - ox, Y - oy)); if (close && r.length > 2) p.closePath(); });
+  return (o._pp = { p, ox, oy });
+}
+/** Transformation für einen vorberechneten Pfad setzen; liefert den Maßstab k (Linienbreiten durch k teilen) */
+function usePath(pp) {
+  const f = frame(), k = f.s / WS12;
+  ctx.setTransform(DPR * k, 0, 0, DPR * k, DPR * ((pp.ox / WS12 - f.cx) * f.s + f.hx), DPR * ((pp.oy / WS12 - f.cy) * f.s + f.hy));
+  return k;
+}
+const resetTf = () => ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 function fromScreen(px, py) {
   const s = ws();
   return [y2lat(lat2y(V.lat) + (py - mapH() / 2) / s), x2lon(lon2x(V.lon) + (px - W / 2) / s)];
 }
 function resize() {
   DPR = window.devicePixelRatio || 1; W = innerWidth; H = innerHeight;
-  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); draw();
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); TV.ok = false; draw();
 }
-let pend = false;
-function draw() { if (!pend) { pend = true; requestAnimationFrame(paint); } }
+let pend = false, dirty = true, settleT = 0;
+/** Inhalt hat sich geändert → Karte neu rendern */
+function draw() { dirty = true; if (!pend) { pend = true; requestAnimationFrame(paint); } }
+/** Nur der Ausschnitt hat sich geändert (Wischen, Zoomen, Kompass) → vorgerendertes Bild verschieben; kurz danach scharf neu rendern */
+function drawLive(settle) {
+  if (!pend) { pend = true; requestAnimationFrame(paint); }
+  if (settle) { lastMove = Date.now(); clearTimeout(settleT); settleT = setTimeout(() => { if (!fling) draw(); }, 200); }
+}
 
+// Viele Kacheln kommen kurz nacheinander an: gesammelt neu zeichnen statt einmal pro Kachel
+let tileT = 0, tileAt = 0;
+function tileDraw(ms) {
+  const at = Date.now() + ms;
+  if (tileT && tileAt <= at) return;
+  clearTimeout(tileT); tileAt = at; tileT = setTimeout(() => { tileT = 0; tilesDirty = true; drawLive(false); }, ms);
+}
+const tileFail = new Map();   // Kachel-Schlüssel -> Zeitpunkt des letzten Fehlschlags (für erneuten Versuch)
+const tKey = (z, x, y) => P.layer + z + '/' + x + '/' + y;
 function tile(z, x, y) {
-  const k = P.layer + z + '/' + x + '/' + y;
+  const k = tKey(z, x, y);
   let t = tiles.get(k);
   if (!t) {
-    t = new Image(); t.onload = draw; t.src = LAYERS[P.layer](z, x, y); tiles.set(k, t);
-    if (tiles.size > 500) tiles.delete(tiles.keys().next().value);
+    const f = tileFail.get(k);
+    if (f && Date.now() - f.t < Math.min(60000, 4000 * f.n)) return null;   // kurz warten, dann neu versuchen
+    t = new Image();
+    t.onload = () => { tileFail.delete(k); tileDraw(80); };
+    t.onerror = () => { tiles.delete(k); const o = tileFail.get(k); tileFail.set(k, { t: Date.now(), n: o ? o.n + 1 : 1 }); tileDraw(4500); };
+    t.src = LAYERS[P.layer](z, x, y); tiles.set(k, t);
+    if (tiles.size > 700) tiles.delete(tiles.keys().next().value);
   }
   return t;
 }
+/** Bereits geladene gröbere Kachel als Platzhalter (bis zu 5 Zoomstufen höher), damit keine leeren Flecken bleiben */
+function parentTile(z, x, y) {
+  for (let d = 1; d <= 5 && z - d >= 1; d++) {
+    const p = tiles.get(tKey(z - d, x >> d, y >> d));
+    if (p && p.complete && p.naturalWidth) {
+      const n = 1 << d, sz = p.naturalWidth / n;
+      return { img: p, sx: (x % n) * sz, sy: (y % n) * sz, sz };
+    }
+  }
+  return null;
+}
 
+/** Lage des vorgerenderten Bildes im aktuellen Ausschnitt: [x, y, Faktor] in Bildschirm-Pixeln */
+function bufPlace(B) {
+  B = B || BV;
+  const k = Math.pow(2, V.z - B.z), s = ws(), ss = 256 * Math.pow(2, B.z);
+  // Mitte des Bildes so, wie es gezeichnet wurde (nicht mit der heutigen Bildschirmgröße – die kann sich nach dem Wiederöffnen ändern)
+  const X0 = lon2x(B.lon) - B.hx / ss, Y0 = lat2y(B.lat) - B.hy / ss;
+  return [(X0 - lon2x(V.lon)) * s + W / 2, (Y0 - lat2y(V.lat)) * s + mapH() / 2, k];
+}
+const covers = (B, lo, hi) => { if (!B.ok) return false; const [x, y, k] = bufPlace(B); return k > lo && k < hi && x <= 0 && y <= 0 && x + B.bw * k >= W && y + B.bh * k >= H; };
+// Kachel-Ebene: ebenfalls vorgerendert mit Rand und per CSS verschoben – exakt im Gleichschritt mit den Zonen/Feldern
+const TV = { ok: false }; let tilesDirty = true;
+// Auflösung der vorgerenderten Bilder begrenzen: kleinere Grafik-Texturen = viel flüssiger auf der RC
+const TILE_DPR = 1, LAYER_DPR = 1.5;
+const PERF = { tiles: 0, layers: 0, frames: [], last: 0 };
+function renderTiles() {
+  const t0 = performance.now(), D0 = DPR; DPR = Math.min(D0, TILE_DPR);
+  const M = Math.round(Math.max(W, H) * 0.25), Wr = W, Hr = H, bw = W + 2 * M, bh = H + 2 * M;
+  if (tcv.width !== Math.round(bw * DPR) || tcv.height !== Math.round(bh * DPR)) { tcv.width = Math.round(bw * DPR); tcv.height = Math.round(bh * DPR); tcv.style.width = bw + 'px'; tcv.style.height = bh + 'px'; }
+  ctx = tctx; W = bw; H = bh;
+  try { ctx.setTransform(DPR, 0, 0, DPR, 0, 0); paintTiles(); }
+  finally { W = Wr; H = Hr; ctx = mctx; DPR = D0; PERF.tiles = performance.now() - t0; }
+  Object.assign(TV, { ok: true, lat: V.lat, lon: V.lon, z: V.z, M, bw, bh, hx: bw / 2, hy: (bh - BAR) / 2 });
+  tilesDirty = false;
+}
+const placeEl = (el, B, hideOut) => { const [x, y, k] = bufPlace(B); el.style.visibility = !hideOut || (k > .3 && k < 3.5) ? 'visible' : 'hidden'; el.style.transform = `translate3d(${x}px,${y}px,0) scale(${k})`; };
+let lastMove = 0;
 function paint() {
   pend = false;
+  const gest = (ptr.size > 0 || fling) && Date.now() - lastMove < 180;   // Finger (oder Schwung) bewegt die Karte gerade
+  let cover = false;
+  cover = covers(BV, .55, 1.8);
+  // Ebenen (Zonen, Felder, Hindernisse) nur neu rendern, wenn nicht gerade gewischt wird – beim Wischen wird das fertige Bild verschoben
+  const sizeChanged = BV.ok && (BV.sw !== W || BV.sh !== H || BV.dpr !== DPR);   // z. B. nach dem Wiederöffnen der App
+  if (sizeChanged || (!gest && (dirty || !cover))) renderBuf();
+  // Drei Ebenen: Kacheln und Zonen/Felder als fertige Bilder, die nur per CSS verschoben werden (gleichzeitig, kein Versatz), oben Position/Kompass
+  // Kacheln: neu, wenn die Ebenen gerade neu gerendert wurden (gleicher Ausschnitt), neue Kacheln angekommen sind (nicht während Bewegung) oder der Rand erreicht ist
+  if (!TV.ok || (BV.ok && BV.t !== TV.bt && !gest) || (tilesDirty && !gest) || !covers(TV, .55, 1.8)) { renderTiles(); TV.bt = BV.t; }
+  placeEl(tcv, TV, false);
+  if (BV.ok) placeEl(buf, BV, true);
+  ctx = mctx;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  paintLive();
+}
+function renderBuf() {
+  const t0 = performance.now(), D0 = DPR; DPR = Math.min(D0, LAYER_DPR);
+  const M = Math.round(Math.max(W, H) * 0.25), Wr = W, Hr = H;
+  const bw = W + 2 * M, bh = H + 2 * M;
+  if (buf.width !== Math.round(bw * DPR) || buf.height !== Math.round(bh * DPR)) { buf.width = Math.round(bw * DPR); buf.height = Math.round(bh * DPR); buf.style.width = bw + 'px'; buf.style.height = bh + 'px'; }
+  ctx = bctx; W = bw; H = bh;
+  try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, buf.width, buf.height); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); paintStatic(); }
+  finally { W = Wr; H = Hr; ctx = mctx; DPR = D0; PERF.layers = performance.now() - t0; }
+  labelBoxes.forEach(b => { b.x -= M; b.y -= M; });   // Etiketten-Treffer in Bildschirmkoordinaten
+  Object.assign(BV, { ok: true, lat: V.lat, lon: V.lon, z: V.z, M, bw, bh, hx: bw / 2, hy: (bh - BAR) / 2, sw: Wr, sh: Hr, dpr: D0, t: Date.now() });
+  dirty = false;
+}
+function paintTiles() {
   ctx.fillStyle = '#cfd6dc'; ctx.fillRect(0, 0, W, H);
-  const tz = Math.max(1, Math.min(19, Math.round(V.z)));
+  const tz = Math.max(1, Math.min(LAYER_MAXZ[P.layer] || 18, Math.round(V.z)));
   const n = Math.pow(2, tz), ts = 256 * Math.pow(2, V.z - tz);
   const cx = lon2x(V.lon) * n * ts, cy = lat2y(V.lat) * n * ts, mh = mapH();
   const x0 = Math.floor((cx - W / 2) / ts), x1 = Math.floor((cx + W / 2) / ts);
   const y0 = Math.max(0, Math.floor((cy - mh / 2) / ts)), y1 = Math.min(n - 1, Math.floor((cy + (H - mh / 2)) / ts));
   for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
-    const t = tile(tz, ((tx % n) + n) % n, ty);
-    if (t.complete && t.naturalWidth) ctx.drawImage(t, Math.round(tx * ts - cx + W / 2), Math.round(ty * ts - cy + mh / 2), Math.ceil(ts) + 1, Math.ceil(ts) + 1);
+    const xx = ((tx % n) + n) % n, t = tile(tz, xx, ty);
+    const dx = Math.round(tx * ts - cx + W / 2), dy = Math.round(ty * ts - cy + mh / 2), dw = Math.ceil(ts) + 1;
+    if (t && t.complete && t.naturalWidth) ctx.drawImage(t, dx, dy, dw, dw);
+    else { const pt = parentTile(tz, xx, ty); if (pt) ctx.drawImage(pt.img, pt.sx, pt.sy, pt.sz, pt.sz, dx, dy, dw, dw); }
   }
+}
+function paintStatic() {
   if (P.geo === '1' && S.geo.length && V.z >= 9) paintGeo();
+  if (P.osmPower === '1' && (S.obs.length || S.rails.length) && V.z >= 11) paintObstacles();
+  if (P.osmPower === '1' && S.osm.length && V.z >= 11) paintOsmLines();
   if (S.notams.length) S.notams.forEach(drawNotam);
   const vis = S.files.filter(visible);
-  vis.filter(f => !f.selected).forEach(drawField);
-  vis.filter(f => f.selected).forEach(drawField);
-  if (P.labels === '1') vis.forEach(drawLabel);
-  if (P.airf === '1' && S.airfields.length && V.z >= 9) { S.airfields.filter(isVincenz).forEach(drawVincenzRings); S.airfields.forEach(drawAirfield); }
+  const ord = vis.filter(fieldOnScreen).sort(byAreaDesc);
+  ord.forEach(f => { drawOutline(f); drawField(f); });
+  ord.filter(f => f.selected).forEach(drawField);   // Route markierter Felder obenauf
+  labelBoxes = [];
+  if (P.labels === '1') { vis.filter(f => f.selected).forEach(drawLabel); vis.filter(f => !f.selected).forEach(drawLabel); }
+  // dipul ist maßgeblich: Symbol und Vincenz-Ringe in der Mitte des dipul-Kreises; OSM-Marker nur, wo dipul keinen Platz hat
+  const icons = P.geo === '1' && S.geo.length && V.z >= 9 ? geoAirIcons() : [];
+  const nearIcon = a => icons.some(g => Math.hypot((a.lat - g.lat) * 111.2, (a.lon - g.lon) * 71) < 0.6);
+  // Hubschrauberlandeplätze sitzen auf dem Mittelpunkt des dipul-Kreises
+  if (V.z >= 9 && (icons.length || (P.airf === '1' && S.airfields.length))) vincenzCenters(icons).forEach(drawVincenzRings);
+  if (P.airf === '1' && S.airfields.length && V.z >= 9) {
+    S.airfields.map(a => a.kind === 'heliport' && S.geo.length ? heliSnap(a) : a).filter(a => !nearIcon(a)).forEach(drawAirfield);
+  }
+  icons.forEach(drawGeoAirIcon);
+}
+
+/** Schnell wechselnde Teile direkt auf den Bildschirm: Markierung, eigene Position, Blickrichtung, Quellenangabe */
+function paintLive() {
+  if (P.perf === '1') {   // Leistungsanzeige (Einstellungen): Bilder pro Sekunde und Zeichenzeiten
+    const now = performance.now(); PERF.frames.push(now); while (PERF.frames.length && now - PERF.frames[0] > 1000) PERF.frames.shift();
+    const t = `${PERF.frames.length} fps · Kacheln ${Math.round(PERF.tiles)} ms · Ebenen ${Math.round(PERF.layers)} ms · DPR ${DPR} · ${W}×${H}`;
+    ctx.font = '700 12px Roboto,system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    const tw = ctx.measureText(t).width; ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(170, 60, tw + 12, 20); ctx.fillStyle = '#7CFC00'; ctx.fillText(t, 176, 64);
+    if (!PERF.raf) PERF.raf = requestAnimationFrame(() => { PERF.raf = 0; drawLive(false); });   // laufend messen
+  }
+  { // Pflicht-Quellenangabe der Kartendienste, klein unten rechts
+    const at = P.layer === 'sat' ? 'Luftbild © GeoBasis-DE / HVBG, LVermGeoRP (dl-de/by-2-0) · außerhalb © Esri' : '© GeoBasis-DE / BKG ' + new Date().getFullYear() + ' CC BY 4.0';
+    const at2 = at + (P.osmPower === '1' ? ' · Hindernisse © OpenStreetMap' : '');
+    ctx.font = '11px Roboto,system-ui,sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    const tw = ctx.measureText(at2).width;
+    const ax = W - 80;   // links neben den Kartenknöpfen
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(ax - tw - 4, H - 92, tw + 8, 15);
+    ctx.fillStyle = '#334'; ctx.fillText(at2, ax, H - 78);
+  }
   if (infoPin) {
     const [x, y] = toScreen(infoPin[0], infoPin[1]);
     ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y - 22, 9, Math.PI * 0.75, Math.PI * 2.25); ctx.closePath();
@@ -424,28 +678,213 @@ function loadGeoVectors() {
   draw();
 }
 function geoLayerOn(layer) { return layer !== 'wohngrundstuecke' || P.georesi === '1'; }
+/** Bundesländer, die eine Geozone berührt (Stichprobe ihrer Eckpunkte) – einmal je Zone berechnet */
+// Welche Bundesländer/RB berührt eine Zone? Schnell über das Grenz-Raster; Ergebnis dauerhaft gespeichert (bis neue Grenzen geladen werden)
+let regStore = null, regStoreDirty = false, regStoreT = 0;
+function regStoreGet() {
+  if (regStore && regStore.v === S.regFetched) return regStore;
+  regStore = { v: S.regFetched, m: {} };
+  try { const o = JSON.parse(A.getPref('regstore', '{}') || '{}'); if (o.v === S.regFetched && o.m) regStore.m = o.m; } catch (e) { }
+  return regStore;
+}
+function regStoreSave() { regStoreDirty = true; clearTimeout(regStoreT); regStoreT = setTimeout(() => { if (regStoreDirty) { regStoreDirty = false; try { A.setPref('regstore', JSON.stringify(regStore)); } catch (e) { } } }, 4000); }
+const featKey = f => f.layer + '|' + f.bb.n.toFixed(5) + ',' + f.bb.w.toFixed(5) + ',' + f.bb.s.toFixed(5) + ',' + f.bb.e.toFixed(5) + '|' + f.rings.reduce((a, r) => a + r.length, 0);
+function featRegions(f) {
+  if (f.regs) return f.regs;
+  if (!S.regions.length) return (f.regs = [featRegion(f)]);
+  const st = regStoreGet(), k = featKey(f);
+  let masks = st.m[k];
+  if (!masks) {
+    const { n, s: so, e, w } = f.bb;
+    const crossed = segsIn(w, so, e, n, g => segHitsRect(g, w, so, e, n));
+    const [cla, clo] = featPoint(f), m0 = memberFast(cla, clo), set = new Set([m0]);
+    if (crossed) {   // Eckpunkte entlang der Ringe: Zugehörigkeit per kurzer Strahlen vom vorigen Punkt
+      let pla = cla, plo = clo, pm = m0;
+      f.rings.forEach(r => r.forEach(c => { pm = memberFrom(pm, pla, plo, c[1], c[0]); pla = c[1]; plo = c[0]; set.add(pm); }));
+    }
+    masks = st.m[k] = [...set];
+    regStoreSave();
+  }
+  const out = new Map();
+  masks.forEach(m => { const r = regFromMask(m); out.set((r.st || '') + '|' + r.rbGi, r); });
+  return (f.regs = [...out.values()]);
+}
+const GEO_STYLE = { on: ['rgba(20,170,60,.24)', 'rgba(10,140,45,.95)', 1.5], dist: ['rgba(255,140,0,.26)', 'rgba(215,110,0,.95)', 1.8], off: ['rgba(230,30,30,.22)', 'rgba(210,20,20,.9)', 2] };
+function geoPathDraw(f, st) {
+  ctx.fillStyle = st[0]; ctx.strokeStyle = st[1]; ctx.lineWidth = st[2];
+  if (f.type === 'Point' || f.type === 'MultiPoint') {
+    f.rings.forEach(r => r.forEach(c => { const [x, y] = toScreen(c[1], c[0]); ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); ctx.stroke(); }));
+    return;
+  }
+  const poly = f.type === 'Polygon' || f.type === 'MultiPolygon';
+  const pp = projPath(f, f.rings, true, poly), k = usePath(pp);
+  ctx.lineWidth = st[2] / k;
+  if (poly) ctx.fill(pp.p, 'evenodd');
+  ctx.stroke(pp.p);
+  resetTf();
+}
+// Raster für Zonen über einer Landesgrenze: Zellen geografisch ausgerichtet, damit der Cache beim Verschieben greift
+const covCellCache = new Map();
+function cellCovered(layer, lat, lon) {
+  const k = layer + ':' + lat.toFixed(6) + ',' + lon.toFixed(6);
+  let v = covCellCache.get(k);
+  if (v === undefined) { v = !!coverageOf(layer, regionAt(lat, lon)); if (covCellCache.size > 120000) covCellCache.clear(); covCellCache.set(k, v); }
+  return v;
+}
 function paintGeo() {
-  const [n0, w0] = fromScreen(0, 0), [s0, e0] = fromScreen(W, H);
+  const [n0, w0] = fromScreen(0, 0), [s0, e0] = fromScreen(W, H), px = W / Math.max(1e-9, e0 - w0);
+  // gerenderter Bereich in Mercator-Koordinaten (0..1), für die Grenz-Trennung etwas größer
+  const ax0 = lon2x(w0), ax1 = lon2x(e0), ay0 = lat2y(n0), ay1 = lat2y(s0), mx = (ax1 - ax0) * .5, my = (ay1 - ay0) * .5;
+  const area = { x0: ax0 - mx, x1: ax1 + mx, y0: ay0 - my, y1: ay1 + my, need: { x0: ax0, x1: ax1, y0: ay0, y1: ay1 } };
   ctx.save();
   ctx.lineJoin = 'round';
   for (const f of S.geo) {
     if (!geoLayerOn(f.layer)) continue;
     if (f.bb.s > n0 || f.bb.n < s0 || f.bb.w > e0 || f.bb.e < w0) continue;
-    const cov = !!coverageOf(f.layer, featRegion(f));
-    ctx.fillStyle = cov ? 'rgba(20,170,60,.24)' : 'rgba(230,30,30,.22)';
-    ctx.strokeStyle = cov ? 'rgba(10,140,45,.95)' : 'rgba(210,20,20,.9)';
-    ctx.lineWidth = cov ? 1.5 : 2;
-    const poly = f.type === 'Polygon' || f.type === 'MultiPolygon';
-    if (f.type === 'Point' || f.type === 'MultiPoint') {
-      f.rings.forEach(r => r.forEach(c => { const [x, y] = toScreen(c[1], c[0]); ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); ctx.stroke(); }));
-      continue;
-    }
-    ctx.beginPath();
-    f.rings.forEach(r => r.forEach((c, i) => { const [x, y] = toScreen(c[1], c[0]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }));
-    if (poly) ctx.fill('evenodd');
-    ctx.stroke();
+    if ((f.bb.e - f.bb.w) * px < 1.5 && (f.bb.n - f.bb.s) * px < 1.5) continue;   // kleiner als ein Pixel: weglassen
+    const kinds = S.regions.length ? featRegions(f).map(r => covKind(f.layer, r)) : [covKind(f.layer, featRegion(f))];
+    if (kinds.every(c => c === kinds[0])) { geoPathDraw(f, GEO_STYLE[kinds[0]]); continue; }
+    const onSt = GEO_STYLE[kinds.find(k => k !== 'off') || 'on'];
+    // Zone liegt in Bundesländern mit unterschiedlicher Genehmigung: an der Landesgrenze trennen.
+    // Die Trennung wird im Hintergrund einmal je Zoomstufe berechnet und gespeichert – das Zeichnen kostet danach fast nichts.
+    const sp = splitFor(f, area);
+    if (!sp) { geoPathDraw(f, GEO_STYLE[covKind(f.layer, featRegion(f))]); continue; }
+    const kS = frame().s / (256 * Math.pow(2, sp.zr));
+    const clipTo = p => { const fr = frame(); ctx.setTransform(DPR * kS, 0, 0, DPR * kS, DPR * ((sp.ox - fr.cx) * fr.s + fr.hx), DPR * ((sp.oy - fr.cy) * fr.s + fr.hy)); ctx.clip(p); resetTf(); };
+    ctx.save(); clipTo(sp.off); geoPathDraw(f, GEO_STYLE.off); ctx.restore();
+    ctx.save(); clipTo(sp.on); geoPathDraw(f, onSt); ctx.restore();
   }
   ctx.restore();
+}
+
+// ---------- Trennung an Landesgrenzen: Quadtree im Hintergrund ----------
+// Grenzsegmente in einem Raster (0,01°) für schnelle Abfragen; Zugehörigkeit eines Punktes wird vom Elternquadrat
+// über kurze Strahlen (Anzahl Grenzkreuzungen) abgeleitet statt jedes Mal über alle Grenzlinien.
+let segIdx = null;
+const SEG_BIN = 0.01;
+function segIndex() {
+  if (segIdx && segIdx.n === S.regions.length) return segIdx;
+  const bins = new Map(), segs = [];
+  S.regions.forEach((r, ri) => (r.lines || []).forEach(ln => {
+    for (let i = 0; i + 3 < ln.length; i += 2) {
+      const a = ln[i], b = ln[i + 1], c = ln[i + 2], d = ln[i + 3], id = segs.length;
+      segs.push([a, b, c, d, ri]);
+      for (let x = Math.floor(Math.min(a, c) / SEG_BIN); x <= Math.floor(Math.max(a, c) / SEG_BIN); x++)
+        for (let y = Math.floor(Math.min(b, d) / SEG_BIN); y <= Math.floor(Math.max(b, d) / SEG_BIN); y++) {
+          const k = x * 100000 + y; let l = bins.get(k); if (!l) bins.set(k, l = []); l.push(id);
+        }
+    }
+  }));
+  return (segIdx = { n: S.regions.length, bins, segs, stamp: new Uint32Array(segs.length), st: 0 });
+}
+/** Segmente, deren Raster-Zelle das Rechteck (Länge/Breite) berührt */
+function segsIn(w, s, e, n, fn) {
+  const I = segIndex(); const st = ++I.st;
+  for (let x = Math.floor(w / SEG_BIN); x <= Math.floor(e / SEG_BIN); x++)
+    for (let y = Math.floor(s / SEG_BIN); y <= Math.floor(n / SEG_BIN); y++) {
+      const l = I.bins.get(x * 100000 + y); if (!l) continue;
+      for (const id of l) { if (I.stamp[id] === st) continue; I.stamp[id] = st; if (fn(I.segs[id]) === true) return true; }
+    }
+  return false;
+}
+function segHitsRect(g, w, s, e, n) {
+  const [a, b, c, d] = g;
+  if (Math.max(a, c) < w || Math.min(a, c) > e || Math.max(b, d) < s || Math.min(b, d) > n) return false;
+  if ((a >= w && a <= e && b >= s && b <= n) || (c >= w && c <= e && d >= s && d <= n)) return true;
+  return segX(a, b, c, d, w, s, e, s) || segX(a, b, c, d, e, s, e, n) || segX(a, b, c, d, e, n, w, n) || segX(a, b, c, d, w, n, w, s);
+}
+/** Mitgliedschaft (Bitmaske je Region) an Punkt B aus bekannter Mitgliedschaft an Punkt A */
+function memberFrom(mA, laA, loA, laB, loB) {
+  let m = mA;
+  segsIn(Math.min(loA, loB), Math.min(laA, laB), Math.max(loA, loB), Math.max(laA, laB), g => {
+    if (segX(loA, laA, loB, laB, g[0], g[1], g[2], g[3])) m ^= (1 << g[4]);
+  });
+  return m;
+}
+function memberFull(lat, lon) { let m = 0; S.regions.forEach((r, i) => { if (inRegion(lat, lon, r)) m |= 1 << i; }); return m; }
+// Schnelle Zugehörigkeit: Raster (0,02°) – jeder Rasterpunkt wird über einen kurzen Strahl vom Nachbarpunkt abgeleitet,
+// nur der allererste über alle Grenzlinien. Danach kostet jede Abfrage nur noch wenige Grenzsegmente.
+const MG = 0.02, MGO = 0.0001234567; let memGrid = new Map(), memGridN = -1;   // Versatz: Rasterpunkte nie genau auf Grenzlinien
+function gridMask(gx, gy) {
+  if (memGridN !== S.regions.length) { memGrid = new Map(); memGridN = S.regions.length; }
+  const k = gx + ',' + gy; let m = memGrid.get(k);
+  if (m !== undefined) return m;
+  const lat = gy * MG + MGO, lon = gx * MG + MGO;
+  // nächsten bekannten Rasterpunkt suchen (Spirale bis 6 Zellen), sonst einmal komplett rechnen
+  for (let r = 1; r <= 6 && m === undefined; r++)
+    for (let dx = -r; dx <= r && m === undefined; dx++) for (const dy of [-r, r]) {
+      const n = memGrid.get((gx + dx) + ',' + (gy + dy)); if (n !== undefined) { m = memberFrom(n, (gy + dy) * MG + MGO, (gx + dx) * MG + MGO, lat, lon); break; }
+      const n2 = memGrid.get((gx + dy) + ',' + (gy + dx)); if (n2 !== undefined) { m = memberFrom(n2, (gy + dx) * MG + MGO, (gx + dy) * MG + MGO, lat, lon); break; }
+    }
+  if (m === undefined) m = memberFull(lat, lon);
+  memGrid.set(k, m);
+  return m;
+}
+function memberFast(lat, lon) {
+  if (!S.regions.length) return 0;
+  const gx = Math.round(lon / MG), gy = Math.round(lat / MG);
+  return memberFrom(gridMask(gx, gy), gy * MG + MGO, gx * MG + MGO, lat, lon);
+}
+const regFromMask = m => {
+  let st = null, rb = false;
+  S.regions.forEach((r, i) => { if (!(m & (1 << i))) return; if (r.lvl === '4' && r.code) st = r.code.replace('DE-', ''); else if (r.lvl === '5') rb = true; });
+  return st ? { st, rbGi: st === 'HE' && rb, fallback: false } : { st: null, rbGi: false, fallback: true };
+};
+const splitJobs = new Map(); let splitBusy = false, splitDrawT = 0;
+// Beim Wischen/Zoomen Pause, damit die Karte flüssig bleibt
+const splitPause = () => (ptr.size || fling || Date.now() - lastMove < 300) ? 120 : 4;
+// fertige Trennungen gesammelt anzeigen (höchstens alle 400 ms neu zeichnen, nicht während Bewegung)
+function splitRedraw() {
+  if (splitDrawT) return;
+  splitDrawT = setTimeout(function go() { if (ptr.size || fling || Date.now() - lastMove < 300) { splitDrawT = setTimeout(go, 300); return; } splitDrawT = 0; draw(); }, 400);
+}
+function splitFor(f, area) {
+  const zr = Math.max(1, Math.round(V.z)), sp = f._split, nd = area.need;
+  const fits = sp && sp.zr === zr && sp.x0 <= Math.max(nd.x0, lon2x(f.bb.w)) && sp.x1 >= Math.min(nd.x1, lon2x(f.bb.e)) && sp.y0 <= Math.max(nd.y0, lat2y(f.bb.n)) && sp.y1 >= Math.min(nd.y1, lat2y(f.bb.s));
+  if (!fits && !splitJobs.has(f)) { splitJobs.set(f, { zr, area }); if (!splitBusy) { splitBusy = true; setTimeout(runSplit, 0); } }
+  return sp || null;   // bis die neue Trennung fertig ist, die alte (andere Zoomstufe) weiterverwenden
+}
+function runSplit() {
+  const it = splitJobs.entries().next();
+  if (it.done) { splitBusy = false; return; }
+  const [f, job] = it.value;
+  const zr = job.zr, WSz = 256 * Math.pow(2, zr), minS = 2 / WSz;
+  // Bereich: Zone ∩ (gerenderter Bereich + Rand), als Quadrat in Mercator-Koordinaten
+  const x0 = Math.max(job.area.x0, lon2x(f.bb.w)), x1 = Math.min(job.area.x1, lon2x(f.bb.e));
+  const y0 = Math.max(job.area.y0, lat2y(f.bb.n)), y1 = Math.min(job.area.y1, lat2y(f.bb.s));
+  if (x1 <= x0 || y1 <= y0) { splitJobs.delete(f); setTimeout(runSplit, 0); return; }
+  let size = minS; while (size < Math.max(x1 - x0, y1 - y0)) size *= 2;
+  const on = new Path2D(), off = new Path2D(), ox = x0, oy = y0;
+  const cla = y2lat(y0 + size / 2), clo = x2lon(x0 + size / 2);
+  const stack = [[x0, y0, size, cla, clo, memberFast(cla, clo)]];
+  const layer = f.layer;
+  const kindOf = new Map();
+  const step = () => {
+    if (splitJobs.get(f) !== job) { setTimeout(runSplit, 0); return; }   // überholt
+    const t0 = performance.now();
+    while (stack.length && performance.now() - t0 < 8) {
+      const [x, y, sz, pla, plo, pm] = stack.pop();
+      if (x > x1 || y > y1 || x + sz < x0 || y + sz < y0) continue;
+      const w = x2lon(x), e = x2lon(x + sz), n = y2lat(y), so = y2lat(y + sz);
+      const cla2 = y2lat(y + sz / 2), clo2 = x2lon(x + sz / 2);
+      const m = memberFrom(pm, pla, plo, cla2, clo2);
+      const crossed = sz > minS && segsIn(w, so, e, n, g => segHitsRect(g, w, so, e, n));
+      if (!crossed) {
+        let k = kindOf.get(m); if (k === undefined) { k = covKind(layer, regFromMask(m)); kindOf.set(m, k); }
+        const ws = WSz;
+        (k === 'off' ? off : on).rect((x - ox) * ws, (y - oy) * ws, sz * ws + .6, sz * ws + .6);
+        continue;
+      }
+      const h = sz / 2;
+      stack.push([x, y, h, cla2, clo2, m], [x + h, y, h, cla2, clo2, m], [x, y + h, h, cla2, clo2, m], [x + h, y + h, h, cla2, clo2, m]);
+    }
+    if (stack.length) { setTimeout(step, splitPause()); return; }
+    f._split = { zr, on, off, ox, oy, x0: job.area.x0, x1: job.area.x1, y0: job.area.y0, y1: job.area.y1 };
+    splitJobs.delete(f);
+    splitRedraw();
+    setTimeout(runSplit, splitPause());
+  };
+  step();
 }
 function inRing(lat, lon, ring) {
   let c = false;
@@ -476,7 +915,7 @@ function geoAt(lat, lon) {
     } else {
       f.rings.forEach(r => { for (let i = 0; i < r.length; i++) if (segDistM(lat, lon, r[i], r[Math.min(i + 1, r.length - 1)]) < 25) hit = true; });
     }
-    if (hit) hits.push({ layer: f.layer, props: f.props });
+    if (hit) hits.push({ layer: f.layer, props: f.props, f });
   }
   return hits;
 }
@@ -525,6 +964,86 @@ function drawNotam(n) {
   ctx.restore();
 }
 
+// Flugplatz-Geozonen bekommen ein Symbol (✈ bzw. H bei Hubschrauberlandeplätzen); doppelt zu OSM-Platzmarkern wird vermieden
+const AIR_LAYERS = ['flughaefen', 'flugplaetze', 'modellflugplaetze'];
+const isHeliZone = f => /HELI/i.test(f.props.type_code_detail || '') || /hubschrauber|heliport|helikopter/i.test(f.props.name || '');
+function geoAirIcons() {
+  const out = [];
+  S.geo.forEach(f => {
+    if (!AIR_LAYERS.includes(f.layer)) return;
+    // Mitte des dipul-Kreises: bei Kreisen der echte Kreismittelpunkt, sonst Schwerpunkt der Eckpunkte
+    const c = featCircle(f);
+    const r0 = f.rings[0] || [], m = r0.length > 1 && r0[0][0] === r0[r0.length - 1][0] && r0[0][1] === r0[r0.length - 1][1] ? r0.slice(0, -1) : r0;
+    const lat = c ? c.lat : m.length ? m.reduce((a, q) => a + q[1], 0) / m.length : (f.bb.n + f.bb.s) / 2;
+    const lon = c ? c.lon : m.length ? m.reduce((a, q) => a + q[0], 0) / m.length : (f.bb.e + f.bb.w) / 2;
+    const g = { f, lat, lon, heli: isHeliZone(f), model: f.layer === 'modellflugplaetze' };
+    // Hubschrauberlandeplatz-Zone ohne eigenen Kreis: auf den nahen dipul-Kreis setzen
+    if (g.heli && !c) { const k = heliSnap({ lat, lon }); g.lat = k.lat; g.lon = k.lon; }
+    out.push(g);
+  });
+  return out;
+}
+/** Ist der Außenring einer Geozone ein Kreis? Dann Mittelpunkt (lat, lon) und Radius r in m, sonst null */
+function featCircle(f) {
+  if (f._circ !== undefined) return f._circ;
+  f._circ = null;
+  if (f.type !== 'Polygon' && f.type !== 'MultiPolygon') return null;
+  const r0 = f.rings[0] || [];
+  const m = r0.length > 1 && r0[0][0] === r0[r0.length - 1][0] && r0[0][1] === r0[r0.length - 1][1] ? r0.slice(0, -1) : r0;
+  if (m.length < 12) return null;
+  // Mittelpunkt per Kreisausgleich (algebraisch, Kasa), damit ungleich verteilte Eckpunkte nicht verschieben
+  const lat0 = (f.bb.n + f.bb.s) / 2, kx = 111320 * Math.cos(lat0 * Math.PI / 180), ky = 111320, lon0 = (f.bb.e + f.bb.w) / 2;
+  const P2 = m.map(q => [(q[0] - lon0) * kx, (q[1] - lat0) * ky]);
+  let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sxz = 0, syz = 0, sz = 0;
+  P2.forEach(([x, y]) => { const z = x * x + y * y; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y; sxz += x * z; syz += y * z; sz += z; });
+  const n = P2.length;
+  // Normalgleichungen für x² + y² + D x + E y + F = 0
+  const M3 = [[sxx, sxy, sx], [sxy, syy, sy], [sx, sy, n]], b3 = [-sxz, -syz, -sz];
+  const det = A3 => A3[0][0] * (A3[1][1] * A3[2][2] - A3[1][2] * A3[2][1]) - A3[0][1] * (A3[1][0] * A3[2][2] - A3[1][2] * A3[2][0]) + A3[0][2] * (A3[1][0] * A3[2][1] - A3[1][1] * A3[2][0]);
+  const d0 = det(M3); if (!d0) return null;
+  const col = (i) => M3.map((row, k) => row.map((v, j) => j === i ? b3[k] : v));
+  const D = det(col(0)) / d0, E = det(col(1)) / d0, F = det(col(2)) / d0;
+  const cx = -D / 2, cy = -E / 2, r = Math.sqrt(Math.max(0, cx * cx + cy * cy - F));
+  if (!(r > 20)) return null;
+  let dev = 0; P2.forEach(([x, y]) => { dev = Math.max(dev, Math.abs(Math.hypot(x - cx, y - cy) - r)); });
+  if (dev > r * 0.06 + 3) return null;
+  return f._circ = { lat: lat0 + cy / ky, lon: lon0 + cx / kx, r };
+}
+/** Hubschrauberlandeplatz auf den dipul-Kreis setzen: nächster kreisförmiger Geozonen-Mittelpunkt (≤ 400 m), sonst OSM-Punkt */
+const snapCache = new Map();
+function heliSnap(a) {
+  const key = S.geo.length + ':' + a.lat.toFixed(6) + ',' + a.lon.toFixed(6);
+  const hit = snapCache.get(key);
+  if (hit !== undefined) return hit ? Object.assign({}, a, hit) : a;
+  if (snapCache.size > 500) snapCache.clear();
+  let best = null, bd = 400;
+  S.geo.forEach(f => {
+    if (f.bb.n < a.lat - 0.03 || f.bb.s > a.lat + 0.03 || f.bb.e < a.lon - 0.05 || f.bb.w > a.lon + 0.05) return;
+    const c = featCircle(f);
+    if (!c || c.r > 2000) return;
+    const d = Math.hypot((c.lat - a.lat) * 111200, (c.lon - a.lon) * 111200 * Math.cos(a.lat * Math.PI / 180));
+    if (d < bd || (best && Math.abs(d - bd) < 5 && c.r < best.r)) { bd = d; best = c; }
+  });
+  snapCache.set(key, best ? { lat: best.lat, lon: best.lon } : null);
+  return best ? Object.assign({}, a, { lat: best.lat, lon: best.lon }) : a;
+}
+/** Mittelpunkte des St. Vincenz-Landeplatzes (dipul-Kreis, falls vorhanden) */
+function vincenzCenters(icons) {
+  const byName = (icons || geoAirIcons()).filter(g => /vincenz/i.test(g.f.props.name || ''));
+  const osmV = S.airfields.filter(isVincenz);
+  const base = byName.length ? byName.map(g => Object.assign({}, osmV[0] || { name: g.f.props.name, kind: 'heliport' }, { lat: g.lat, lon: g.lon })) : osmV;
+  const out = [];
+  base.map(heliSnap).forEach(c => { if (!out.some(o => Math.hypot((o.lat - c.lat) * 111200, (o.lon - c.lon) * 71000) < 50)) out.push(c); });
+  return out;
+}
+function drawGeoAirIcon(g) {
+  const [x, y] = toScreen(g.lat, g.lon);
+  if (x < -30 || y < -30 || x > W + 30 || y > H + 30) return;
+  ctx.beginPath(); ctx.arc(x, y, 14, 0, 7);
+  ctx.fillStyle = g.heli ? '#7a1fa2' : g.model ? '#b36b00' : '#0b3d91'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = '700 14px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(g.heli ? 'H' : g.model ? 'M' : '✈', x, y + 1);
+}
 function drawAirfield(a) {
   const [x, y] = toScreen(a.lat, a.lon);
   if (x < -40 || y < -40 || x > W + 40 || y > H + 40) return;
@@ -542,31 +1061,67 @@ function drawAirfield(a) {
   }
 }
 
+// Farben: unmarkiert alles blau, markiert alles orange
+const FC = { route: '#1e7bff', routeSel: '#ff7a00', halo: '#c75a00', fill: 'rgba(30,123,255,.22)', fillSel: 'rgba(255,122,0,.28)' };
+/** Feldkontur aus UAV Editor als Hintergrund der Flugroute (nicht eigenständig wählbar) */
+function drawOutline(f) {
+  if (!f.outline) return;
+  ctx.beginPath();
+  f.outline.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+  ctx.closePath();
+  ctx.fillStyle = f.selected ? FC.fillSel : FC.fill; ctx.fill();
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = f.selected ? 3 : 2; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.stroke();   // weiße Kante: Grenze zum Nachbarfeld sichtbar
+  ctx.setLineDash([6, 4]); ctx.lineWidth = f.selected ? 2 : 1.5; ctx.strokeStyle = f.selected ? FC.routeSel : FC.route; ctx.stroke(); ctx.setLineDash([]);
+}
+/** Abstand der Bahnen einer Mäander-Route in m (Median der kurzen Verbindungsstücke) */
+function trackSpacing(pts) {
+  const d = [];
+  for (let i = 0; i + 1 < pts.length; i++) d.push(Math.hypot((pts[i + 1][0] - pts[i][0]) * 111200, (pts[i + 1][1] - pts[i][1]) * 111200 * Math.cos(pts[i][0] * Math.PI / 180)));
+  if (d.length < 3) return 0;
+  const sorted = [...d].sort((a, b) => a - b), short = sorted.slice(0, Math.max(1, Math.floor(sorted.length / 2)));
+  const m = short[Math.floor(short.length / 2)];
+  return m >= 4 && m <= 120 && m < sorted[sorted.length - 1] / 2 ? m : 0;
+}
+function fieldOnScreen(f) {
+  const b = f._bb || (f._bb = bounds([f]));
+  if (!b) return false;
+  const [x0, y0] = toScreen(b.n, b.w), [x1, y1] = toScreen(b.s, b.e);
+  return !(x1 < -20 || y1 < -20 || x0 > W + 20 || y0 > H + 20);
+}
 function drawField(f) {
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = f.selected ? '#ffd400' : '#1e7bff';
-  ctx.lineWidth = f.selected ? 5 : 3;
-  ctx.fillStyle = f.selected ? 'rgba(13,71,161,.58)' : 'rgba(30,123,255,.30)';
   for (const s of f.shapes) {
-    ctx.beginPath();
-    s.pts.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
-    if (s.type === 'poly') { ctx.closePath(); ctx.fill(); }
-    ctx.stroke();
+    const pp = projPath(s, [s.pts], false, s.type === 'poly'), k = usePath(pp);
+    if (s.type === 'poly' && !f.outline) { ctx.fillStyle = f.selected ? FC.fillSel : FC.fill; ctx.fill(pp.p); }
+    else if (!f.outline && s.pts.length > 3) {   // ohne Feldgrenze: überflogene Fläche aus der Route (Bahnbreite = Abstand der Bahnen)
+      const sp = s._sp || (s._sp = trackSpacing(s.pts));
+      if (sp) { ctx.lineCap = 'butt'; ctx.lineJoin = 'miter'; ctx.miterLimit = 2.5; ctx.lineWidth = sp * 256 * 4096 / 40075016 / Math.cos(f.center[0] * Math.PI / 180); ctx.strokeStyle = f.selected ? FC.fillSel : FC.fill; ctx.stroke(pp.p); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; }
+    }
+    ctx.lineWidth = (f.selected ? 3.5 : 2.5) / k; ctx.strokeStyle = f.selected ? FC.routeSel : FC.route; ctx.stroke(pp.p);
+    resetTf();
   }
 }
+// große Felder unten, kleine oben – so sieht man, wo welches Feld endet und das nächste beginnt
+const byAreaDesc = (a, b) => (b.areaM2 || 0) - (a.areaM2 || 0);
 
+let labelBoxes = [];
 const LABEL_Z = 15;   // Feldnamen erst bei naher Zoomstufe (markierte Felder immer)
 function drawLabel(f) {
   if (V.z < LABEL_Z && !f.selected) return;
   const [x, y] = toScreen(f.center[0], f.center[1]);
   if (x < -150 || y < -30 || x > W + 150 || y > H + 30) return;
   ctx.font = '700 15px Roboto,system-ui,sans-serif';
-  const w = ctx.measureText(f.title).width + 14;
-  ctx.fillStyle = f.selected ? '#0d47a1' : 'rgba(255,255,255,.9)';
+  const t = f.selected && f.height ? `${f.title} · ${f.height} m${f.drone ? ' · ' + f.drone : ''}` : f.title;   // markiert: Flughöhe anzeigen
+  const w = ctx.measureText(t).width + 14;
+  const box = { x: x - w / 2, y: y - 12, w, h: 24 };
+  if (!f.selected && labelBoxes.some(b => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y)) return;   // kein Platz – Name weglassen
+  box.f = f; labelBoxes.push(box);
+  ctx.fillStyle = f.selected ? FC.routeSel : 'rgba(255,255,255,.9)';
   ctx.fillRect(x - w / 2, y - 12, w, 24);
-  ctx.strokeStyle = f.selected ? '#ffd400' : '#1e7bff'; ctx.lineWidth = 2; ctx.strokeRect(x - w / 2, y - 12, w, 24);
+  ctx.strokeStyle = f.selected ? '#fff' : FC.route; ctx.lineWidth = 2; ctx.strokeRect(x - w / 2, y - 12, w, 24);
   ctx.fillStyle = f.selected ? '#fff' : '#15202b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(f.title, x, y + 1);
+  ctx.fillText(t, x, y + 1);
 }
 
 function zoomAt(nz, px, py) {
@@ -576,13 +1131,13 @@ function zoomAt(nz, px, py) {
   const s = ws();
   V.lon = x2lon(lon2x(b[1]) - (px - W / 2) / s);
   V.lat = y2lat(lat2y(b[0]) - (py - mapH() / 2) / s);
-  draw();
+  drawLive(true);
 }
 function panBy(dx, dy) {
   const s = ws();
   V.lon = x2lon(lon2x(V.lon) - dx / s);
   V.lat = y2lat(Math.min(0.999, Math.max(0.001, lat2y(V.lat) - dy / s)));
-  draw();
+  drawLive(true);
 }
 function fitBounds(b) {
   if (!b) return;
@@ -598,11 +1153,38 @@ function fitBounds(b) {
 const ptr = new Map();
 let infoMode = false, infoPin = null;
 let g = null;
+// Schwung: schnelles Wischen läuft weich aus (wie bei üblichen Karten-Apps)
+let fling = null, trail = [];
+function stopFling() { if (fling) { cancelAnimationFrame(fling.raf); fling = null; } }
+function startFling(vx, vy) {
+  stopFling();
+  fling = { vx, vy, t: performance.now(), raf: 0 };
+  const step = now => {
+    if (!fling) return;
+    const dt = Math.min(40, now - fling.t); fling.t = now;
+    panBy(fling.vx * dt, fling.vy * dt);
+    const k = Math.exp(-dt / 320); fling.vx *= k; fling.vy *= k;
+    if (Math.hypot(fling.vx, fling.vy) < 0.03) { fling = null; clearTimeout(settleT); draw(); return; }
+    fling.raf = requestAnimationFrame(step);
+  };
+  fling.raf = requestAnimationFrame(step);
+}
 cv.addEventListener('pointerdown', e => {
+  stopFling(); trail = [];
   cv.setPointerCapture(e.pointerId);
   ptr.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (ptr.size === 1) {
     g = { tap: true, sx: e.clientX, sy: e.clientY, d: 0 };
+    // Info-Modus: normaler Tipp zeigt Infos, langes Drücken markiert das Feld
+    if (infoMode) {
+      const gg = g, x = e.clientX, y = e.clientY;
+      gg.lp = setTimeout(() => {
+        if (g !== gg || !gg.tap || ptr.size !== 1) return;
+        gg.tap = false; gg.long = true;
+        if (hitField(x, y)) { if (navigator.vibrate) try { navigator.vibrate(30); } catch (er) { } }
+        else toast('Hier ist kein Feld zum Markieren.', false, 1800);
+      }, 550);
+    }
   }
   else if (ptr.size === 2) { const [a, b] = [...ptr.values()]; g = { tap: false, d: Math.hypot(a.x - b.x, a.y - b.y), z: V.z }; }
 });
@@ -611,6 +1193,7 @@ cv.addEventListener('pointermove', e => {
   if (ptr.size === 1) {
     panBy(e.clientX - p.x, e.clientY - p.y);
     if (g && Math.hypot(e.clientX - g.sx, e.clientY - g.sy) > 10) g.tap = false;
+    const now = performance.now(); trail.push([now, e.clientX, e.clientY]); while (trail.length && now - trail[0][0] > 100) trail.shift();
   }
   p.x = e.clientX; p.y = e.clientY;
   if (ptr.size === 2 && g && g.d) {
@@ -620,10 +1203,22 @@ cv.addEventListener('pointermove', e => {
 });
 cv.addEventListener('pointerup', e => {
   const p = ptr.get(e.pointerId); ptr.delete(e.pointerId);
+  if (g && g.lp) clearTimeout(g.lp);
   if (ptr.size === 0 && g && g.tap && p) { if (infoMode) geoInfoAt(p.x, p.y); else hit(p.x, p.y); }
-  if (ptr.size === 0) g = null; else if (g) { g.d = 0; g.tap = false; }
+  if (g && g.long) { g = ptr.size ? g : null; return; }   // langes Drücken: schon markiert, nichts weiter
+  if (ptr.size === 0) {
+    if (g && !g.tap) {
+      // Geschwindigkeit der letzten 100 ms: schnell gewischt → mit Schwung weiter, sonst sofort scharf zeichnen
+      const now = performance.now(); trail = trail.filter(t => now - t[0] <= 100);
+      const a = trail[0], b = trail[trail.length - 1], dt = a && b ? b[0] - a[0] : 0;
+      const vx = dt > 8 ? (b[1] - a[1]) / dt : 0, vy = dt > 8 ? (b[2] - a[2]) / dt : 0;
+      if (!g.z && Math.hypot(vx, vy) > 0.35) startFling(vx, vy);
+      else { clearTimeout(settleT); draw(); }
+    }
+    g = null; trail = [];
+  } else if (g) { g.d = 0; g.tap = false; }
 });
-cv.addEventListener('pointercancel', e => { ptr.delete(e.pointerId); g = null; });
+cv.addEventListener('pointercancel', e => { ptr.delete(e.pointerId); g = null; draw(); });
 cv.addEventListener('wheel', e => { e.preventDefault(); zoomAt(V.z - Math.sign(e.deltaY) * 0.5, e.clientX, e.clientY); }, { passive: false });
 
 function inPoly(x, y, pts) {
@@ -640,18 +1235,25 @@ function segD(px, py, a, b) {
   return Math.hypot(px - a[0] - t * dx, py - a[1] - t * dy);
 }
 function hit(x, y) {
+  if (P.geo === '1' && V.z >= 9) for (const g of geoAirIcons()) {
+    const [gx, gy] = toScreen(g.lat, g.lon);
+    if (Math.hypot(x - gx, y - gy) < 20) return geoInfoAt(gx, gy);
+  }
   if (P.airf === '1' && V.z >= 9) for (const a of S.airfields) {
     const [ax, ay] = toScreen(a.lat, a.lon);
     if (Math.hypot(x - ax, y - ay) < 20) return showAirfield(a);
   }
+  return hitField(x, y);
+}
+/** Feld an der Stelle markieren/abwählen; true wenn getroffen */
+function hitField(x, y) {
   const vis = S.files.filter(visible);
   // Labels zuerst (liegen oben)
-  if (P.labels === '1') for (const f of vis) {
-    if (V.z < LABEL_Z && !f.selected) continue;
-    const [lx, ly] = toScreen(f.center[0], f.center[1]);
-    ctx.font = '700 15px Roboto,system-ui,sans-serif';
-    if (Math.abs(x - lx) < ctx.measureText(f.title).width / 2 + 7 && Math.abs(y - ly) < 14) return toggle(f);
+  if (P.labels === '1') for (const b of [...labelBoxes].reverse()) {   // nur sichtbare Etiketten
+    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return toggle(b.f);
   }
+  const small = [...vis].sort(byAreaDesc).reverse();   // oben liegende (kleine) Felder zuerst
+  for (const f of small) if (f.outline && inPoly(x, y, f.outline.map(p => toScreen(p[0], p[1])))) return toggle(f);
   for (let i = vis.length - 1; i >= 0; i--) {
     const f = vis[i];
     for (const s of f.shapes) {
@@ -660,6 +1262,7 @@ function hit(x, y) {
       if (s.type !== 'poly') for (let k = 0; k < sp.length - 1; k++) if (segD(x, y, sp[k], sp[k + 1]) < 16) return toggle(f);
     }
   }
+  return false;
 }
 
 // ================= KMZ lesen =================
@@ -694,9 +1297,54 @@ function parseKml(text) {
 }
 function droneOf(t) {
   const e = /<wpml:droneEnumValue>(\d+)</.exec(t), s = /<wpml:droneSubEnumValue>(\d+)</.exec(t);
-  if (!e) return '';
-  const k = e[1] + '/' + (s ? s[1] : '');
-  return { '77/1': 'M3T', '77/0': 'M3E', '99/1': 'M4T', '99/0': 'M4E' }[k] || '';
+  const k = e ? e[1] + '/' + (s ? s[1] : '') : '';
+  const d = { '77/1': 'M3T', '77/0': 'M3E', '99/1': 'M4T', '99/0': 'M4E' }[k];
+  if (d) return d;
+  // ohne Drohnenkennung: über die Flughöhe zuordnen (Kitzrettung: Mavic 3T 50 m, Matrice 4T 70 m)
+  const h = /<wpml:globalHeight>([\d.]+)</.exec(t);
+  if (h) { const v = +h[1]; if (v >= 45 && v <= 55) return 'M3T'; if (v >= 65 && v <= 75) return 'M4T'; }
+  return '';
+}
+const toLatLon = flat => { const o = []; for (let i = 0; i + 1 < flat.length; i += 2) o.push([flat[i + 1], flat[i]]); return o; };
+function ringArea(r) {   // Fläche in m² (Shoelace, lokal eben)
+  let a = 0; const k = Math.cos(r[0][0] * Math.PI / 180) * 111320, m = 110540;
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) a += (r[j][1] * k) * (r[i][0] * m) - (r[i][1] * k) * (r[j][0] * m);
+  return Math.abs(a / 2);
+}
+// Feldname ohne Fläche/Wegpunkte und ohne Drohnenkürzel: „Low-17-M3T_2.247ha_31WP“ -> „low-17“
+function baseName(n) {
+  return String(n).replace(/\.km[lz]$/i, '').replace(/_[\d.,]+ha_\d+WP$/i, '').replace(/[-_ ]?M[34][TE]$/i, '').replace(/[-_ ]+$/, '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+const nameDrone = n => (/[-_ ]?(M[34][TE])(?:_[\d.,]+ha_\d+WP)?(?:\.kmz)?$/i.exec(String(n)) || [])[1]?.toUpperCase() || '';
+/** Gibt es ein Feld doppelt (M3T und M4T), wird nur das zur Drohne der RC passende angezeigt. Einzelne Felder immer. */
+function markDups() {
+  const groups = new Map();
+  S.files.forEach(f => { f.dup = false; const k = baseName(f.title); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(f); });
+  if (P.drone) groups.forEach(g => {
+    if (g.length < 2 || !g.some(f => f.drone === P.drone)) return;
+    g.forEach(f => { if (f.drone && f.drone !== P.drone) { f.dup = true; f.selected = false; } });
+  });
+  // Gleicher Name, gleiche Drohne und fast deckungsgleich (z. B. „Wunike-Linter-4-“ und „Wunike-Linter-4-M3T“): nur eins zeigen.
+  // Bevorzugt die Version mit passendem Drohnenkürzel im Namen.
+  const ov = (a, b) => {
+    const x = Math.max(0, Math.min(a.e, b.e) - Math.max(a.w, b.w)), y = Math.max(0, Math.min(a.n, b.n) - Math.max(a.s, b.s));
+    const ar = r => (r.e - r.w) * (r.n - r.s);
+    return x * y / Math.max(1e-12, Math.min(ar(a), ar(b)));
+  };
+  groups.forEach(g => {
+    const left = g.filter(f => !f.dup);
+    if (left.length < 2) return;
+    const score = f => (P.drone && nameDrone(f.title) === P.drone ? 2 : nameDrone(f.title) ? 1 : 0);
+    left.sort((a, b) => score(b) - score(a));
+    left.forEach((f, i) => {
+      if (f.dup) return;
+      for (let j = i + 1; j < left.length; j++) {
+        const o = left[j];
+        if (!o.dup && (o.drone || '') === (f.drone || '') && ov(f.bounds, o.bounds) > 0.6) { o.dup = true; o.selected = false; }
+      }
+    });
+  });
 }
 function bounds(list) {
   let b = null;
@@ -708,6 +1356,36 @@ function bounds(list) {
 }
 
 let loading = false;
+// Feldkonturen aus UAV Editor zuordnen: über die Datei, sonst über den Namen, sonst über die Lage der Route
+const normName = t => String(t || '').replace(/\.km[lz]$/i, '').replace(/_[\d.,]+\s*ha(_\d+\s*WP)?$/i, '')
+  .toLowerCase().replace(/ß/g, 'ss').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+function applyOutlines() {
+  let d = {}; try { d = A.uaveOutlines ? JSON.parse(A.uaveOutlines() || '{}') : {}; } catch (e) { }
+  const all = (d._all || []).map(o => { const r = toLatLon(o.r); let n = -90, s = 90, e = -180, w = 180;
+    r.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); });
+    return { k: normName(o.n), r, bb: { n, s, e, w }, a: ringArea(r) }; });
+  const byName = new Map(); all.forEach(o => { if (o.k && !byName.has(o.k)) byName.set(o.k, o.r); });
+  let n = 0;
+  S.files.forEach(f => {
+    const nk = normName(f.title);
+    let r = d[f.name] ? toLatLon(d[f.name]) : byName.get(nk) || byName.get(nk.replace(/m[34]t$/, ''));
+    if (!r) {   // Lage: Kontur, in der fast die ganze Route liegt (kleinste gewinnt)
+      const pts = f.shapes.flatMap(sh => sh.pts), [cla, clo] = f.center;
+      let best = null;
+      all.forEach(o => {
+        if (cla > o.bb.n || cla < o.bb.s || clo > o.bb.e || clo < o.bb.w) return;
+        const ring = o.r.map(p => [p[1], p[0]]);
+        const inside = pts.filter(([la, lo]) => inRing(la, lo, ring)).length;
+        if (inside >= pts.length * 0.8 && (!best || o.a < best.a)) best = o;
+      });
+      r = best && best.r;
+    }
+    f.outline = r || null; if (r) n++;
+    const b = f.bounds; f.areaM2 = f.outline ? ringArea(f.outline) : (b.n - b.s) * 111200 * (b.e - b.w) * 71000;
+  });
+  S.outlineCount = n;
+  return n;
+}
 async function load(keepView) {
   if (loading) return;
   if (!A.hasAccess()) { $('perm').classList.add('open'); return; }
@@ -725,13 +1403,17 @@ async function load(keepView) {
       const kmlText = A.readKml(f.path);
       const shapes = parseKml(kmlText);
       if (!shapes.length) { bad++; continue; }
-      const e = { name: f.name, path: f.path, title: f.name.replace(/\.km[lz]$/i, ''), shapes, selected: keep.has(f.path), drone: droneOf(kmlText) };
+      const hm_ = /<wpml:globalHeight>([\d.]+)</.exec(kmlText) || /<wpml:executeHeight>([\d.]+)</.exec(kmlText);
+      const e = { name: f.name, path: f.path, title: f.name.replace(/\.km[lz]$/i, ''), shapes, selected: keep.has(f.path), drone: droneOf(kmlText),
+        height: hm_ ? Math.round(+hm_[1]) : null, outline: null };
       const b = bounds([e]); e.bounds = b; e.center = [(b.n + b.s) / 2, (b.e + b.w) / 2];
       out.push(e);
     } catch (err) { bad++; }
   }
   busy('');
   S.files = out;
+  applyOutlines();
+  markDups();
   loading = false;
   update();
   if (!keepView) fitAll();
@@ -744,17 +1426,27 @@ async function load(keepView) {
 }
 
 // ================= Leiste =================
+let visMemo = {};
+const ftitle = f => f._ft || (f._ft = foldTxt(f.title));
 function visible(f) {
-  const q = $('q').value.trim().toLowerCase();
-  return !q || f.title.toLowerCase().includes(q) || f.selected;
+  if (f.dup) return false;   // Variante für die andere Drohne – passende Version wird angezeigt
+  const raw = $('q').value.trim();
+  if (!raw) return true;
+  if (visMemo.raw !== raw || visMemo.n !== S.files.length) {   // einmal je Suchbegriff: passt überhaupt ein Feld?
+    const q = foldTxt(raw);
+    visMemo = { raw, n: S.files.length, q, any: S.files.some(g => !g.dup && ftitle(g).includes(q)) };
+  }
+  return !visMemo.any || ftitle(f).includes(visMemo.q) || f.selected;   // nur Ort getippt: Felder nicht ausblenden
 }
 function update() {
   const n = S.files.filter(f => f.selected).length;
-  $('count').innerHTML = `${n} markiert<small>${S.files.length} Felder</small>`;
+  const dups = S.files.filter(f => f.dup).length;
+  $('count').innerHTML = `${n} markiert<small>${S.files.length - dups} Felder</small>`;
   $('bDl').disabled = $('bNone').disabled = !n;
+  searchHits();
   draw();
 }
-function toggle(f) { f.selected = !f.selected; update(); }
+function toggle(f) { f.selected = !f.selected; update(); return true; }
 function fitAll() {
   const sel = S.files.filter(f => f.selected && visible(f));
   fitBounds(bounds(S.files.filter(visible)) || bounds(sel));
@@ -769,8 +1461,10 @@ $('bLoc').onclick = () => {
   toast('Suche Standort…'); A.locate();
 };
 let locCentered = false;
+let geoForMe = false;
 window.onLocation = (lat, lon, acc, last, ageMin) => {
   S.me = [lat, lon]; S.meAcc = acc > 0 ? acc : null;
+  if (!geoForMe && !last) { geoForMe = true; setTimeout(() => geoSyncNow(false), 500); }
   if (!locCentered) { V.lat = lat; V.lon = lon; V.z = Math.max(V.z, 15); locCentered = true; }
   draw();
   if (last) toast(`Letzte bekannte Position (vor ${ageMin} min) – suche aktuelles GPS…`);
@@ -780,8 +1474,124 @@ window.onLocation = (lat, lon, acc, last, ageMin) => {
 window.onLocationStatus = m => toast(m, false, 4000);
 window.onLocationError = m => toast(m, true);
 $('bNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); toast('Alle Felder abgewählt.'); };
-$('q').oninput = () => { update(); };
-$('q').onkeydown = e => { if (e.key === 'Enter') { $('q').blur(); fitAll(); } };
+// Suche: Lupe in der Leiste öffnet ein Suchfeld unten mittig über der Karte
+// Orte (Dörfer, Ortsteile, Flurnamen) aus OpenStreetMap – offline gespeichert
+const PLACE_RANK = { city: 0, town: 1, village: 2, suburb: 3, quarter: 4, hamlet: 4, neighbourhood: 5, isolated_dwelling: 6, farm: 6, locality: 7 };
+const PLACE_Z = { city: 13, town: 13.5, village: 14.5, suburb: 14.5, quarter: 15, hamlet: 15, neighbourhood: 15.5, isolated_dwelling: 16, farm: 16, locality: 15.5 };
+const PLACE_LBL = { city: 'Stadt', town: 'Ort', village: 'Ort', suburb: 'Ortsteil', quarter: 'Ortsteil', hamlet: 'Weiler', neighbourhood: 'Wohngebiet', isolated_dwelling: 'Einzelhof', farm: 'Hof', locality: 'Flurname' };
+function loadPlaces() {
+  let a = [];
+  try { a = A.places ? JSON.parse(A.places() || '[]') : []; } catch (e) { }
+  const seen = new Set(), out = [];
+  [...a, ...(S.osmPlaces || [])].forEach(p => {
+    if (!p || !p.n) return;
+    const k = p.n + '|' + (+p.lat).toFixed(3) + '|' + (+p.lon).toFixed(3);
+    if (seen.has(k)) return; seen.add(k);
+    out.push(Object.assign({}, p, { k: foldTxt(p.n) }));
+  });
+  S.places = out;
+}
+window.onPlaces = () => { loadPlaces(); if ($('searchBox').classList.contains('open')) searchHits(); };
+// Online-Ortssuche beim Tippen über Photon (OpenStreetMap-Daten, für Suche-beim-Tippen gedacht)
+let photon = { q: '', list: [] }, photonT = 0;
+function photonSearch(q) {
+  clearTimeout(photonT);
+  if (q.length < 3 || !isOnline()) return;
+  photonT = setTimeout(async () => {
+    try {
+      const c = wxLoc();
+      const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lang=de&limit=6&lat=${c.lat.toFixed(3)}&lon=${c.lon.toFixed(3)}&layer=city&layer=district&layer=locality`);
+      const j = await r.json();
+      const list = (j.features || []).filter(f => f.properties && f.properties.name && (!f.properties.countrycode || f.properties.countrycode === 'DE')).map(f => ({
+        n: f.properties.name, t: f.properties.osm_value || 'village', lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
+        sub: [f.properties.city !== f.properties.name ? f.properties.city : '', f.properties.county || f.properties.state || ''].filter(Boolean).join(', '), online: true }));
+      if ($('q').value.trim() === q) { photon = { q, list }; searchHits(); }
+    } catch (e) { }
+  }, 400);
+}
+function placeHits(q) {
+  const k = foldTxt(q);
+  if (k.length < 2) return [];
+  return (S.places || []).filter(p => p.k.includes(k))
+    .sort((a, b) => (b.k.startsWith(k) - a.k.startsWith(k)) || ((PLACE_RANK[a.t] ?? 9) - (PLACE_RANK[b.t] ?? 9)) || a.n.localeCompare(b.n, 'de'))
+    .slice(0, 6);
+}
+function goPlace(p) {
+  V.lat = p.lat; V.lon = p.lon; V.z = PLACE_Z[p.t] || 14.5;
+  $('q').value = '';   // Feldfilter aufheben, damit die Felder rund um den Ort sichtbar sind
+  closeSearch(false);
+  const near = S.files.filter(f => !f.dup && Math.hypot((f.center[0] - p.lat) * 111.2, (f.center[1] - p.lon) * 71) < 3).length;
+  toast(`${p.n}${PLACE_LBL[p.t] ? ' (' + PLACE_LBL[p.t] + ')' : ''} · ${near} Feld${near === 1 ? '' : 'er'} im Umkreis von 3 km`, false, 3500);
+  draw();
+}
+function searchHits() {
+  const box = $('qHits'), q = $('q').value.trim().toLowerCase();
+  $('bSearch').classList.toggle('on', !!q);
+  if (!$('searchBox').classList.contains('open')) return;
+  box.innerHTML = '';
+  if (!q) return;
+  const fq = foldTxt(q);
+  const hits = S.files.filter(f => !f.dup && ftitle(f).includes(fq))   // Umlaute/Groß-Klein egal
+    .sort((a, b) => a.title.localeCompare(b.title, 'de', { numeric: true }));
+  const loc = placeHits(q);
+  const raw = $('q').value.trim();
+  const extra = photon.q === raw ? photon.list.filter(p => !loc.some(l => foldTxt(l.n) === foldTxt(p.n) && Math.abs(l.lat - p.lat) < .03 && Math.abs(l.lon - p.lon) < .04)) : [];
+  [...loc, ...extra].slice(0, 8).forEach(p => {
+    const b = document.createElement('button'); b.className = 'place';
+    b.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>${esc(p.n)} <small>${esc(PLACE_LBL[p.t] || '')}${p.sub ? ' · ' + esc(p.sub) : ''}</small>`;
+    b.onclick = () => goPlace(p);
+    box.appendChild(b);
+  });
+  if (!hits.length) { if (!box.children.length) box.innerHTML = `<span class="more">${isOnline() && raw.length >= 3 && photon.q !== raw ? 'Suche Ort online…' : 'Kein Feld oder Ort gefunden' + (isOnline() ? ' – Enter sucht online' : ' (offline nur gespeicherte Orte)')}</span>`; return; }
+  hits.slice(0, 12).forEach(f => {
+    const b = document.createElement('button');
+    b.textContent = f.title; b.className = f.selected ? 'sel' : '';
+    b.title = f.selected ? 'Antippen zum Abwählen' : 'Antippen zum Markieren und Hinzoomen';
+    b.onclick = () => {
+      f.selected = !f.selected;
+      if (f.selected) fitBounds(bounds([f]));
+      update();
+    };
+    box.appendChild(b);
+  });
+  if (hits.length > 12) box.insertAdjacentHTML('beforeend', `<span class="more">+${hits.length - 12} weitere</span>`);
+}
+/** Ort online suchen (OpenStreetMap Nominatim, nur auf Enter – keine Suche beim Tippen laut Nutzungsregeln) */
+async function geocodeOnline(q) {
+  try {
+    const c = wxLoc();
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de&accept-language=de&viewbox=${c.lon - 0.6},${c.lat + 0.4},${c.lon + 0.6},${c.lat - 0.4}&q=${encodeURIComponent(q)}`);
+    const j = await r.json();
+    if (!j.length) return toast('Kein Ort gefunden: ' + q, true);
+    goPlace({ n: j[0].display_name.split(',')[0], t: j[0].type, lat: +j[0].lat, lon: +j[0].lon });
+  } catch (e) { toast('Ortssuche fehlgeschlagen', true); }
+}
+function openSearch() {
+  $('searchBox').classList.add('open');
+  searchHits();
+  setTimeout(() => { $('q').focus(); }, 50);
+}
+function closeSearch(clear) {
+  if (clear) $('q').value = '';
+  $('q').blur();
+  $('searchBox').classList.remove('open');
+  update();
+}
+$('bSearch').onclick = () => $('searchBox').classList.contains('open') ? closeSearch(false) : openSearch();
+$('qX').onclick = () => closeSearch(true);
+$('q').oninput = () => { update(); photonSearch($('q').value.trim()); };
+$('q').onkeydown = e => {
+  if (e.key === 'Enter') {
+    $('q').blur();
+    const q = $('q').value.trim();
+    if (S.files.some(f => !f.dup && ftitle(f).includes(foldTxt(q)))) return fitAll();
+    const ph = placeHits(q);
+    if (ph.length) return goPlace(ph[0]);
+    if (photon.q === q && photon.list.length) return goPlace(photon.list[0]);
+    if (q.length >= 2 && isOnline()) geocodeOnline(q);
+  }
+  else if (e.key === 'Escape') closeSearch(false);
+};
 
 // Download (optional mit Umrechnung auf eine andere Drohne)
 const DRONES = [['', 'Unverändert'], ['M3T', 'Mavic 3T'], ['M4T', 'Matrice 4T']];
@@ -798,18 +1608,114 @@ function doTransfer(paths, drone) {
     busy('');
     if (r.error) return toast('Fehler: ' + r.error, true);
     S.files.forEach(f => f.selected = false);
-    const what = drone ? ` als ${drone === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'}` : '';
-    if (r.errors && r.errors.length) toast(`${r.done} übertragen${what}, ${r.errors.length} Fehler:\n` + r.errors.join('\n'), true, 9000);
-    else toast(`${r.done} Feld${r.done > 1 ? 'er' : ''}${what} ${move ? 'verschoben' : 'kopiert'}.`);
-    await load(true);
+    const nConv = drone ? S.files.filter(f => paths.includes(f.path) && f.drone && f.drone !== drone).length : 0;
+    const what = nConv ? ` (${nConv} auf ${drone === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} umgerechnet)` : '';
+    if (r.errors && r.errors.length) {
+      toast(`${r.done} übertragen${what}, ${r.errors.length} Fehler:\n` + r.errors.join('\n'), true, 9000);
+      if (r.errors.some(e => /nicht mehr im Quellordner|ENOENT/.test(e))) setTimeout(() => load(true), 600);   // Liste ist veraltet: Quellordner neu einlesen
+    }
+    else {
+      const c = r.check, t = ms => ms ? new Date(ms).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+      toast(`${r.done} Feld${r.done > 1 ? 'er' : ''}${what} ${move ? 'verschoben' : 'kopiert'}.` + (c ? `\nDatum gesetzt – Datei: ${t(c.file)} · Planung erstellt: ${t(c.create)} · geändert: ${t(c.update)}` : ''), false, 6000);
+    }
+    // Quellordner nicht neu einlesen: beim Kopieren ändert sich dort nichts, beim Verschieben nur die übertragenen Felder entfernen
+    if (move) { const gone = new Set(paths); S.files = S.files.filter(f => !gone.has(f.path)); markDups(); }
+    update();
   }, 30);
 }
 
+// ---------- Flugbriefing vor dem Übertragen: betroffene Geozonen, Hindernisse, Auflagen ----------
+/** Punkte entlang Route und Feldkontur (ca. alle 20 m) */
+function fieldSamples(f) {
+  const out = [], add = (pts, close) => {
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[i + 1] || (close ? pts[0] : null);
+      out.push(a); if (!b) continue;
+      const d = Math.hypot((b[0] - a[0]) * 111200, (b[1] - a[1]) * 71000), n = Math.min(60, Math.floor(d / 20));
+      for (let k = 1; k < n; k++) out.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]);
+    }
+  };
+  f.shapes.forEach(sh => add(sh.pts, false));
+  if (f.outline) add(f.outline, true);
+  return out;
+}
+function flightBriefing(sel) {
+  const zones = new Map(), obs = new Map(), rails = new Map(), lines = new Map();
+  sel.forEach(fl => {
+    fieldSamples(fl).forEach(([la, lo]) => {
+      geoAt(la, lo).forEach(h => {
+        // gleiche Art + gleicher Name + gleiche Regel (Bundesland) nur einmal aufführen, z. B. mehrere Abschnitte einer Bahnanlage
+        const reg = regionAt(la, lo), key = h.f.layer + '|' + ((h.f.props || {}).name || '') + '|' + covKind(h.f.layer, reg) + '|' + (reg.st || '');
+        let z = zones.get(key);
+        if (!z) zones.set(key, z = { f: h.f, reg, fields: new Set() });
+        z.fields.add(fl.title);
+      });
+      if (P.osmPower === '1') {
+        // OSM teilt Strecken in viele Stücke: nach Name/Spannung zusammenfassen
+        railsNear(la, lo).forEach(r => { const k = (r.n || '') + '|' + !!r.e, x = rails.get(k) || { r, fields: new Set() }; if (r.e) x.r = r; x.fields.add(fl.title); rails.set(k, x); });
+        osmLinesNear(la, lo, 30).forEach(l => { const k = (l.kv || 0) + '|' + (l.n || '') + '|' + l.p, x = lines.get(k) || { l, fields: new Set() }; x.fields.add(fl.title); lines.set(k, x); });
+        S.obs.forEach(o => {
+          const d = Math.hypot((o.lat - la) * 111200, (o.lon - lo) * 111200 * Math.cos(la * Math.PI / 180));
+          if (d > Math.max(100, (o.rot || 0) / 2 + 60)) return;
+          const x = obs.get(o) || { o, d, fields: new Set() }; x.d = Math.min(x.d, d); x.fields.add(fl.title); obs.set(o, x);
+        });
+      }
+    });
+  });
+  return { zones: [...zones.values()], obs: [...obs.values()].sort((a, b) => a.d - b.d), rails: [...rails.values()], lines: [...lines.values()], vh: vincenzHits(sel) };
+}
+const KIND_ORDER = { off: 0, dist: 1, on: 2 };
+function briefingHtml(b, sel) {
+  const fh = flightHeight(), multi = sel.length > 1;
+  const fl = set => multi ? `<div class="meta">Betrifft: ${[...set].map(esc).join(', ')}</div>` : '';
+  const zs = b.zones.map(z => Object.assign(z, { k: covKind(z.f.layer, z.reg) })).sort((a, c) => KIND_ORDER[a.k] - KIND_ORDER[c.k]);
+  const cnt = k => zs.filter(z => z.k === k).length;
+  let h = `<div class="meta" style="margin-bottom:8px">${zs.length ? `<b style="color:#d42020">${cnt('off')} gesperrt</b> · <b style="color:#e07800">${cnt('dist')} nur mit Abstand</b> · <b style="color:#13a538">${cnt('on')} erlaubt mit Auflagen</b>` : '<b style="color:#13a538">Keine Geozone im Flugbereich.</b>'}${fh ? ` · Missionshöhe ${fh} m` : ''} · Daten offline (dipul/OSM), maßgeblich ist dipul.de</div>`;
+  if (b.vh.length) h += `<div class="zone" style="border:2px solid #b3131b"><h4 style="color:#b3131b">⚠ Hubschrauberlandeplatz St. Vincenz</h4>
+    <div class="meta">${b.vh.map(x => esc(x.f.title) + ' – ' + Math.round(x.d) + ' m').join(' · ')}</div>${vincenzHtml(b.vh[0].a, true)}</div>`;
+  zs.forEach(z => {
+    const p = z.f.props || {}, label = z.f.layer === 'flugplaetze' && isHeliZone(z.f) ? 'Hubschrauberlandeplatz' : (LAYER_LABEL[z.f.layer] || z.f.layer);
+    const chip = `<span class="chip ${z.k === 'on' ? 'cov' : z.k === 'dist' ? 'dist' : ''}">${z.k === 'on' ? 'Überflug erlaubt' : z.k === 'dist' ? 'Nur mit Abstand' : 'Gesperrt'}</span>`;
+    const rules = rulesHtml(z.f.layer, z.reg).replace(/<div id="powerBox"[^>]*>[^<]*<\/div>/, '');
+    h += `<div class="zone" style="border-left:5px solid ${z.k === 'on' ? '#13a538' : z.k === 'dist' ? '#e07800' : '#d42020'}"><h4>${esc(p.name || label)} ${chip}</h4>
+      <div class="meta">${esc(label)} · ${esc(regionText(z.reg))}${altText(p) ? ' · ' + esc(altText(p)) : ''}</div>${fl(z.fields)}${rules}</div>`;
+  });
+  b.rails.forEach(x => {
+    h += `<div class="zone" style="border-left:5px solid #2b2f36"><h4>Bahnstrecke${x.r.n ? ' ' + esc(x.r.n) : ''}</h4>${fl(x.fields)}<ul>
+      ${x.r.e ? '<li><b>Mit Oberleitung</b> (ca. 5,5–6 m): mindestens 5 m darüber bleiben, nie unter der Oberleitung durch</li>' : '<li>Laut OSM ohne Oberleitung – vor Ort prüfen</li>'}
+      <li>Gleise zügig queren, nicht entlang der Gleise fliegen, Zugverkehr nicht gefährden oder blenden</li>
+      <li>Start und Landung nicht auf Bahngelände; nicht über gesperrten Gleisen schweben (5 m vertikal)</li>
+      <li>Bahnanlagen sind dipul-Geozonen – ohne Allgemeinerlaubnis Zustimmung der DB nötig</li></ul></div>`;
+  });
+  b.lines.forEach(x => {
+    const c = lineClass(x.l.kv, x.l.p);
+    h += `<div class="zone" style="border-left:5px solid ${c.c}"><h4>${x.l.kv ? x.l.kv + ' kV · ' : ''}${esc(c.name)}${x.l.n ? ' · ' + esc(x.l.n) : ''}</h4>${fl(x.fields)}<ul>
+      <li>Typische Masthöhe ${c.h[0]}–${c.h[1]} m${fh ? (fh - c.h[1] < 20 ? ` – <b style="color:#b3131b">knapp bei ${fh} m Missionshöhe</b>` : ` – bei ${fh} m Missionshöhe ausreichend Abstand`) : ''}</li>
+      <li>Nur über die Leitung, nie darunter durch; Leiterseile sind im Wärmebild kaum sichtbar</li></ul></div>`;
+  });
+  b.obs.forEach(x => {
+    const o = x.o, warn = fh && o.top && o.top >= fh - 20;
+    h += `<div class="zone" style="border-left:5px solid ${warn ? '#b3131b' : '#5d4037'}"><h4>${esc(OBS_NAME[o.t] || 'Hindernis')}${o.n ? ' ' + esc(o.n) : ''} · ${o.top ? Math.round(o.top) + ' m hoch' : 'Höhe unbekannt'}</h4>
+      ${fl(x.fields)}<div>${Math.round(x.d)} m vom Flugweg${o.t === 'wind' && o.rot ? ` · Rotor ${Math.round(o.rot)} m (Nabe ${Math.round(o.hub || 0)} m)` : ''}</div>
+      ${warn ? `<div style="color:#b3131b;font-weight:700">Höher als bzw. nah an der Missionshöhe (${fh} m) – seitlich ausreichend Abstand halten${o.t === 'wind' ? ', 1:1-Regel zur Anlage' : ''}</div>` : ''}</div>`;
+  });
+  return h;
+}
 $('bDl').onclick = () => {
   const sel = S.files.filter(f => f.selected);
+  const b = flightBriefing(sel);
+  if (!b.zones.length && !b.obs.length && !b.rails.length && !b.lines.length && !b.vh.length) return openCopyDialog(sel, true);
+  const box = document.createElement('div');
+  box.innerHTML = briefingHtml(b, sel);
+  box.querySelectorAll('[data-url]').forEach(a => a.onclick = () => A.openUrl ? A.openUrl(a.dataset.url) : window.open(a.dataset.url));
+  confirmDlg('Flughinweise – betroffene Geozonen', `${sel.length} Feld${sel.length > 1 ? 'er' : ''} · so darf hier geflogen werden:`, [], 'Gelesen – weiter', () => openCopyDialog(sel, false), box);
+  $('dlg').querySelector('.box').scrollTop = 0;
+};
+function openCopyDialog(sel, clean) {
   const move = P.move === '1';
   const verb = move ? 'verschieben' : 'kopieren';
   let drone = '';
+  const DN = { M3T: 'Mavic 3T', M4T: 'Matrice 4T' };
   const extra = document.createElement('div');
   const preset = P.drone || '';
   extra.innerHTML = '<div style="font-weight:700;margin:4px 0 6px">Fliegen mit</div><div class="seg" id="dDrone"></div>' +
@@ -820,8 +1726,11 @@ $('bDl').onclick = () => {
     b.onclick = () => {
       drone = k;
       seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-      extra.querySelector('#dDroneInfo').textContent = DRONE_INFO[k] || '';
       const conv = k ? sel.filter(f => f.drone && f.drone !== k).length : 0;
+      // Hinweis nach dem, wofür die Felder geplant wurden – nicht pauschal „wird umgerechnet“
+      extra.querySelector('#dDroneInfo').textContent = !k ? 'Dateien werden unverändert übertragen.'
+        : !conv ? `Alle Felder sind bereits für ${DN[k]} geplant – keine Umrechnung nötig.`
+        : `${conv} von ${sel.length} Feld${sel.length > 1 ? 'ern' : ''} ${conv > 1 ? 'werden' : 'wird'} auf ${DN[k]} umgerechnet: Flughöhe ${k === 'M3T' ? '−20 m (70 → 50 m)' : '+20 m (50 → 70 m)'}, Bahnen bleiben gleich.`;
       $('dYes').textContent = (conv ? 'Umrechnen & ' + verb : verb.charAt(0).toUpperCase() + verb.slice(1));
       renderDlList();
     };
@@ -829,16 +1738,8 @@ $('bDl').onclick = () => {
   });
   const wxBox = document.createElement('div'); wxBox.style.marginBottom = '10px';
   extra.prepend(wxBox); wxDialogInfo(sel, wxBox);
-  const vh = vincenzHits(sel);
-  if (vh.length) {
-    const warn = document.createElement('div');
-    warn.style.cssText = 'margin-bottom:10px;padding:10px 12px;border-radius:10px;background:#fff0f0;border:2px solid #b3131b';
-    warn.innerHTML = `<b style="color:#b3131b">⚠ ${[...new Set(vh.map(h => h.f.title))].length} Feld(er) im 1,5-km-Bereich eines Hubschrauberlandeplatzes (St. Vincenz):</b>
-      <div class="meta">${vh.map(h => esc(h.f.title) + ' – ' + Math.round(h.d) + ' m').join(' · ')}</div>${vincenzHtml(vh[0].a, true)}`;
-    extra.prepend(warn);
-  }
+  if (clean) { const ok = document.createElement('div'); ok.style.cssText = 'margin-bottom:10px;color:#13a538;font-weight:700'; ok.textContent = '✓ Keine Geozonen oder bekannten Hindernisse im Flugbereich.'; extra.prepend(ok); }
   // Pro Feld zeigen: passt schon zur gewählten Drohne oder wird vorher umgerechnet
-  const DN = { M3T: 'Mavic 3T', M4T: 'Matrice 4T' };
   function renderDlList() {
     $('dList').innerHTML = sel.map(f => {
       let b;
@@ -846,7 +1747,7 @@ $('bDl').onclick = () => {
       else if (!f.drone) b = `<small class="dk">Drohne nicht erkannt – wird nicht umgerechnet</small>`;
       else if (f.drone === drone) b = `<small class="dk ok">✓ schon ${DN[drone]} – passt</small>`;
       else b = `<small class="dk cv">↻ ${f.drone} → wird auf ${DN[drone]} umgerechnet (${drone === 'M3T' ? '70 → 50 m' : '50 → 70 m'})</small>`;
-      return `<div class="dlrow"><span>${esc(f.title)}</span>${b}</div>`;
+      return `<div class="dlrow"><span>${esc(f.title)}${f.height ? ` <small style="color:var(--muted)">· ${f.height} m</small>` : ''}</span>${b}</div>`;
     }).join('');
   }
   confirmDlg(`${sel.length} Feld${sel.length > 1 ? 'er' : ''} ${verb}?`,
@@ -856,12 +1757,6 @@ $('bDl').onclick = () => {
   renderDlList();
   // Vorgabe der Fernsteuerung anwenden (setzt auch Hinweis und Button-Text)
   seg.querySelectorAll('button')[Math.max(0, DRONES.findIndex(d => d[0] === preset))].onclick();
-  if (preset) {
-    const other = sel.filter(f => f.drone && f.drone !== preset).length;
-    extra.querySelector('#dDroneInfo').textContent = other
-      ? `${other} von ${sel.length} Feld${sel.length > 1 ? 'ern' : ''} werden für ${preset === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} umgerechnet (Flughöhe ${preset === 'M4T' ? '+' : '−'}20 m, Bahnen gleich).`
-      : `Alle Felder sind bereits für ${preset === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} geplant.`;
-  }
 };
 
 // ================= Dialoge =================
@@ -882,19 +1777,69 @@ function pickDlg(title, text, items, okWord, cb) {
   const upd = () => {
     const n = items.filter(x => x.on).length;
     $('dYes').textContent = n ? `${n} ${okWord}` : 'Nichts gewählt'; $('dYes').disabled = !n;
-    box.querySelectorAll('input').forEach((c, i) => c.checked = items[i].on);
+    box.querySelectorAll('label.pick input').forEach((c, i) => c.checked = items[i].on);
   };
   const tags = [...new Set(items.map(x => x.tag).filter(Boolean))];
   const bar = document.createElement('div'); bar.className = 'pickbar';
+  // Suche: Umlaute/Groß-Klein egal; „Alle“/„Keine“/„Nur …“ wirken bei aktiver Suche nur auf die Treffer
+  const fold = t => String(t || '').toLowerCase().replace(/ß/g, 'ss').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  let q = '';
+  const fsel = {};   // Filter: Jahr / Drohne / Stand – leer = alle
+  const shown = x => (!q || fold(x.label + ' ' + (x.info || '') + ' ' + (x.tag || '')).includes(q))
+    && Object.keys(fsel).every(k => !fsel[k].size || (x.facets && (x.facets[k] || []).some(v => fsel[k].has(v))));
+  const filtering = () => !!q || Object.values(fsel).some(s => s.size);
   [['Alle', () => true], ['Keine', () => false], ...tags.map(t => [`Nur ${t}`, x => x.tag === t])].forEach(([l, f]) => {
     const b = document.createElement('button'); b.className = 'b-sec'; b.textContent = l;
-    b.onclick = () => { items.forEach(x => x.on = f(x)); upd(); }; bar.appendChild(b);
+    b.onclick = () => { items.forEach(x => { if (shown(x) || !filtering()) x.on = f(x); }); upd(); }; bar.appendChild(b);
   });
+  if (items.length > 5) {
+    const inp = document.createElement('input');
+    inp.type = 'search'; inp.placeholder = 'Feld suchen…'; inp.className = 'picksearch'; inp.autocomplete = 'off';
+    const cnt = document.createElement('span'); cnt.className = 'pickcnt';
+    inp.oninput = () => { q = fold(inp.value.trim()); refilter(); };
+    inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
+    bar.appendChild(inp); bar.appendChild(cnt);
+  }
+  var cntEl = bar.querySelector('.pickcnt');
+  function refilter() {
+    let n = 0;
+    box.querySelectorAll('label.pick').forEach((l, i) => { const v = shown(items[i]); l.style.display = v ? '' : 'none'; if (v) n++; });
+    if (cntEl) cntEl.textContent = filtering() ? `${n} Treffer · Laden gilt für alle angehakten` : '';
+  }
+  // Filter-Chips je Merkmal (nur wenn es mehr als einen Wert gibt)
+  const fkeys = [...new Set(items.flatMap(x => Object.keys(x.facets || {})))];
+  const frow = document.createElement('div'); frow.className = 'pickfacets';
+  fkeys.forEach(k => {
+    const vals = [...new Set(items.flatMap(x => (x.facets && x.facets[k]) || []))].sort((a, b) => String(b).localeCompare(String(a), 'de', { numeric: true }));
+    if (vals.length < 2) return;
+    fsel[k] = new Set();
+    const row = document.createElement('div'); row.className = 'pickfacet';
+    row.innerHTML = `<span>${esc(k)}</span>`;
+    vals.forEach(v => {
+      const c = document.createElement('button'); c.className = 'chipbtn';
+      const n = items.filter(x => ((x.facets && x.facets[k]) || []).includes(v)).length;
+      c.textContent = `${v} (${n})`;
+      c.onclick = () => { fsel[k].has(v) ? fsel[k].delete(v) : fsel[k].add(v); c.classList.toggle('on', fsel[k].has(v)); refilter(); };
+      row.appendChild(c);
+    });
+    frow.appendChild(row);
+  });
+  if (frow.children.length) bar.appendChild(frow);
   box.appendChild(bar);
   items.forEach((x, i) => {
     const l = document.createElement('label'); l.className = 'pick';
-    l.innerHTML = `<input type="checkbox"><span>${esc(x.label)}${x.info ? `<em>${esc(x.info)}</em>` : ''}</span>${x.tag ? `<small class="${x.tag === 'geändert' ? 'chg' : 'new'}">${esc(x.tag)}</small>` : ''}`;
+    l.innerHTML = `<input type="checkbox"><span>${esc(x.label)}${x.info ? `<em>${esc(x.info).replace(/\n/g, '<br>')}</em>` : ''}</span>${x.tag ? `<small class="${x.tag === 'geändert' ? 'chg' : 'new'}">${esc(x.tag)}</small>` : ''}${x.preview ? '<button class="pv" title="Kartenvorschau"><svg viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg></button>' : ''}`;
     l.querySelector('input').onchange = e => { x.on = e.target.checked; upd(); };
+    const pvb = l.querySelector('.pv');
+    if (pvb) pvb.onclick = ev2 => {
+      ev2.preventDefault(); ev2.stopPropagation();
+      const open = l.nextElementSibling && l.nextElementSibling.classList.contains('pvbox');
+      box.querySelectorAll('.pvbox').forEach(p => p.remove()); box.querySelectorAll('.pv.on').forEach(p => p.classList.remove('on'));
+      if (open) return;
+      const pb = document.createElement('div'); pb.className = 'pvbox'; pb.innerHTML = '<canvas></canvas>';
+      l.after(pb); pvb.classList.add('on');
+      requestAnimationFrame(() => { x.preview(pb.querySelector('canvas')); pb.scrollIntoView({ block: 'nearest' }); });
+    };
     box.appendChild(l);
   });
   upd();
@@ -910,6 +1855,7 @@ function fillSettings() {
   $('vSrc').textContent = P.src; $('vDst').textContent = P.dst;
   $('sMove').checked = P.move === '1'; $('sClear').checked = P.clear === '1'; $('sLabels').checked = P.labels === '1';
   document.querySelectorAll('[data-layer]').forEach(b => b.classList.toggle('on', b.dataset.layer === P.layer));
+  if (A.tileCacheInfo) { const mb = +A.tileCacheInfo() / 1048576; $('vTiles').textContent = `Grau/Karte: basemap.de (amtliche Karte) · Luftbild: Orthophotos Hessen/Rheinland-Pfalz · alle angesehenen und vorab geladenen Kacheln bleiben auf der RC (erst nach 1 Jahr neu geladen) · belegt ${mb < 1 ? '< 1 MB' : mb < 1024 ? Math.round(mb) + ' MB' : (mb / 1024).toFixed(1).replace('.', ',') + ' GB'}`; }
   document.querySelectorAll('[data-rcdrone]').forEach(b => b.classList.toggle('on', b.dataset.rcdrone === P.drone));
   $('sGeo').checked = P.geo === '1'; $('sGeoRes').checked = P.georesi === '1';
   $('vGeo').textContent = geoText(true);
@@ -931,9 +1877,56 @@ function closeSettings() {
 $('setBack').onclick = closeSettings;
 $('sMove').onchange = e => setP('move', e.target.checked ? 1 : 0);
 $('sClear').onchange = e => setP('clear', e.target.checked ? 1 : 0);
-$('sLabels').onchange = e => { setP('labels', e.target.checked ? 1 : 0); draw(); };
+$('sLabels').onchange = e => { setP('labels', e.target.checked ? 1 : 0); infoBtnState(); draw(); };
+$('bWxSet').onclick = () => { $('pgSet').classList.remove('open'); showWeather(false); };
+// ---------- Einsatzgebiet vorab laden ----------
+const PF = { zMin: 8, zArea: 15, zMax: 18 };   // bis Zoom 15 das ganze Gebiet, darüber nur rund um die Felder
+function prefetchPlan() {
+  const fs = S.files.filter(f => !f.dup && f.bounds);
+  if (!fs.length) return null;
+  const b = fs.reduce((a, f) => ({ n: Math.max(a.n, f.bounds.n), s: Math.min(a.s, f.bounds.s), e: Math.max(a.e, f.bounds.e), w: Math.min(a.w, f.bounds.w) }), { n: -90, s: 90, e: -180, w: 180 });
+  const dLa = 3 / 111.2, dLo = 3 / (111.2 * Math.cos(b.n * Math.PI / 180)), fLa = .3 / 111.2, fLo = .3 / (111.2 * Math.cos(b.n * Math.PI / 180));
+  const area = [b.w - dLo, b.s - dLa, b.e + dLo, b.n + dLa];
+  const fields = fs.map(f => [f.bounds.w - fLo, f.bounds.s - fLa, f.bounds.e + fLo, f.bounds.n + fLa]);
+  // Kacheln zählen (wie in der App), für die Größenangabe
+  const tx = (lon, z) => Math.floor(lon2x(lon) * (1 << z)), ty = (lat, z) => Math.floor(lat2y(lat) * (1 << z));
+  let n = 0;
+  for (let z = PF.zMin; z <= PF.zMax; z++) {
+    const seen = new Set(), boxes = z <= PF.zArea ? [area] : fields;
+    boxes.forEach(q => { for (let x = tx(q[0], z); x <= tx(q[2], z); x++) for (let y = ty(q[3], z); y <= ty(q[1], z); y++) seen.add(x * 1e7 + y); });
+    n += seen.size;
+  }
+  return { area, fields, tiles: n, mb: Math.round(n * (14 + 14 + 22) / 1024) };
+}
+const startPrefetch = () => {
+  if (A.prefetchRunning && A.prefetchRunning()) { busy('Lade Einsatzgebiet…', { cancel: () => A.prefetchCancel() }); return; }
+  if (!isOnline()) return toast('Dafür wird Internet gebraucht (am besten WLAN).', true);
+  const p = prefetchPlan();
+  if (!p) return toast('Erst Felder laden – das Gebiet ergibt sich aus den Feldern.', true);
+  confirmDlg('Einsatzgebiet offline speichern?',
+    `Grau, Karte und Luftbild für das Gebiet aller Felder (+ 3 km).\nZoom 8–15 für das ganze Gebiet, bis Zoom 18 rund um die Felder.\n${(p.tiles * 3).toLocaleString('de-DE')} Kacheln · ca. ${p.mb.toLocaleString('de-DE')} MB · bereits gespeicherte werden übersprungen.\nAm besten im WLAN – das kann eine Weile dauern, die App kann dabei normal benutzt werden.`,
+    [], 'Herunterladen', () => {
+      A.prefetchStart(JSON.stringify({ layers: ['bmg', 'bmf', 'dop'], area: p.area, fields: p.fields, zMin: PF.zMin, zArea: PF.zArea, zMax: PF.zMax }));
+      toast('Download läuft im Hintergrund – Fortschritt in den Einstellungen.', false, 4000);
+    });
+};
+$('bPrefetch').onclick = startPrefetch;
+window.onPrefetch = raw => {
+  let r = {}; try { r = JSON.parse(raw); } catch (e) { }
+  if (r.total == null) return;
+  const pct = r.total ? Math.round((r.done + r.have + r.fail) / r.total * 100) : 100;
+  const t = r.finished
+    ? `${r.cancelled ? 'Abgebrochen' : 'Fertig'}: ${r.done.toLocaleString('de-DE')} neu geladen (${Math.round(r.bytes / 1048576)} MB), ${r.have.toLocaleString('de-DE')} waren schon da${r.fail ? `, ${r.fail.toLocaleString('de-DE')} ohne Bild (z. B. außerhalb HE/RP beim Luftbild)` : ''}.`
+    : `Lädt… ${pct} % · ${(r.done + r.have).toLocaleString('de-DE')} von ${r.total.toLocaleString('de-DE')} Kacheln · ${Math.round(r.bytes / 1048576)} MB`;
+  if ($('vPrefetch')) $('vPrefetch').textContent = t;
+  if ($('bPrefetch')) $('bPrefetch').textContent = r.finished ? 'Aktualisieren' : 'Abbrechen';
+  if ($('bPrefetch')) $('bPrefetch').onclick = r.finished ? startPrefetch : () => { A.prefetchCancel(); };
+  if (r.finished) { toast(t, !!r.fail && !r.done, 7000); draw(); }
+};
+$('bTilesClear').onclick = () => { if (A.tileCacheClear) { A.tileCacheClear(); toast('Kartenspeicher wird geleert…'); } };
+window.onTileCache = () => { tiles.clear(); fillSettings(); toast('Kartenspeicher geleert.'); };
 document.querySelectorAll('[data-layer]').forEach(b => b.onclick = () => { setP('layer', b.dataset.layer); fillSettings(); draw(); });
-document.querySelectorAll('[data-rcdrone]').forEach(b => b.onclick = () => { setP('drone', b.dataset.rcdrone); fillSettings(); });
+document.querySelectorAll('[data-rcdrone]').forEach(b => b.onclick = () => { setP('drone', b.dataset.rcdrone); markDups(); update(); fillSettings(); });
 $('bAcc').onclick = () => A.requestAccess();
 $('sGeo').onchange = e => { setP('geo', e.target.checked ? 1 : 0); geoBadge(); draw(); if (e.target.checked) geoSyncNow(false); };
 $('sGeoRes').onchange = e => { setP('georesi', e.target.checked ? 1 : 0); applyGeoConfig(); fillSettings(); };
@@ -970,11 +1963,23 @@ const regCache = new Map();
 function loadRegions() {
   regCache.clear();
   if (A.regions) try { const r = JSON.parse(A.regions() || '{}'); S.regions = r.list || []; S.regFetched = r.fetched || 0; } catch (e) { S.regions = []; }
-  S.geo.forEach(f => delete f.reg);
+  S.geo.forEach(f => { delete f.reg; delete f.regs; delete f._split; }); covCellCache.clear(); segIdx = null; splitJobs.clear();
   draw();
 }
 window.onRegions = () => { loadRegions(); if ($('pgSet').classList.contains('open')) fillRules(); };
+// Kreuzen sich die Strecken a–b und c–d? (x = lon, y = lat)
+function segX(ax, ay, bx, by, cx, cy, dx, dy) {
+  const d1 = (dx - cx) * (ay - cy) - (dy - cy) * (ax - cx), d2 = (dx - cx) * (by - cy) - (dy - cy) * (bx - cx);
+  const d3 = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax), d4 = (bx - ax) * (dy - ay) - (by - ay) * (dx - ax);
+  return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
+}
 function inRegion(lat, lon, r) {
+  if (r.ref) {   // schnelles Format: Zugehörigkeit der Gebietsmitte + Anzahl Grenzkreuzungen bis zum Punkt
+    const [rl, ro] = r.ref; let c = 0;
+    for (const ln of r.lines) for (let i = 0; i + 3 < ln.length; i += 2)
+      if (segX(ro, rl, lon, lat, ln[i], ln[i + 1], ln[i + 2], ln[i + 3])) c++;
+    return r.refIn !== (c % 2 === 1);
+  }
   const [w, s, e, n] = r.bb;
   if (lat < s || lat > n || lon < w || lon > e) return false;
   let c = false;   // Gerade/Ungerade-Regel über alle Grenzsegmente (Reihenfolge egal)
@@ -987,16 +1992,10 @@ function inRegion(lat, lon, r) {
 /** {st:'HE', rbGi:true, fallback:false} – fällt auf die Einstellung zurück, wenn keine Grenzdaten vorliegen */
 function regionAt(lat, lon) {
   if (!S.regions.length) return { st: null, rbGi: false, fallback: true };
-  const k = lat.toFixed(3) + ',' + lon.toFixed(3);
+  const k = lat.toFixed(5) + ',' + lon.toFixed(5);   // ca. 1 m – grobe Kästchen ergaben Treppenstufen an der Grenze
   if (regCache.has(k)) return regCache.get(k);
-  let st = null, rbGi = false;
-  for (const r of S.regions) {
-    if (!inRegion(lat, lon, r)) continue;
-    if (r.lvl === '4' && r.code) st = r.code.replace('DE-', '');
-    else if (r.lvl === '5') rbGi = true;
-  }
-  const res = st ? { st, rbGi: st === 'HE' && rbGi, fallback: false } : { st: null, rbGi: false, fallback: true };
-  if (regCache.size > 5000) regCache.clear();
+  const res = regFromMask(memberFast(lat, lon));   // schnell über Raster + kurze Strahlen
+  if (regCache.size > 60000) regCache.clear();
   regCache.set(k, res);
   return res;
 }
@@ -1024,12 +2023,18 @@ function coverageOf(layer, reg) {
   if (AVGI_LAYERS.includes(layer) && P.avgi === '1' && reg.st === 'HE' && reg.rbGi && avgiInForce()) return 'avgi';
   return '';
 }
+// Erlaubt, aber nur mit seitlichem Abstand (1:1-Regel bzw. kein direkter Überflug) → orange statt grün
+const AE_DIST = ['kraftwerke', 'umspannwerke', 'stromleitungen', 'windkraftanlagen', 'industrieanlagen', 'behoerden', 'polizei'];
+function covKind(layer, reg) {
+  const c = coverageOf(layer, reg);
+  return !c ? 'off' : c === 'ae' && AE_DIST.includes(layer) ? 'dist' : 'on';
+}
 function geoGroups() {
   const reg = regionAt(V.lat, V.lon);
   const layers = GEO_ALL.filter(l => l !== 'wohngrundstuecke' || P.georesi === '1');
   return { r: layers.filter(l => !coverageOf(l, reg)), c: layers.filter(l => coverageOf(l, reg)) };
 }
-function applyGeoConfig() { draw(); geoBadge(); }
+function applyGeoConfig() { covCellCache.clear(); S.geo.forEach(f => { delete f._split; }); splitJobs.clear(); draw(); geoBadge(); }
 function fillRules() {
   const a2 = P.lic === 'A2';
   $('vLic').textContent = a2
@@ -1054,8 +2059,11 @@ function fillRules() {
   $('sAvgi').checked = P.avgi === '1';
   $('sSeason').checked = P.season === '1';
   $('sPower').checked = P.power === '1';
+  $('sOsmPower').checked = P.osmPower === '1';
   $('sAf').checked = P.airf === '1';
   $('sWxStart').value = P.wxStart;
+  document.querySelectorAll('[data-wxmax]').forEach(b => b.classList.toggle('on', b.dataset.wxmax === P.wxMaxH));
+  $('sPerf').checked = P.perf === '1';
   const rm = P.rose === '0' ? 'off' : P.compass === '0' ? 'north' : 'dev';
   document.querySelectorAll('[data-rose]').forEach(b => b.classList.toggle('on', b.dataset.rose === rm));
   $('vNotam').textContent = (S.notams.length ? `${S.notams.filter(n => n.active).length} aktiv, ${S.notams.filter(n => !n.active).length} geplant` : 'keine im Gebiet') + (S.notamFetched ? ` · Stand ${fmtDate(S.notamFetched)}` : ' · noch nicht geladen');
@@ -1065,6 +2073,7 @@ function fillRules() {
     + (P.avgi !== '1' ? 'ausgeschaltet' : act ? '<b style="color:#13a538">heute GÜLTIG</b>' : `<b style="color:#b3131b">heute NICHT gültig</b> (außerhalb 15.04.–30.06.)${P.season === '1' ? ' – Saison-Vorschau an' : ''}`);
 }
 document.querySelectorAll('[data-lic]').forEach(b => b.onclick = () => { setP('lic', b.dataset.lic); fillRules(); applyGeoConfig(); });
+$('sOsmPower').onchange = e => { setP('osmPower', e.target.checked ? 1 : 0); draw(); };
 $('sPower').onchange = e => { setP('power', e.target.checked ? 1 : 0); fillRules(); applyGeoConfig(); };
 $('sAvgi').onchange = e => { setP('avgi', e.target.checked ? 1 : 0); fillRules(); applyGeoConfig(); };
 $('sSeason').onchange = e => { setP('season', e.target.checked ? 1 : 0); fillRules(); applyGeoConfig(); if (e.target.checked && !avgiActive()) toast('Saison-Vorschau: nur zur Planung. Heute gilt die Allgemeinverfügung nicht.', true, 5000); };
@@ -1187,16 +2196,53 @@ window.onGeoInfo = raw => {
   feats.forEach(f => {
     const p = f.props || {};
     const cov = coverageOf(f.layer, reg);
-    const label = LAYER_LABEL[f.layer] || f.layer;
+    const label = f.layer === 'flugplaetze' && isHeliZone(f) ? 'Hubschrauberlandeplatz' : (LAYER_LABEL[f.layer] || f.layer);
     const extra = Object.keys(p).filter(k => p[k] != null && p[k] !== '' && typeof p[k] !== 'object')
       .map(k => `<div>${esc(PROP_LABEL[k] || k)}: ${esc(p[k])}</div>`).join('');
-    html += `<div class="zone"><h4>${esc(p.name || label)} <span class="chip ${cov ? 'cov' : ''}">${cov ? 'Ausnahme gilt (grün)' : 'Gesperrt (rot)'}</span></h4>
+    html += `<div class="zone"><h4>${esc(p.name || label)} ${(k => `<span class="chip ${k === 'on' ? 'cov' : k === 'dist' ? 'dist' : ''}">${k === 'on' ? 'Überflug erlaubt (grün)' : k === 'dist' ? 'Nur mit Abstand (orange)' : 'Gesperrt (rot)'}</span>`)(covKind(f.layer, reg))}</h4>
       <div class="meta">${esc(label)}${altText(p) ? ' · ' + esc(altText(p)) : ''}${p.legal_ref ? ' · ' + esc(p.legal_ref) : ''}</div>
       ${rulesHtml(f.layer, reg)}
+      ${AIR_LAYERS.includes(f.layer) ? airZoneExtra(f, r.lat, r.lon) : ''}
       ${extra ? `<details><summary>Alle Angaben von dipul</summary>${extra}</details>` : ''}</div>`;
   });
   if (r.text && !feats.length) html += `<div class="zone"><h4>Antwort von dipul</h4><pre style="white-space:pre-wrap;font-size:13px">${esc(r.text)}</pre></div>`;
-  openInfoPage(feats.length === 1 ? '1 Geozone an diesem Punkt' : `${feats.length} Geozonen an diesem Punkt`, html);
+  // Felder an dieser Stelle (wenn „Felder“ aktiv)
+  if (P.labels === '1') {
+    const here = S.files.filter(visible).filter(f => (f.outline && inRing(r.lat, r.lon, f.outline.map(p => [p[1], p[0]]))) || fieldDistTo(f, r.lat, r.lon) < 25);
+    if (here.length) html = `<div class="zone" style="border-left:5px solid #1e7bff"><h4>Feld${here.length > 1 ? 'er' : ''} an dieser Stelle</h4>${here.map(f => `<div>${esc(f.title)}${f.height ? ' · ' + f.height + ' m' : ''}${f.drone ? ' · ' + f.drone : ''}${f.areaM2 ? ' · ' + (f.areaM2 / 10000).toFixed(2).replace('.', ',') + ' ha' : ''}</div>`).join('')}</div>` + html;
+  }
+  // Stromleitung aus OpenStreetMap ohne dipul-Geozone: trotzdem anzeigen (Hindernis)
+  const osmNear = osmLinesNear(r.lat, r.lon, 35);
+  if (osmNear.length && !feats.some(f => f.layer === 'stromleitungen')) {
+    html += osmNear.slice(0, 3).map(l => { const c = lineClass(l.kv, l.p);
+      return `<div class="zone" style="border-left:5px solid ${c.c}"><h4>Stromleitung · ${l.kv ? l.kv + ' kV' : 'Spannung unbekannt'} <span class="chip grey">keine dipul-Geozone</span></h4>
+        <div class="meta">${c.name}${l.n ? ' · ' + esc(l.n) : ''}${l.o ? ' · ' + esc(l.o) : ''} · typische Masthöhe ca. ${c.h[0]}–${c.h[1]} m (Schätzwert)</div>
+        <div>Keine Geozone nach § 21h LuftVO, aber ein Hindernis: Seile sind aus der Luft schlecht zu sehen – beim Start, bei der Landung und im Tiefflug Abstand halten.</div>
+        <div class="meta" style="margin-top:4px">Daten © OpenStreetMap-Mitwirkende</div></div>`; }).join('');
+  }
+  // Hindernisse aus OSM an der Stelle
+  const fhm = flightHeight();
+  obstaclesNear(r.lat, r.lon).slice(0, 3).forEach(({ o, d }) => {
+    const top = Math.round(o.top || 0), warn = fhm && top && top >= fhm - 20;
+    html += `<div class="zone" style="border-left:5px solid ${o.t === 'wind' ? '#00695c' : '#5d4037'}"><h4>${OBS_NAME[o.t] || 'Bauwerk'}${top ? ' · ' + top + ' m hoch' : ' · Höhe nicht erfasst'} <span class="chip grey">${Math.round(d)} m entfernt</span></h4>
+      <div class="meta">${o.n ? esc(o.n) + ' · ' : ''}${o.t === 'wind' ? `${o.hub ? 'Nabenhöhe ' + Math.round(o.hub) + ' m · ' : ''}${o.rot ? 'Rotor ⌀ ' + Math.round(o.rot) + ' m · ' : ''}` : ''}Daten © OpenStreetMap-Mitwirkende, ohne Gewähr</div>
+      ${warn ? `<div style="margin-top:6px;padding:8px 10px;border-radius:8px;background:#b3131b;color:#fff;font-weight:700">⚠ Missionshöhe ${fhm} m – das Hindernis ist ${top} m hoch! Abstand halten bzw. Route meiden.</div>` : top ? `<div>Missionshöhe ${fhm || '–'} m · Hindernis ${top} m – Geländeunterschiede zum Startpunkt beachten.</div>` : '<div>Höhe vor Ort prüfen.</div>'}
+      ${o.t === 'wind' ? '<div class="meta" style="margin-top:4px">Windkraftanlagen sind auch dipul-Geozonen (§ 21h LuftVO). Drehende Rotoren und Verwirbelungen hinter der Anlage meiden.</div>' : ''}</div>`;
+  });
+  const rn = railsNear(r.lat, r.lon);
+  if (rn.length) html += `<div class="zone" style="border-left:5px solid #2b2f36"><h4>Bahnstrecke${rn[0].n ? ' · ' + esc(rn[0].n) : ''} ${rn.some(x => x.e) ? '<span class="chip">mit Oberleitung</span>' : '<span class="chip grey">ohne Oberleitung (laut OSM)</span>'}</h4>
+    <div>${rn.some(x => x.e) ? 'Oberleitung ca. 5,5–6 m über Gleis, Masten ca. 8–10 m. Mindestens 5 m über Oberleitungen (Allgemeinerlaubnis), nie darunter durch.' : 'Gleise ohne Oberleitung – Bahnanlage bleibt trotzdem Geozone.'} Bahnanlagen sind dipul-Geozonen (§ 21h LuftVO).</div>
+    <div class="meta" style="margin-top:4px">Daten © OpenStreetMap-Mitwirkende</div></div>`;
+  openInfoPage(`Geozonen-Info · ${feats.length === 1 ? '1 Zone' : feats.length + ' Zonen'} an diesem Punkt`, html);
+  // Leitungsdaten sofort zeigen (gespeichert), Masthöhen kommen gleich danach dazu
+  if ($('powerBox')) {
+    const dz = feats.find(f => f.layer === 'stromleitungen'), nm = ((dz && dz.props && dz.props.name) || '');
+    const dipKv = /HöS|HOES|HÖS/i.test(nm) ? 'Höchstspannung (220/380 kV)' : /\bHS\b|\(HS\)/.test(nm) ? 'Hochspannung (meist 110 kV)' : /\bMS\b|\(MS\)/.test(nm) ? 'Mittelspannung' : '';
+    const ol = osmNear.slice(0, 2).map(l => `${l.kv ? l.kv + ' kV' : '? kV'} · ${lineClass(l.kv, l.p).name}${l.n ? ' · ' + esc(l.n) : ''}`).join('<br>');
+    $('powerBox').innerHTML = `${dipKv ? `<b style="color:var(--txt)">Laut dipul: ${dipKv}</b><br>` : ''}${ol ? 'OpenStreetMap: ' + ol + '<br>' : ''}<span>Masthöhen werden ergänzt…</span>`;
+  }
+  if ($('ilsSave')) $('ilsSave').onclick = () => { A.setPref('ils_phone', $('ilsPhone').value.trim()); toast('Nummer der Rettungsleitstelle gespeichert.'); window.onGeoInfo(raw); };
+  $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => { const a = S.airfields.find(x => String(x.id) === el.dataset.af); if (a) showAirfield(a); });
   if (feats.some(f => f.layer === 'stromleitungen')) {
     if (!$('powerBox')) {   // keine Genehmigung eingestellt: Leitungsdaten trotzdem anhängen
       const z = [...$('iBody').querySelectorAll('.zone')][feats.findIndex(f => f.layer === 'stromleitungen')];
@@ -1206,6 +2252,112 @@ window.onGeoInfo = raw => {
   }
 };
 
+// ---------- Stromleitungen aus OpenStreetMap auf der Karte (nach Spannung klassifiziert) ----------
+S.osm = [];
+function loadOsmLines() {
+  if (!A.osmLines) return;
+  try {
+    S.osm = JSON.parse(A.osmLines() || '[]').map(l => {
+      const pts = toLatLon(l.g); let n = -90, s = 90, e = -180, w = 180;
+      pts.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); });
+      return { kv: l.kv, p: l.p, n: l.n, o: l.o, pts, bb: { n, s, e, w } };
+    });
+  } catch (e) { S.osm = []; }
+  draw();
+}
+window.onOsmLines = () => { loadOsmLines(); loadObstacles(); };
+// ---------- Hindernisse aus OSM: Windräder, Masten/Türme/Schornsteine, Bahnstrecken ----------
+S.obs = []; S.rails = []; S.places = [];
+function foldTxt(t) { return String(t || "").toLowerCase().replace(/ß/g, "ss").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+function loadObstacles() {
+  if (!A.osmObstacles) return;
+  try {
+    const d = JSON.parse(A.osmObstacles() || '{}');
+    S.obs = (d.pts || []).map(o => Object.assign(o, { top: o.h || (o.hub ? o.hub + (o.rot || 0) / 2 : 0) }));   // Gesamthöhe: height, sonst Nabe + halber Rotor
+    S.rails = (d.rails || []).map(r => { const pts = toLatLon(r.g); let n = -90, s = 90, e = -180, w = 180;
+      pts.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); });
+      return { e: r.e, n: r.n, pts, bb: { n, s, e, w } }; });
+    S.osmPlaces = (d.places || []).filter(p => p.n);
+  } catch (e) { S.obs = []; S.rails = []; }
+  loadPlaces();
+  draw();
+}
+const OBS_NAME = { wind: 'Windrad', mast: 'Mast', tower: 'Turm', chimney: 'Schornstein' };
+function paintObstacles() {
+  const [n0, w0] = fromScreen(0, 0), [s0, e0] = fromScreen(W, H);
+  ctx.save(); ctx.lineJoin = 'round';
+  if (V.z >= 12) for (const r of S.rails) {   // Bahn: klassische Signatur schwarz-weiß
+    if (r.bb.s > n0 || r.bb.n < s0 || r.bb.w > e0 || r.bb.e < w0) continue;
+    const pp = projPath(r, [r.pts], false, false), k = usePath(pp);
+    ctx.setLineDash([]); ctx.lineWidth = 4.5 / k; ctx.strokeStyle = '#2b2f36'; ctx.stroke(pp.p);
+    ctx.setLineDash([9 / k, 9 / k]); ctx.lineWidth = 2.2 / k; ctx.strokeStyle = '#fff'; ctx.stroke(pp.p);
+    resetTf();
+  }
+  ctx.setLineDash([]);
+  if (V.z >= 11) for (const o of S.obs) {
+    if (o.lat > n0 || o.lat < s0 || o.lon < w0 || o.lon > e0) continue;
+    if (o.t !== 'wind' && !o.top && V.z < 14) continue;   // Bauwerke ohne Höhenangabe erst nah
+    const [x, y] = toScreen(o.lat, o.lon);
+    if (o.t === 'wind') {   // Windrad: Kreis mit drei Rotorblättern; Rotorkreis maßstäblich ab nahem Zoom
+      if (o.rot && V.z >= 15) { const [, y2] = toScreen(o.lat + o.rot / 2 / 111200, o.lon); ctx.beginPath(); ctx.arc(x, y, Math.abs(y - y2), 0, 7); ctx.strokeStyle = 'rgba(0,105,92,.7)'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); }
+      ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.fillStyle = '#00695c'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      for (let k = 0; k < 3; k++) { const a = -Math.PI / 2 + k * 2 * Math.PI / 3; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 8 * Math.cos(a), y + 8 * Math.sin(a)); ctx.stroke(); }
+    } else {   // Mast/Turm/Schornstein: Dreieck
+      ctx.beginPath(); ctx.moveTo(x, y - 11); ctx.lineTo(x + 9, y + 7); ctx.lineTo(x - 9, y + 7); ctx.closePath();
+      ctx.fillStyle = '#5d4037'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+    }
+    if (o.top && V.z >= 13) {
+      const fh = flightHeight(), t = Math.round(o.top) + ' m', warn = fh && o.top >= fh - 20;
+      ctx.font = '700 11px Roboto,system-ui,sans-serif'; const tw = ctx.measureText(t).width + 8;
+      ctx.fillStyle = warn ? '#b3131b' : 'rgba(255,255,255,.92)'; ctx.fillRect(x - tw / 2, y + 13, tw, 15);
+      ctx.fillStyle = warn ? '#fff' : '#222'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y + 21);
+    }
+  }
+  ctx.restore();
+}
+function obstaclesNear(lat, lon) {
+  return S.obs.map(o => ({ o, d: Math.hypot((o.lat - lat) * 111200, (o.lon - lon) * 111200 * Math.cos(lat * Math.PI / 180)) }))
+    .filter(x => x.d < Math.max(60, (x.o.rot || 0) / 2 + 40)).sort((a, b) => a.d - b.d);
+}
+function railsNear(lat, lon) {
+  return S.rails.filter(l => lat <= l.bb.n + .002 && lat >= l.bb.s - .002 && lon <= l.bb.e + .003 && lon >= l.bb.w - .003)
+    .filter(l => { for (let i = 0; i + 1 < l.pts.length; i++) if (segDistM(lat, lon, [l.pts[i][1], l.pts[i][0]], [l.pts[i + 1][1], l.pts[i + 1][0]]) < 30) return true; return false; });
+}
+function lineClass(kv, p) {
+  if (kv >= 220) return { name: 'Höchstspannung', c: '#6a1b9a', w: 4, h: [60, 80] };
+  if (kv >= 60) return { name: 'Hochspannung', c: '#8e24aa', w: 3, h: [25, 45] };
+  if (kv >= 6) return { name: 'Mittelspannung', c: '#ef6c00', w: 2.2, h: [8, 15] };
+  if (kv > 0) return { name: 'Niederspannung', c: '#6d7a86', w: 1.5, h: [6, 10], dash: [6, 4] };
+  return p === 'line' ? { name: 'Spannung unbekannt (Freileitung)', c: '#8e24aa', w: 2.5, h: [20, 45], dash: [10, 4] }
+    : { name: 'Spannung unbekannt (kleine Leitung)', c: '#6d7a86', w: 1.5, h: [6, 15], dash: [6, 4] };
+}
+function paintOsmLines() {
+  const [n0, w0] = fromScreen(0, 0), [s0, e0] = fromScreen(W, H);
+  ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  for (const l of S.osm) {
+    if (l.bb.s > n0 || l.bb.n < s0 || l.bb.w > e0 || l.bb.e < w0) continue;
+    const c = lineClass(l.kv, l.p);
+    if (c.w < 2 && V.z < 14) continue;   // kleine Leitungen erst bei nahem Zoom
+    const pp = projPath(l, [l.pts], false, false), k = usePath(pp);
+    ctx.setLineDash([]); ctx.lineWidth = (c.w + 2.5) / k; ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.stroke(pp.p);
+    ctx.setLineDash((c.dash || []).map(d => d / k)); ctx.lineWidth = c.w / k; ctx.strokeStyle = c.c; ctx.stroke(pp.p);
+    resetTf();
+    if (V.z >= 15 && l.pts.length > 1) {   // Spannung an der Linie
+      const m = l.pts[Math.floor(l.pts.length / 2)], [x, y] = toScreen(m[0], m[1]);
+      if (x > 0 && y > 0 && x < W && y < H) {
+        const t = l.kv ? l.kv + ' kV' : '? kV'; ctx.setLineDash([]);
+        ctx.font = '700 11px Roboto,system-ui,sans-serif'; const tw = ctx.measureText(t).width + 8;
+        ctx.fillStyle = c.c; ctx.fillRect(x - tw / 2, y - 8, tw, 16); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y + .5);
+      }
+    }
+  }
+  ctx.restore();
+}
+function osmLinesNear(lat, lon, m) {
+  return S.osm.filter(l => lat <= l.bb.n + .002 && lat >= l.bb.s - .002 && lon <= l.bb.e + .003 && lon >= l.bb.w - .003)
+    .filter(l => { for (let i = 0; i + 1 < l.pts.length; i++) if (segDistM(lat, lon, [l.pts[i][1], l.pts[i][0]], [l.pts[i + 1][1], l.pts[i + 1][0]]) < m) return true; return false; });
+}
 // ---------- Stromleitungen: Spannung & Masthöhe ----------
 function typicalHeight(kv) {
   if (kv >= 220) return [70, 80];   // Höchstspannung
@@ -1221,12 +2373,12 @@ function flightHeight() {
 window.onPowerInfo = raw => {
   const box = $('powerBox'); if (!box) return;
   const r = JSON.parse(raw);
-  if (!r.ok) { box.textContent = 'Leitungsdaten nicht verfügbar: ' + r.error; return; }
+  if (!r.ok) { box.innerHTML = box.innerHTML.replace('<span>Masthöhen werden ergänzt…</span>', '') + `<span>Masthöhen nicht verfügbar: ${esc(r.error)}</span>`; return; }
   const els = r.elements || [];
   const lines = els.filter(e => e.type === 'way');
   const masts = els.filter(e => e.type === 'node');
   const mh = masts.map(m => parseFloat(String(m.tags && m.tags.height || '').replace(',', '.'))).filter(h => h > 0);
-  if (!lines.length && !masts.length) { box.innerHTML = 'In OpenStreetMap ist hier keine Leitung erfasst. Höhe vor Ort prüfen.'; return; }
+  if (!lines.length && !masts.length) { box.innerHTML = box.innerHTML.replace('<span>Masthöhen werden ergänzt…</span>', '') + 'In OpenStreetMap ist hier keine Leitung erfasst. Höhe vor Ort prüfen.'; return; }
   const kvs = [];
   let html = '<b style="color:var(--txt)">Leitungsdaten (OpenStreetMap):</b><ul>';
   lines.slice(0, 5).forEach(l => {
@@ -1272,7 +2424,7 @@ function showRules() {
       <li>Allgemeinerlaubnis eingetragen für: <b>${P.lic !== 'A2' ? 'nicht nutzbar (nur mit A2)' : esc((P.aeStates || '').split(',').filter(Boolean).map(stateName).join(', ') || 'kein Bundesland')}</b></li>
       <li>Allgemeinverfügung RP Gießen: <b>${P.avgi !== '1' ? 'ausgeschaltet' : act ? 'heute gültig (Mähsaison)' : 'heute NICHT gültig – nur 15.04.–30.06.'}</b>${P.season === '1' && !act ? ' · Saison-Vorschau an (nur Planung)' : ''}</li>
       <li>Überfluggenehmigung Stromleitungen: <b>${P.power === '1' ? 'liegt vor' : 'nicht eingetragen'}</b></li></ul>
-      <p class="meta">Farben auf der Karte: <b style="color:#13a538">grün</b> = Ausnahme deckt die Zone an diesem Ort ab (Auflagen beachten) · <b style="color:#d42020">rot</b> = gesperrt bzw. Zustimmung nötig · <b style="color:#1e7bff">blau</b> = deine Felder (gelb umrandet = markiert). Das Bundesland wird für jede Zone einzeln bestimmt.</p></div>
+      <p class="meta">Farben auf der Karte: <b style="color:#13a538">grün</b> = Ausnahme deckt die Zone ab, Überflug erlaubt (Auflagen beachten) · <b style="color:#e07800">orange</b> = erlaubt, aber nur mit seitlichem Abstand (1:1-Regel bzw. kein direkter Überflug ohne Zustimmung des Betreibers) · <b style="color:#d42020">rot</b> = gesperrt bzw. Zustimmung nötig · <b style="color:#1e7bff">blau</b> = deine Felder (orange = markiert). Das Bundesland wird für jede Zone einzeln bestimmt.</p></div>
 
     <div class="zone"><h4>Allgemeinverfügung Wildtierrettung – RP Gießen</h4>
       <div class="meta">Az. RPGI-53.3-21a0500/2-2017/4 vom 26.04.2024 · gültig bis 30.06.2029 · nur Regierungsbezirk Gießen</div>
@@ -1318,7 +2470,33 @@ function showRules() {
 }
 $('iBack').onclick = () => { $('pgInfo').classList.remove('open'); infoPin = null; draw(); };
 $('bRules').onclick = showRules;
-$('bInfo').onclick = () => { infoMode = !infoMode; $('bInfo').classList.toggle('on', infoMode); toast(infoMode ? 'Info-Modus: Punkt auf der Karte antippen. Nochmal ⓘ zum Beenden.' : 'Info-Modus beendet – Antippen wählt wieder Felder.'); if (!infoMode) { infoPin = null; draw(); } };
+// ⓘ: Mehrfachauswahl Geozonen-Info / Feldnamen; der geschlossene Knopf zeigt per Punkt, was aktiv ist (rot = Geozonen, blau = Felder)
+function infoBtnState() {
+  const g = infoMode, f = P.labels === '1';
+  const b = $('bInfo');
+  b.classList.remove('on');
+  b.style.background = g && f ? 'linear-gradient(135deg,#d42020 0%,#d42020 30%,#1e7bff 70%,#1e7bff 100%)' : g ? '#d42020' : f ? '#1e7bff' : '';
+  b.style.color = g || f ? '#fff' : '';
+  document.querySelectorAll('#infoPop [data-inf]').forEach(b => b.classList.toggle('on', b.dataset.inf === 'geo' ? g : f));
+}
+$('bInfo').onclick = e => {
+  e.stopPropagation();
+  const pop = $('infoPop');
+  if (pop.classList.contains('open')) { pop.classList.remove('open'); return; }
+  $('layerPop').classList.remove('open');
+  const r = $('bInfo').getBoundingClientRect();
+  pop.style.top = Math.max(8, r.top + r.height / 2 - 40) + 'px';
+  pop.style.right = (innerWidth - r.left + 10) + 'px';
+  infoBtnState(); pop.classList.add('open');
+};
+document.querySelectorAll('#infoPop [data-inf]').forEach(b => b.onclick = e => {
+  e.stopPropagation();
+  if (b.dataset.inf === 'geo') { infoMode = !infoMode; if (!infoMode) infoPin = null; toast(infoMode ? 'Geozonen-Info an: Punkt auf der Karte antippen.' : 'Geozonen-Info aus – Antippen wählt wieder Felder.', false, 2500); }
+  else { setP('labels', P.labels === '1' ? 0 : 1); if ($('pgSet').classList.contains('open')) fillSettings(); }
+  infoBtnState(); draw();
+});
+document.addEventListener('pointerdown', e => { if (!e.target.closest('#infoPop') && !e.target.closest('#bInfo')) $('infoPop').classList.remove('open'); });
+infoBtnState();
 
 // ================= Flugplätze =================
 function loadAirfields() {
@@ -1387,11 +2565,24 @@ function fieldDistTo(f, lat, lon) {
 }
 function vincenzHits(files) {
   const out = [];
-  S.airfields.filter(isVincenz).forEach(a => files.forEach(f => {
+  const centers = vincenzCenters();
+  centers.forEach(a => files.forEach(f => {
     const d = fieldDistTo(f, a.lat, a.lon);
     if (d <= 1500) out.push({ a, f, d });
   }));
   return out;
+}
+/** Zusatz zur Flugplatz-Geozone: Sonderregeln St. Vincenz bzw. Telefon/Frequenzen des passenden Platzes */
+function airZoneExtra(f, lat, lon) {
+  const p = f.props || {};
+  let html = '';
+  if (/vincenz/i.test(p.name || '')) html += vincenzHtml(null).replace('<div class="zone">', '<div class="zone" style="border-color:#7a1fa2;margin-top:10px">');
+  const a = S.airfields.map(x => ({ x, d: Math.hypot((x.lat - lat) * 111.2, (x.lon - lon) * 71) })).sort((u, v) => u.d - v.d)[0];
+  if (a && a.d < 3) {
+    const ph = afPhones(a.x), fr = (a.x.freqs || []).slice(0, 3).map(q => `${esc(FREQ_LABEL[q.type] || q.type)} ${esc(q.mhz)}`).join(' · ');
+    html += `<div style="margin-top:8px"><b>Platz:</b> ${esc(a.x.name)}${ph.own || ph.osm ? ` · Tel. <a class="lnk" data-url="tel:${esc((ph.own || ph.osm).replace(/[^+\d]/g, ''))}">${esc(ph.own || ph.osm)}</a>` : ''}${fr ? ' · ' + fr + ' MHz' : ''} · <span class="lnk" data-af="${esc(a.x.id)}">Platzinfo</span></div>`;
+  }
+  return html;
 }
 function vincenzHtml(a, short) {
   const fh = flightHeight();
@@ -1431,6 +2622,8 @@ function showAirfieldList() {
   $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => showAirfield(S.airfields.find(a => a.id === el.dataset.af)));
 }
 document.querySelectorAll('[data-rose]').forEach(b => b.onclick = () => { const v = b.dataset.rose; setP('rose', v === 'off' ? 0 : 1); if (v !== 'off') setP('compass', v === 'dev' ? 1 : 0); fillSettings(); windWidget(); draw(); });
+$('sPerf').onchange = e => { setP('perf', e.target.checked ? 1 : 0); draw(); };
+document.querySelectorAll('[data-wxmax]').forEach(b => b.onclick = () => { setP('wxMaxH', b.dataset.wxmax); fillSettings(); });
 $('sWxStart').onchange = e => { if (e.target.value) setP('wxStart', e.target.value); };
 $('sAf').onchange = e => { setP('airf', e.target.checked ? 1 : 0); draw(); };
 $('bAfList').onclick = showAirfieldList;
@@ -1590,6 +2783,8 @@ const DIR8 = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
 function dirTxt(deg) { return DIR8[Math.round(deg / 45) % 8] + ' ' + Math.round(deg) + '°'; }
 const f1 = v => v == null ? '—' : v.toFixed(1).replace('.', ',');
 function wxRowsHtml(d, fromMs, toMs, markFrom, markTo) {
+  const mx = +(P.wxMaxH || 100), keep = d.labels.map((l, i) => parseInt(l) <= mx ? i : -1).filter(i => i >= 0);
+  d = Object.assign({}, d, { labels: keep.map(i => d.labels[i]), w: keep.map(i => d.w[i]) });
   let rows = '';
   for (let i = 0; i < d.time.length; i++) {
     const t = d.time[i]; if (t < fromMs || t > toMs) continue;
@@ -1720,11 +2915,19 @@ function evalCell(kind, v, extra) {
   if (kind === 'kp') return v >= 6 ? 'r' : v >= 5 ? 'o' : v >= 3 ? 'y' : '';
   return '';
 }
+/** Angezeigte Höhen: bis zur eingestellten Grenze, dazu die Missionshöhe (z. B. 70 m bei Matrice 4T) */
+function wxHeights() {
+  const mx = +(P.wxMaxH || 100), fh = flightHeight();
+  const w = [...new Set([...WX_WH.filter(h => h <= mx), ...(fh && fh <= mx ? [fh] : [])])].sort((a, b) => a - b);
+  const t = WX_TH.filter(h => h <= mx);
+  return { w, t };
+}
 function wxTable(hours, kpc) {
   const rows = [];
   const add = (label, unit, fn) => rows.push({ label, unit, fn });
-  WX_TH.forEach(h => add(`Temp ${h} m`, '°C', x => { const r = tempAtH(x.d, x.i, h); return { t: r.v == null ? '—' : (r.est ? '~' : '') + f1(r.v) + '°', c: evalCell('temp', r.v) }; }));
-  WX_WH.forEach(h => add(`Wind ${h} m`, 'm/s', x => { const r = windAtH(x.d, x.i, h); return { t: r.v == null ? '—' : (r.est ? '~' : '') + f1(r.v), c: evalCell(h === 10 ? 'w10' : 'wh', r.v) }; }));
+  const HS = wxHeights();
+  HS.t.forEach(h => add(`Temp ${h} m`, '°C', x => { const r = tempAtH(x.d, x.i, h); return { t: r.v == null ? '—' : (r.est ? '~' : '') + f1(r.v) + '°', c: evalCell('temp', r.v) }; }));
+  HS.w.forEach(h => add(`Wind ${h} m`, 'm/s', x => { const r = windAtH(x.d, x.i, h); return { t: r.v == null ? '—' : (r.est ? '~' : '') + f1(r.v), c: evalCell(h === 10 ? 'w10' : 'wh', r.v) }; }));
   add('Böen 10 m', 'm/s', x => { const v = x.d.gust[x.i]; return { t: f1(v), c: evalCell('gust', v) }; });
   add('Richtung', 'woher', x => { const v = x.d.dir[x.i], w = x.d.wind[10] && x.d.wind[10][x.i];
     return { t: v == null ? '—' : w != null && w < 0.5 ? 'still' : `<span class="arr" style="transform:rotate(${(v + 180) % 360}deg)">↑</span>${DIR8[Math.round(v / 45) % 8]} ${Math.round(v)}°` }; });
@@ -1745,6 +2948,54 @@ function wxTable(hours, kpc) {
   const body = rows.map((r, ri) => `<tr>${hours.map((x, k) => `<td class="wr ${cells[ri][k].c || ''}">${cells[ri][k].t}</td>`).join('')}</tr>`).join('');
   return `<div class="wxt"><div class="wxl">${lab}</div><div class="wxs" id="wxs"><table><tr>${head}</tr><tr>${src}</tr>${body}</table></div></div>`;
 }
+/** Auf einen Blick: die nächsten 4 Stunden – Regen, Sturm/Böen, Scherwind (Windzunahme mit der Höhe) */
+const SHEAR = [5, 8];   // m/s Zunahme zwischen 10 m und Missionshöhe/100 m: Hinweis / kritisch
+function wxNext4(hours, kpc, loc) {
+  const H = flightHeight() || 50, now = Date.now();
+  const hs = hours.filter(x => x.t >= hourFloor(now) && x.t <= hourFloor(now) + 4 * 3600000);
+  if (!hs.length) return '';
+  const lv = (v, t) => v == null ? 0 : v >= t[1] ? 2 : v >= t[0] ? 1 : 0;
+  const per = hs.map(x => {
+    const d = x.d, i = x.i, w10 = d.wind[10] ? d.wind[10][i] : null, wH = windAtH(d, i, H).v, w100 = windAtH(d, i, 100).v;
+    const g = d.gust[i], rain = d.rain[i] || 0, snow = d.snow[i] || 0;
+    const shear = w10 != null ? Math.max(wH != null ? wH - w10 : 0, w100 != null ? w100 - w10 : 0) : null;
+    const lRain = snow > 0 ? 2 : lv(rain, WX_THR.rain), lWind = Math.max(lv(g, WX_THR.gust), lv(wH, WX_THR.windH), lv(w10, WX_THR.wind10)), lShear = lv(shear, SHEAR);
+    return { x, w10, wH, w100, g, rain, snow, shear, dir: d.dir[i], lRain, lWind, lShear, lv: Math.max(lRain, lWind, lShear) };
+  });
+  const mx = (k) => per.reduce((a, p) => p[k] != null && (a == null || p[k] > a) ? p[k] : a, null);
+  const first = (k) => per.find(p => p[k] > 0);
+  const C = ['', 'o', 'r'];
+  // Regen
+  const lR = Math.max(...per.map(p => p.lRain)), sumR = per.reduce((a, p) => a + p.rain, 0), fr = first('lRain');
+  const rainTxt = per.some(p => p.snow > 0) ? 'Schnee' : sumR < 0.05 ? 'trocken' : f1(mx('rain')) + ' mm/h';
+  const rainD = fr ? `ab ${hm(fr.x.t)} · zusammen ${f1(sumR)} mm` : 'kein relevanter Niederschlag';
+  // Sturm / Böen
+  const lW = Math.max(...per.map(p => p.lWind)), gmax = mx('g'), whmax = mx('wH');
+  const windTxt = gmax != null ? 'Böen ' + f1(gmax) : '—';
+  const windD = `Wind ${H} m bis ${whmax != null ? f1(whmax) : '—'} m/s${lW ? ' · ' + (lW === 2 ? 'zu stark für den Einsatz' : 'grenzwertig') : ''}`;
+  // Scherwind
+  const lS = Math.max(...per.map(p => p.lShear)), smax = mx('shear'), fs = first('lShear');
+  const shearTxt = smax == null ? '—' : smax < 1 ? 'keiner' : '+' + f1(smax) + ' m/s';
+  const shearD = smax == null ? 'keine Höhenwinde' : lS ? `Windzunahme 10 m → ${H}/100 m${fs ? ' ab ' + hm(fs.x.t) : ''} · ruppig, Drohne kann versetzt werden` : `Wind nimmt mit der Höhe kaum zu (10 m → ${H}/100 m)`;
+  const lvl = Math.max(lR, lW, lS);
+  const why = [lR && (per.some(p => p.snow > 0) ? 'Schnee' : 'Regen'), lW && (lW === 2 ? 'Sturm/Böen' : 'Böen'), lS && 'Scherwind'].filter(Boolean);
+  const kp = kpc ? kpAt(kpc, now) : null;
+  const head = lvl === 0 ? 'Nächste 4 h: gutes Flugwetter' : lvl === 1 ? 'Nächste 4 h: Vorsicht – ' + why.join(', ') : 'Nächste 4 h: kritisch – ' + why.join(', ');
+  const p0 = per[0];
+  const cols = per.map(p => `<div class="${C[p.lv]}"><b>${String(new Date(p.x.t).getHours()).padStart(2, '0')}:00</b><br>${p.dir != null && p.w10 >= 0.5 ? `<span class="arr" style="transform:rotate(${(p.dir + 180) % 360}deg)">↑</span>` : ''}${f1(p.w10)} / ${f1(p.wH)}<br><small>Böen ${f1(p.g)}</small><br>${p.snow > 0 ? '❄' : p.rain >= 0.1 ? '💧 ' + f1(p.rain) : '–'}</div>`).join('');
+  return `<div class="zone wxhero" style="display:block">
+    <div style="display:flex;gap:14px;align-items:center"><div class="amp big" style="background:${AMP[lvl]}"></div><div style="flex:1;min-width:0">
+      <div class="t1">${head}</div>
+      <div class="meta" style="margin:0">Jetzt: Wind 10 m ${f1(p0.w10)} m/s${p0.dir != null && p0.w10 >= 0.5 ? ' aus ' + dirTxt(p0.dir) : ''} · ${H} m: ${f1(p0.wH)} m/s${kp ? ` · Kp ${f1(kp.kp)}` : ''} · ${loc.what}</div></div></div>
+    <div class="wx4">
+      <div class="tile ${C[lR]}"><div class="k">💧 Regen</div><div class="v">${rainTxt}</div><div class="d">${rainD}</div></div>
+      <div class="tile ${C[lW]}"><div class="k">🌬 Sturm / Böen</div><div class="v">${windTxt}${gmax != null ? ' <small style="font-size:14px">m/s</small>' : ''}</div><div class="d">${windD}</div></div>
+      <div class="tile ${C[lS]}"><div class="k">↗ Scherwind</div><div class="v">${shearTxt}</div><div class="d">${shearD}</div></div>
+    </div>
+    <div class="wx4h">${cols}</div>
+    <div class="meta" style="margin:8px 0 0">Stundenkacheln: Wind 10 m / ${H} m (m/s), Böen, Regen mm/h · Grenzen: Böen ab ${WX_THR.gust[0]}/${WX_THR.gust[1]} m/s, Wind in Höhe ab ${WX_THR.windH[0]}/${WX_THR.windH[1]} m/s, Regen ab ${f1(WX_THR.rain[0])}/${f1(WX_THR.rain[1])} mm/h, Scherwind ab +${SHEAR[0]}/+${SHEAR[1]} m/s · keine Flugfreigabe</div>
+  </div>`;
+}
 async function showWeather(force) {
   const loc = wxLoc();
   openInfoPage('Wetter', '<div class="meta">Lade Vorhersage…</div>', CLOUD_ICON);
@@ -1756,12 +3007,9 @@ async function showWeather(force) {
     const r = await wxHours(loc.lat, loc.lon, force);
     hours = r.hours;
     if (!hours.length) throw new Error(isOnline() ? 'keine Daten' : 'offline und keine gespeicherte Vorhersage in der Nähe');
-    const d0 = hours[0].d, v = wxVerdict(d0, hourFloor(now), now + 24 * 3600000);
-    const w10 = d0.wind[10] && d0.wind[10][hours[0].i], dir = d0.dir[hours[0].i];
-    html += `<div class="zone wxhero"><div class="amp big" style="background:${AMP[v.level]}"></div><div style="flex:1;min-width:0">
-        <div class="t1">Nächste 24 h ${v.why.length ? '– ' + v.why.join(', ') : '– unauffällig'}</div>
-        <div class="meta">Jetzt: Wind 10 m ${w10 != null ? f1(w10) + ' m/s' : '—'}${dir != null && w10 >= 0.5 ? ' aus ' + dirTxt(dir) : ''} · ${loc.what} ${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)}</div>
-        <div class="meta">${wxSrcLine(d0)}${r.ico && r.dip ? ' · ab Stunde 25: DWD ICON' : ''} · <span class="lnk" id="wxReload">jetzt neu laden</span></div></div></div>
+    const d0 = hours[0].d;
+    html += wxNext4(hours, kpc, loc) + `<div style="margin:-4px 2px 10px;font-size:13px;color:var(--muted)">${wxSrcLine(d0)}${r.ico && r.dip ? ' · ab Stunde 25: DWD ICON' : ''} · ${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)} · <span class="lnk" id="wxReload">jetzt neu laden</span></div>`;
+    html += `
       <div class="zone"><h4>☀ Sonnenlauf</h4><div id="sunBox"></div><div class="meta" id="sunTxt" style="margin-top:6px"></div></div>
       <div class="zone" style="padding:8px"><h4 style="margin:4px 6px 8px">Tagesgang <span class="meta" style="font-weight:400;margin:0">· nach links/rechts wischen – Bezug: linke Spalte</span></h4>${wxTable(hours, kpc)}
         <div class="meta" style="margin:8px 6px 0">~ = geschätzt (Temperatur über Standardgradient −0,65 °C/100 m bzw. zwischen Quellhöhen interpoliert) · — = nicht verfügbar · Luftdruck: QNH (dipul) bzw. MSL (ICON, auf Meereshöhe reduziert) · Farben: Hinweis/kritisch nach App-Schwellen, keine Flugfreigabe · Grenze Mavic 3T/Matrice 4T: 12 m/s</div></div>`;
@@ -1807,7 +3055,26 @@ async function showWeather(force) {
     upd();
   }
 }
-$('bWx').onclick = () => showWeather(false);
+const LAYER_NAME = { grey: 'Grau', osm: 'Karte', sat: 'Satellit' };
+// Kartenart: Auswahl links neben dem Knopf aufklappen, Wahl bleibt dauerhaft gespeichert
+$('bLayer').onclick = e => {
+  e.stopPropagation();
+  const pop = $('layerPop');
+  if (pop.classList.contains('open')) { pop.classList.remove('open'); return; }
+  $('infoPop').classList.remove('open');
+  const r = $('bLayer').getBoundingClientRect();
+  pop.style.top = Math.max(8, r.top + r.height / 2 - 34) + 'px';
+  pop.style.right = (innerWidth - r.left + 10) + 'px';
+  pop.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.ly === P.layer));
+  pop.classList.add('open');
+};
+document.querySelectorAll('#layerPop button').forEach(b => b.onclick = e => {
+  e.stopPropagation();
+  setP('layer', b.dataset.ly); $('layerPop').classList.remove('open');
+  if ($('pgSet').classList.contains('open')) fillSettings();
+  draw();
+});
+document.addEventListener('pointerdown', e => { if (!e.target.closest('#layerPop') && !e.target.closest('#bLayer')) $('layerPop').classList.remove('open'); });
 // Online: stündlich für das Gebiet der Felder und anstehende Einsätze vorladen, damit offline aktuell gespeichert ist
 async function wxPrefetch() {
   if (!isOnline()) return;
@@ -1869,31 +3136,37 @@ const KP_HINT = 'Erhöhte geomagnetische Aktivität kann GNSS- und Kompassstöru
 // ---------- Windrose oben links (ein gerätebezogenes Bezugssystem) ----------
 // Rose, Buchstaben, Nordnadel und Windsack liegen in EINER Gruppe, die sich um −Kompasskurs dreht.
 // Oben = Oberkante der RC. Windsack: breite Öffnung zur Herkunft des Windes, schmales Ende in Strömungsrichtung.
-function roseSvg(to) {
+// Wie die Referenz-App: Rose steht fest (Norden oben, wie die Karte), der Windsack zeigt geografisch
+// (breite Öffnung zur Herkunft, schwarze Marke = woher der Wind kommt), nur die Kompassnadel dreht mit der RC.
+function roseSvg(to, limp) {
   const C = 50;
-  const ticks = Array.from({ length: 36 }, (_, k) => k * 10).map(a => {
-    const main = a % 90 === 0, mid = a % 30 === 0;
-    return `<line x1="${C}" y1="${main ? 3 : 4}" x2="${C}" y2="${main ? 11 : mid ? 8 : 6}" stroke="${main ? '#55657f' : '#8a97ad'}" stroke-width="${main ? 2.2 : mid ? 1.3 : .8}" stroke-linecap="round" transform="rotate(${a} ${C} ${C})"/>`; }).join('');
-  // Kompassnadel durch die Mitte: rot = Norden, weiß = Süden (liegt unter dem Windsack)
-  const needle = `<path d="M${C} 14 L${C + 3.2} ${C} L${C - 3.2} ${C} Z" fill="#e2392b"/><path d="M${C} 86 L${C + 3.2} ${C} L${C - 3.2} ${C} Z" fill="#fff" stroke="#9aa6bb" stroke-width=".6"/>`;
+  const ticks = [0, 90, 180, 270].map(a => `<line x1="${C}" y1="3" x2="${C}" y2="10" stroke="#7d8aa3" stroke-width="2.4" stroke-linecap="round" transform="rotate(${a} ${C} ${C})"/>`).join('');
+  const letters = [['N', 0, '#e08a1e'], ['O', 90, '#4a5a78'], ['S', 180, '#4a5a78'], ['W', 270, '#4a5a78']]
+    .map(([t, a, c]) => { const r = 33, x = C + r * Math.sin(a * RAD), y = C - r * Math.cos(a * RAD);
+      return `<text x="${x.toFixed(1)}" y="${(y + 5).toFixed(1)}" font-size="13" font-weight="800" text-anchor="middle" fill="${c}" font-family="Roboto,system-ui,sans-serif">${t}</text>`; }).join('');
   let sock = '';
-  if (to != null) {   // grafischer Nullwinkel: schmales Ende nach oben (0°), breite Öffnung unten
-    const y0 = 68, y1 = 30, w0 = 9, w1 = 4, n = 5; let parts = '';
+  if (to != null) {   // grafischer Nullwinkel: schmales Ende nach oben (0°) = Strömungsrichtung
+    const y0 = 70, y1 = 32, w0 = 8, w1 = 3.5, n = 5; let parts = '';
     for (let k = 0; k < n; k++) {
       const ya = y0 + (y1 - y0) * k / n, yb = y0 + (y1 - y0) * (k + 1) / n, wa = w0 + (w1 - w0) * k / n, wb = w0 + (w1 - w0) * (k + 1) / n;
-      parts += `<path d="M${C - wa} ${ya} L${C + wa} ${ya} L${C + wb} ${yb} L${C - wb} ${yb} Z" fill="${k % 2 ? '#fff' : '#d42a20'}" stroke="rgba(0,0,0,.25)" stroke-width=".4"/>`;
+      parts += `<path d="M${C - wa} ${ya} L${C + wa} ${ya} L${C + wb} ${yb} L${C - wb} ${yb} Z" fill="${k % 2 ? '#fff' : '#e2392b'}"/>`;
     }
-    sock = `<g transform="rotate(${to} ${C} ${C})"><ellipse cx="${C}" cy="${y0}" rx="${w0}" ry="2.2" fill="#a51d14"/>${parts}</g>`;
+    // schwarze Marke am Rand auf der Herkunftsseite (unten im Nullwinkel = gegenüber der Spitze)
+    sock = `<g transform="rotate(${to} ${C} ${C})">${parts}<path d="M${C} 80 L${C - 4.5} 73 L${C + 4.5} 73 Z" fill="#1d2738"/></g>`;
+  } else if (limp) {   // Windstille bzw. keine Daten: Windsack hängt schlaff und blass nach unten – keine Richtung vortäuschen
+    const y0 = 40, y1 = 70, w0 = 7, w1 = 3, n = 4; let parts = '';
+    for (let k = 0; k < n; k++) {
+      const ya = y0 + (y1 - y0) * k / n, yb = y0 + (y1 - y0) * (k + 1) / n, wa = w0 + (w1 - w0) * k / n, wb = w0 + (w1 - w0) * (k + 1) / n;
+      parts += `<path d="M${C - wa} ${ya} L${C + wa} ${ya} L${C + wb} ${yb} L${C - wb} ${yb} Z" fill="${k % 2 ? '#f2f2f2' : '#c98a86'}"/>`;
+    }
+    sock = `<g opacity="${limp === 'nodata' ? .45 : .8}" transform="rotate(4 ${C} ${y0})">${parts}</g><circle cx="${C}" cy="${y0}" r="2" fill="#5d6975"/>`;
   }
-  // Buchstaben liegen außerhalb der drehenden Gruppe; ihre Position rechnet applyHeading() aus (bleiben aufrecht)
-  const letters = [['N', '#e08a1e'], ['O', '#4a5a78'], ['S', '#4a5a78'], ['W', '#4a5a78']]
-    .map(([t, c]) => `<text id="rl${t}" font-size="14" font-weight="800" text-anchor="middle" fill="${c}" font-family="Roboto,system-ui,sans-serif">${t}</text>`).join('');
+  // Kompassnadel: rote Spitze = Blickrichtung der RC, weiße Spitze gegenüber
+  const needle = `<g id="needle" style="display:none"><path d="M${C} 12 L${C + 3} ${C} L${C - 3} ${C} Z" fill="#e2392b"/><path d="M${C} 88 L${C + 3} ${C} L${C - 3} ${C} Z" fill="#fff"/></g>`;
   return `<svg viewBox="0 0 100 100">
-      <circle cx="${C}" cy="${C}" r="48" fill="rgba(198,208,228,.72)" stroke="rgba(140,155,185,.8)" stroke-width="1.5"/>
-      <g id="rose"><circle cx="${C}" cy="${C}" r="40" fill="none" stroke="rgba(110,125,160,.55)" stroke-width="1.2" stroke-dasharray="3 3"/>
-      ${ticks}${needle}${sock}</g>${letters}
-    <path id="hdgMark" d="M${C} 0.5 L${C - 4.5} 7 L${C + 4.5} 7 Z" fill="#0b63c5" style="display:none"/>
-    <circle cx="${C}" cy="${C}" r="2.6" fill="#1d2738"/></svg>`;
+      <circle cx="${C}" cy="${C}" r="48" fill="rgba(200,212,235,.8)" stroke="rgba(140,155,185,.8)" stroke-width="1.5"/>
+      <circle cx="${C}" cy="${C}" r="40" fill="none" stroke="rgba(110,125,160,.5)" stroke-width="1.2" stroke-dasharray="3 3"/>
+      ${ticks}${letters}${sock}${needle}</svg>`;
 }
 const windColor = v => v == null ? '#5d6975' : v >= WX_LIMIT.wind ? '#b3131b' : v >= WX_LIMIT.windWarn ? '#e06a00' : '#13a538';
 const fde = v => v == null ? '—' : v.toFixed(1).replace('.', ',');
@@ -1909,19 +3182,19 @@ async function windWidget() {
   const kp = kpAt(kpc, Date.now());
   let i = -1;
   if (d) { const now = Date.now(); d.time.forEach((t, k) => { if (t <= now + 1800000) i = k; }); if (i >= 0 && d.time[i] < Date.now() - 3 * 3600000) i = -1; }
-  const comp = P.compass !== '0' && heading == null ? '<div class="sub">kein Kompass – Rose nordausgerichtet</div>'
-    : P.compass !== '0' && compassAcc <= 1 ? '<div class="sub" style="color:#e06a00"><b>⚠ Kompass kalibrieren</b> (RC in Achterform bewegen)</div>' : '';
+  const comp = P.compass !== '0' && heading == null ? '<div class="sub">kein Kompass – keine Nadel</div>'
+    : P.compass !== '0' && compassAcc <= 1 ? '<div class="sub" style="color:#e06a00"><b>⚠ Kompass kalibrieren</b> (Achterform)</div>' : '';
   if (!d || i < 0) {
-    el.innerHTML = roseSvg(null) + `<div class="card"><div class="big">Wind nicht verfügbar</div><div class="sub">${isOnline() ? 'Vorhersage wird geladen…' : 'offline – keine aktuelle Vorhersage gespeichert'}</div>${kp ? `<div class="sub">Kp <b style="color:${kpColor(kp.kp)}">${fde(kp.kp)}</b></div>` : ''}${comp}</div>`;
+    el.innerHTML = roseSvg(null, 'nodata') + `<div class="card" style="border-left-color:#8a96a3"><div class="big">Wind nicht verfügbar</div><div class="sub">${isOnline() ? 'Vorhersage wird geladen…' : 'offline · noch keine Vorhersage gespeichert'}</div>${kp ? `<div class="sub">Kp <b style="color:${kpColor(kp.kp)}">${fde(kp.kp)}</b></div>` : ''}${comp}</div>`;
     el.style.display = 'flex'; roseRot = 0; applyHeading(); return;
   }
   const w10 = d.w[0][i], dir = d.dir[i], g = d.gust[i];
   const calm = w10 != null && w10 < 0.5;
   const to = dir == null || calm ? null : (dir + 180) % 360;   // Windsack zeigt dahin, wohin der Wind weht
   const old = Date.now() - d.t > 3 * 3600000;
-  el.innerHTML = roseSvg(to) + `<div class="card"><div class="big" style="color:${windColor(w10)}">${calm ? 'Windstill' : `${fde(w10)} m/s · ${dir != null ? dirTxt(dir) : '—'}`}</div>
-    <div class="sub">Bodenwind 10 m${calm ? ' · Richtung unbestimmt' : ''}</div>
-    <div class="sub">${d.labels[1] || ''} ${fde(d.w[1] && d.w[1][i])} · ${d.labels[2] || ''} ${fde(d.w[2] && d.w[2][i])} · Böen <b style="color:${windColor(g)}">${fde(g)}</b></div>
+  el.innerHTML = roseSvg(to, calm ? 'calm' : null) + `<div class="card" style="border-left-color:${windColor(w10)}"><div class="big" style="color:${windColor(w10)}">${calm ? 'Windstill' : `${fde(w10)} m/s · ${dir != null ? dirTxt(dir) : '—'}`}</div>
+    <div class="sub">${calm ? 'ohne Richtung · ' : ''}in 10 m · Böen <b style="color:${windColor(g)}">${fde(g)}</b></div>
+    <div class="sub">${d.labels[1] || ''} ${fde(d.w[1] && d.w[1][i])} · ${d.labels[2] || ''} ${fde(d.w[2] && d.w[2][i])}</div>
     <div class="sub">${kp ? `Kp <b style="color:${kpColor(kp.kp)}">${fde(kp.kp)}</b> · ` : ''}${d.src === 'dipul' ? 'dipul' : 'DWD ICON'}${old || d.offline ? ` · <b style="color:#b3131b">Stand ${hm(d.t)} (vor ${ageTxt(d.t)})</b>` : ''}</div>${comp}</div>`;
   el.style.display = 'flex';
   applyHeading();
@@ -1929,24 +3202,19 @@ async function windWidget() {
 $('wind').onclick = () => showWeather(false);
 let heading = null, roseRot = 0;
 function applyHeading() {
-  const g = document.getElementById('rose'), m = document.getElementById('hdgMark');
-  if (!g) return;
-  const rotating = P.compass !== '0' && heading != null;
-  const target = rotating ? -heading : 0;
-  roseRot += ((target - roseRot) % 360 + 540) % 360 - 180;   // kürzester Weg: 359° → 1° sind 2°
-  g.setAttribute('transform', `rotate(${roseRot.toFixed(1)} 50 50)`);
-  [['N', 0], ['O', 90], ['S', 180], ['W', 270]].forEach(([t, a]) => {   // Buchstaben mitführen, aber aufrecht
-    const el = document.getElementById('rl' + t); if (!el) return;
-    const r = 31, w = (a + roseRot) * RAD;
-    el.setAttribute('x', (50 + r * Math.sin(w)).toFixed(1)); el.setAttribute('y', (50 - r * Math.cos(w) + 5).toFixed(1));
-  });
-  if (m) m.style.display = rotating ? '' : 'none';
+  const nd = document.getElementById('needle');
+  if (!nd) return;
+  const on = P.compass !== '0' && heading != null;
+  nd.style.display = on ? '' : 'none';
+  if (!on) return;
+  roseRot += ((heading - roseRot) % 360 + 540) % 360 - 180;   // kürzester Weg: 359° → 1° sind 2°
+  nd.setAttribute('transform', `rotate(${roseRot.toFixed(1)} 50 50)`);
 }
 let lastHdgDraw = 0, hadHeading = false;
 window.onHeading = h => {
   heading = h; applyHeading();
   if ((h != null) !== hadHeading) { hadHeading = h != null; windWidget(); }
-  if (S.me && Date.now() - lastHdgDraw > 200) { lastHdgDraw = Date.now(); draw(); }
+  if (S.me && Date.now() - lastHdgDraw > 100) { lastHdgDraw = Date.now(); drawLive(false); }
 };
 setInterval(windWidget, 10 * 60 * 1000);
 // Ampel für den Download-Dialog
@@ -2041,13 +3309,20 @@ setInterval(() => { if (A.notamSync) A.notamSync(false); }, 3600 * 1000);
 
 // ================= Geozonen: Abgleich & Hinweis =================
 let geoProgress = null;
+/** Geozonen unabhängig vom Felder-Download laden: Gebiet = Felder (+3 km) ∪ Standort (±5 km), sonst Kartenausschnitt (±8 km) */
+function geoArea() {
+  const boxes = [];
+  const grow = (n, s, e, w, km) => { const dLat = km / 111.2, dLon = km / (111.2 * Math.cos((n + s) / 2 * Math.PI / 180)); return { n: n + dLat, s: s - dLat, e: e + dLon, w: w - dLon }; };
+  const b = S.files.length ? bounds(S.files) : null;
+  if (b) boxes.push(grow(b.n, b.s, b.e, b.w, 3));
+  if (S.me) boxes.push(grow(S.me[0], S.me[0], S.me[1], S.me[1], 5));
+  if (!boxes.length) boxes.push(grow(V.lat, V.lat, V.lon, V.lon, 8));
+  return { n: Math.max(...boxes.map(x => x.n)), s: Math.min(...boxes.map(x => x.s)), e: Math.max(...boxes.map(x => x.e)), w: Math.min(...boxes.map(x => x.w)) };
+}
 function geoSyncNow(force) {
-  if (!A.geoSync || P.geo !== '1' || !S.files.length) return;
-  const b = bounds(S.files);
-  if (!b) return;
-  const rim = 3;                                   // km Rand um das äußerste Feld
-  const dLat = rim / 111.2, dLon = rim / (111.2 * Math.cos((b.n + b.s) / 2 * Math.PI / 180));
-  A.geoSync(JSON.stringify({ n: b.n + dLat, s: b.s - dLat, e: b.e + dLon, w: b.w - dLon }), !!force);
+  if (!A.geoSync || P.geo !== '1') return;
+  if (!isOnline()) { if (force) toast('Offline – Geozonen werden aktualisiert, sobald wieder Internet da ist.'); return; }
+  A.geoSync(JSON.stringify(geoArea()), !!force);
 }
 function fmtDate(ms) {
   const d = new Date(ms);
@@ -2078,7 +3353,9 @@ window.onGeo = raw => {
   const ev = JSON.parse(raw);
   if (ev.type === 'progress') { geoProgress = `${ev.done}/${ev.total}`; geoBadge(); return; }
   geoProgress = null;
-  if (ev.type === 'error') toast(ev.message, true, 6000);
+  if (ev.type === 'offline') { if (ev.force) toast('Offline – Geozonen werden aktualisiert, sobald wieder Internet da ist.'); geoBadge(); return; }
+  // Automatische Aktualisierung: nur leiser Hinweis; rot nur, wenn gar keine Geozonen gespeichert sind oder von Hand gestartet
+  if (ev.type === 'error') toast(ev.message, ev.force || !ev.fetched, 5000);
   if (ev.type === 'done' && ev.ok) loadGeoVectors();
   geoBadge(); draw();
   if ($('pgSet').classList.contains('open')) fillSettings();
@@ -2100,7 +3377,10 @@ function netBadge() {
   const wifi = '<path d="M2 8.5a15 15 0 0 1 20 0"/><path d="M5 12a10 10 0 0 1 14 0"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/>';
   $('net').innerHTML = `<svg viewBox="0 0 24 24">${wifi}${on ? '' : '<path d="M3 3l18 18"/>'}</svg>${on ? 'Online' : 'Offline'}`;
   $('net').classList.toggle('off', !on);
+  if (on && wasOffline) { tileFail.clear(); draw(); setTimeout(() => { geoSyncNow(false); wxPrefetch().then(windWidget); }, 1500); }   // wieder online: Fehlendes nachladen
+  wasOffline = !on;
 }
+let wasOffline = false;
 window.addEventListener('online', netBadge); window.addEventListener('offline', netBadge);
 setInterval(netBadge, 5000);
 $('bSync').onclick = () => {
@@ -2116,6 +3396,74 @@ $('bSync').onclick = () => {
 };
 let syncStop = false;
 function syncAbort() { syncStop = true; if (A.uaveCancel) A.uaveCancel(); setTimeout(() => { if (syncing) { syncEnd(); toast('Abgleich abgebrochen. Bereits geladene Felder bleiben erhalten.'); } }, 1500); }
+// Feld gibt es in UAV Editor auch für die Drohne dieser RC -> die andere Variante nicht vorauswählen
+function otherVariant(f, all) {
+  const d = nameDrone(f.name);
+  if (!P.drone || !d || d === P.drone) return false;
+  const b = baseName(f.name);
+  return all.some(x => x !== f && baseName(x.name) === b && nameDrone(x.name) === P.drone);
+}
+// Zusatzinfos eines UAV-Editor-Feldes für den Auswahl-Dialog
+const DT_NAME = { mavic3T: 'M3T', mavic3E: 'M3E', mavic3M: 'M3M', matrice4T: 'M4T', m4t: 'M4T', matrice30T: 'M30T', matrice300: 'M300' };
+const dOk = v => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d : null; };
+function nearPlace(lat, lon) {
+  let best = null, bd = 6;
+  (S.places || []).forEach(p => { if ((PLACE_RANK[p.t] ?? 9) > 4) return; const d = Math.hypot((p.lat - lat) * 111.2, (p.lon - lon) * 71); if (d < bd) { bd = d; best = p; } });
+  return best ? { p: best, d: bd } : null;
+}
+function uaveInfo(f) {
+  const m = f.meta || {};
+  // Drohne: Kürzel im Namen ist am verlässlichsten, sonst Drohnentyp aus UAV Editor
+  const fromName = nameDrone(f.name), fromUave = DT_NAME[m.dt] || (m.dt || '');
+  const drone = fromName || fromUave;
+  const created = dOk(f.created || m.created), lm = dOk(f.lm), cut = dOk(f.cut);
+  let years = (m.years || []).filter(Boolean);
+  if (!years.length) years = [String((created || lm || new Date()).getFullYear())];
+  const dd = d => d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const c = m.c ? [m.c[1], m.c[0]] : null, np = c ? nearPlace(c[0], c[1]) : null;
+  const l1 = [drone ? (drone === 'M3T' ? 'Mavic 3T' : drone === 'M4T' ? 'Matrice 4T' : drone) + (fromName ? '' : ' (laut UAV Editor)') : 'Drohne unbekannt',
+    m.h ? Math.round(m.h) + ' m Flughöhe' : '', f.area ? fieldArea(f.area) : '', m.wp ? m.wp + ' Wegpunkte' : '', f.ft ? Math.round(f.ft / 60) + ' min Flug' : '',
+    np ? (np.d < 1 ? 'in ' : 'bei ') + np.p.n : '', m.asl ? Math.round(m.asl) + ' m ü. NN' : ''].filter(Boolean).join(' · ');
+  const l2 = [created ? 'erstellt ' + dd(created) : '', lm && (!created || Math.abs(lm - created) > 60000) ? 'geändert ' + dd(lm) : '',
+    'Planung ' + years.join('/'), f.arch ? 'Archiv' : 'aktiv', cut ? 'Mähdatum ' + dd(cut) : '', m.by ? 'von ' + m.by : ''].filter(Boolean).join(' · ');
+  return { drone, years, info: l1 + '\n' + l2, ring: m.r ? toLatLon(m.r) : null, route: m.route ? toLatLon(m.route) : null, c };
+}
+/** Kleine Kartenvorschau (Kacheln der gewählten Kartenart + Feldkontur/Route + eigene Felder in der Nähe) */
+function miniMap(cv, ring, route, center) {
+  const dpr = window.devicePixelRatio || 1, Wm = cv.clientWidth || 300, Hm = cv.clientHeight || 180;
+  cv.width = Math.round(Wm * dpr); cv.height = Math.round(Hm * dpr);
+  const g = cv.getContext('2d');
+  const pts = [...(ring || []), ...(route || [])];
+  if (!pts.length && center) pts.push(center);
+  if (!pts.length) return;
+  let n = -90, s2 = 90, e = -180, w = 180;
+  pts.forEach(([la, lo]) => { n = Math.max(n, la); s2 = Math.min(s2, la); e = Math.max(e, lo); w = Math.min(w, lo); });
+  const bx = Math.max(1e-7, lon2x(e) - lon2x(w)), by = Math.max(1e-7, lat2y(s2) - lat2y(n));
+  const z = Math.max(10, Math.min(17, Math.floor(Math.log2(Math.min((Wm * .55) / (bx * 256), (Hm * .55) / (by * 256))))));
+  const ws2 = 256 * Math.pow(2, z), cx = (lon2x(e) + lon2x(w)) / 2 * ws2, cy = (lat2y(s2) + lat2y(n)) / 2 * ws2;
+  const P2 = (la, lo) => [lon2x(lo) * ws2 - cx + Wm / 2, lat2y(la) * ws2 - cy + Hm / 2];
+  const imgs = [];
+  const paintMini = () => {
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = '#cfd6dc'; g.fillRect(0, 0, Wm, Hm);
+    imgs.forEach(t => { if (t.img.complete && t.img.naturalWidth) g.drawImage(t.img, t.dx, t.dy, 257, 257); });
+    // eigene Felder in der Nähe (blau) als Orientierung
+    S.files.filter(f => !f.dup && f.bounds && f.bounds.n > s2 - .01 && f.bounds.s < n + .01 && f.bounds.e > w - .015 && f.bounds.w < e + .015).forEach(f => {
+      (f.outline ? [f.outline] : f.shapes.map(sh => sh.pts)).forEach(r => { g.beginPath(); r.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.strokeStyle = '#1e7bff'; g.lineWidth = 1.5; g.stroke(); });
+    });
+    if (ring) { g.beginPath(); ring.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath(); g.fillStyle = 'rgba(255,122,0,.3)'; g.fill(); g.strokeStyle = '#ff7a00'; g.lineWidth = 2.5; g.stroke(); }
+    if (route) { g.beginPath(); route.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.strokeStyle = '#c75a00'; g.lineWidth = 1.5; g.stroke(); }
+    g.font = '11px Roboto,system-ui,sans-serif'; g.fillStyle = 'rgba(255,255,255,.75)'; const at = P.layer === 'sat' ? '© Luftbild GeoBasis-DE / Esri' : '© GeoBasis-DE / BKG';
+    g.fillRect(Wm - g.measureText(at).width - 8, Hm - 15, 300, 15); g.fillStyle = '#334'; g.textAlign = 'right'; g.fillText(at, Wm - 4, Hm - 4);
+  };
+  const lz = Math.min(z, LAYER_MAXZ[P.layer] || 18), k = Math.pow(2, z - lz), ts = 256 * k, nT = 1 << lz;
+  const x0 = Math.floor((cx - Wm / 2) / ts), x1 = Math.floor((cx + Wm / 2) / ts), y0 = Math.floor((cy - Hm / 2) / ts), y1 = Math.floor((cy + Hm / 2) / ts);
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    const img = new Image(); img.onload = paintMini; img.src = LAYERS[P.layer](lz, ((tx % nT) + nT) % nT, ty);
+    imgs.push({ img, dx: tx * ts - cx + Wm / 2, dy: ty * ts - cy + Hm / 2 });
+  }
+  paintMini();
+}
 function syncEnd() { syncing = false; $('bSync').disabled = false; busy(''); }
 window.onUave = raw => {
   const ev = JSON.parse(raw);
@@ -2125,15 +3473,17 @@ window.onUave = raw => {
   if (ev.type === 'progress') { busy('Lade Felder aus UAV Editor', { sub: ev.name, done: ev.done, total: ev.total, cancel: syncAbort }); return; }
   if (ev.type === 'list') {
     busy('');
+    if (S.files.length) { applyOutlines(); draw(); }   // gerade geladene Feldgrenzen sofort anzeigen, auch wenn nichts neu ist
     const todo = ev.fields.filter(f => f.status !== 'ok').sort((a, b) => a.name.localeCompare(b.name, 'de', { numeric: true }));
-    if (!todo.length) { syncEnd(); toast(`Alles aktuell – ${ev.total} Felder in UAV Editor, alle vorhanden.`); return; }
+    if (!todo.length) { syncEnd(); toast(`Alles aktuell – ${ev.total} Felder in UAV Editor, alle vorhanden. Feldgrenzen: ${S.outlineCount || 0} von ${S.files.filter(f => !f.dup).length} Feldern.`, false, 5000); return; }
     const parts = [];
     if (ev.missing) parts.push(`${ev.missing} neu`);
     if (ev.changed) parts.push(`${ev.changed} geändert`);
     pickDlg(`Felder aus UAV Editor laden`,
-      `${parts.join(', ')} · ${ev.total} Felder insgesamt · Häkchen setzen oder entfernen\nZiel: ${P.src}`,
-      todo.map(f => ({ label: f.name, tag: f.status === 'changed' ? 'geändert' : 'neu', on: true,
-        info: [f.arch ? 'Archiv' : 'aktiv', f.area ? fieldArea(f.area) : '', f.mod ? 'geändert ' + new Date(f.mod).toLocaleDateString('de-DE') : '', f.cut ? 'Mähdatum ' + new Date(f.cut).toLocaleDateString('de-DE') : ''].filter(Boolean).join(' · ') })),
+      `${parts.join(', ')} · ${ev.total} Felder im UAV Editor · Ziel: ${P.src}`,
+      todo.map(f => { const x = uaveInfo(f); return { label: f.name, tag: f.status === 'changed' ? 'geändert' : 'neu', on: !otherVariant(f, ev.fields),
+        info: x.info, facets: { Jahr: x.years, Drohne: [x.drone || '?'], Stand: [f.arch ? 'Archiv' : 'aktiv'] },
+        preview: x.ring || x.route || x.c ? cv => miniMap(cv, x.ring, x.route, x.c) : null }; }),
       'Felder laden', idx => {
         const ids = idx.map(i => todo[i].id);
         syncStop = false; syncing = true;
@@ -2201,9 +3551,11 @@ window.onBack = () => {
   if ($('pgPick').classList.contains('open')) { $('pgPick').classList.remove('open'); return true; }
   if ($('pgInfo').classList.contains('open')) { $('iBack').onclick(); return true; }
   if ($('pgSet').classList.contains('open')) { closeSettings(); return true; }
+  if ($('searchBox').classList.contains('open')) { closeSearch(false); return true; }
   return false;
 };
 window.onAppResume = () => {
+  resize();
   windWidget();
   netBadge();
   geoBadge(); geoSyncNow(false);
@@ -2240,8 +3592,12 @@ addEventListener('resize', resize);
 resize();
 update();
 loadRegions();
+loadOsmLines();
+loadObstacles();
 loadGeoVectors();
 applyTheme();
+setTimeout(() => geoSyncNow(false), 4000);   // auch ohne Felder
+window.addEventListener('online', () => { tileFail.clear(); draw(); setTimeout(() => geoSyncNow(false), 2000); });
 load(false);
 netBadge();
 loadAirfields();
