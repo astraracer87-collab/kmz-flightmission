@@ -15,10 +15,15 @@
     --o-bg:#5a3d10;--r-bg:#5c1d1d;--y-bg:#4d4510;--g-bg:#173d24;
     --sunday:#25405e;--suntw:#2e2a4c;--sunnight:#0d1220;
     --rose-bg:rgba(22,30,40,.86);--rose-ring:rgba(140,155,180,.6);--rose-tick:#c9d3e0;--rose-tick2:#7d8aa0;--rose-txt:#e6edf3}
-  body.dark #map{filter:brightness(.72) saturate(.9)}
+  body.dark #mapWrap{filter:brightness(.72) saturate(.9)}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font:16px/1.3 Roboto,system-ui,sans-serif;user-select:none}
-  #map{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block}
+  #mapWrap{position:fixed;inset:0;overflow:hidden;background:#cfd6dc}
+  #map,#mapT{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+  #map{touch-action:none}
+  #mapT{pointer-events:none}
+  #mapWrap.grey #mapT{filter:saturate(.3) brightness(1.1) contrast(.85)}
+  #mapO{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform}
   button{font:inherit;border:0;border-radius:10px;font-weight:700;cursor:pointer}
   button:disabled{opacity:.4}
   svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -42,7 +47,7 @@
   #bSearch svg{width:26px;height:26px}
   #bSearch.on{background:var(--acc);color:#fff}
   #bSearch.on::after{content:'';position:absolute;top:7px;right:8px;width:10px;height:10px;border-radius:50%;background:#ff7a00;border:2px solid #fff}
-  #searchBox{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);width:min(560px,calc(100vw - 180px));background:var(--card);color:var(--txt);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:10px;display:none;z-index:30}
+  #searchBox{position:fixed;left:50%;top:10px;transform:translateX(-50%);width:min(560px,calc(100vw - 180px));background:var(--card);color:var(--txt);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:10px;display:none;z-index:30}
   #searchBox.open{display:block}
   #searchBox .row{display:flex;gap:8px;align-items:center}
   #searchBox svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;flex:none}
@@ -55,6 +60,9 @@
   #qHits:empty{display:none}
   #qHits button{height:40px;padding:0 12px;border-radius:10px;background:var(--sec);color:var(--txt);font-size:15px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #qHits button.sel{background:#ff7a00;color:#fff}
+  #qHits button.place{background:var(--card);border:1px solid var(--line);display:flex;align-items:center;gap:4px}
+  #qHits button.place svg{width:18px;height:18px;stroke:var(--acc)}
+  #qHits button.place small{color:var(--muted);font-size:12px}
   #qHits .more{font-size:14px;color:var(--muted);align-self:center;padding:0 6px}
   #bDl{font-size:17px}
 
@@ -179,6 +187,20 @@
   .wxhero{display:flex;gap:14px;align-items:center;background:linear-gradient(135deg,var(--card),var(--card2))}
   .amp.big{width:30px;height:30px;flex:none;margin:0;box-shadow:0 0 0 4px rgba(0,0,0,.06)}
   .t1{font-weight:700;font-size:18px;margin-bottom:2px}
+  .picksearch{flex:1;min-width:160px;height:46px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:17px;background:var(--card2);color:var(--txt)}
+  .pickcnt{font-size:13px;color:var(--muted);align-self:center;white-space:nowrap}
+  .wx4{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .wx4 .tile{border-radius:12px;padding:10px 12px;background:var(--card2);border-left:6px solid #13a538;min-width:0}
+  .wx4 .tile.o{border-left-color:#e8a200;background:var(--o-bg)}
+  .wx4 .tile.r{border-left-color:#b3131b;background:var(--r-bg)}
+  .wx4 .tile .k{font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .wx4 .tile .v{font-size:22px;font-weight:800;margin:2px 0}
+  .wx4 .tile .d{font-size:13px;color:var(--muted)}
+  .wx4h{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
+  .wx4h div{border-radius:10px;background:var(--card2);padding:6px 4px;text-align:center;font-size:13px;line-height:1.35;border-top:5px solid #13a538}
+  .wx4h div.o{border-top-color:#e8a200}.wx4h div.r{border-top-color:#b3131b}
+  .wx4h b{font-size:15px}
+  @media (max-width:560px){.wx4{grid-template-columns:1fr}.wx4h{grid-template-columns:repeat(3,1fr)}}
   .sunsvg{width:100%;height:140px;display:block;border-radius:10px;stroke:none}
   .wxt{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
   .wxl{flex:none;width:122px;border-right:2px solid var(--line);background:var(--card2)}
@@ -203,14 +225,14 @@
 </head>
 <body>
 
-<canvas id="map"></canvas>
+<div id="mapWrap"><canvas id="mapT"></canvas><canvas id="mapO"></canvas><canvas id="map"></canvas></div>
 <div id="busy"></div>
 <div id="wind"></div>
 <div id="notam"></div>
 <div id="net"></div>
 <div id="toast"></div>
 <div id="infoPop"><div class="ph">Infos auf der Karte</div><button data-inf="geo"><b class="ck"></b><span><b>Geozonen</b><small>Antippen zeigt die Geozonen und Regeln an der Stelle</small></span><i class="dot" style="background:#d42020"></i></button><button data-inf="fld"><b class="ck"></b><span><b>Felder</b><small>Feldnamen auf der Karte anzeigen</small></span><i class="dot" style="background:#1e7bff"></i></button></div>
-<div id="layerPop"><button data-ly="grey"><i class="sw-grey"></i>Grau</button><button data-ly="osm"><i class="sw-osm"></i>Karte</button><button data-ly="sat"><i class="sw-sat"></i>Satellit</button></div>
+<div id="layerPop"><button data-ly="grey"><i class="sw-grey"></i>Grau</button><button data-ly="osm"><i class="sw-osm"></i>Karte</button><button data-ly="sat"><i class="sw-sat"></i>Luftbild</button></div>
 
 <div id="ctrl">
   <button id="zIn" title="Vergrößern"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -235,7 +257,7 @@
 <div id="searchBox">
   <div class="row">
     <svg class="ic" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
-    <input id="q" type="search" placeholder="Feld suchen…" autocomplete="off" enterkeyhint="search">
+    <input id="q" type="search" placeholder="Feld oder Ort suchen…" autocomplete="off" enterkeyhint="search">
     <button id="qX" title="Suche löschen und schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div id="qHits"></div>
@@ -272,7 +294,8 @@
     <div class="set"><div class="l"><div class="t">Wohngrundstücke einbeziehen</div><div class="v">Zeigt auch Wohngrundstücke als Geozone (deckt Ortschaften flächig ab)</div></div><label class="sw"><input type="checkbox" id="sGeoRes"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Geozonen-Daten</div><div class="v" id="vGeo"></div></div><button class="b-sec" id="bGeoNow">Jetzt aktualisieren</button></div>
     <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
-    <div class="set"><div class="l"><div class="t">Kartentyp</div><div class="v" id="vTiles">Angesehene Kacheln werden auf der RC gespeichert und sind danach offline verfügbar.</div></div><button class="b-sec" id="bTilesClear">Leeren</button><div class="seg"><button data-layer="grey">Grau</button><button data-layer="osm">Karte</button><button data-layer="sat">Satellit</button></div></div>
+    <div class="set"><div class="l"><div class="t">Kartentyp</div><div class="v" id="vTiles">Angesehene Kacheln werden auf der RC gespeichert und sind danach offline verfügbar.</div></div><button class="b-sec" id="bTilesClear">Leeren</button><div class="seg"><button data-layer="grey">Grau</button><button data-layer="osm">Karte</button><button data-layer="sat">Luftbild</button></div></div>
+    <div class="set"><div class="l"><div class="t">Einsatzgebiet offline speichern</div><div class="v" id="vPrefetch">Lädt Grau, Karte und Luftbild für das Gebiet aller Felder (+ 3 km) einmal komplett auf die RC – danach ruckelfrei und ohne Internet.</div></div><button class="b-ok" id="bPrefetch">Herunterladen</button></div>
     <div class="set"><div class="l"><div class="t">Wetter</div><div class="v">Tagesgang, Sonnenlauf und Einsatzwetter – auch per Tipp auf die Windanzeige</div></div><button class="b-sec" id="bWxSet">Wetter öffnen</button></div>
     <div class="set"><div class="l"><div class="t">Dateizugriff</div><div class="v" id="vAcc"></div></div><button class="b-sec" id="bAcc">Berechtigung</button></div>
     <div class="set" style="flex-direction:column;align-items:stretch">
@@ -374,13 +397,17 @@ window.addEventListener('error', e => toast('Fehler: ' + e.message, true));
 const cv = $('map'), mctx = cv.getContext('2d');
 let ctx = mctx;
 // Vorgerenderte Karte mit Rand: beim Wischen/Zoomen wird nur dieses Bild verschoben, neu gezeichnet erst danach
-const buf = document.createElement('canvas'), bctx = buf.getContext('2d');
+const buf = $('mapO'), bctx = buf.getContext('2d');
+const tcv = $('mapT'), tctx = tcv.getContext('2d', { alpha: false });
 const BV = { ok: false, lat: 0, lon: 0, z: 0, M: 0, bw: 0, bh: 0, t: 0 };
+// Karte/Grau: basemap.de (amtliche Karte, BKG); Luftbild: Orthophotos HE/RP (außerhalb Esri) – alles auf der RC gespeichert
+const BM_URL = l => (z, x, y) => `https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_${l}/default/GLOBAL_WEBMERCATOR/${z}/${y}/${x}.png`;
 const LAYERS = {
-  sat: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
-  osm: (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
-  grey: (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`   // dieselben Kacheln, blass gezeichnet
+  sat: (z, x, y) => `https://dop.local/${z}/${x}/${y}`,
+  osm: BM_URL('farbe'),
+  grey: BM_URL('grau')
 };
+const LAYER_MAXZ = { sat: 19, osm: 18, grey: 18 };
 const LAYER_FILTER = { grey: 'saturate(.3) brightness(1.1) contrast(.85)' };
 const V = { lat: 50.39, lon: 8.07, z: 12 };
 let W = 0, H = 0, DPR = 1;
@@ -430,7 +457,7 @@ function fromScreen(px, py) {
 }
 function resize() {
   DPR = window.devicePixelRatio || 1; W = innerWidth; H = innerHeight;
-  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); draw();
+  cv.width = tcv.width = Math.round(W * DPR); cv.height = tcv.height = Math.round(H * DPR); draw();
 }
 let pend = false, dirty = true, settleT = 0;
 /** Inhalt hat sich geändert → Karte neu rendern */
@@ -449,7 +476,7 @@ function tileDraw(ms) {
   clearTimeout(tileT); tileAt = at; tileT = setTimeout(() => { tileT = 0; drawLive(false); }, ms);
 }
 const tileFail = new Map();   // Kachel-Schlüssel -> Zeitpunkt des letzten Fehlschlags (für erneuten Versuch)
-const tKey = (z, x, y) => (P.layer === 'grey' ? 'osm' : P.layer) + z + '/' + x + '/' + y;
+const tKey = (z, x, y) => P.layer + z + '/' + x + '/' + y;
 function tile(z, x, y) {
   const k = tKey(z, x, y);
   let t = tiles.get(k);
@@ -490,19 +517,23 @@ function paint() {
   if (BV.ok) { const [x, y, k] = bufPlace(); cover = k > .55 && k < 1.8 && x <= 0 && y <= 0 && x + BV.bw * k >= W && y + BV.bh * k >= H; }
   // Ebenen (Zonen, Felder, Hindernisse) nur neu rendern, wenn nicht gerade gewischt wird – beim Wischen wird das fertige Bild verschoben
   if (!gest && (dirty || !cover)) renderBuf();
-  ctx = mctx;
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // Drei Ebenen: Kacheln (eigene Leinwand, Grau per GPU-Filter), Zonen/Felder (fertiges Bild, nur per CSS verschoben), oben Position/Kompass
+  ctx = tctx; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   paintTiles();   // Kartenkacheln immer live (schnell), dadurch nie leere Ränder
+  ctx = mctx;
   if (BV.ok) {
     const [x, y, k] = bufPlace();
-    if (k > .3 && k < 3.5) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(buf, x * DPR, y * DPR, buf.width * k, buf.height * k); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); }
+    buf.style.visibility = k > .3 && k < 3.5 ? 'visible' : 'hidden';
+    buf.style.transform = `translate3d(${x}px,${y}px,0) scale(${k})`;
   }
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   paintLive();
 }
 function renderBuf() {
   const M = Math.round(Math.max(W, H) * 0.3), Wr = W, Hr = H;
   const bw = W + 2 * M, bh = H + 2 * M;
-  if (buf.width !== Math.round(bw * DPR) || buf.height !== Math.round(bh * DPR)) { buf.width = Math.round(bw * DPR); buf.height = Math.round(bh * DPR); }
+  if (buf.width !== Math.round(bw * DPR) || buf.height !== Math.round(bh * DPR)) { buf.width = Math.round(bw * DPR); buf.height = Math.round(bh * DPR); buf.style.width = bw + 'px'; buf.style.height = bh + 'px'; }
   ctx = bctx; W = bw; H = bh;
   try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, buf.width, buf.height); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); paintStatic(); }
   finally { W = Wr; H = Hr; ctx = mctx; }
@@ -512,7 +543,7 @@ function renderBuf() {
 }
 function paintTiles() {
   ctx.fillStyle = '#cfd6dc'; ctx.fillRect(0, 0, W, H);
-  const tz = Math.max(1, Math.min(19, Math.round(V.z)));
+  const tz = Math.max(1, Math.min(LAYER_MAXZ[P.layer] || 18, Math.round(V.z)));
   const n = Math.pow(2, tz), ts = 256 * Math.pow(2, V.z - tz);
   const cx = lon2x(V.lon) * n * ts, cy = lat2y(V.lat) * n * ts, mh = mapH();
   const x0 = Math.floor((cx - W / 2) / ts), x1 = Math.floor((cx + W / 2) / ts);
@@ -522,13 +553,6 @@ function paintTiles() {
     const dx = Math.round(tx * ts - cx + W / 2), dy = Math.round(ty * ts - cy + mh / 2), dw = Math.ceil(ts) + 1;
     if (t && t.complete && t.naturalWidth) ctx.drawImage(t, dx, dy, dw, dw);
     else { const pt = parentTile(tz, xx, ty); if (pt) ctx.drawImage(pt.img, pt.sx, pt.sy, pt.sz, pt.sz, dx, dy, dw, dw); }
-  }
-  // Graue Karte: einmal über das ganze Bild entsättigen und aufhellen (Filter je Kachel ist auf der RC sehr langsam)
-  if (P.layer === 'grey') {
-    ctx.save();
-    ctx.globalCompositeOperation = 'saturation'; ctx.globalAlpha = .72; ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, W, H);
-    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = .16; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
-    ctx.restore();
   }
 }
 function paintStatic() {
@@ -556,12 +580,13 @@ function paintStatic() {
 /** Schnell wechselnde Teile direkt auf den Bildschirm: Markierung, eigene Position, Blickrichtung, Quellenangabe */
 function paintLive() {
   { // Pflicht-Quellenangabe der Kartendienste, klein unten rechts
-    const at = P.layer === 'sat' ? '© Esri, Maxar, Earthstar Geographics' : '© OpenStreetMap-Mitwirkende';
+    const at = P.layer === 'sat' ? 'Luftbild © GeoBasis-DE / HVBG, LVermGeoRP (dl-de/by-2-0) · außerhalb © Esri' : '© GeoBasis-DE / BKG ' + new Date().getFullYear() + ' CC BY 4.0';
+    const at2 = at + (P.osmPower === '1' ? ' · Hindernisse © OpenStreetMap' : '');
     ctx.font = '11px Roboto,system-ui,sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
-    const tw = ctx.measureText(at).width;
+    const tw = ctx.measureText(at2).width;
     const ax = W - 80;   // links neben den Kartenknöpfen
     ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(ax - tw - 4, H - 92, tw + 8, 15);
-    ctx.fillStyle = '#334'; ctx.fillText(at, ax, H - 78);
+    ctx.fillStyle = '#334'; ctx.fillText(at2, ax, H - 78);
   }
   if (infoPin) {
     const [x, y] = toScreen(infoPin[0], infoPin[1]);
@@ -610,12 +635,35 @@ function loadGeoVectors() {
 }
 function geoLayerOn(layer) { return layer !== 'wohngrundstuecke' || P.georesi === '1'; }
 /** Bundesländer, die eine Geozone berührt (Stichprobe ihrer Eckpunkte) – einmal je Zone berechnet */
+// Welche Bundesländer/RB berührt eine Zone? Schnell über das Grenz-Raster; Ergebnis dauerhaft gespeichert (bis neue Grenzen geladen werden)
+let regStore = null, regStoreDirty = false, regStoreT = 0;
+function regStoreGet() {
+  if (regStore && regStore.v === S.regFetched) return regStore;
+  regStore = { v: S.regFetched, m: {} };
+  try { const o = JSON.parse(A.getPref('regstore', '{}') || '{}'); if (o.v === S.regFetched && o.m) regStore.m = o.m; } catch (e) { }
+  return regStore;
+}
+function regStoreSave() { regStoreDirty = true; clearTimeout(regStoreT); regStoreT = setTimeout(() => { if (regStoreDirty) { regStoreDirty = false; try { A.setPref('regstore', JSON.stringify(regStore)); } catch (e) { } } }, 4000); }
+const featKey = f => f.layer + '|' + f.bb.n.toFixed(5) + ',' + f.bb.w.toFixed(5) + ',' + f.bb.s.toFixed(5) + ',' + f.bb.e.toFixed(5) + '|' + f.rings.reduce((a, r) => a + r.length, 0);
 function featRegions(f) {
   if (f.regs) return f.regs;
-  const m = new Map(), pts = f.rings.flat(), step = Math.max(1, Math.floor(pts.length / 60));
-  for (let i = 0; i < pts.length; i += step) { const r = regionAt(pts[i][1], pts[i][0]); m.set((r.st || '') + '|' + r.rbGi, r); }
-  const c = featRegion(f); m.set((c.st || '') + '|' + c.rbGi, c);
-  return (f.regs = [...m.values()]);
+  if (!S.regions.length) return (f.regs = [featRegion(f)]);
+  const st = regStoreGet(), k = featKey(f);
+  let masks = st.m[k];
+  if (!masks) {
+    const { n, s: so, e, w } = f.bb;
+    const crossed = segsIn(w, so, e, n, g => segHitsRect(g, w, so, e, n));
+    const [cla, clo] = featPoint(f), m0 = memberFull(cla, clo), set = new Set([m0]);
+    if (crossed) {   // Eckpunkte entlang der Ringe: Zugehörigkeit per kurzer Strahlen vom vorigen Punkt
+      let pla = cla, plo = clo, pm = m0;
+      f.rings.forEach(r => r.forEach(c => { pm = memberFrom(pm, pla, plo, c[1], c[0]); pla = c[1]; plo = c[0]; set.add(pm); }));
+    }
+    masks = st.m[k] = [...set];
+    regStoreSave();
+  }
+  const out = new Map();
+  masks.forEach(m => { const r = regFromMask(m); out.set((r.st || '') + '|' + r.rbGi, r); });
+  return (f.regs = [...out.values()]);
 }
 const GEO_STYLE = { on: ['rgba(20,170,60,.24)', 'rgba(10,140,45,.95)', 1.5], dist: ['rgba(255,140,0,.26)', 'rgba(215,110,0,.95)', 1.8], off: ['rgba(230,30,30,.22)', 'rgba(210,20,20,.9)', 2] };
 function geoPathDraw(f, st) {
@@ -641,6 +689,9 @@ function cellCovered(layer, lat, lon) {
 }
 function paintGeo() {
   const [n0, w0] = fromScreen(0, 0), [s0, e0] = fromScreen(W, H), px = W / Math.max(1e-9, e0 - w0);
+  // gerenderter Bereich in Mercator-Koordinaten (0..1), für die Grenz-Trennung etwas größer
+  const ax0 = lon2x(w0), ax1 = lon2x(e0), ay0 = lat2y(n0), ay1 = lat2y(s0), mx = (ax1 - ax0) * .5, my = (ay1 - ay0) * .5;
+  const area = { x0: ax0 - mx, x1: ax1 + mx, y0: ay0 - my, y1: ay1 + my, need: { x0: ax0, x1: ax1, y0: ay0, y1: ay1 } };
   ctx.save();
   ctx.lineJoin = 'round';
   for (const f of S.geo) {
@@ -650,24 +701,116 @@ function paintGeo() {
     const kinds = S.regions.length ? featRegions(f).map(r => covKind(f.layer, r)) : [covKind(f.layer, featRegion(f))];
     if (kinds.every(c => c === kinds[0])) { geoPathDraw(f, GEO_STYLE[kinds[0]]); continue; }
     const onSt = GEO_STYLE[kinds.find(k => k !== 'off') || 'on'];
-    // Zone liegt in Bundesländern mit unterschiedlicher Genehmigung: an der Landesgrenze trennen (grün / rot getrennt zeichnen)
-    // Raster in Bildschirm-Pixeln: 10-px-Zellen, an der Grenze (Ecken uneinig) fein in 2-px-Zellen unterteilt
-    const pOn = new Path2D(), pOff = new Path2D(), C = 10, Fp = 2;
-    const sx0 = Math.max(0, Math.floor(Math.min(...[toScreen(f.bb.n, f.bb.w)[0], toScreen(f.bb.s, f.bb.w)[0]]) / C) * C);
-    const sx1 = Math.min(W, Math.max(toScreen(f.bb.n, f.bb.e)[0], toScreen(f.bb.s, f.bb.e)[0]) + C);
-    const sy0 = Math.max(0, Math.floor(toScreen(f.bb.n, f.bb.w)[1] / C) * C), sy1 = Math.min(H, toScreen(f.bb.s, f.bb.w)[1] + C);
-    const corner = new Map();
-    const cov = (x, y) => { const k = x + ',' + y; let v = corner.get(k); if (v === undefined) { const [la, lo] = fromScreen(x, y); v = cellCovered(f.layer, la, lo); corner.set(k, v); } return v; };
-    for (let y = sy0; y < sy1; y += C) for (let x = sx0; x < sx1; x += C) {
-      const a = cov(x, y), b = cov(x + C, y), c = cov(x, y + C), d = cov(x + C, y + C);
-      if (a === b && a === c && a === d) { (a ? pOn : pOff).rect(x, y, C + .5, C + .5); continue; }
-      for (let yy = y; yy < y + C; yy += Fp) for (let xx = x; xx < x + C; xx += Fp)
-        (cov(xx + Fp / 2, yy + Fp / 2) ? pOn : pOff).rect(xx, yy, Fp + .3, Fp + .3);
-    }
-    ctx.save(); ctx.clip(pOff); geoPathDraw(f, GEO_STYLE.off); ctx.restore();
-    ctx.save(); ctx.clip(pOn); geoPathDraw(f, onSt); ctx.restore();
+    // Zone liegt in Bundesländern mit unterschiedlicher Genehmigung: an der Landesgrenze trennen.
+    // Die Trennung wird im Hintergrund einmal je Zoomstufe berechnet und gespeichert – das Zeichnen kostet danach fast nichts.
+    const sp = splitFor(f, area);
+    if (!sp) { geoPathDraw(f, GEO_STYLE[covKind(f.layer, featRegion(f))]); continue; }
+    const kS = frame().s / (256 * Math.pow(2, sp.zr));
+    const clipTo = p => { const fr = frame(); ctx.setTransform(DPR * kS, 0, 0, DPR * kS, DPR * ((sp.ox - fr.cx) * fr.s + fr.hx), DPR * ((sp.oy - fr.cy) * fr.s + fr.hy)); ctx.clip(p); resetTf(); };
+    ctx.save(); clipTo(sp.off); geoPathDraw(f, GEO_STYLE.off); ctx.restore();
+    ctx.save(); clipTo(sp.on); geoPathDraw(f, onSt); ctx.restore();
   }
   ctx.restore();
+}
+
+// ---------- Trennung an Landesgrenzen: Quadtree im Hintergrund ----------
+// Grenzsegmente in einem Raster (0,01°) für schnelle Abfragen; Zugehörigkeit eines Punktes wird vom Elternquadrat
+// über kurze Strahlen (Anzahl Grenzkreuzungen) abgeleitet statt jedes Mal über alle Grenzlinien.
+let segIdx = null;
+const SEG_BIN = 0.01;
+function segIndex() {
+  if (segIdx && segIdx.n === S.regions.length) return segIdx;
+  const bins = new Map(), segs = [];
+  S.regions.forEach((r, ri) => (r.lines || []).forEach(ln => {
+    for (let i = 0; i + 3 < ln.length; i += 2) {
+      const a = ln[i], b = ln[i + 1], c = ln[i + 2], d = ln[i + 3], id = segs.length;
+      segs.push([a, b, c, d, ri]);
+      for (let x = Math.floor(Math.min(a, c) / SEG_BIN); x <= Math.floor(Math.max(a, c) / SEG_BIN); x++)
+        for (let y = Math.floor(Math.min(b, d) / SEG_BIN); y <= Math.floor(Math.max(b, d) / SEG_BIN); y++) {
+          const k = x * 100000 + y; let l = bins.get(k); if (!l) bins.set(k, l = []); l.push(id);
+        }
+    }
+  }));
+  return (segIdx = { n: S.regions.length, bins, segs, stamp: new Uint32Array(segs.length), st: 0 });
+}
+/** Segmente, deren Raster-Zelle das Rechteck (Länge/Breite) berührt */
+function segsIn(w, s, e, n, fn) {
+  const I = segIndex(); const st = ++I.st;
+  for (let x = Math.floor(w / SEG_BIN); x <= Math.floor(e / SEG_BIN); x++)
+    for (let y = Math.floor(s / SEG_BIN); y <= Math.floor(n / SEG_BIN); y++) {
+      const l = I.bins.get(x * 100000 + y); if (!l) continue;
+      for (const id of l) { if (I.stamp[id] === st) continue; I.stamp[id] = st; if (fn(I.segs[id]) === true) return true; }
+    }
+  return false;
+}
+function segHitsRect(g, w, s, e, n) {
+  const [a, b, c, d] = g;
+  if (Math.max(a, c) < w || Math.min(a, c) > e || Math.max(b, d) < s || Math.min(b, d) > n) return false;
+  if ((a >= w && a <= e && b >= s && b <= n) || (c >= w && c <= e && d >= s && d <= n)) return true;
+  return segX(a, b, c, d, w, s, e, s) || segX(a, b, c, d, e, s, e, n) || segX(a, b, c, d, e, n, w, n) || segX(a, b, c, d, w, n, w, s);
+}
+/** Mitgliedschaft (Bitmaske je Region) an Punkt B aus bekannter Mitgliedschaft an Punkt A */
+function memberFrom(mA, laA, loA, laB, loB) {
+  let m = mA;
+  segsIn(Math.min(loA, loB), Math.min(laA, laB), Math.max(loA, loB), Math.max(laA, laB), g => {
+    if (segX(loA, laA, loB, laB, g[0], g[1], g[2], g[3])) m ^= (1 << g[4]);
+  });
+  return m;
+}
+function memberFull(lat, lon) { let m = 0; S.regions.forEach((r, i) => { if (inRegion(lat, lon, r)) m |= 1 << i; }); return m; }
+const regFromMask = m => {
+  let st = null, rb = false;
+  S.regions.forEach((r, i) => { if (!(m & (1 << i))) return; if (r.lvl === '4' && r.code) st = r.code.replace('DE-', ''); else if (r.lvl === '5') rb = true; });
+  return st ? { st, rbGi: st === 'HE' && rb, fallback: false } : { st: null, rbGi: false, fallback: true };
+};
+const splitJobs = new Map(); let splitBusy = false;
+function splitFor(f, area) {
+  const zr = Math.max(1, Math.round(V.z)), sp = f._split, nd = area.need;
+  const fits = sp && sp.zr === zr && sp.x0 <= Math.max(nd.x0, lon2x(f.bb.w)) && sp.x1 >= Math.min(nd.x1, lon2x(f.bb.e)) && sp.y0 <= Math.max(nd.y0, lat2y(f.bb.n)) && sp.y1 >= Math.min(nd.y1, lat2y(f.bb.s));
+  if (!fits && !splitJobs.has(f)) { splitJobs.set(f, { zr, area }); if (!splitBusy) { splitBusy = true; setTimeout(runSplit, 0); } }
+  return sp || null;   // bis die neue Trennung fertig ist, die alte (andere Zoomstufe) weiterverwenden
+}
+function runSplit() {
+  const it = splitJobs.entries().next();
+  if (it.done) { splitBusy = false; return; }
+  const [f, job] = it.value;
+  const zr = job.zr, WSz = 256 * Math.pow(2, zr), minS = 2 / WSz;
+  // Bereich: Zone ∩ (gerenderter Bereich + Rand), als Quadrat in Mercator-Koordinaten
+  const x0 = Math.max(job.area.x0, lon2x(f.bb.w)), x1 = Math.min(job.area.x1, lon2x(f.bb.e));
+  const y0 = Math.max(job.area.y0, lat2y(f.bb.n)), y1 = Math.min(job.area.y1, lat2y(f.bb.s));
+  if (x1 <= x0 || y1 <= y0) { splitJobs.delete(f); setTimeout(runSplit, 0); return; }
+  let size = minS; while (size < Math.max(x1 - x0, y1 - y0)) size *= 2;
+  const on = new Path2D(), off = new Path2D(), ox = x0, oy = y0;
+  const cla = y2lat(y0 + size / 2), clo = x2lon(x0 + size / 2);
+  const stack = [[x0, y0, size, cla, clo, memberFull(cla, clo)]];
+  const layer = f.layer;
+  const kindOf = new Map();
+  const step = () => {
+    if (splitJobs.get(f) !== job) { setTimeout(runSplit, 0); return; }   // überholt
+    const t0 = performance.now();
+    while (stack.length && performance.now() - t0 < 8) {
+      const [x, y, sz, pla, plo, pm] = stack.pop();
+      if (x > x1 || y > y1 || x + sz < x0 || y + sz < y0) continue;
+      const w = x2lon(x), e = x2lon(x + sz), n = y2lat(y), so = y2lat(y + sz);
+      const cla2 = y2lat(y + sz / 2), clo2 = x2lon(x + sz / 2);
+      const m = memberFrom(pm, pla, plo, cla2, clo2);
+      const crossed = sz > minS && segsIn(w, so, e, n, g => segHitsRect(g, w, so, e, n));
+      if (!crossed) {
+        let k = kindOf.get(m); if (k === undefined) { k = covKind(layer, regFromMask(m)); kindOf.set(m, k); }
+        const ws = WSz;
+        (k === 'off' ? off : on).rect((x - ox) * ws, (y - oy) * ws, sz * ws + .6, sz * ws + .6);
+        continue;
+      }
+      const h = sz / 2;
+      stack.push([x, y, h, cla2, clo2, m], [x + h, y, h, cla2, clo2, m], [x, y + h, h, cla2, clo2, m], [x + h, y + h, h, cla2, clo2, m]);
+    }
+    if (stack.length) { setTimeout(step, 0); return; }
+    f._split = { zr, on, off, ox, oy, x0: job.area.x0, x1: job.area.x1, y0: job.area.y0, y1: job.area.y1 };
+    splitJobs.delete(f);
+    draw();
+    setTimeout(runSplit, 0);
+  };
+  step();
 }
 function inRing(lat, lon, ring) {
   let c = false;
@@ -1164,10 +1307,17 @@ async function load(keepView) {
 }
 
 // ================= Leiste =================
+let visMemo = {};
+const ftitle = f => f._ft || (f._ft = foldTxt(f.title));
 function visible(f) {
   if (f.dup) return false;   // Variante für die andere Drohne – passende Version wird angezeigt
-  const q = $('q').value.trim().toLowerCase();
-  return !q || f.title.toLowerCase().includes(q) || f.selected;
+  const raw = $('q').value.trim();
+  if (!raw) return true;
+  if (visMemo.raw !== raw || visMemo.n !== S.files.length) {   // einmal je Suchbegriff: passt überhaupt ein Feld?
+    const q = foldTxt(raw);
+    visMemo = { raw, n: S.files.length, q, any: S.files.some(g => !g.dup && ftitle(g).includes(q)) };
+  }
+  return !visMemo.any || ftitle(f).includes(visMemo.q) || f.selected;   // nur Ort getippt: Felder nicht ausblenden
 }
 function update() {
   const n = S.files.filter(f => f.selected).length;
@@ -1206,15 +1356,41 @@ window.onLocationStatus = m => toast(m, false, 4000);
 window.onLocationError = m => toast(m, true);
 $('bNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); toast('Alle Felder abgewählt.'); };
 // Suche: Lupe in der Leiste öffnet ein Suchfeld unten mittig über der Karte
+// Orte (Dörfer, Ortsteile, Flurnamen) aus OpenStreetMap – offline gespeichert
+const PLACE_RANK = { city: 0, town: 1, village: 2, suburb: 3, quarter: 4, hamlet: 4, neighbourhood: 5, isolated_dwelling: 6, farm: 6, locality: 7 };
+const PLACE_Z = { city: 13, town: 13.5, village: 14.5, suburb: 14.5, quarter: 15, hamlet: 15, neighbourhood: 15.5, isolated_dwelling: 16, farm: 16, locality: 15.5 };
+const PLACE_LBL = { city: 'Stadt', town: 'Stadt', village: 'Dorf', suburb: 'Ortsteil', quarter: 'Ortsteil', hamlet: 'Weiler', neighbourhood: 'Wohngebiet', isolated_dwelling: 'Einzelhof', farm: 'Hof', locality: 'Flurname' };
+function placeHits(q) {
+  const k = foldTxt(q);
+  if (k.length < 2) return [];
+  return (S.places || []).filter(p => p.k.includes(k))
+    .sort((a, b) => (b.k.startsWith(k) - a.k.startsWith(k)) || ((PLACE_RANK[a.t] ?? 9) - (PLACE_RANK[b.t] ?? 9)) || a.n.localeCompare(b.n, 'de'))
+    .slice(0, 6);
+}
+function goPlace(p) {
+  V.lat = p.lat; V.lon = p.lon; V.z = PLACE_Z[p.t] || 14.5;
+  $('q').value = '';   // Feldfilter aufheben, damit die Felder rund um den Ort sichtbar sind
+  closeSearch(false);
+  const near = S.files.filter(f => !f.dup && Math.hypot((f.center[0] - p.lat) * 111.2, (f.center[1] - p.lon) * 71) < 3).length;
+  toast(`${p.n}${PLACE_LBL[p.t] ? ' (' + PLACE_LBL[p.t] + ')' : ''} · ${near} Feld${near === 1 ? '' : 'er'} im Umkreis von 3 km`, false, 3500);
+  draw();
+}
 function searchHits() {
   const box = $('qHits'), q = $('q').value.trim().toLowerCase();
   $('bSearch').classList.toggle('on', !!q);
   if (!$('searchBox').classList.contains('open')) return;
   box.innerHTML = '';
   if (!q) return;
-  const hits = S.files.filter(f => !f.dup && f.title.toLowerCase().includes(q))
+  const fq = foldTxt(q);
+  const hits = S.files.filter(f => !f.dup && ftitle(f).includes(fq))   // Umlaute/Groß-Klein egal
     .sort((a, b) => a.title.localeCompare(b.title, 'de', { numeric: true }));
-  if (!hits.length) { box.innerHTML = '<span class="more">Kein Feld gefunden</span>'; return; }
+  placeHits(q).forEach(p => {
+    const b = document.createElement('button'); b.className = 'place';
+    b.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>${esc(p.n)} <small>${PLACE_LBL[p.t] || ''}</small>`;
+    b.onclick = () => goPlace(p);
+    box.appendChild(b);
+  });
+  if (!hits.length) { if (!box.children.length) box.innerHTML = `<span class="more">Kein Feld oder Ort gefunden${isOnline() ? ' – Enter sucht online' : ''}</span>`; return; }
   hits.slice(0, 12).forEach(f => {
     const b = document.createElement('button');
     b.textContent = f.title; b.className = f.selected ? 'sel' : '';
@@ -1227,6 +1403,16 @@ function searchHits() {
     box.appendChild(b);
   });
   if (hits.length > 12) box.insertAdjacentHTML('beforeend', `<span class="more">+${hits.length - 12} weitere</span>`);
+}
+/** Ort online suchen (OpenStreetMap Nominatim, nur auf Enter – keine Suche beim Tippen laut Nutzungsregeln) */
+async function geocodeOnline(q) {
+  try {
+    const c = wxLoc();
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de&accept-language=de&viewbox=${c.lon - 0.6},${c.lat + 0.4},${c.lon + 0.6},${c.lat - 0.4}&q=${encodeURIComponent(q)}`);
+    const j = await r.json();
+    if (!j.length) return toast('Kein Ort gefunden: ' + q, true);
+    goPlace({ n: j[0].display_name.split(',')[0], t: j[0].type, lat: +j[0].lat, lon: +j[0].lon });
+  } catch (e) { toast('Ortssuche fehlgeschlagen', true); }
 }
 function openSearch() {
   $('searchBox').classList.add('open');
@@ -1243,7 +1429,14 @@ $('bSearch').onclick = () => $('searchBox').classList.contains('open') ? closeSe
 $('qX').onclick = () => closeSearch(true);
 $('q').oninput = () => { update(); };
 $('q').onkeydown = e => {
-  if (e.key === 'Enter') { $('q').blur(); fitAll(); }
+  if (e.key === 'Enter') {
+    $('q').blur();
+    const q = $('q').value.trim();
+    if (S.files.some(f => !f.dup && ftitle(f).includes(foldTxt(q)))) return fitAll();
+    const ph = placeHits(q);
+    if (ph.length) return goPlace(ph[0]);
+    if (q.length >= 2 && isOnline()) geocodeOnline(q);
+  }
   else if (e.key === 'Escape') closeSearch(false);
 };
 
@@ -1292,13 +1485,16 @@ function flightBriefing(sel) {
   sel.forEach(fl => {
     fieldSamples(fl).forEach(([la, lo]) => {
       geoAt(la, lo).forEach(h => {
-        let z = zones.get(h.f);
-        if (!z) zones.set(h.f, z = { f: h.f, reg: regionAt(la, lo), fields: new Set() });
+        // gleiche Art + gleicher Name + gleiche Regel (Bundesland) nur einmal aufführen, z. B. mehrere Abschnitte einer Bahnanlage
+        const reg = regionAt(la, lo), key = h.f.layer + '|' + ((h.f.props || {}).name || '') + '|' + covKind(h.f.layer, reg) + '|' + (reg.st || '');
+        let z = zones.get(key);
+        if (!z) zones.set(key, z = { f: h.f, reg, fields: new Set() });
         z.fields.add(fl.title);
       });
       if (P.osmPower === '1') {
-        railsNear(la, lo).forEach(r => { const x = rails.get(r) || { r, fields: new Set() }; x.fields.add(fl.title); rails.set(r, x); });
-        osmLinesNear(la, lo, 30).forEach(l => { const x = lines.get(l) || { l, fields: new Set() }; x.fields.add(fl.title); lines.set(l, x); });
+        // OSM teilt Strecken in viele Stücke: nach Name/Spannung zusammenfassen
+        railsNear(la, lo).forEach(r => { const k = (r.n || '') + '|' + !!r.e, x = rails.get(k) || { r, fields: new Set() }; if (r.e) x.r = r; x.fields.add(fl.title); rails.set(k, x); });
+        osmLinesNear(la, lo, 30).forEach(l => { const k = (l.kv || 0) + '|' + (l.n || '') + '|' + l.p, x = lines.get(k) || { l, fields: new Set() }; x.fields.add(fl.title); lines.set(k, x); });
         S.obs.forEach(o => {
           const d = Math.hypot((o.lat - la) * 111200, (o.lon - lo) * 111200 * Math.cos(la * Math.PI / 180));
           if (d > Math.max(100, (o.rot || 0) / 2 + 60)) return;
@@ -1422,14 +1618,31 @@ function pickDlg(title, text, items, okWord, cb) {
   const upd = () => {
     const n = items.filter(x => x.on).length;
     $('dYes').textContent = n ? `${n} ${okWord}` : 'Nichts gewählt'; $('dYes').disabled = !n;
-    box.querySelectorAll('input').forEach((c, i) => c.checked = items[i].on);
+    box.querySelectorAll('label.pick input').forEach((c, i) => c.checked = items[i].on);
   };
   const tags = [...new Set(items.map(x => x.tag).filter(Boolean))];
   const bar = document.createElement('div'); bar.className = 'pickbar';
+  // Suche: Umlaute/Groß-Klein egal; „Alle“/„Keine“/„Nur …“ wirken bei aktiver Suche nur auf die Treffer
+  const fold = t => String(t || '').toLowerCase().replace(/ß/g, 'ss').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  let q = '';
+  const shown = x => !q || fold(x.label + ' ' + (x.info || '') + ' ' + (x.tag || '')).includes(q);
   [['Alle', () => true], ['Keine', () => false], ...tags.map(t => [`Nur ${t}`, x => x.tag === t])].forEach(([l, f]) => {
     const b = document.createElement('button'); b.className = 'b-sec'; b.textContent = l;
-    b.onclick = () => { items.forEach(x => x.on = f(x)); upd(); }; bar.appendChild(b);
+    b.onclick = () => { items.forEach(x => { if (shown(x)) x.on = f(x); else if (!q) x.on = f(x); }); upd(); }; bar.appendChild(b);
   });
+  if (items.length > 5) {
+    const inp = document.createElement('input');
+    inp.type = 'search'; inp.placeholder = 'Feld suchen…'; inp.className = 'picksearch'; inp.autocomplete = 'off';
+    const cnt = document.createElement('span'); cnt.className = 'pickcnt';
+    inp.oninput = () => {
+      q = fold(inp.value.trim());
+      let n = 0;
+      box.querySelectorAll('label.pick').forEach((l, i) => { const v = shown(items[i]); l.style.display = v ? '' : 'none'; if (v) n++; });
+      cnt.textContent = q ? `${n} Treffer · Laden gilt für alle angehakten` : '';
+    };
+    inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
+    bar.appendChild(inp); bar.appendChild(cnt);
+  }
   box.appendChild(bar);
   items.forEach((x, i) => {
     const l = document.createElement('label'); l.className = 'pick';
@@ -1450,7 +1663,7 @@ function fillSettings() {
   $('vSrc').textContent = P.src; $('vDst').textContent = P.dst;
   $('sMove').checked = P.move === '1'; $('sClear').checked = P.clear === '1'; $('sLabels').checked = P.labels === '1';
   document.querySelectorAll('[data-layer]').forEach(b => b.classList.toggle('on', b.dataset.layer === P.layer));
-  if (A.tileCacheInfo) { const mb = +A.tileCacheInfo() / 1048576; $('vTiles').textContent = `Angesehene Kacheln (Karte, Grau, Satellit) werden auf der RC gespeichert und sind danach offline verfügbar – zum Vorbereiten das Einsatzgebiet einmal mit Internet in den nötigen Zoomstufen ansehen · bleiben dauerhaft gespeichert (erst nach 1 Jahr neu geladen) · belegt ${mb < 1 ? '< 1' : Math.round(mb)} MB (max. 1 GB)`; }
+  if (A.tileCacheInfo) { const mb = +A.tileCacheInfo() / 1048576; $('vTiles').textContent = `Grau/Karte: basemap.de (amtliche Karte) · Luftbild: Orthophotos Hessen/Rheinland-Pfalz · alle angesehenen und vorab geladenen Kacheln bleiben auf der RC (erst nach 1 Jahr neu geladen) · belegt ${mb < 1 ? '< 1 MB' : mb < 1024 ? Math.round(mb) + ' MB' : (mb / 1024).toFixed(1).replace('.', ',') + ' GB'}`; }
   document.querySelectorAll('[data-rcdrone]').forEach(b => b.classList.toggle('on', b.dataset.rcdrone === P.drone));
   $('sGeo').checked = P.geo === '1'; $('sGeoRes').checked = P.georesi === '1';
   $('vGeo').textContent = geoText(true);
@@ -1474,6 +1687,50 @@ $('sMove').onchange = e => setP('move', e.target.checked ? 1 : 0);
 $('sClear').onchange = e => setP('clear', e.target.checked ? 1 : 0);
 $('sLabels').onchange = e => { setP('labels', e.target.checked ? 1 : 0); infoBtnState(); draw(); };
 $('bWxSet').onclick = () => { $('pgSet').classList.remove('open'); showWeather(false); };
+// ---------- Einsatzgebiet vorab laden ----------
+const PF = { zMin: 8, zArea: 15, zMax: 18 };   // bis Zoom 15 das ganze Gebiet, darüber nur rund um die Felder
+function prefetchPlan() {
+  const fs = S.files.filter(f => !f.dup && f.bounds);
+  if (!fs.length) return null;
+  const b = fs.reduce((a, f) => ({ n: Math.max(a.n, f.bounds.n), s: Math.min(a.s, f.bounds.s), e: Math.max(a.e, f.bounds.e), w: Math.min(a.w, f.bounds.w) }), { n: -90, s: 90, e: -180, w: 180 });
+  const dLa = 3 / 111.2, dLo = 3 / (111.2 * Math.cos(b.n * Math.PI / 180)), fLa = .3 / 111.2, fLo = .3 / (111.2 * Math.cos(b.n * Math.PI / 180));
+  const area = [b.w - dLo, b.s - dLa, b.e + dLo, b.n + dLa];
+  const fields = fs.map(f => [f.bounds.w - fLo, f.bounds.s - fLa, f.bounds.e + fLo, f.bounds.n + fLa]);
+  // Kacheln zählen (wie in der App), für die Größenangabe
+  const tx = (lon, z) => Math.floor(lon2x(lon) * (1 << z)), ty = (lat, z) => Math.floor(lat2y(lat) * (1 << z));
+  let n = 0;
+  for (let z = PF.zMin; z <= PF.zMax; z++) {
+    const seen = new Set(), boxes = z <= PF.zArea ? [area] : fields;
+    boxes.forEach(q => { for (let x = tx(q[0], z); x <= tx(q[2], z); x++) for (let y = ty(q[3], z); y <= ty(q[1], z); y++) seen.add(x * 1e7 + y); });
+    n += seen.size;
+  }
+  return { area, fields, tiles: n, mb: Math.round(n * (14 + 14 + 22) / 1024) };
+}
+const startPrefetch = () => {
+  if (A.prefetchRunning && A.prefetchRunning()) { busy('Lade Einsatzgebiet…', { cancel: () => A.prefetchCancel() }); return; }
+  if (!isOnline()) return toast('Dafür wird Internet gebraucht (am besten WLAN).', true);
+  const p = prefetchPlan();
+  if (!p) return toast('Erst Felder laden – das Gebiet ergibt sich aus den Feldern.', true);
+  confirmDlg('Einsatzgebiet offline speichern?',
+    `Grau, Karte und Luftbild für das Gebiet aller Felder (+ 3 km).\nZoom 8–15 für das ganze Gebiet, bis Zoom 18 rund um die Felder.\n${(p.tiles * 3).toLocaleString('de-DE')} Kacheln · ca. ${p.mb.toLocaleString('de-DE')} MB · bereits gespeicherte werden übersprungen.\nAm besten im WLAN – das kann eine Weile dauern, die App kann dabei normal benutzt werden.`,
+    [], 'Herunterladen', () => {
+      A.prefetchStart(JSON.stringify({ layers: ['bmg', 'bmf', 'dop'], area: p.area, fields: p.fields, zMin: PF.zMin, zArea: PF.zArea, zMax: PF.zMax }));
+      toast('Download läuft im Hintergrund – Fortschritt in den Einstellungen.', false, 4000);
+    });
+};
+$('bPrefetch').onclick = startPrefetch;
+window.onPrefetch = raw => {
+  let r = {}; try { r = JSON.parse(raw); } catch (e) { }
+  if (r.total == null) return;
+  const pct = r.total ? Math.round((r.done + r.have + r.fail) / r.total * 100) : 100;
+  const t = r.finished
+    ? `${r.cancelled ? 'Abgebrochen' : 'Fertig'}: ${r.done.toLocaleString('de-DE')} neu geladen (${Math.round(r.bytes / 1048576)} MB), ${r.have.toLocaleString('de-DE')} waren schon da${r.fail ? `, ${r.fail.toLocaleString('de-DE')} ohne Bild (z. B. außerhalb HE/RP beim Luftbild)` : ''}.`
+    : `Lädt… ${pct} % · ${(r.done + r.have).toLocaleString('de-DE')} von ${r.total.toLocaleString('de-DE')} Kacheln · ${Math.round(r.bytes / 1048576)} MB`;
+  if ($('vPrefetch')) $('vPrefetch').textContent = t;
+  if ($('bPrefetch')) $('bPrefetch').textContent = r.finished ? 'Aktualisieren' : 'Abbrechen';
+  if ($('bPrefetch')) $('bPrefetch').onclick = r.finished ? startPrefetch : () => { A.prefetchCancel(); };
+  if (r.finished) { toast(t, !!r.fail && !r.done, 7000); draw(); }
+};
 $('bTilesClear').onclick = () => { if (A.tileCacheClear) { A.tileCacheClear(); toast('Kartenspeicher wird geleert…'); } };
 window.onTileCache = () => { tiles.clear(); fillSettings(); toast('Kartenspeicher geleert.'); };
 document.querySelectorAll('[data-layer]').forEach(b => b.onclick = () => { setP('layer', b.dataset.layer); fillSettings(); draw(); });
@@ -1514,7 +1771,7 @@ const regCache = new Map();
 function loadRegions() {
   regCache.clear();
   if (A.regions) try { const r = JSON.parse(A.regions() || '{}'); S.regions = r.list || []; S.regFetched = r.fetched || 0; } catch (e) { S.regions = []; }
-  S.geo.forEach(f => { delete f.reg; delete f.regs; }); covCellCache.clear();
+  S.geo.forEach(f => { delete f.reg; delete f.regs; delete f._split; }); covCellCache.clear(); segIdx = null; splitJobs.clear();
   draw();
 }
 window.onRegions = () => { loadRegions(); if ($('pgSet').classList.contains('open')) fillRules(); };
@@ -1591,7 +1848,7 @@ function geoGroups() {
   const layers = GEO_ALL.filter(l => l !== 'wohngrundstuecke' || P.georesi === '1');
   return { r: layers.filter(l => !coverageOf(l, reg)), c: layers.filter(l => coverageOf(l, reg)) };
 }
-function applyGeoConfig() { covCellCache.clear(); draw(); geoBadge(); }
+function applyGeoConfig() { covCellCache.clear(); S.geo.forEach(f => { delete f._split; }); splitJobs.clear(); draw(); geoBadge(); }
 function fillRules() {
   const a2 = P.lic === 'A2';
   $('vLic').textContent = a2
@@ -1822,7 +2079,8 @@ function loadOsmLines() {
 }
 window.onOsmLines = () => { loadOsmLines(); loadObstacles(); };
 // ---------- Hindernisse aus OSM: Windräder, Masten/Türme/Schornsteine, Bahnstrecken ----------
-S.obs = []; S.rails = [];
+S.obs = []; S.rails = []; S.places = [];
+function foldTxt(t) { return String(t || "").toLowerCase().replace(/ß/g, "ss").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function loadObstacles() {
   if (!A.osmObstacles) return;
   try {
@@ -1831,6 +2089,7 @@ function loadObstacles() {
     S.rails = (d.rails || []).map(r => { const pts = toLatLon(r.g); let n = -90, s = 90, e = -180, w = 180;
       pts.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); });
       return { e: r.e, n: r.n, pts, bb: { n, s, e, w } }; });
+    S.places = (d.places || []).filter(p => p.n).map(p => Object.assign(p, { k: foldTxt(p.n) }));
   } catch (e) { S.obs = []; S.rails = []; }
   draw();
 }
@@ -2488,6 +2747,54 @@ function wxTable(hours, kpc) {
   const body = rows.map((r, ri) => `<tr>${hours.map((x, k) => `<td class="wr ${cells[ri][k].c || ''}">${cells[ri][k].t}</td>`).join('')}</tr>`).join('');
   return `<div class="wxt"><div class="wxl">${lab}</div><div class="wxs" id="wxs"><table><tr>${head}</tr><tr>${src}</tr>${body}</table></div></div>`;
 }
+/** Auf einen Blick: die nächsten 4 Stunden – Regen, Sturm/Böen, Scherwind (Windzunahme mit der Höhe) */
+const SHEAR = [5, 8];   // m/s Zunahme zwischen 10 m und Missionshöhe/100 m: Hinweis / kritisch
+function wxNext4(hours, kpc, loc) {
+  const H = flightHeight() || 50, now = Date.now();
+  const hs = hours.filter(x => x.t >= hourFloor(now) && x.t <= hourFloor(now) + 4 * 3600000);
+  if (!hs.length) return '';
+  const lv = (v, t) => v == null ? 0 : v >= t[1] ? 2 : v >= t[0] ? 1 : 0;
+  const per = hs.map(x => {
+    const d = x.d, i = x.i, w10 = d.wind[10] ? d.wind[10][i] : null, wH = windAtH(d, i, H).v, w100 = windAtH(d, i, 100).v;
+    const g = d.gust[i], rain = d.rain[i] || 0, snow = d.snow[i] || 0;
+    const shear = w10 != null ? Math.max(wH != null ? wH - w10 : 0, w100 != null ? w100 - w10 : 0) : null;
+    const lRain = snow > 0 ? 2 : lv(rain, WX_THR.rain), lWind = Math.max(lv(g, WX_THR.gust), lv(wH, WX_THR.windH), lv(w10, WX_THR.wind10)), lShear = lv(shear, SHEAR);
+    return { x, w10, wH, w100, g, rain, snow, shear, dir: d.dir[i], lRain, lWind, lShear, lv: Math.max(lRain, lWind, lShear) };
+  });
+  const mx = (k) => per.reduce((a, p) => p[k] != null && (a == null || p[k] > a) ? p[k] : a, null);
+  const first = (k) => per.find(p => p[k] > 0);
+  const C = ['', 'o', 'r'];
+  // Regen
+  const lR = Math.max(...per.map(p => p.lRain)), sumR = per.reduce((a, p) => a + p.rain, 0), fr = first('lRain');
+  const rainTxt = per.some(p => p.snow > 0) ? 'Schnee' : sumR < 0.05 ? 'trocken' : f1(mx('rain')) + ' mm/h';
+  const rainD = fr ? `ab ${hm(fr.x.t)} · zusammen ${f1(sumR)} mm` : 'kein relevanter Niederschlag';
+  // Sturm / Böen
+  const lW = Math.max(...per.map(p => p.lWind)), gmax = mx('g'), whmax = mx('wH');
+  const windTxt = gmax != null ? 'Böen ' + f1(gmax) : '—';
+  const windD = `Wind ${H} m bis ${whmax != null ? f1(whmax) : '—'} m/s${lW ? ' · ' + (lW === 2 ? 'zu stark für den Einsatz' : 'grenzwertig') : ''}`;
+  // Scherwind
+  const lS = Math.max(...per.map(p => p.lShear)), smax = mx('shear'), fs = first('lShear');
+  const shearTxt = smax == null ? '—' : smax < 1 ? 'keiner' : '+' + f1(smax) + ' m/s';
+  const shearD = smax == null ? 'keine Höhenwinde' : lS ? `Windzunahme 10 m → ${H}/100 m${fs ? ' ab ' + hm(fs.x.t) : ''} · ruppig, Drohne kann versetzt werden` : `Wind nimmt mit der Höhe kaum zu (10 m → ${H}/100 m)`;
+  const lvl = Math.max(lR, lW, lS);
+  const why = [lR && (per.some(p => p.snow > 0) ? 'Schnee' : 'Regen'), lW && (lW === 2 ? 'Sturm/Böen' : 'Böen'), lS && 'Scherwind'].filter(Boolean);
+  const kp = kpc ? kpAt(kpc, now) : null;
+  const head = lvl === 0 ? 'Nächste 4 h: gutes Flugwetter' : lvl === 1 ? 'Nächste 4 h: Vorsicht – ' + why.join(', ') : 'Nächste 4 h: kritisch – ' + why.join(', ');
+  const p0 = per[0];
+  const cols = per.map(p => `<div class="${C[p.lv]}"><b>${String(new Date(p.x.t).getHours()).padStart(2, '0')}:00</b><br>${p.dir != null && p.w10 >= 0.5 ? `<span class="arr" style="transform:rotate(${(p.dir + 180) % 360}deg)">↑</span>` : ''}${f1(p.w10)} / ${f1(p.wH)}<br><small>Böen ${f1(p.g)}</small><br>${p.snow > 0 ? '❄' : p.rain >= 0.1 ? '💧 ' + f1(p.rain) : '–'}</div>`).join('');
+  return `<div class="zone wxhero" style="display:block">
+    <div style="display:flex;gap:14px;align-items:center"><div class="amp big" style="background:${AMP[lvl]}"></div><div style="flex:1;min-width:0">
+      <div class="t1">${head}</div>
+      <div class="meta" style="margin:0">Jetzt: Wind 10 m ${f1(p0.w10)} m/s${p0.dir != null && p0.w10 >= 0.5 ? ' aus ' + dirTxt(p0.dir) : ''} · ${H} m: ${f1(p0.wH)} m/s${kp ? ` · Kp ${f1(kp.kp)}` : ''} · ${loc.what}</div></div></div>
+    <div class="wx4">
+      <div class="tile ${C[lR]}"><div class="k">💧 Regen</div><div class="v">${rainTxt}</div><div class="d">${rainD}</div></div>
+      <div class="tile ${C[lW]}"><div class="k">🌬 Sturm / Böen</div><div class="v">${windTxt}${gmax != null ? ' <small style="font-size:14px">m/s</small>' : ''}</div><div class="d">${windD}</div></div>
+      <div class="tile ${C[lS]}"><div class="k">↗ Scherwind</div><div class="v">${shearTxt}</div><div class="d">${shearD}</div></div>
+    </div>
+    <div class="wx4h">${cols}</div>
+    <div class="meta" style="margin:8px 0 0">Stundenkacheln: Wind 10 m / ${H} m (m/s), Böen, Regen mm/h · Grenzen: Böen ab ${WX_THR.gust[0]}/${WX_THR.gust[1]} m/s, Wind in Höhe ab ${WX_THR.windH[0]}/${WX_THR.windH[1]} m/s, Regen ab ${f1(WX_THR.rain[0])}/${f1(WX_THR.rain[1])} mm/h, Scherwind ab +${SHEAR[0]}/+${SHEAR[1]} m/s · keine Flugfreigabe</div>
+  </div>`;
+}
 async function showWeather(force) {
   const loc = wxLoc();
   openInfoPage('Wetter', '<div class="meta">Lade Vorhersage…</div>', CLOUD_ICON);
@@ -2499,12 +2806,9 @@ async function showWeather(force) {
     const r = await wxHours(loc.lat, loc.lon, force);
     hours = r.hours;
     if (!hours.length) throw new Error(isOnline() ? 'keine Daten' : 'offline und keine gespeicherte Vorhersage in der Nähe');
-    const d0 = hours[0].d, v = wxVerdict(d0, hourFloor(now), now + 24 * 3600000);
-    const w10 = d0.wind[10] && d0.wind[10][hours[0].i], dir = d0.dir[hours[0].i];
-    html += `<div class="zone wxhero"><div class="amp big" style="background:${AMP[v.level]}"></div><div style="flex:1;min-width:0">
-        <div class="t1">Nächste 24 h ${v.why.length ? '– ' + v.why.join(', ') : '– unauffällig'}</div>
-        <div class="meta">Jetzt: Wind 10 m ${w10 != null ? f1(w10) + ' m/s' : '—'}${dir != null && w10 >= 0.5 ? ' aus ' + dirTxt(dir) : ''} · ${loc.what} ${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)}</div>
-        <div class="meta">${wxSrcLine(d0)}${r.ico && r.dip ? ' · ab Stunde 25: DWD ICON' : ''} · <span class="lnk" id="wxReload">jetzt neu laden</span></div></div></div>
+    const d0 = hours[0].d;
+    html += wxNext4(hours, kpc, loc) + `<div style="margin:-4px 2px 10px;font-size:13px;color:var(--muted)">${wxSrcLine(d0)}${r.ico && r.dip ? ' · ab Stunde 25: DWD ICON' : ''} · ${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)} · <span class="lnk" id="wxReload">jetzt neu laden</span></div>`;
+    html += `
       <div class="zone"><h4>☀ Sonnenlauf</h4><div id="sunBox"></div><div class="meta" id="sunTxt" style="margin-top:6px"></div></div>
       <div class="zone" style="padding:8px"><h4 style="margin:4px 6px 8px">Tagesgang <span class="meta" style="font-weight:400;margin:0">· nach links/rechts wischen – Bezug: linke Spalte</span></h4>${wxTable(hours, kpc)}
         <div class="meta" style="margin:8px 6px 0">~ = geschätzt (Temperatur über Standardgradient −0,65 °C/100 m bzw. zwischen Quellhöhen interpoliert) · — = nicht verfügbar · Luftdruck: QNH (dipul) bzw. MSL (ICON, auf Meereshöhe reduziert) · Farben: Hinweis/kritisch nach App-Schwellen, keine Flugfreigabe · Grenze Mavic 3T/Matrice 4T: 12 m/s</div></div>`;

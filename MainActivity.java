@@ -794,6 +794,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public String tileCacheInfo() { return String.valueOf(tileCacheBytes()); }
 
+        /** Einsatzgebiet vorab laden: {layers:["bmg","bmf","dop"], area:[w,s,e,n], fields:[[w,s,e,n],…], zMin, zArea, zMax} */
+        @JavascriptInterface
+        public void prefetchStart(String json) { prefetchImpl(json); }
+
+        @JavascriptInterface
+        public void prefetchCancel() { prefetchStop = true; }
+
+        @JavascriptInterface
+        public boolean prefetchRunning() { return prefetchRun; }
+
         @JavascriptInterface
         public void tileCacheClear() {
             new Thread(() -> {
@@ -841,7 +851,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         /** Hindernisse aus OSM: {pts:[{t,h,hub,rot,n,lat,lon}], rails:[{e,n,g}]} – t = wind|mast|tower|chimney */
         @JavascriptInterface
         public String osmObstacles() {
-            JSONArray pts = new JSONArray(), rails = new JSONArray();
+            JSONArray pts = new JSONArray(), rails = new JSONArray(), places = new JSONArray();
             try {
                 if (osmFile().isFile()) {
                     JSONArray els = new JSONArray(readFile(osmFile()));
@@ -849,6 +859,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         JSONObject el = els.getJSONObject(i), t = el.optJSONObject("tags");
                         if (t == null) continue;
                         String ty = el.optString("type");
+                        if (t.has("place") && "node".equals(ty)) {
+                            places.put(new JSONObject().put("n", t.optString("name")).put("t", t.optString("place"))
+                                    .put("lat", el.optDouble("lat")).put("lon", el.optDouble("lon")));
+                            continue;
+                        }
                         if (t.has("railway") && "way".equals(ty)) {
                             JSONArray g = el.optJSONArray("geometry"), ln = new JSONArray();
                             if (g == null) continue;
@@ -874,7 +889,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     }
                 }
             } catch (Exception ignored) { }
-            try { return new JSONObject().put("pts", pts).put("rails", rails).toString(); } catch (Exception e) { return "{}"; }
+            try { return new JSONObject().put("pts", pts).put("rails", rails).put("places", places).toString(); } catch (Exception e) { return "{}"; }
         }
 
         /** Gespeicherte Grenzen der Bundesländer / RB Gießen im Gebiet */
@@ -1773,7 +1788,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         } catch (Exception ignored) { }
         long fetched = prefs.getLong("osm_fetched", 0);
         boolean fresh = System.currentTimeMillis() - fetched < 7 * DAY;   // Leitungen ändern sich selten
-        boolean oldFormat = prefs.getInt("osm_ver", 1) < 2;   // ältere Daten ohne Windräder/Masten/Bahn: einmal neu laden
+        boolean oldFormat = prefs.getInt("osm_ver", 1) < 3;   // ältere Daten ohne Hindernisse/Ortsnamen: einmal neu laden
         if (!force && fresh && !oldFormat && osmCovers(n, s, e, w) && osmFile().isFile()) return;
         try {
             String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
@@ -1785,62 +1800,201 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     + "nwr[\"power\"=\"generator\"][\"generator:source\"=\"wind\"](" + bb + ");"
                     + "node[\"man_made\"~\"^(mast|tower|chimney|communications_tower)$\"](" + bb + ");"
                     + "way[\"railway\"~\"^(rail|light_rail)$\"](" + bb + ");"
+                    // Orts- und Flurnamen für die Suche (offline)
+                    + "node[\"place\"~\"^(city|town|village|hamlet|suburb|quarter|neighbourhood|isolated_dwelling|farm|locality)$\"][\"name\"](" + bb + ");"
                     + ");out tags geom;";
             JSONArray els = new JSONObject(overpass(q, 180000)).getJSONArray("elements");   // mit Ausweichservern
             writeFileAtomic(osmFile(), els.toString());
-            prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 2)
+            prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 3)
                     .putString("osm_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             osmCache = els;
             osmCacheLoaded = System.currentTimeMillis();
         } catch (Exception ignored) { }
     }
 
-    // ---------- Kartenkacheln (Karte + Satellit) dauerhaft auf der RC speichern ----------
-    // Jede angezeigte Kachel wird gespeichert und offline von dort geladen. Kein Massen-Download
-    // (Nutzungsbedingungen von OpenStreetMap/Esri) – was einmal angesehen wurde, ist offline da.
-    // Karten-/Satellitenbilder ändern sich selten: gespeicherte Kacheln 1 Jahr lang direkt nutzen (auch online)
-    private static final long TILE_FRESH = 365L * 24 * 3600 * 1000, TILE_MAX_BYTES = 1024L * 1024 * 1024;
+    // ---------- Kartenkacheln dauerhaft auf der RC speichern + Einsatzgebiet vorab laden ----------
+    // Karte/Grau: basemap.de (BKG, CC BY 4.0, keine Zugriffsbeschränkung) – Vorab-Download erlaubt.
+    // Luftbild: amtliche Orthophotos DOP20 Hessen (frei nutzbar) und Rheinland-Pfalz (dl-de/by-2-0), als Kacheln zusammengesetzt.
+    // Außerhalb HE/RP: Esri World Imagery nur beim Ansehen (kein Vorab-Download – Nutzungsbedingungen).
+    private static final long TILE_FRESH = 365L * 24 * 3600 * 1000, TILE_MAX_BYTES = 12L * 1024 * 1024 * 1024;
     private File tileDir() { return new File(getFilesDir(), "tiles"); }
+    private static final String BM = "https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/";
+    private static final String DOP_HE = "https://www.gds-srv.hessen.de/cgi-bin/lika-services/ogc-free-images.ows?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=he_dop20_rgb&STYLES=&CRS=EPSG:3857&FORMAT=image/png&TRANSPARENT=TRUE&WIDTH=256&HEIGHT=256&BBOX=";
+    private static final String DOP_RP = "https://geo4.service24.rlp.de/wms/rp_dop20.fcgi?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rp_dop20&STYLES=&CRS=EPSG:3857&FORMAT=image/png&TRANSPARENT=TRUE&WIDTH=256&HEIGHT=256&BBOX=";
+
+    /** Kachel-Schlüssel (Datei im Speicher) und Typ aus der Kachel-Adresse; null = keine Kartenkachel */
+    private static String[] tileKey(Uri u) {
+        String host = u.getHost();
+        if (host == null) return null;
+        List<String> seg = u.getPathSegments();
+        int n = seg.size();
+        if (host.equals("sgx.geodatenzentrum.de") && n >= 5 && u.getPath().contains("/wmts_basemapde/")) {   // .../{layer}/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png
+            String lay = u.getPath().contains("_grau/") ? "bmg" : "bmf";
+            return new String[]{lay + "/" + seg.get(n - 3) + "/" + seg.get(n - 1).replace(".png", "") + "/" + seg.get(n - 2) + ".png", "image/png"};
+        }
+        if (host.equals("dop.local") && n == 3) return new String[]{"dop/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".jpg", "image/jpeg"};
+        if (host.equals("tile.openstreetmap.org") && n == 3) return new String[]{"osm/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2), "image/png"};
+        if (host.equals("server.arcgisonline.com") && n >= 3 && u.getPath().contains("/tile/"))   // .../tile/{z}/{y}/{x}
+            return new String[]{"sat/" + seg.get(n - 3) + "/" + seg.get(n - 1) + "/" + seg.get(n - 2) + ".jpg", "image/jpeg"};
+        return null;
+    }
 
     private WebResourceResponse tileFromCache(Uri u) {
         try {
-            String host = u.getHost();
-            if (host == null) return null;
-            String key, mime;
-            List<String> seg = u.getPathSegments();
-            if (host.equals("tile.openstreetmap.org") && seg.size() == 3) {
-                key = "osm/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2); mime = "image/png";
-            } else if (host.equals("server.arcgisonline.com") && seg.size() >= 3 && u.getPath().contains("/tile/")) {
-                int n = seg.size();   // .../tile/{z}/{y}/{x}
-                key = "sat/" + seg.get(n - 3) + "/" + seg.get(n - 1) + "/" + seg.get(n - 2) + ".jpg"; mime = "image/jpeg";
-            } else return null;
-            File f = new File(tileDir(), key);
+            String[] km = tileKey(u);
+            if (km == null) return null;
+            File f = new File(tileDir(), km[0]);
             boolean have = f.isFile() && f.length() > 0;
             boolean on = online();
-            if (have && (!on || System.currentTimeMillis() - f.lastModified() < TILE_FRESH)) return tileResp(f, mime);
-            if (!on) return new WebResourceResponse(mime, null, 404, "offline", null, new ByteArrayInputStream(new byte[0]));
+            if (have && (!on || System.currentTimeMillis() - f.lastModified() < TILE_FRESH)) return tileResp(f, km[1]);
+            if (!on) return new WebResourceResponse(km[1], null, 404, "offline", null, new ByteArrayInputStream(new byte[0]));
+            byte[] b = null;
             try {
-            HttpURLConnection c = (HttpURLConnection) new URL(u.toString()).openConnection();
-            c.setConnectTimeout(10000); c.setReadTimeout(20000);
-            c.setRequestProperty("User-Agent", "MissionKitzrettung/2.0 (Android; Kitzrettung Limburg, nicht-kommerziell)");
-            if (c.getResponseCode() == 200) {
-                byte[] b;
-                try (InputStream in = c.getInputStream()) { b = readBytes(in); }
-                c.disconnect();
-                if (b.length > 0) {
-                    f.getParentFile().mkdirs();
-                    File tmp = new File(f.getPath() + ".tmp");
-                    try (OutputStream o = new FileOutputStream(tmp)) { o.write(b); }
-                    if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
-                    return new WebResourceResponse(mime, null, new ByteArrayInputStream(b));
-                }
-            }
-            c.disconnect();
-            } catch (Exception netErr) { /* Netz weg mitten im Laden: unten alte Kachel nehmen */ }
-            return have ? tileResp(f, mime) : null;
+                if (km[0].startsWith("dop/")) {
+                    List<String> seg = u.getPathSegments();
+                    b = dopTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)));
+                    if (b == null) {   // außerhalb HE/RP: Esri nur zum Ansehen
+                        byte[] e = httpBytes("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + seg.get(0) + "/" + seg.get(2) + "/" + seg.get(1));
+                        if (e != null) return new WebResourceResponse("image/jpeg", null, new ByteArrayInputStream(e));
+                    }
+                } else b = httpBytes(u.toString());
+            } catch (Exception netErr) { /* Netz weg mitten im Laden */ }
+            if (b != null && b.length > 0) { saveTile(f, b); return new WebResourceResponse(km[1], null, new ByteArrayInputStream(b)); }
+            return have ? tileResp(f, km[1]) : null;
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private static void saveTile(File f, byte[] b) throws Exception {
+        f.getParentFile().mkdirs();
+        File tmp = new File(f.getPath() + "." + Thread.currentThread().getId() + ".tmp");
+        try (OutputStream o = new FileOutputStream(tmp)) { o.write(b); }
+        if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
+    }
+
+    private static byte[] httpBytes(String url) throws Exception {
+        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        try {
+            c.setConnectTimeout(10000); c.setReadTimeout(30000);
+            c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Android; Kitzrettung Limburg e.V., nicht-kommerziell)");
+            if (c.getResponseCode() != 200) return null;
+            String ct = c.getContentType();
+            if (ct != null && !ct.startsWith("image/")) return null;   // WMS-Fehlermeldung statt Bild
+            try (InputStream in = c.getInputStream()) { return readBytes(in); }
+        } finally { c.disconnect(); }
+    }
+
+    /** Luftbild-Kachel aus den Orthophotos von RP (unten) und HE (oben) zusammensetzen; null = an dieser Stelle kein DOP */
+    private static byte[] dopTile(int z, int x, int y) throws Exception {
+        double R = 20037508.342789244, size = 2 * R / (1 << z);
+        double x0 = -R + x * size, y1 = R - y * size, x1 = x0 + size, y0 = y1 - size;
+        String bbox = String.format(Locale.ROOT, "%.3f,%.3f,%.3f,%.3f", x0, y0, x1, y1);
+        android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas cv = new android.graphics.Canvas(out);
+        cv.drawColor(0xffd9d9d0);
+        boolean any = false;
+        for (String base : new String[]{DOP_RP, DOP_HE}) {
+            byte[] b = null;
+            try { b = httpBytes(base + bbox); } catch (Exception ignored) { }
+            if (b == null) continue;
+            android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
+            if (bm == null) continue;
+            if (hasContent(bm)) { cv.drawBitmap(bm, null, new android.graphics.Rect(0, 0, 256, 256), null); any = true; }
+            bm.recycle();
+        }
+        if (!any) { out.recycle(); return null; }
+        ByteArrayOutputStream bo = new ByteArrayOutputStream();
+        out.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, bo);
+        out.recycle();
+        return bo.toByteArray();
+    }
+
+    /** Hat das Bild sichtbare (nicht transparente, nicht rein weiße) Pixel? Stichprobe 16×16 */
+    private static boolean hasContent(android.graphics.Bitmap bm) {
+        int w = bm.getWidth(), h = bm.getHeight(), hits = 0;
+        for (int i = 0; i < 16; i++) for (int j = 0; j < 16; j++) {
+            int p = bm.getPixel(Math.min(w - 1, i * w / 16 + w / 32), Math.min(h - 1, j * h / 16 + h / 32));
+            int a = p >>> 24, r = (p >> 16) & 255, g = (p >> 8) & 255, b = p & 255;
+            if (a > 40 && !(r > 250 && g > 250 && b > 250)) hits++;
+        }
+        return hits > 3;
+    }
+
+    // ---------- Vorab-Download ----------
+    private volatile boolean prefetchStop = false, prefetchRun = false;
+
+    private void prefetchImpl(String json) {
+        if (prefetchRun) return;
+        prefetchRun = true; prefetchStop = false;
+        new Thread(() -> {
+            final int[] cnt = new int[4];   // geladen, schon da, Fehler, Gesamt
+            final long[] bytes = new long[1];
+            try {
+                JSONObject p = new JSONObject(json);
+                JSONArray layers = p.getJSONArray("layers"), area = p.getJSONArray("area"), fields = p.optJSONArray("fields");
+                int zMin = p.optInt("zMin", 8), zArea = p.optInt("zArea", 15), zMax = p.optInt("zMax", 18);
+                List<int[]> list = new ArrayList<>();
+                for (int z = zMin; z <= zMax; z++) {
+                    java.util.Set<Long> seen = new java.util.HashSet<>();
+                    List<double[]> boxes = new ArrayList<>();
+                    if (z <= zArea) boxes.add(new double[]{area.getDouble(0), area.getDouble(1), area.getDouble(2), area.getDouble(3)});
+                    else if (fields != null) for (int i = 0; i < fields.length(); i++) { JSONArray b = fields.getJSONArray(i); boxes.add(new double[]{b.getDouble(0), b.getDouble(1), b.getDouble(2), b.getDouble(3)}); }
+                    for (double[] b : boxes) {
+                        int xa = lon2tile(b[0], z), xb = lon2tile(b[2], z), ya = lat2tile(b[3], z), yb = lat2tile(b[1], z);
+                        for (int x = xa; x <= xb; x++) for (int y = ya; y <= yb; y++) if (seen.add(((long) x << 32) | y)) list.add(new int[]{z, x, y});
+                    }
+                }
+                cnt[3] = list.size() * layers.length();
+                java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(4);
+                final long[] lastEv = {0};
+                for (int li = 0; li < layers.length(); li++) {
+                    final String lay = layers.getString(li);
+                    for (int[] t : list) {
+                        ex.submit(() -> {
+                            if (prefetchStop) return;
+                            try {
+                                String key = lay.equals("dop") ? "dop/" + t[0] + "/" + t[1] + "/" + t[2] + ".jpg" : lay + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png";
+                                File f = new File(tileDir(), key);
+                                if (f.isFile() && f.length() > 0) { synchronized (cnt) { cnt[1]++; } }
+                                else {
+                                    byte[] b = lay.equals("dop") ? dopTile(t[0], t[1], t[2])
+                                            : httpBytes(BM + (lay.equals("bmg") ? "de_basemapde_web_raster_grau" : "de_basemapde_web_raster_farbe") + "/default/GLOBAL_WEBMERCATOR/" + t[0] + "/" + t[2] + "/" + t[1] + ".png");
+                                    if (b != null && b.length > 0) { saveTile(f, b); synchronized (cnt) { cnt[0]++; bytes[0] += b.length; } }
+                                    else synchronized (cnt) { cnt[2]++; }
+                                }
+                            } catch (Exception e) { synchronized (cnt) { cnt[2]++; } }
+                            long now = System.currentTimeMillis();
+                            if (now - lastEv[0] > 700) { lastEv[0] = now; prefetchEvent(cnt, bytes[0], false); }
+                        });
+                    }
+                }
+                ex.shutdown();
+                while (!ex.awaitTermination(500, java.util.concurrent.TimeUnit.MILLISECONDS)) { if (prefetchStop) ex.shutdownNow(); }
+            } catch (Exception e) {
+                js("window.onPrefetch && window.onPrefetch(" + JSONObject.quote(new JSONObject().toString()) + ")");
+            } finally {
+                prefetchRun = false;
+                prefetchEvent(cnt, bytes[0], true);
+            }
+        }).start();
+    }
+
+    private void prefetchEvent(int[] cnt, long bytes, boolean fin) {
+        try {
+            JSONObject o;
+            synchronized (cnt) {
+                o = new JSONObject().put("done", cnt[0]).put("have", cnt[1]).put("fail", cnt[2]).put("total", cnt[3])
+                        .put("bytes", bytes).put("finished", fin).put("cancelled", prefetchStop);
+            }
+            js("window.onPrefetch && window.onPrefetch(" + JSONObject.quote(o.toString()) + ")");
+        } catch (Exception ignored) { }
+    }
+
+    private static int lon2tile(double lon, int z) { return Math.max(0, Math.min((1 << z) - 1, (int) Math.floor((lon + 180) / 360 * (1 << z)))); }
+    private static int lat2tile(double lat, int z) {
+        double r = Math.toRadians(lat);
+        return Math.max(0, Math.min((1 << z) - 1, (int) Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * (1 << z))));
     }
 
     private static WebResourceResponse tileResp(File f, String mime) throws Exception {
@@ -1854,7 +2008,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return bo.toByteArray();
     }
 
-    /** Speicher begrenzen: über 1 GB die am längsten nicht aktualisierten Kacheln löschen */
+    /** Speicher begrenzen: über 12 GB die am längsten nicht aktualisierten Kacheln löschen */
     private void tileCacheTrim() {
         try {
             List<File> all = new ArrayList<>();
