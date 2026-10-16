@@ -33,8 +33,10 @@
   #bar button{height:52px;padding:0 14px;border-radius:14px;flex:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
   .b-sec{background:var(--sec);color:var(--acc)}
   .b-ok{background:linear-gradient(180deg,#27b057,#1a8f40);color:#fff;box-shadow:0 2px 6px rgba(26,143,64,.35)}
-  #count{min-width:96px;flex:none;font-weight:700;font-size:17px}
-  #count small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+  #count{min-width:96px;max-width:200px;flex:0 1 auto;font-weight:700;font-size:17px;overflow:hidden;white-space:nowrap}
+  #count small{display:block;font-weight:400;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #bar{overflow:hidden}
+  #bar button{min-width:0}
   #q{flex:1;min-width:60px;width:60px;height:52px;border:1px solid var(--line);border-radius:14px;padding:0 14px;font-size:17px;background:var(--card);color:var(--txt)}
   #bDl{font-size:17px}
 
@@ -184,7 +186,7 @@
   <button id="bNone" class="b-sec" disabled><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Abwählen</button>
   <input id="q" type="search" placeholder="Feld suchen…" autocomplete="off">
   <button id="bSync" class="b-sec" title="Mit UAV Editor abgleichen"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-14.3-4.9M4 12a8 8 0 0 0 14.3 4.9"/><path d="M5.5 3v4.5H10M18.5 21v-4.5H14"/></svg>Abgleichen</button>
-  <button id="bDl" class="b-ok" disabled><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download</button>
+  <button id="bDl" class="b-ok" disabled title="Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen"><svg viewBox="0 0 24 24" style="width:32px;height:32px"><path d="M1.5 4.5h7M15.5 4.5h7"/><path d="M5 4.5l3.5 5M19 4.5l-3.5 5"/><rect x="8" y="8" width="8" height="5" rx="2" fill="currentColor"/><path d="M12 14.5v7M9 18.5l3 3 3-3"/></svg>In Pilot 2</button>
   <button id="bSet" class="b-sec" title="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </div>
 
@@ -379,8 +381,9 @@ function paint() {
     const at = P.layer === 'sat' ? '© Esri, Maxar, Earthstar Geographics' : '© OpenStreetMap-Mitwirkende';
     ctx.font = '11px Roboto,system-ui,sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
     const tw = ctx.measureText(at).width;
-    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(W - tw - 10, H - 92, tw + 8, 15);
-    ctx.fillStyle = '#334'; ctx.fillText(at, W - 6, H - 78);
+    const ax = W - 80;   // links neben den Kartenknöpfen
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(ax - tw - 4, H - 92, tw + 8, 15);
+    ctx.fillStyle = '#334'; ctx.fillText(at, ax, H - 78);
   }
   if (P.geo === '1' && S.geo.length && V.z >= 9) paintGeo();
   if (S.notams.length) S.notams.forEach(drawNotam);
@@ -813,7 +816,7 @@ function visible(f) {
 function update() {
   const n = S.files.filter(f => f.selected).length;
   const dups = S.files.filter(f => f.dup).length;
-  $('count').innerHTML = `${n} markiert<small>${S.files.length - dups} Felder${dups ? ` · ${dups} für ${P.drone === 'M4T' ? 'M3T' : 'M4T'} ausgeblendet` : ''}</small>`;
+  $('count').innerHTML = `${n} markiert<small>${S.files.length - dups} Felder</small>`;
   $('bDl').disabled = $('bNone').disabled = !n;
   draw();
 }
@@ -1991,7 +1994,7 @@ async function windWidget() {
   const comp = P.compass !== '0' && heading == null ? '<div class="sub">kein Kompass – keine Nadel</div>'
     : P.compass !== '0' && compassAcc <= 1 ? '<div class="sub" style="color:#e06a00"><b>⚠ Kompass kalibrieren</b> (RC in Achterform bewegen)</div>' : '';
   if (!d || i < 0) {
-    el.innerHTML = roseSvg(null) + `<div class="card"><div class="big">Wind nicht verfügbar</div><div class="sub">${isOnline() ? 'Vorhersage wird geladen…' : 'offline – keine aktuelle Vorhersage gespeichert'}</div>${kp ? `<div class="sub">Kp <b style="color:${kpColor(kp.kp)}">${fde(kp.kp)}</b></div>` : ''}${comp}</div>`;
+    el.innerHTML = roseSvg(null) + `<div class="card"><div class="big">Wind nicht verfügbar</div><div class="sub">${isOnline() ? 'Vorhersage wird geladen…' : 'offline – noch keine Vorhersage gespeichert. Einmal mit Internet öffnen, dann ist sie offline da.'}</div>${kp ? `<div class="sub">Kp <b style="color:${kpColor(kp.kp)}">${fde(kp.kp)}</b></div>` : ''}${comp}</div>`;
     el.style.display = 'flex'; roseRot = 0; applyHeading(); return;
   }
   const w10 = d.w[0][i], dir = d.dir[i], g = d.gust[i];
@@ -2127,6 +2130,7 @@ function geoArea() {
 }
 function geoSyncNow(force) {
   if (!A.geoSync || P.geo !== '1') return;
+  if (!isOnline()) { if (force) toast('Offline – Geozonen werden aktualisiert, sobald wieder Internet da ist.'); return; }
   A.geoSync(JSON.stringify(geoArea()), !!force);
 }
 function fmtDate(ms) {
@@ -2158,7 +2162,9 @@ window.onGeo = raw => {
   const ev = JSON.parse(raw);
   if (ev.type === 'progress') { geoProgress = `${ev.done}/${ev.total}`; geoBadge(); return; }
   geoProgress = null;
-  if (ev.type === 'error') toast(ev.message, true, 6000);
+  if (ev.type === 'offline') { if (ev.force) toast('Offline – Geozonen werden aktualisiert, sobald wieder Internet da ist.'); geoBadge(); return; }
+  // Automatische Aktualisierung: nur leiser Hinweis; rot nur, wenn gar keine Geozonen gespeichert sind oder von Hand gestartet
+  if (ev.type === 'error') toast(ev.message, ev.force || !ev.fetched, 5000);
   if (ev.type === 'done' && ev.ok) loadGeoVectors();
   geoBadge(); draw();
   if ($('pgSet').classList.contains('open')) fillSettings();
