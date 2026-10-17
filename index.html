@@ -219,6 +219,16 @@
   .wxwr li{padding:7px 10px;border-radius:10px;background:var(--card2);border-left:4px solid var(--line)}
   .wxwr li.l2{border-left-color:#d42020}.wxwr li.l1{border-left-color:#e8a200}.wxwr li.l0{border-left-color:#5ac8fa}
   .wxwr b{display:block;font-size:15px}.wxwr em{display:block;font-style:normal;font-size:13px;color:var(--muted);margin-top:2px}
+  .pwwrap{position:relative;display:inline-flex;align-items:center;flex:1;min-width:0}.pwwrap>input{flex:1;width:100%;padding-right:46px}
+  .pweye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:10px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center}
+  .pweye svg{width:22px;height:22px}
+  #pfChip{position:fixed;left:12px;bottom:96px;z-index:14;display:none;align-items:center;gap:6px;height:36px;padding:0 12px 0 9px;border-radius:18px;background:rgba(21,32,43,.88);color:#fff;font-size:14px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  #pfChip svg{width:18px;height:18px;stroke:#7fd18b}
+  #tour{position:fixed;inset:0;z-index:70;display:none}
+  #tour .thole{position:absolute;box-shadow:0 0 0 9999px rgba(0,0,0,.7);border:3px solid #7fb2ff;transition:all .25s ease;pointer-events:none}
+  #tour .tbox{position:absolute;background:var(--card);color:var(--txt);border-radius:16px;padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.45)}
+  #tour .tbox h3{margin:2px 0 6px;font-size:19px}#tour .tbox p{margin:0 0 12px;font-size:15px;line-height:1.4;color:var(--muted)}
+  #tour .tn{font-size:12px;color:var(--muted);font-weight:700}#tour .tbt{display:flex;gap:8px;align-items:center}#tour .tbt button{height:42px;padding:0 14px}
   .wxban{display:flex;align-items:center;gap:12px;border-radius:14px;padding:12px 14px;color:#fff;font-weight:800;font-size:20px;line-height:1.2}
   .wxban.l0{background:#13a538}.wxban.l1{background:#d98a00}.wxban.l2{background:#b3131b}
   .wxban svg{width:34px;height:34px;flex:none;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
@@ -439,6 +449,7 @@
     <div class="set"><div class="l"><div class="t">METAR-Wetter der Flughäfen auf der Karte</div><div class="v">Alle deutschen Flughäfen mit Wettermeldung als Kennung mit Farbpunkt (grün/orange/rot nach Sicht, Nebel, Regen, Böen) – antippen zeigt die aktuelle Meldung auf Deutsch · NOAA Aviation Weather Center, alle 20 min neu</div></div><label class="sw"><input type="checkbox" id="sMetar"><span></span></label></div>
     <h3 class="setcat" id="sc-info">Über die App</h3>
     <div class="set"><div class="l"><div class="t">Einrichtung</div><div class="v">Drohne, Genehmigungen, Allgemeinverfügungen, UAV Editor und Ordner Schritt für Schritt einstellen</div></div><button class="b-sec" id="bSetup">Erneut starten</button></div>
+    <div class="set"><div class="l"><div class="t">Einführung</div><div class="v">Kurzer Rundgang: wo was ist und was die Knöpfe machen</div></div><button class="b-sec" id="bTour">Starten</button></div>
     <div class="set"><img class="logo" data-logo alt="" style="width:64px;height:64px;border-radius:50%"><div class="l"><div class="t">Mission Kitzrettung</div><div class="v">Version 2.0 · Kitzrettung Limburg e. V.</div></div></div>
   </div>
 </div>
@@ -2001,6 +2012,7 @@ function openCopyDialog(sel, clean) {
 // ================= Dialoge =================
 let dlgCb = null, dlgOnCancel = null;
 function confirmDlg(title, text, list, okLabel, cb, extra) {
+  $('dNo').textContent = 'Abbrechen';
   $('dExtra').innerHTML = ''; if (extra) $('dExtra').appendChild(extra);
   $('dTitle').textContent = title;
   $('dText').textContent = text; $('dText').style.whiteSpace = 'pre-line';
@@ -2161,6 +2173,13 @@ function einsatzJobs(de, full) {
   return { jobs: [{ layers: ['bmg', 'bmf', 'dop'], tiers: baseT }, { layers: geoL, tiers: geoT }], tiles: nb * 3 + ng * geoL.length, mb: Math.round((nb * 50 + ng * geoL.length * 4) / 1024) };
 }
 /** Einsatzgebiet speichern (Knopf oder automatisch): Kacheln, Zonendaten, Windräder, Wetter */
+/** Kleiner Fortschritts-Hinweis unten links – blockiert nichts; Tippen fragt nach Abbrechen */
+function pfChip(pct) {
+  let c = $('pfChip');
+  if (pct == null) { if (c) c.style.display = 'none'; return; }
+  if (!c) { c = document.createElement('button'); c.id = 'pfChip'; document.body.appendChild(c); c.onclick = () => startPrefetch(); }
+  c.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 20h14"/></svg>Offline speichern ${pct} %`; c.style.display = 'flex';
+}
 function einsatzRun(de, fresh, auto, full) {
   const j = einsatzJobs(de, full); if (!j) return;
   if (fresh && A.dipulClear) { A.dipulClear(); GEOR.reset(); }
@@ -2172,6 +2191,7 @@ function einsatzRun(de, fresh, auto, full) {
   try { metarLoad(null, true).then(metarApply).catch(() => { }); wxPrefetch(); } catch (e) { }
   A.prefetchStart(JSON.stringify({ jobs: j.jobs }));
   esPending = einsatzBox(25);
+  if (auto) setTimeout(tourAsk, 2500);   // Wartezeit sinnvoll nutzen
   toast(auto ? 'Einsatzgebiet wird automatisch für offline gespeichert (Karte, Geozonen, Windräder, Wetter) – Fortschritt in den Einstellungen.' : 'Einsatzgebiet wird gespeichert – Fortschritt in den Einstellungen.', false, auto ? 6000 : 4000);
 }
 let esPending = null, esPendingNames = null;
@@ -2188,7 +2208,7 @@ function einsatzAuto() {
   einsatzRun(false, false, true);   // schon gespeicherte Kacheln werden übersprungen – geht schnell
 }
 const startPrefetch = () => {
-  if (A.prefetchRunning && A.prefetchRunning()) { busy('Speichere Einsatzgebiet…', { cancel: () => A.prefetchCancel() }); return; }
+  if (A.prefetchRunning && A.prefetchRunning()) { confirmDlg('Einsatzgebiet wird gespeichert', 'Läuft im Hintergrund weiter – die App kann normal benutzt werden. Fortschritt unten links auf der Karte.', [], 'Abbrechen', () => { A.prefetchCancel(); toast('Wird abgebrochen…'); }); return; }
   if (!isOnline()) return toast('Dafür wird Internet gebraucht (am besten WLAN).', true);
   if (!einsatzJobs(false)) return toast('Erst Wiesen laden (Abgleichen) – das Einsatzgebiet ergibt sich aus den Wiesen.', true);
   const x = document.createElement('div');
@@ -2213,6 +2233,7 @@ window.onPrefetch = raw => {
   if ($('vPrefetch')) $('vPrefetch').textContent = t;
   if ($('bPrefetch')) $('bPrefetch').textContent = r.finished ? 'Speichern' : 'Abbrechen';
   if ($('bPrefetch')) $('bPrefetch').onclick = r.finished ? startPrefetch : () => { A.prefetchCancel(); };
+  pfChip(r.finished ? null : pct);
   if (r.finished) { toast(t, !!r.fail && !r.done, 7000); draw();
     if (esPending && !r.cancelled) { setP('esBox3', JSON.stringify(esPending)); setP('esFields3', JSON.stringify(esPendingNames || S.files.filter(f => !f.dup && f.bounds).map(f => f.name))); }   // erledigt – nicht nochmal automatisch
     esPendingNames = null;
@@ -2729,6 +2750,9 @@ function loadObstacles() {
       pts.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); });
       return { e: r.e, n: r.n, pts, bb: { n, s, e, w } }; });
     S.osmPlaces = (d.places || []).filter(p => p.n);
+    S.ways = (d.ways || []).map(r => { const pts = toLatLon(r.g); let n = -90, s2 = 90, e = -180, w = 180;
+      pts.forEach(([la, lo]) => { n = Math.max(n, la); s2 = Math.min(s2, la); e = Math.max(e, lo); w = Math.min(w, lo); });
+      return { k: r.k, pts, bb: { n, s: s2, e, w } }; });
   } catch (e) { S.obs = []; S.rails = []; }
   mergeMastrWind();
   loadPlaces();
@@ -4739,6 +4763,7 @@ function showSetup(i) {
   $('pgSetup').classList.add('open');
   $('suDots').innerHTML = SU_STEPS.map((_, k) => `<span class="${k === suStep ? 'on' : k < suStep ? 'done' : ''}"></span>`).join('');
   $('suBody').innerHTML = SU_STEPS[suStep]();
+  addPwEyes($('suBody'));
   $('suBack').style.visibility = suStep ? 'visible' : 'hidden';
   $('suNext').textContent = suStep === SU_STEPS.length - 1 ? 'Fertig' : 'Weiter';
   const b = $('suBody');
@@ -4758,9 +4783,78 @@ function suSaveStep() {   // Eingaben des aktuellen Schritts übernehmen
 function suDone() { suSaveStep(); setP('setupDone', 1); $('pgSetup').classList.remove('open'); }
 $('suNext').onclick = () => { suSaveStep(); if (suStep === SU_STEPS.length - 1) { suDone(); toast('Eingerichtet – alles lässt sich in den Einstellungen ändern.'); } else showSetup(suStep + 1); };
 $('suBack').onclick = () => { suSaveStep(); showSetup(suStep - 1); };
+$('bTour').onclick = tourStart;
 $('bSetup').onclick = () => { $('pgSet').classList.remove('open'); showSetup(0); };
 $('suSkip').onclick = () => { setP('setupDone', 1); $('pgSetup').classList.remove('open'); toast('Einrichtung jederzeit unter Einstellungen → Über die App.'); };
 
+// Passwortfelder: Auge-Knopf zum Ein-/Ausblenden
+function addPwEyes(root) {
+  (root || document).querySelectorAll('input[type="password"]:not([data-eye])').forEach(inp => {
+    inp.dataset.eye = '1';
+    const w = document.createElement('span'); w.className = 'pwwrap'; inp.parentNode.insertBefore(w, inp); w.appendChild(inp);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pweye'; b.setAttribute('aria-label', 'Passwort anzeigen');
+    const eye = on => on ? '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>'
+      : '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg>';
+    b.innerHTML = eye(true);
+    b.onclick = e => { e.preventDefault(); const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; b.innerHTML = eye(!show); b.setAttribute('aria-label', show ? 'Passwort verbergen' : 'Passwort anzeigen'); inp.focus(); };
+    w.appendChild(b);
+  });
+}
+addPwEyes();
+// ================= Einführung (Rundgang über die Bedienelemente) =================
+const TOUR = [
+  [null, 'Willkommen bei Mission Kitzrettung', 'Ein kurzer Rundgang zeigt dir, wo was ist. Du kannst jederzeit abbrechen – in den Einstellungen unter „Einführung“ startest du ihn wieder.'],
+  ['#bSync', 'Abgleichen', 'Holt eure Wiesen aus dem UAV Editor – neue, geänderte und gelöschte. Danach speichert die App das Einsatzgebiet automatisch für offline.'],
+  ['#map', 'Wiesen markieren', 'Tippe Wiesen auf der Karte an, um sie zu markieren. Markierte Wiesen kannst du dann an Pilot 2 übergeben.'],
+  ['#bDl', 'In Pilot 2', 'Kopiert die markierten Wiesen in den Importordner – in Pilot 2 unter „Route importieren“. Vorher siehst du Geozonen, Hindernisse und Wetter der Wiesen.'],
+  ['#bSearch', 'Suchen', 'Wiese oder Ort per Namen finden – funktioniert auch offline.'],
+  ['#bInfo', 'Infos auf der Karte', 'Hier schaltest du den Info-Modus ein: dann zeigt ein Tipp auf die Karte Geozonen, Regeln, Hindernisse und Windräder an dieser Stelle.'],
+  ['#bLayer', 'Kartenart & Zonen', 'Grau, Karte oder Luftbild – und welche Geozonen-Gruppen eingeblendet sind (Luftfahrt, Natur, Verkehr …).'],
+  ['#bLoc', 'Mein Standort', 'Springt zu deinem GPS-Standort.'],
+  ['#wind', 'Wind & Wetter', 'Wind in 10/50/100 m und Kompass. Antippen öffnet das Wetter: Bewertung des Einsatzfensters am Morgen, Tageslauf, 8-Tage-Vorschau.'],
+  ['#net', 'Online / Offline', 'Zeigt, ob Internet da ist. Ohne Internet läuft alles aus dem Speicher – nur „Abgleichen“ braucht Netz.'],
+  ['#notam', 'NOTAMs', 'Erscheint, wenn im Gebiet eine aktuelle Flugbeschränkung gilt – antippen für Details und Karte.'],
+  ['#bPlan', 'Einsatzplan', 'Reihenfolge der markierten Wiesen, Fahrt, Akkus, gemeinsamer Standort für Pilot + Spotter (in den Einstellungen einschaltbar).'],
+  ['#bSet', 'Einstellungen', 'Drohne, Fernpilotenzeugnis, Allgemeinerlaubnis/-verfügungen, UAV-Editor-Zugang, Ordner, Offline-Speicher – und diese Einführung.']
+];
+let tourI = 0;
+function tourShow(i) {
+  const steps = TOUR.filter(([sel]) => { if (!sel) return true; const el = document.querySelector(sel); if (!el) return false; const cs = getComputedStyle(el), r = el.getBoundingClientRect(); return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0; });
+  tourI = Math.max(0, Math.min(steps.length - 1, i));
+  let o = $('tour');
+  if (!o) { o = document.createElement('div'); o.id = 'tour'; document.body.appendChild(o); }
+  const [sel, t, txt] = steps[tourI], el = sel && document.querySelector(sel);
+  const r = el ? el.getBoundingClientRect() : null, big = r && r.width > innerWidth * .6;
+  o.innerHTML = `<div class="thole"></div><div class="tbox"><div class="tn">${tourI + 1} / ${steps.length}</div><h3>${esc(t)}</h3><p>${esc(txt)}</p>
+    <div class="tbt"><button class="b-sec" id="tEnd">Beenden</button><span style="flex:1"></span>${tourI ? '<button class="b-sec" id="tBack">Zurück</button>' : ''}<button class="b-ok" id="tNext">${tourI === steps.length - 1 ? 'Fertig' : 'Weiter'}</button></div></div>`;
+  const hole = o.querySelector('.thole'), box = o.querySelector('.tbox');
+  if (r && !big) { const pd = 6; Object.assign(hole.style, { left: r.left - pd + 'px', top: r.top - pd + 'px', width: r.width + 2 * pd + 'px', height: r.height + 2 * pd + 'px', borderRadius: '14px' }); }
+  else Object.assign(hole.style, { left: innerWidth / 2 + 'px', top: innerHeight / 2 + 'px', width: '0px', height: '0px' });
+  o.style.display = 'block';
+  // Erklärkasten neben das Element, sonst mittig
+  const bw = Math.min(420, innerWidth - 32); box.style.width = bw + 'px';
+  const bh = box.offsetHeight;
+  let x = innerWidth / 2 - bw / 2, y = innerHeight / 2 - bh / 2;
+  if (r && !big) {
+    if (r.left > innerWidth * .6) { x = r.left - bw - 18; y = r.top + r.height / 2 - bh / 2; }
+    else if (r.top > innerHeight * .55) { x = r.left + r.width / 2 - bw / 2; y = r.top - bh - 18; }
+    else { x = r.left + r.width / 2 - bw / 2; y = r.bottom + 18; }
+  }
+  box.style.left = Math.max(12, Math.min(innerWidth - bw - 12, x)) + 'px'; box.style.top = Math.max(12, Math.min(innerHeight - bh - 12, y)) + 'px';
+  $('tNext').onclick = () => tourI === steps.length - 1 ? tourEnd() : tourShow(tourI + 1);
+  $('tEnd').onclick = tourEnd;
+  if ($('tBack')) $('tBack').onclick = () => tourShow(tourI - 1);
+}
+function tourEnd() { const o = $('tour'); if (o) o.style.display = 'none'; setP('tourAsked', 1); }
+function tourStart() { $('pgSet').classList.remove('open'); setP('tourAsked', 1); tourShow(0); }
+/** Einmal fragen (Antwort bleibt gespeichert) – gern während das Einsatzgebiet im Hintergrund gespeichert wird */
+function tourAsk() {
+  if (A.getPref('tourAsked', '') === '1' || $('tour') && $('tour').style.display === 'block') return;
+  if (document.querySelector('.page.open') || $('dlg').classList.contains('open')) { setTimeout(tourAsk, 8000); return; }
+  setP('tourAsked', 1);
+  confirmDlg('Kurze Einführung?', 'Möchtest du einen kurzen Rundgang, wo was in der App ist und was die Knöpfe machen? (ca. 1 Minute – das Einsatzgebiet wird währenddessen im Hintergrund gespeichert)\n\nDu kannst ihn jederzeit in den Einstellungen unter „Einführung“ starten.', [], 'Ja, zeigen', () => setTimeout(() => tourShow(0), 200));
+  $('dNo') && ($('dNo').textContent = 'Nein, danke');
+}
 // ================= Einsatzplan (optional): Reihenfolge, Flugzeit, Akkus, Ende vs. Temperaturanstieg =================
 const PLAN = { setup: 8, kmh: 35, road: 1.35 };   // Minuten Auf-/Abbau je Wiese, km/h Fahrt, Umweg-Faktor Luftlinie→Straße
 function planBattMin() { return +P.planBatt || (P.drone === 'M4T' ? 30 : 27); }   // nutzbare Minuten je Akku (mit Reserve)
@@ -4786,7 +4880,19 @@ function planOrder(fs, start) {
 // Sichtweite (VLOS) je Drohne; bis ×1,5 vertretbar – nahe Wiesen dann vom selben Standort fliegen statt umzusetzen
 const VLOS = { M3T: 220, M4T: 255 };
 function planVlos() { const v = VLOS[P.drone] || 220; return { v, max: Math.round(v * 1.5) }; }
-function fieldPts(f) { return f.outline && f.outline.length > 2 ? f.outline : [[f.bounds.n, f.bounds.w], [f.bounds.n, f.bounds.e], [f.bounds.s, f.bounds.w], [f.bounds.s, f.bounds.e]]; }
+function fieldPts(f) { const r = fieldRingLL(f); return r && r.length > 2 ? r.map(p => [p[1], p[0]]) : [[f.bounds.n, f.bounds.w], [f.bounds.n, f.bounds.e], [f.bounds.s, f.bounds.w], [f.bounds.s, f.bounds.e]]; }
+/** Umriss einer Wiese als [lon,lat]-Ring: Feldgrenze, sonst Hülle der Flugroute (+ halber Bahnabstand) */
+function fieldRingLL(f) {
+  if (f._ringLL !== undefined) return f._ringLL;
+  let pts = f.outline && f.outline.length > 2 ? f.outline : (f.shapes || []).flatMap(sh => sh.pts || []);
+  if (pts.length < 3) return (f._ringLL = null);
+  const P2 = pts.map(p => [p[1], p[0]]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], up = [];
+  P2.forEach(p => { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); });
+  [...P2].reverse().forEach(p => { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); });
+  const h = lo.slice(0, -1).concat(up.slice(0, -1));
+  return (f._ringLL = f.outline && f.outline.length > 2 ? f.outline.map(p => [p[1], p[0]]) : h);
+}
 /** Gemeinsamer Standort für mehrere Wiesen: Punkt mit kleinster größter Entfernung zu allen Ecken (Näherung) */
 function standFor(fs, max) {
   const pts = fs.flatMap(fieldPts); if (!pts.length) return null;
@@ -4795,15 +4901,34 @@ function standFor(fs, max) {
   for (let k = 1; k <= 60; k++) { const [, p] = farOf(c); c = [c[0] + (p[0] - c[0]) / (k + 1), c[1] + (p[1] - c[1]) / (k + 1)]; }
   const far = farOf(c)[0];
   if (far > max) return null;
-  // Lieber an einer Wiese stehen (erreichbar, z. B. an der mittleren von dreien): nächster Randpunkt oder Mitte jeder Wiese, wenn alle noch in Sicht
+  if (fs.length < 2) return { c, far };
+  // 1. Wahl: ein Weg (Feld-/Wirtschaftsweg aus OpenStreetMap) zwischen den Wiesen – Pilot + Spotter stehen nie mitten auf der Wiese
+  const inField = q => S.files.some(f => { if (f.dup || !f.bounds || q[0] > f.bounds.n || q[0] < f.bounds.s || q[1] > f.bounds.e || q[1] < f.bounds.w) return false;
+    const ring = fieldRingLL(f); return ring && inRing(q[0], q[1], ring); });
+  const pad = max / 111200, bn = Math.max(...pts.map(p => p[0])) + pad, bs = Math.min(...pts.map(p => p[0])) - pad;
+  const pl = pad / Math.cos(c[0] * Math.PI / 180), be = Math.max(...pts.map(p => p[1])) + pl, bw = Math.min(...pts.map(p => p[1])) - pl;
+  const PEN = { tertiary: 25, unclassified: 10, service: 5 };   // lieber Feldweg als Straße
   let best = null;
-  if (fs.length > 1) fs.forEach(f => {
-    const o = fieldPts(f), cand = [f.center];
+  (S.ways || []).forEach(w => {
+    if (w.bb.s > bn || w.bb.n < bs || w.bb.w > be || w.bb.e < bw) return;
+    for (let i = 0; i + 1 < w.pts.length; i++) {
+      const a = w.pts[i], b = w.pts[i + 1], L = distM(a[0], a[1], b[0], b[1]), n = Math.max(1, Math.ceil(L / 12));
+      for (let k = 0; k <= n; k++) {
+        const q = [a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n];
+        if (q[0] > bn || q[0] < bs || q[1] > be || q[1] < bw) continue;
+        const fq = farOf(q)[0]; if (fq > max) continue;
+        const sc = fq + distM(q[0], q[1], c[0], c[1]) * .3 + (PEN[w.k] || 0);
+        if ((!best || sc < best.sc) && !inField(q)) best = { c: q, far: fq, way: w.k, sc };
+      }
+    }
+  });
+  if (best) return { c: best.c, far: best.far, way: best.way };
+  // 2. Wahl (kein Weg bekannt): am Rand einer Wiese, nie mittendrin
+  fs.forEach(f => {
+    const o = fieldPts(f);
     for (let i = 0; i < o.length; i++) { const a = o[i], b = o[(i + 1) % o.length];
-      for (let k = 0; k <= 8; k++) cand.push([a[0] + (b[0] - a[0]) * k / 8, a[1] + (b[1] - a[1]) * k / 8]); }
-    cand.forEach(q => { const fq = farOf(q)[0]; if (fq > max) return;
-      const sc = fq + distM(q[0], q[1], c[0], c[1]) * .3;   // möglichst kurze Sichtweite, nicht zu weit vom Idealpunkt
-      if (!best || sc < best.sc) best = { c: q, far: fq, at: f, sc }; });
+      for (let k = 0; k <= 8; k++) { const q = [a[0] + (b[0] - a[0]) * k / 8, a[1] + (b[1] - a[1]) * k / 8], fq = farOf(q)[0]; if (fq > max) continue;
+        const sc = fq + distM(q[0], q[1], c[0], c[1]) * .3; if (!best || sc < best.sc) best = { c: q, far: fq, at: f, sc }; } }
   });
   return best ? { c: best.c, far: best.far, at: best.at } : { c, far };
 }
@@ -4848,7 +4973,7 @@ function showPlan() {
       <div><small>Akkus</small><b>${batt}</b><em>à ${planBattMin()} min</em></div><div><small>Fahrt</small><b>${f1(drive)} km</b></div>${saved ? `<div><small>Umsetzen gespart</small><b>${saved}×</b><em>vom selben Standort</em></div>` : ''}</div>
     ${rise ? `<div class="wxsh ${late.length ? 'r' : ''}" style="margin-top:8px"><b>🌡 Ab ${hm(rise)} 2 °C wärmer als am Morgen</b> – ${late.length ? `${late.length} Wiese${late.length > 1 ? 'n' : ''} danach: Wärmebild lässt nach, früher starten oder aufteilen` : 'alle Wiesen vorher fertig'}</div>` : '<div class="meta" style="margin-top:6px">Temperaturverlauf noch nicht geladen – Wetter einmal mit Internet öffnen.</div>'}
     <div class="meta" style="margin-top:6px">Annahmen: ${PLAN.setup} min Auf-/Abbau je Wiese, Fahrt ${PLAN.kmh} km/h (Luftlinie × ${String(PLAN.road).replace('.', ',')}), Flugzeit aus dem UAV Editor (sonst aus der Fläche geschätzt), Akku ${planBattMin()} min nutzbar (Einstellungen). Nahe Wiesen vom selben Standort, wenn alle Ecken höchstens ${vl.max} m entfernt sind (Sichtweite ${P.drone === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} ${vl.v} m × 1,5), Missionswechsel 2 min. ${S.me ? 'Start an deinem Standort.' : 'Ohne GPS: Start an der westlichsten Wiese.'}</div></div>
-    ${rows.map((r, i) => `<div class="plrow${rise && r.end > rise ? ' late' : ''}"><span class="pln">${i + 1}</span><div class="l"><b>${esc(r.f.title)}</b><em>${hm(r.arr)}–${hm(r.end)} · Flug ${Math.round(r.fm)} min${r.hop ? ` · <b style="color:#13a538">✈ vom selben Standort weiterfliegen – keine Fahrt</b> (bis ${Math.round(r.far)} m${r.far > vl.v ? ', über ' + vl.v + ' m: gut beobachten' : ''})` : (i || S.me) ? ` · ${f1(r.dk)} km Fahrt` : ''}${!r.hop && r.grp ? ` · <b style="color:#13a538">▼ Standort für Pilot + Spotter ${r.grp.st.at ? 'an der Wiese „' + esc(r.grp.st.at.title) + '“' : 'zwischen den Wiesen'} (grünes Dreieck auf der Karte, ${r.grp.st.c[0].toFixed(5)}, ${r.grp.st.c[1].toFixed(5)}) – alle ${r.grp.fs.length} Wiesen von dort, max. ${Math.round(r.far)} m</b>` : ''}</em></div></div>`).join('')}
+    ${rows.map((r, i) => `<div class="plrow${rise && r.end > rise ? ' late' : ''}"><span class="pln">${i + 1}</span><div class="l"><b>${esc(r.f.title)}</b><em>${hm(r.arr)}–${hm(r.end)} · Flug ${Math.round(r.fm)} min${r.hop ? ` · <b style="color:#13a538">✈ vom selben Standort weiterfliegen – keine Fahrt</b> (bis ${Math.round(r.far)} m${r.far > vl.v ? ', über ' + vl.v + ' m: gut beobachten' : ''})` : (i || S.me) ? ` · ${f1(r.dk)} km Fahrt` : ''}${!r.hop && r.grp ? ` · <b style="color:#13a538">▼ Standort für Pilot + Spotter ${r.grp.st.way ? 'auf dem ' + ({ track: 'Feldweg', path: 'Pfad', footway: 'Fußweg', cycleway: 'Radweg', bridleway: 'Reitweg', service: 'Wirtschaftsweg', unclassified: 'Verbindungsweg', tertiary: 'Straßenrand (Kreisstraße)' }[r.grp.st.way] || 'Weg') + ' zwischen den Wiesen' : r.grp.st.at ? 'am Rand der Wiese „' + esc(r.grp.st.at.title) + '“ (kein Weg in OSM gefunden)' : 'zwischen den Wiesen'} (grünes Dreieck auf der Karte, ${r.grp.st.c[0].toFixed(5)}, ${r.grp.st.c[1].toFixed(5)}) – alle ${r.grp.fs.length} Wiesen von dort, max. ${Math.round(r.far)} m</b>` : ''}</em></div></div>`).join('')}
     <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap"><button class="b-ok" id="plMap" style="height:46px;padding:0 16px">Route auf der Karte</button><button class="b-sec" id="plOff" style="height:46px;padding:0 16px">Route ausblenden</button></div>`;
   openInfoPage('Einsatzplan', html);
   $('plMap').onclick = () => { $('iBack').onclick(); planPts(); fitBounds(bounds(order)); draw(); };
@@ -4954,6 +5079,7 @@ loadObstacles();
 loadGeoVectors();
 applyTheme();
 setTimeout(() => geoSyncNow(false), 4000);   // auch ohne Felder
+setTimeout(() => { if (P.setupDone === '1') tourAsk(); }, 6000);
 window.addEventListener('online', () => { tileFail.clear(); draw(); setTimeout(() => { geoSyncNow(false); if (A.notamSync) A.notamSync(false); einsatzAuto(); }, 2000); });
 load(false);
 netBadge();

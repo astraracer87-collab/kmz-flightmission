@@ -956,7 +956,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         /** Hindernisse aus OSM: {pts:[{t,h,hub,rot,n,lat,lon}], rails:[{e,n,g}]} – t = wind|mast|tower|chimney */
         @JavascriptInterface
         public String osmObstacles() {
-            JSONArray pts = new JSONArray(), rails = new JSONArray(), places = new JSONArray();
+            JSONArray pts = new JSONArray(), rails = new JSONArray(), places = new JSONArray(), ways = new JSONArray();
             try {
                 if (osmFile().isFile()) {
                     JSONArray els = new JSONArray(readFile(osmFile()));
@@ -967,6 +967,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         if (t.has("place") && "node".equals(ty)) {
                             places.put(new JSONObject().put("n", t.optString("name")).put("t", t.optString("place"))
                                     .put("lat", el.optDouble("lat")).put("lon", el.optDouble("lon")));
+                            continue;
+                        }
+                        if (t.has("highway") && "way".equals(ty)) {   // Wege (für den gemeinsamen Standort im Einsatzplan)
+                            JSONArray g = el.optJSONArray("geometry"), ln = new JSONArray();
+                            if (g == null) continue;
+                            for (int k = 0; k < g.length(); k++) { JSONObject p = g.optJSONObject(k); if (p != null) ln.put(Math.round(p.optDouble("lon") * 1e5) / 1e5).put(Math.round(p.optDouble("lat") * 1e5) / 1e5); }
+                            ways.put(new JSONObject().put("k", t.optString("highway")).put("g", ln));
                             continue;
                         }
                         if (t.has("railway") && "way".equals(ty)) {
@@ -1001,7 +1008,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     }
                 }
             } catch (Exception ignored) { }
-            try { return new JSONObject().put("pts", pts).put("rails", rails).put("places", places).toString(); } catch (Exception e) { return "{}"; }
+            try { return new JSONObject().put("pts", pts).put("rails", rails).put("places", places).put("ways", ways).toString(); } catch (Exception e) { return "{}"; }
         }
 
         /** Gespeicherte Orts- und Flurnamen [{n,t,lat,lon}] */
@@ -2007,7 +2014,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         } catch (Exception ignored) { }
         long fetched = prefs.getLong("osm_fetched", 0);
         boolean fresh = System.currentTimeMillis() - fetched < 7 * DAY;   // Leitungen ändern sich selten
-        boolean oldFormat = prefs.getInt("osm_ver", 1) < 3;   // ältere Daten ohne Hindernisse/Ortsnamen: einmal neu laden
+        boolean oldFormat = prefs.getInt("osm_ver", 1) < 4;   // ältere Daten ohne Hindernisse/Ortsnamen: einmal neu laden
         if (!force && fresh && !oldFormat && osmCovers(n, s, e, w) && osmFile().isFile()) return;
         try {
             String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
@@ -2019,12 +2026,14 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     + "nwr[\"power\"=\"generator\"][\"generator:source\"=\"wind\"](" + bb + ");"
                     + "node[\"man_made\"~\"^(mast|tower|chimney|communications_tower)$\"](" + bb + ");"
                     + "way[\"railway\"~\"^(rail|light_rail)$\"](" + bb + ");"
+                    // Feld- und Wirtschaftswege: Standort für Pilot + Spotter (nie mitten auf der Wiese)
+                    + "way[\"highway\"~\"^(track|path|service|unclassified|tertiary|bridleway|cycleway|footway)$\"](" + bb + ");"
                     // Orts- und Flurnamen für die Suche (offline)
                     + "node[\"place\"~\"^(city|town|village|hamlet|suburb|quarter|neighbourhood|isolated_dwelling|farm|locality)$\"][\"name\"](" + bb + ");"
                     + ");out tags geom;";
             JSONArray els = new JSONObject(overpass(q, 180000)).getJSONArray("elements");   // mit Ausweichservern
             writeFileAtomic(osmFile(), els.toString());
-            prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 3)
+            prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 4)
                     .putString("osm_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             osmCache = els;
             osmCacheLoaded = System.currentTimeMillis();
