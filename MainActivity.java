@@ -788,6 +788,38 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             } catch (Exception e) { return "{}"; }
         }
 
+        /** Welche Zonengruppen sind im gespeicherten dipul-Kartenbild an diesem Punkt eingefärbt? (offline, aus den Kacheln)
+         *  Ergebnis: {"hit":["luft",…],"have":["luft",…],"z":14} – have = Gruppen, für die hier ein Bild gespeichert ist */
+        @JavascriptInterface
+        public String dipulPixel(double lat, double lon, String groupsCsv) {
+            JSONArray hit = new JSONArray(), have = new JSONArray();
+            int zUsed = -1;
+            try {
+                double X = (lon + 180) / 360, sl = Math.sin(Math.toRadians(lat)), Y = 0.5 - Math.log((1 + sl) / (1 - sl)) / (4 * Math.PI);
+                for (String g : groupsCsv.split(",")) {
+                    if (g.isEmpty()) continue;
+                    for (int z = 16; z >= 7; z--) {
+                        double N = (1 << z) * 256.0;
+                        int px = (int) Math.floor(X * N), py = (int) Math.floor(Y * N);
+                        File f = new File(tileDir(), "dipul/" + g + "/" + z + "/" + (px >> 8) + "/" + (py >> 8) + ".png");
+                        if (!f.isFile() || f.length() == 0) continue;
+                        android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeFile(f.getPath());
+                        if (bm == null) continue;
+                        have.put(g); zUsed = Math.max(zUsed, z);
+                        int cx = px & 255, cy = py & 255, n = 0;
+                        for (int dy = -2; dy <= 2; dy++) for (int dx = -2; dx <= 2; dx++) {
+                            int xx = Math.max(0, Math.min(bm.getWidth() - 1, cx + dx)), yy = Math.max(0, Math.min(bm.getHeight() - 1, cy + dy));
+                            if ((bm.getPixel(xx, yy) >>> 24) > 30) n++;
+                        }
+                        bm.recycle();
+                        if (n >= 3) hit.put(g);
+                        break;
+                    }
+                }
+                return new JSONObject().put("hit", hit).put("have", have).put("z", zUsed).toString();
+            } catch (Throwable t) { return "{\"hit\":[],\"have\":[]}"; }
+        }
+
         /** Geozonen an einem Punkt abfragen (dipul GetFeatureInfo). Ergebnis über window.onGeoInfo */
         @JavascriptInterface
         public void geoInfo(double lat, double lon, String layersJson) {
@@ -1763,6 +1795,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             "internationale_organisationen", "polizei", "sicherheitsbehoerden", "krankenhaeuser", "freibaeder", "wohngrundstuecke"};
     private static final long DAY = 24L * 3600 * 1000;
     private volatile boolean geoRunning = false;
+    private volatile String geoQueuedArea = null;
+    private volatile boolean geoQueuedForce = false;
     private volatile String geoLastError = null;
 
     private File geoVecDir() { return new File(getFilesDir(), "dipul_vec"); }
@@ -1800,6 +1834,41 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     private void geoInfoImpl(double lat, double lon, String layersJson) {
         JSONObject res = new JSONObject();
+        // 1. Wahl: WFS (Vektordaten mit Geometrie – derselbe Dienst wie für die gespeicherten Zonen); die App prüft Punkt-in-Fläche selbst
+        try {
+            JSONArray la = new JSONArray(layersJson);
+            StringBuilder tn = new StringBuilder();
+            for (int i = 0; i < la.length(); i++) tn.append(tn.length() > 0 ? "," : "").append("dipul:").append(la.getString(i));
+            double d = 0.0006;
+            String url = DIPUL_WFS + "?service=WFS&version=1.1.0&request=GetFeature&typeName=" + URLEncoder.encode(tn.toString(), "UTF-8")
+                    + "&outputFormat=application/json&srsName=EPSG:4326&maxFeatures=200"
+                    + "&bbox=" + String.format(Locale.ROOT, "%.7f,%.7f,%.7f,%.7f", lon - d, lat - d, lon + d, lat + d) + ",EPSG:4326";
+            HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+            c.setConnectTimeout(10000); c.setReadTimeout(25000);
+            c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Android; Kitzrettung, nicht-kommerziell)");
+            if (c.getResponseCode() == 200) {
+                String body; try (InputStream in = c.getInputStream()) { body = readAll(in); }
+                c.disconnect();
+                if (body.trim().startsWith("{")) {
+                    JSONArray fs = new JSONObject(body).optJSONArray("features");
+                    if (fs != null) {
+                        JSONArray out = new JSONArray();
+                        for (int i = 0; i < fs.length(); i++) {
+                            JSONObject f = fs.getJSONObject(i);
+                            String id = f.optString("id", "");
+                            String layer = id.contains(".") ? id.substring(0, id.lastIndexOf('.')) : id;
+                            if (layer.contains(":")) layer = layer.substring(layer.indexOf(':') + 1);
+                            out.put(new JSONObject().put("layer", layer).put("props", f.optJSONObject("properties") != null ? f.optJSONObject("properties") : new JSONObject())
+                                    .put("geometry", f.opt("geometry")));
+                        }
+                        res.put("ok", true).put("lat", lat).put("lon", lon).put("features", out).put("src", "wfs");
+                        js("window.onGeoInfo && window.onGeoInfo(" + JSONObject.quote(res.toString()) + ")");
+                        return;
+                    }
+                }
+            } else c.disconnect();
+        } catch (Exception ignored) { /* weiter mit WMS */ }
+        res = new JSONObject();
         try {
             JSONArray la = new JSONArray(layersJson);
             StringBuilder layers = new StringBuilder();
@@ -2806,7 +2875,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     /** areaJson: {n,s,e,w} – Gesamtgebiet aller Felder inkl. Rand. force = alles neu laden */
     private void geoSyncImpl(String areaJson, boolean force) {
-        if (geoRunning) return;
+        if (geoRunning) {   // läuft schon: Einsatzgebiet-Auftrag (größeres Gebiet) danach nachholen statt verwerfen
+            if (areaJson.contains("\"vec\"")) { geoQueuedArea = areaJson; geoQueuedForce = force; }
+            return;
+        }
         if (!online()) {   // offline: nichts versuchen, gespeicherte Geozonen bleiben einfach aktiv
             try { geoEvent(new JSONObject().put("type", "offline").put("fetched", geoFetched())); } catch (Exception ignored) { }
             return;
@@ -2830,6 +2902,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 js("window.onAirfields && window.onAirfields()");
             }).start();
 
+            // „Einsatzgebiet speichern“: Zonendaten für das ganze Einsatzgebiet (wie das Kartenbild), nicht nur direkt um die Wiesen
+            final double sn = n, ss = s, se = e, sw = w;   // engeres Gebiet: für Wohngrundstücke (sehr viele kleine Flächen)
+            JSONObject vec = b.optJSONObject("vec");
+            if (vec != null) { n = Math.max(n, vec.getDouble("n")); s = Math.min(s, vec.getDouble("s")); e = Math.max(e, vec.getDouble("e")); w = Math.min(w, vec.getDouble("w")); }
             boolean covers = false;
             try {
                 JSONObject ob = new JSONObject(prefs.getString("geo_vec_bbox", "{}"));
@@ -2855,7 +2931,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             int ok = 0, fail = 0, count = 0, k = 0;
             for (String layer : GEO_LAYERS) {
                 geoEvent(new JSONObject().put("type", "progress").put("done", k++).put("total", GEO_LAYERS.length));
-                JSONArray feats = wfsFetch(layer, n, s, e, w);
+                boolean small = vec != null && "wohngrundstuecke".equals(layer);
+                JSONArray feats = small ? wfsFetch(layer, sn, ss, se, sw) : wfsFetch(layer, n, s, e, w);
                 if (feats == null) { fail++; continue; }
                 writeFileAtomic(geoVecFile(layer), feats.toString());
                 ok++;
@@ -2878,6 +2955,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             try { geoEvent(new JSONObject().put("type", "error").put("message", ex.getMessage())); } catch (Exception ignored) { }
         } finally {
             geoRunning = false;
+            String q = geoQueuedArea; boolean qf = geoQueuedForce; geoQueuedArea = null;
+            if (q != null) new Thread(() -> geoSyncImpl(q, qf)).start();
         }
     }
 

@@ -301,6 +301,10 @@
   .wx4h b{font-size:15px}
   @media (max-width:560px){.wx4{grid-template-columns:1fr}.wx4h{grid-template-columns:repeat(3,1fr)}}
   .sunstick{position:sticky;top:-1px;z-index:4;background:var(--card);padding:2px 0 6px;margin-bottom:6px}
+  .sunwrap{position:relative;overflow:hidden;border-radius:14px;background:linear-gradient(#0d1630,#1a2440);box-shadow:0 4px 18px rgba(0,0,0,.25);touch-action:pan-y}
+  .sunwrap svg{position:absolute;left:0;top:0;display:block;stroke:none;width:auto;height:100%;fill:initial;stroke-width:initial}
+  .sunwrap svg.sunov{width:100%}
+  .sunstrip{will-change:transform}
   .sunsvg{width:100%;height:auto;display:block;border-radius:14px;stroke:none;box-shadow:0 4px 18px rgba(0,0,0,.25)}
   .wxt{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
   .wxl{flex:none;width:122px;border-right:2px solid var(--line);background:var(--card2)}
@@ -1637,6 +1641,7 @@ async function load(keepView) {
   if (!keepView) fitAll();
   if (P.setupDone !== '1') { if (out.length) setP('setupDone', 1); else setTimeout(() => showSetup(0), 300); }
   geoSyncNow(false);
+  setTimeout(einsatzAuto, 2500);   // erstes Mal / neue Wiesen: Einsatzgebiet automatisch für offline speichern
   try { notamChip(); } catch (e) { }
   setTimeout(() => wxPrefetch().then(windWidget), 3000);
   windWidget();
@@ -2144,6 +2149,29 @@ function einsatzJobs(de) {
   const nb = tierCount(baseT), ng = tierCount(geoT);
   return { jobs: [{ layers: ['bmg', 'bmf', 'dop'], tiers: baseT }, { layers: geoL, tiers: geoT }], tiles: nb * 3 + ng * geoL.length, mb: Math.round((nb * 50 + ng * geoL.length * 4) / 1024) };
 }
+/** Einsatzgebiet speichern (Knopf oder automatisch): Kacheln, Zonendaten, Windräder, Wetter */
+function einsatzRun(de, fresh, auto) {
+  const j = einsatzJobs(de); if (!j) return;
+  if (fresh && A.dipulClear) { A.dipulClear(); GEOR.reset(); }
+  geoSyncNow(fresh, true);   // Zonendaten, Hindernisse, Flugplätze, Orte, NOTAM
+  const wb = einsatzBox(30); let stc = wb ? statesInBox(wb) : [];
+  if (!stc.length) stc = [...new Set(S.files.filter(f => f.center).map(f => regionAt(f.center[0], f.center[1]).st).filter(Boolean).concat((P.aeStates || '').split(',').filter(Boolean)))];
+  const sts = stc.map(k => MASTR_STATE[k]).filter(Boolean);
+  if (A.mastrSync && sts.length) A.mastrSync(JSON.stringify({ states: sts, box: wb }));   // Windräder fürs eigene Gebiet
+  try { metarLoad(null, true).then(metarApply).catch(() => { }); wxPrefetch(); } catch (e) { }
+  A.prefetchStart(JSON.stringify({ jobs: j.jobs }));
+  esPending = einsatzBox(25);
+  toast(auto ? 'Einsatzgebiet wird automatisch für offline gespeichert (Karte, Geozonen, Windräder, Wetter) – Fortschritt in den Einstellungen.' : 'Einsatzgebiet wird gespeichert – Fortschritt in den Einstellungen.', false, auto ? 6000 : 4000);
+}
+let esPending = null;
+/** Automatisch speichern, sobald Wiesen da sind und Internet: beim ersten Mal und wenn neue Wiesen außerhalb des gespeicherten Gebiets liegen */
+function einsatzAuto() {
+  if (!A.prefetchStart || !isOnline() || !S.files.length || (A.prefetchRunning && A.prefetchRunning()) || esPending) return;
+  const need = einsatzBox(1); if (!need) return;
+  let have = null; try { have = JSON.parse(A.getPref('esBox', 'null') || 'null'); } catch (e) { }
+  if (have && have[0] <= need[0] && have[1] <= need[1] && have[2] >= need[2] && have[3] >= need[3]) return;
+  einsatzRun(false, false, true);
+}
 const startPrefetch = () => {
   if (A.prefetchRunning && A.prefetchRunning()) { busy('Speichere Einsatzgebiet…', { cancel: () => A.prefetchCancel() }); return; }
   if (!isOnline()) return toast('Dafür wird Internet gebraucht (am besten WLAN).', true);
@@ -2153,19 +2181,8 @@ const startPrefetch = () => {
     <label class="pick"><input type="checkbox" id="esNew"><span>Geozonen neu holen – gespeicherte ersetzen (wenn sich bei dipul etwas geändert hat)</span></label><div class="meta" id="esInfo" style="margin-top:6px"></div>`;
   const info = () => { const j = einsatzJobs(x.querySelector('#esDe').checked); x.querySelector('#esInfo').textContent = `ca. ${j.tiles.toLocaleString('de-DE')} Kacheln · ca. ${j.mb.toLocaleString('de-DE')} MB · bereits gespeicherte werden übersprungen`; };
   confirmDlg('Einsatzgebiet speichern',
-    'Holt alles, was im Einsatz gebraucht wird, auf die Fernsteuerung:\n• Karte Grau, Karte und Luftbild (Gebiet der Wiesen + 3 km, um jede Wiese bis ganz nah)\n• dipul-Geozonen im Umkreis von 25 km, um jede Wiese bis Zoom 16\n• Zonendaten für Wiesen-Infos und Hinweise, Hindernisse, Flugplätze, Orte\n• Windräder mit Betreiber und Höhe aus dem Marktstammdatenregister (30 km)\n• Wetter und Flughafen-Wetter (letzter Stand)\n\nDanach funktioniert alles ohne Internet – online nur noch für „Abgleichen“ (Wiesen holen). Am besten im WLAN, die App kann dabei normal benutzt werden.',
-    [], 'Speichern', () => {
-      const de = x.querySelector('#esDe').checked, fresh = x.querySelector('#esNew').checked, j = einsatzJobs(de);
-      if (fresh && A.dipulClear) { A.dipulClear(); GEOR.reset(); }
-      geoSyncNow(fresh);   // Zonendaten, Hindernisse, Flugplätze, Orte, NOTAM
-      const wb = einsatzBox(30); let stc = wb ? statesInBox(wb) : [];
-      if (!stc.length) stc = [...new Set(S.files.filter(f => f.center).map(f => regionAt(f.center[0], f.center[1]).st).filter(Boolean).concat((P.aeStates || '').split(',').filter(Boolean)))];
-      const sts = stc.map(k => MASTR_STATE[k]).filter(Boolean);
-      if (A.mastrSync && sts.length) A.mastrSync(JSON.stringify({ states: sts, box: wb }));   // Windräder fürs eigene Gebiet
-      try { metarLoad(null, true).then(metarApply).catch(() => { }); wxPrefetch(); } catch (e) { }
-      A.prefetchStart(JSON.stringify({ jobs: j.jobs }));
-      toast('Einsatzgebiet wird gespeichert – Fortschritt in den Einstellungen.', false, 4000);
-    }, x);
+    'Holt alles, was im Einsatz gebraucht wird, auf die Fernsteuerung:\n• Karte Grau, Karte und Luftbild (Gebiet der Wiesen + 3 km, um jede Wiese bis ganz nah)\n• dipul-Geozonen im Umkreis von 25 km, um jede Wiese bis Zoom 16\n• Zonendaten zum Antippen (Name, Höhen, Auflagen) ebenfalls 25 km – Wohngrundstücke 3 km um die Wiesen\n• NOTAMs deutschlandweit, Hindernisse, Flugplätze, Orte\n• Windräder mit Betreiber und Höhe aus dem Marktstammdatenregister (30 km)\n• Wetter und Flughafen-Wetter (letzter Stand)\n\nDanach funktioniert alles ohne Internet – online nur noch für „Abgleichen“ (Wiesen holen). Am besten im WLAN, die App kann dabei normal benutzt werden.',
+    [], 'Speichern', () => einsatzRun(x.querySelector('#esDe').checked, x.querySelector('#esNew').checked), x);
   x.querySelectorAll('input').forEach(c => c.onchange = info); info();
 };
 $('bPrefetch').onclick = startPrefetch;
@@ -2179,7 +2196,9 @@ window.onPrefetch = raw => {
   if ($('vPrefetch')) $('vPrefetch').textContent = t;
   if ($('bPrefetch')) $('bPrefetch').textContent = r.finished ? 'Speichern' : 'Abbrechen';
   if ($('bPrefetch')) $('bPrefetch').onclick = r.finished ? startPrefetch : () => { A.prefetchCancel(); };
-  if (r.finished) { toast(t, !!r.fail && !r.done, 7000); draw(); }
+  if (r.finished) { toast(t, !!r.fail && !r.done, 7000); draw();
+    if (esPending && !r.cancelled) setP('esBox', JSON.stringify(esPending));   // erledigt – nicht nochmal automatisch
+    esPending = null; }
 };
 $('bTilesClear').onclick = () => { if (A.tileCacheClear) { A.tileCacheClear(); toast('Kartenspeicher wird geleert…'); } };
 window.onTileCache = () => { tiles.clear(); tlReset(); fillSettings(); toast('Kartenspeicher geleert.'); };
@@ -2499,23 +2518,63 @@ function geoInfoAt(px, py) {
   geoTap = [px, py];
   infoPin = [lat, lon]; draw();
   const b = S.geoBox, inside = S.geo.length && b && lat <= b.n && lat >= b.s && lon <= b.e && lon >= b.w;
-  if (!inside) {   // außerhalb der gespeicherten Zonen: direkt bei dipul nachfragen (wie die dipul-Karte)
+  if (!inside) {   // außerhalb der gespeicherten Zonen: erst im Speicher schauen (früher angetippte Zonen), sonst bei dipul nachfragen
+    const kn = tapcAt(lat, lon);
+    if (kn.length) return window.onGeoInfo(JSON.stringify({ ok: true, lat, lon, features: kn, offline: true, reg: regionAt(lat, lon) }));
     if (A.geoInfo && isOnline()) {
       busy('Frage dipul nach Geozonen an diesem Punkt…');
       const ls = ZG.filter(([k]) => zgOn(k)).flatMap(([, , l]) => l).concat(['temporaere_betriebseinschraenkungen']);
       A.geoInfo(lat, lon, JSON.stringify(ls));
       return;
     }
-    if (!S.geo.length) return toast('Geozonen noch nicht gespeichert – einmal mit Internet abgleichen.', true);
-    toast('Offline: Zonen-Infos gibt es ohne Internet nur im Gebiet eurer Felder.', true, 5000);
   }
   window.onGeoInfo(JSON.stringify({ ok: true, lat, lon, features: geoAt(lat, lon), offline: true, reg: regionAt(lat, lon) }));
 }
 let geoTap = null;
 /** Antippen auf der Karte: kleine Blase mit den Zonen; „Details“ öffnet die volle Seite */
+/** Antwort mit Geometrie (dipul-WFS): nur Zonen behalten, in denen der Punkt wirklich liegt */
+function featHit(lat, lon, g) {
+  if (!g) return false;
+  const rings = geomRings(g);
+  if (g.type === 'Polygon' || g.type === 'MultiPolygon') { let ins = false; rings.forEach(rg => { if (inRing(lat, lon, rg)) ins = !ins; }); return ins; }
+  return rings.some(rg => rg.some((c, i) => segDistM(lat, lon, c, rg[Math.min(i + 1, rg.length - 1)]) < 30));
+}
+// Einmal live angetippte Zonen (mit Umriss) bleiben gespeichert – beim nächsten Antippen sofort da, auch offline
+let TAPC = null;
+function tapcGet() { if (!TAPC) { try { TAPC = JSON.parse(A.getPref('geoTapCache', '[]') || '[]'); } catch (e) { TAPC = []; } if (!Array.isArray(TAPC)) TAPC = []; } return TAPC; }
+function tapcAdd(feats) {
+  const c = tapcGet(), rd = v => Array.isArray(v) ? v.map(rd) : typeof v === 'number' ? Math.round(v * 1e5) / 1e5 : v;
+  feats.forEach(f => { if (!f.geometry) return;
+    const g = { type: f.geometry.type, coordinates: rd(f.geometry.coordinates) }, k = f.layer + '|' + ((f.props || {}).name || '') + '|' + JSON.stringify(g).length;
+    const i = c.findIndex(x => x.k === k); if (i >= 0) c.splice(i, 1);
+    c.push({ k, layer: f.layer, props: f.props, geometry: g }); });
+  let s = JSON.stringify(c); while (c.length > 1 && s.length > 1500000) { c.shift(); s = JSON.stringify(c); }
+  try { A.setPref('geoTapCache', s); } catch (e) { }
+}
+function tapcAt(lat, lon) { return tapcGet().filter(f => geoLayerOn(f.layer) && featHit(lat, lon, f.geometry)).map(f => ({ layer: f.layer, props: f.props })); }
+/** Was zeigt das gespeicherte dipul-Kartenbild an diesem Punkt? – Gruppen, die dort eingefärbt sind */
+function mapPixelGroups(lat, lon) {
+  if (!A.dipulPixel) return [];
+  try { const j = JSON.parse(A.dipulPixel(lat, lon, zgSel()) || '{}'); return (j.hit || []).filter(zgOn); } catch (e) { return []; }
+}
+function mapGroupRows(gs) {
+  return gs.map(g => `<div class="gbr"><span style="background:#e07800"></span><div><b>Geozone: ${esc((ZG.find(z => z[0] === g) || [, g])[1])}</b><em>im Kartenbild markiert · genauer Name auf dipul.de – im Zweifel nicht fliegen</em></div></div>`).join('');
+}
+function geoInfoFilter(r) {
+  if (!r || r.src !== 'wfs' || !Array.isArray(r.features)) return r;
+  r.features = r.features.filter(f => !f.geometry || featHit(r.lat, r.lon, f.geometry));
+  tapcAdd(r.features);
+  r.features = r.features.map(f => ({ layer: f.layer, props: f.props }));
+  return r;
+}
 window.onGeoInfo = raw => {
   busy('');
-  const r = JSON.parse(raw);
+  let r = geoInfoFilter(JSON.parse(raw));
+  if (!r.ok && infoPin) r = { ok: true, lat: infoPin[0], lon: infoPin[1], features: [], offline: true, failed: true };
+  // Nichts gefunden (oder Abfrage fehlgeschlagen)? Dann zählt, was die Karte zeigt – nie „keine Zone“, wenn sie sichtbar ist
+  if (r.ok) { const have = new Set((r.features || []).map(f => ZG_OF[f.layer]));
+    r.mapGroups = mapPixelGroups(r.lat, r.lon).filter(g => !have.has(g)); }   // im Bild sichtbar, aber ohne Zonendaten
+  raw = JSON.stringify(r);
   if (!geoTap || !r.ok) return geoInfoPage(raw);
   const [tx, ty] = geoTap; geoTap = null;
   const reg = r.reg || regionAt(r.lat, r.lon), seen = new Set();
@@ -2525,12 +2584,14 @@ window.onGeoInfo = raw => {
     const label = f.layer === 'flugplaetze' && isHeliZone(f) ? 'Hubschrauberlandeplatz' : (LAYER_LABEL[f.layer] || f.layer);
     return `<div class="gbr"><span style="background:${COL[k] || COL.off}"></span><div><b>${esc(p.name || label)}</b><em>${esc(label)} · ${k === 'on' ? 'Überflug erlaubt' : k === 'dist' ? 'nur mit Abstand' : 'gesperrt'}${altText(p) ? ' · ' + esc(altText(p)) : ''}</em></div></div>`;
   }).join('');
-  if (!rows) rows = `<div class="gbr"><span style="background:#8a93a6"></span><div><b>Keine Geozone</b><em>Allgemeine Regeln gelten (Abstände, max. 120 m)</em></div></div>`;
+  if ((r.mapGroups || []).length) rows += mapGroupRows(r.mapGroups);
+  const obl = obstaclesNear(r.lat, r.lon);
+  if (!rows) rows = `<div class="gbr"><span style="background:#8a93a6"></span><div><b>Keine Geozone</b><em>${obl.length ? 'Keine Flugbeschränkung – aber Hindernis in der Nähe (siehe unten)' : 'Allgemeine Regeln gelten (Abstände, max. 120 m)'}</em></div></div>`;
   const ob = obstaclesNear(r.lat, r.lon).slice(0, 1).map(({ o, d }) => `<div class="gbr"><span style="background:#00695c"></span><div><b>${esc(OBS_NAME[o.t] || 'Hindernis')}${o.top ? ' · ' + (o.est ? 'ca. ' : '') + Math.round(o.top) + ' m hoch' : ''}</b><em>${Math.round(d)} m entfernt${o.op ? ' · ' + esc(o.op) : ''}</em></div></div>`).join('');
   let el = $('geoBub');
   if (!el) { el = document.createElement('div'); el.id = 'geoBub'; $('mapWrap').appendChild(el); }
   el.innerHTML = `<div class="gbh"><b>${esc(regionText(reg))}</b><button class="gbx" aria-label="Schließen">✕</button></div>${rows}${ob}
-    <div class="gbf"><span class="meta">${r.offline ? 'gespeicherte Daten' : 'live von dipul'}</span><button class="b-sec" id="gbMore">Details</button></div>`;
+    <div class="gbf"><span class="meta">${r.mapGroups && r.mapGroups.length && !(r.features || []).length ? 'laut gespeicherter Karte' : r.offline ? 'gespeicherte Daten' : 'live von dipul'}</span><button class="b-sec" id="gbMore">Details</button></div>`;
   el.style.display = 'block';
   const bw = el.offsetWidth, bh = el.offsetHeight;
   let x = Math.max(8, Math.min(W - bw - 90, tx - bw / 2)), y = ty - bh - 34;
@@ -2549,7 +2610,8 @@ function geoInfoPage(raw) {
   const reg = r.reg || regionAt(r.lat, r.lon);
   let html = `<div class="meta" style="margin-bottom:10px">Position ${pos} · <b>${esc(regionText(reg))}</b> · Daten: dipul (DFS, BKG) · nur zur Orientierung, maßgeblich ist <span class="lnk" data-url="${LINK_DIPUL}">dipul.de</span> · <span class="lnk" data-rules="1">Alle Regeln &amp; Auflagen</span></div>`;
   const feats = r.features || [];
-  if (!feats.length && !r.text) html += `<div class="zone"><h4>Keine Geozone an diesem Punkt</h4><div class="meta">Laut dipul liegt hier keine der eingeblendeten Geozonen. Allgemeine Regeln (Kategorie, Abstände, Höhe max. 120 m) gelten trotzdem.</div></div>`;
+  if ((r.mapGroups || []).length) html += `<div class="zone"><h4>${feats.length ? 'Außerdem im Kartenbild' : 'Geozone laut Karte'}: ${esc(r.mapGroups.map(g => (ZG.find(z => z[0] === g) || [, g])[1]).join(', '))}</h4><div class="meta">Das gespeicherte dipul-Kartenbild zeigt hier eine Zone, die genauen Zonendaten dazu sind aber nicht gespeichert bzw. kamen von dipul nicht zurück. Was einmal live gefunden wurde, bleibt gespeichert. Im Zweifel: nicht fliegen, auf <span class="lnk" data-url="${LINK_DIPUL}">dipul.de</span> prüfen.</div></div>`;
+  if (!feats.length && !(r.mapGroups || []).length && !r.text) html += `<div class="zone"><h4>Keine Geozone an diesem Punkt</h4><div class="meta">Laut dipul liegt hier keine der eingeblendeten Geozonen. Allgemeine Regeln (Kategorie, Abstände, Höhe max. 120 m) gelten trotzdem.</div></div>`;
   feats.forEach(f => {
     const p = f.props || {};
     const cov = coverageOf(f.layer, reg);
@@ -2591,7 +2653,7 @@ function geoInfoPage(raw) {
   if (rn.length) html += `<div class="zone" style="border-left:5px solid #2b2f36"><h4>Bahnstrecke${rn[0].n ? ' · ' + esc(rn[0].n) : ''} ${rn.some(x => x.e) ? '<span class="chip">mit Oberleitung</span>' : '<span class="chip grey">ohne Oberleitung (laut OSM)</span>'}</h4>
     <div>${rn.some(x => x.e) ? 'Oberleitung ca. 5,5–6 m über Gleis, Masten ca. 8–10 m. Mindestens 5 m über Oberleitungen (Allgemeinerlaubnis), nie darunter durch.' : 'Gleise ohne Oberleitung – Bahnanlage bleibt trotzdem Geozone.'} Bahnanlagen sind dipul-Geozonen (§ 21h LuftVO).</div>
     <div class="meta" style="margin-top:4px">Daten © OpenStreetMap-Mitwirkende</div></div>`;
-  openInfoPage(`Geozonen-Info · ${feats.length === 1 ? '1 Zone' : feats.length + ' Zonen'} an diesem Punkt`, html);
+  openInfoPage(!feats.length && (r.mapGroups || []).length ? 'Geozonen-Info · Zone laut Karte' : `Geozonen-Info · ${feats.length === 1 ? '1 Zone' : feats.length + ' Zonen'} an diesem Punkt`, html);
   // Leitungsdaten sofort zeigen (gespeichert), Masthöhen kommen gleich danach dazu
   if ($('powerBox')) {
     const dz = feats.find(f => f.layer === 'stromleitungen'), nm = ((dz && dz.props && dz.props.name) || '');
@@ -3296,6 +3358,79 @@ function tempInfo(day, temps, ms) {
   let now = null; for (let k = 0; k < tt.length - 1; k++) if (ms >= tt[k][0] && ms <= tt[k + 1][0]) { const f = (ms - tt[k][0]) / 3600000; now = tt[k][1] + (tt[k + 1][1] - tt[k][1]) * f; }
   return { mn, rise, mx, now };
 }
+/** Tageslauf als langer Streifen über den ganzen Vorhersagezeitraum – einmal gezeichnet, beim Wischen nur verschoben (flüssig).
+ *  Sonne, Zeitlinie und Temperatur-Marke liegen fest in der Mitte darüber. */
+function sunStrip(box, s0, s1, lat, lon, temps) {
+  const Wd = Math.max(300, Math.round(box.clientWidth || 360)), Hd = Math.max(140, Math.min(176, Math.round(innerHeight * .27)));
+  const L = 30, R = 34, T = 22, B = 20, pw = Wd - L - R, ph = Hd - T - B, cx = L + pw / 2, pxh = pw / 24, HR = 3600000;
+  const a0 = s0 - 13 * HR, a1 = s1 + 13 * HR, SW = Math.ceil((a1 - a0) / HR * pxh);
+  const XS = t => (t - a0) / HR * pxh;
+  const samples = []; for (let t = a0; t <= a1; t += 20 * 60000) samples.push([t, sunElev(t, lat, lon)]);
+  const top = Math.max(...samples.map(x => x[1])) + 6, bot = Math.min(...samples.map(x => x[1])) - 4;
+  const Y = e => T + (top - Math.max(bot, Math.min(top, e))) / (top - bot) * ph, Y0 = Y(0);
+  let d = ''; samples.forEach(([t, e], k) => d += (k ? 'L' : 'M') + XS(t).toFixed(1) + ' ' + Y(e).toFixed(1));
+  const area = `${d} L${SW} ${Y0.toFixed(1)} L0 ${Y0.toFixed(1)} Z`;
+  const uid = 's' + Math.random().toString(36).slice(2, 7);
+  const tt = temps ? [...temps.entries()].filter(([t]) => t >= a0 - HR && t <= a1 + HR).sort((a, b) => a[0] - b[0]) : [];
+  let TY = null, tSvg = '', rise = '', tAxis = '', ev = '', band = '', hrs = '';
+  if (tt.length > 2) {
+    const tmin = Math.floor(Math.min(...tt.map(x => x[1])) - 1), tmax = Math.ceil(Math.max(...tt.map(x => x[1])) + 1);
+    TY = v => T + (tmax - v) / (tmax - tmin) * ph;
+    for (let k = 0; k < tt.length - 1; k++) {
+      const rate = (tt[k + 1][1] - tt[k][1]) / ((tt[k + 1][0] - tt[k][0]) / HR);
+      const col = rate >= 1 ? '#ff3b30' : rate >= 0.4 ? '#ff8a3d' : rate <= -0.3 ? '#5ac8fa' : '#ffb27a';
+      tSvg += `<line x1="${XS(tt[k][0]).toFixed(1)}" y1="${TY(tt[k][1]).toFixed(1)}" x2="${XS(tt[k + 1][0]).toFixed(1)}" y2="${TY(tt[k + 1][1]).toFixed(1)}" stroke="${col}" stroke-width="${rate >= 0.4 ? 4 : 3}" stroke-linecap="round"/>`;
+    }
+    tAxis = [tmin + 1, Math.round((tmin + tmax) / 2), tmax - 1].map(v => `<text x="${Wd - 4}" y="${(TY(v) + 4).toFixed(1)}" font-size="11" text-anchor="end" fill="#ff9f6b" font-weight="700">${v}°</text>`).join('');
+  }
+  for (let t0 = new Date(a0).setHours(0, 0, 0, 0); t0 < a1; t0 += 86400000) {
+    const dd = sunDay(t0 + 12 * HR, lat, lon);
+    if (dd.sunrise != null && dd.sunset != null) band += `<rect x="${XS(dd.sunrise).toFixed(1)}" y="${T}" width="${(XS(dd.sunset) - XS(dd.sunrise)).toFixed(1)}" height="${ph}" fill="#ffd25e" opacity=".06"/>`;
+    [[dd.sunrise, '↑'], [dd.sunset, '↓']].forEach(([t, a]) => { if (t != null) ev += `<circle cx="${XS(t).toFixed(1)}" cy="${Y0.toFixed(1)}" r="3.5" fill="#ffc400"/><text x="${XS(t).toFixed(1)}" y="${(Y0 - 9).toFixed(1)}" font-size="11" font-weight="800" text-anchor="middle" fill="#ffd25e">${a} ${hm(t)}</text>`; });
+    ev += `<line x1="${XS(dd.t0).toFixed(1)}" y1="${T}" x2="${XS(dd.t0).toFixed(1)}" y2="${T + ph}" stroke="#9aa7bd" stroke-width="1" stroke-dasharray="2 4" opacity=".7"/><text x="${(XS(dd.t0) + 4).toFixed(1)}" y="${T + 12}" font-size="11" font-weight="800" fill="#c9d3e6">${new Date(dd.t0).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}</text>`;
+    if (TY) { const ti = tempInfo(dd, temps, dd.t0 + 12 * HR);
+      if (ti) { const x = XS(ti.mn[0]), y = TY(ti.mn[1]);
+        tSvg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="#5ac8fa" stroke="#fff" stroke-width="1.5"/><text x="${x.toFixed(1)}" y="${(y + 17).toFixed(1)}" font-size="11" font-weight="800" text-anchor="middle" fill="#9fdcff">${f1(ti.mn[1])}°</text>`;
+        if (ti.rise) { const rx = XS(ti.rise[0]), ex = XS(ti.mx[0]);
+          rise += `<rect x="${rx.toFixed(1)}" y="${T}" width="${Math.max(0, ex - rx).toFixed(1)}" height="${ph}" fill="url(#${uid}w)"/><line x1="${rx.toFixed(1)}" y1="${T}" x2="${rx.toFixed(1)}" y2="${T + ph}" stroke="#ff3b30" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${(rx + 4).toFixed(1)}" y="${T + ph - 6}" font-size="11" font-weight="800" fill="#ff6b5e">ab ${hm(ti.rise[0])} 2 °C wärmer</text>`; } } }
+  }
+  for (let t = Math.ceil(a0 / (3 * HR)) * 3 * HR; t <= a1; t += HR) { const h = new Date(t).getHours(); if (h % 3) continue;
+    hrs += `<text x="${XS(t).toFixed(1)}" y="${Hd - 6}" font-size="11" text-anchor="middle" fill="#9aa7bd">${String(h).padStart(2, '0')}</text>`; }
+  box.innerHTML = `<div class="sunwrap" style="height:${Hd}px">
+    <svg class="sunstrip" width="${SW}" height="${Hd}" viewBox="0 0 ${SW} ${Hd}">
+      <defs><linearGradient id="${uid}a" x1="0" y1="${T}" x2="0" y2="${Y0}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffc83d" stop-opacity=".75"/><stop offset="1" stop-color="#ff8a00" stop-opacity=".08"/></linearGradient>
+      <linearGradient id="${uid}n" x1="0" y1="${Y0}" x2="0" y2="${T + ph}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4b5d9a" stop-opacity=".1"/><stop offset="1" stop-color="#6c7fd1" stop-opacity=".5"/></linearGradient>
+      <linearGradient id="${uid}w" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff3b30" stop-opacity=".22"/><stop offset="1" stop-color="#ff3b30" stop-opacity=".04"/></linearGradient>
+      <clipPath id="${uid}u"><rect x="0" y="0" width="${SW}" height="${Y0}"/></clipPath><clipPath id="${uid}d"><rect x="0" y="${Y0}" width="${SW}" height="${Hd}"/></clipPath></defs>
+      ${band}<path d="${area}" fill="url(#${uid}a)" clip-path="url(#${uid}u)"/><path d="${area}" fill="url(#${uid}n)" clip-path="url(#${uid}d)"/>
+      <line x1="0" y1="${Y0}" x2="${SW}" y2="${Y0}" stroke="#c9d3e6" stroke-width="1" stroke-dasharray="5 4" opacity=".7"/>
+      ${rise}${tSvg}
+      <path d="${d}" fill="none" stroke="#ffc83d" stroke-width="3.5" stroke-linejoin="round" clip-path="url(#${uid}u)"/>
+      <path d="${d}" fill="none" stroke="#8fa3e8" stroke-width="2.5" stroke-linejoin="round" clip-path="url(#${uid}d)" opacity=".8"/>
+      ${ev}${hrs}</svg>
+    <svg class="sunov" viewBox="0 0 ${Wd} ${Hd}" width="${Wd}" height="${Hd}">
+      <defs><radialGradient id="${uid}g"><stop offset="0" stop-color="#fff3b0" stop-opacity=".95"/><stop offset=".35" stop-color="#ffc400" stop-opacity=".55"/><stop offset="1" stop-color="#ff8a00" stop-opacity="0"/></radialGradient>
+      <linearGradient id="${uid}fl" x1="0" x2="1"><stop offset="0" stop-color="#0d1630"/><stop offset="1" stop-color="#0d1630" stop-opacity="0"/></linearGradient>
+      <linearGradient id="${uid}fr" x1="1" x2="0"><stop offset="0" stop-color="#0d1630"/><stop offset="1" stop-color="#0d1630" stop-opacity="0"/></linearGradient></defs>
+      <rect x="0" y="0" width="${L + 6}" height="${Hd}" fill="url(#${uid}fl)"/><rect x="${Wd - R - 6}" y="0" width="${R + 6}" height="${Hd}" fill="url(#${uid}fr)"/>
+      ${[30, 0, -30].filter(v => v < top && v > bot).map(v => `<text x="5" y="${(Y(v) + 4).toFixed(1)}" font-size="11" fill="#9aa7bd">${v}°</text>`).join('')}${tAxis}
+      <line x1="${cx}" y1="${T - 6}" x2="${cx}" y2="${T + ph}" stroke="#7fb2ff" stroke-width="1.2" opacity=".8"/>
+      <circle class="sg" cx="${cx}" cy="0" r="24" fill="url(#${uid}g)"/><circle class="sd" cx="${cx}" cy="0" r="8" stroke-width="2"/>
+      <g class="tn"><circle cx="${cx}" cy="0" r="5" fill="#ff6b3d" stroke="#fff" stroke-width="1.5"/><rect x="${cx + 10}" y="0" width="52" height="20" rx="10" fill="#ff6b3d"/><text x="${cx + 36}" y="14" font-size="12" font-weight="800" text-anchor="middle" fill="#fff"></text></g>
+      <text x="${Wd - 6}" y="14" font-size="11" fill="#9aa7bd" font-weight="700" text-anchor="end">☀ Sonnenhöhe · <tspan fill="#ff9f6b">— Temperatur</tspan> <tspan fill="#ff3b30">(rot = steigt)</tspan></text>
+    </svg></div>`;
+  const strip = box.querySelector('.sunstrip'), sg = box.querySelector('.sg'), sd = box.querySelector('.sd'), tn = box.querySelector('.tn');
+  const tC = tn.querySelector('circle'), tR = tn.querySelector('rect'), tX = tn.querySelector('text');
+  return ms => {
+    strip.style.transform = `translate3d(${(cx - XS(ms)).toFixed(1)}px,0,0)`;
+    const e = sunElev(ms, lat, lon), up = e > 0, y = Y(e).toFixed(1);
+    sg.setAttribute('cy', y); sg.style.display = up ? '' : 'none';
+    sd.setAttribute('cy', y); sd.setAttribute('r', up ? 8 : 6.5); sd.setAttribute('fill', up ? '#ffd23f' : '#3a4670'); sd.setAttribute('stroke', up ? '#fff6c8' : '#aab6d6');
+    let v = null; if (TY) for (let k = 0; k < tt.length - 1; k++) if (ms >= tt[k][0] && ms <= tt[k + 1][0]) { v = tt[k][1] + (tt[k + 1][1] - tt[k][1]) * (ms - tt[k][0]) / (tt[k + 1][0] - tt[k][0]); break; }
+    tn.style.display = v == null ? 'none' : '';
+    if (v != null) { const ny = TY(v), by = Math.max(T, Math.min(T + ph - 20, ny - 26)); tC.setAttribute('cy', ny.toFixed(1)); tR.setAttribute('y', by.toFixed(1)); tX.setAttribute('y', (by + 14).toFixed(1)); tX.textContent = f1(v) + '°'; }
+  };
+}
 /** Sonnenlauf als Fenster ±12 h um den gewählten Zeitpunkt: die Sonne bleibt in der Mitte, die Kurve wandert beim Wischen darunter durch */
 function sunSvg(day, ms, lat, lon, Wd, temps) {
   Wd = Math.max(300, Math.round(Wd || 360));
@@ -3778,11 +3913,11 @@ async function showWeather(force) {
     const d0 = hours[0].d;
     html += wxNext4(hours, kpc, loc) + `<div style="margin:-4px 2px 10px;font-size:13px;color:var(--muted)">${wxSrcLine(d0)}${r.ico && r.dip ? ' · ab Stunde 25: DWD ICON' : ''} · ${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)} · <span class="lnk" id="wxReload">jetzt neu laden</span></div>`;
     html += `
-      <div class="zone" style="display:block"><h4>✈ Jetzt gemessen an Flughäfen (METAR)</h4><div id="metarBox"><div class="meta">Lade Flughafen-Meldungen…</div></div></div>
-      <div class="zone" style="padding:8px;display:block"><h4 style="margin:4px 6px 8px">☀ Sonnenlauf &amp; Tagesgang <span class="meta" style="font-weight:400;margin:0">· im Bild oder in der Tabelle nach links/rechts wischen</span></h4>
-        <div class="sunstick"><div id="sunBox"></div><div class="meta" id="sunTxt" style="margin:4px 4px 0"></div></div>${wxTable(hours, kpc)}
+      <div class="zone" style="padding:8px;display:block"><h4 style="margin:4px 6px 8px">☀ Tageslauf <span class="meta" style="font-weight:400;margin:0">· im Bild oder in der Tabelle nach links/rechts wischen</span></h4>
+        <div id="sunBox"></div><div class="meta" id="sunTxt" style="margin:4px 4px 6px"></div>${wxTable(hours, kpc)}
         <div class="meta" style="margin:8px 6px 0">~ = geschätzt (Temperatur über Standardgradient −0,65 °C/100 m bzw. zwischen Quellhöhen interpoliert) · — = nicht verfügbar · Luftdruck: QNH (dipul) bzw. MSL (ICON, auf Meereshöhe reduziert) · Farben: Hinweis/kritisch nach App-Schwellen, keine Flugfreigabe · Grenze Mavic 3T/Matrice 4T: 12 m/s</div></div>
-      ${await (async () => { try { return wxDays(r.ico || await wxSource('icon', loc.lat, loc.lon, force), loc, hours.length ? hours[hours.length - 1].t : 0); } catch (e) { return ''; } })()}`;
+      ${await (async () => { try { return wxDays(r.ico || await wxSource('icon', loc.lat, loc.lon, force), loc, hours.length ? hours[hours.length - 1].t : 0); } catch (e) { return ''; } })()}
+      <div class="zone" style="display:block"><h4>✈ Jetzt gemessen an Flughäfen (METAR)</h4><div id="metarBox"><div class="meta">Lade Flughafen-Meldungen…</div></div></div>`;
   } catch (e) {
     html += `<div class="zone"><h4>Keine Wetterdaten</h4><div class="meta">${esc(e.message)}. Mit Internet wird die Vorhersage für das Gebiet deiner Felder gespeichert und ist dann offline verfügbar.</div></div>`;
   }
@@ -3813,24 +3948,31 @@ async function showWeather(force) {
     .catch(e => { if ($('metarBox')) $('metarBox').innerHTML = `<div class="meta">Keine Flughafen-Meldungen (${esc(e.message)}).</div>`; });
   const sc = $('wxs');
   if (sc && hours.length) {
-    let curDay = null;
+    const sb = $('sunBox');
+    const move = sunStrip(sb, hours[0].t, hours[hours.length - 1].t, loc.lat, loc.lon, wxTemps);
+    let cw = 60, lastTxt = '';
+    const measure = () => { const col = sc.querySelector('td.wh'); cw = col ? col.getBoundingClientRect().width : 60; };
+    measure();
     const upd = () => {
-      const col = sc.querySelector('td.wh'); const cw = col ? col.getBoundingClientRect().width : 60;
       const pos = Math.max(0, sc.scrollLeft / cw), li = Math.min(hours.length - 1, Math.floor(pos)), ri = Math.min(li + 1, hours.length - 1);
-      const t = hours[li].t + (hours[ri].t - hours[li].t) * (pos - li);
-      const day = sunDay(t, loc.lat, loc.lon);
-      $('sunBox').innerHTML = sunSvg(day, t, loc.lat, loc.lon, $('sunBox').clientWidth, wxTemps);
-      $('sunTxt').innerHTML = sunLine(day, t, loc.lat, loc.lon, wxTemps);
-      curDay = day.t0;
+      const t = hours[li].t + (hours[ri].t - hours[li].t) * Math.min(1, pos - li);
+      move(t);
+      const key = Math.round(t / 600000);   // Text nur alle 10 min neu – spart Arbeit beim Wischen
+      if (key !== lastTxt) { lastTxt = key; $('sunTxt').innerHTML = sunLine(sunDay(t, loc.lat, loc.lon), t, loc.lat, loc.lon, wxTemps); }
     };
-    let raf = 0; sc.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; upd(); }); }, { passive: true });
-    // Im Sonnenlauf selbst wischen: verschiebt die Zeit (Tabelle läuft mit)
-    const sb = $('sunBox'); let sx = null;
-    sb.style.touchAction = 'pan-y';
-    sb.onpointerdown = e => { sx = e.clientX; sb.setPointerCapture(e.pointerId); };
-    sb.onpointermove = e => { if (sx == null) return; const col = sc.querySelector('td.wh'), cw = col ? col.getBoundingClientRect().width : 60;
-      const pxh = (sb.clientWidth - 72) / 24; sc.scrollLeft -= (e.clientX - sx) * cw / pxh; sx = e.clientX; };
-    sb.onpointerup = sb.onpointercancel = () => { sx = null; };
+    let raf = 0; const req = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; upd(); }); };
+    sc.addEventListener('scroll', req, { passive: true });
+    // Im Tageslauf selbst wischen: verschiebt die Zeit (Tabelle läuft mit), mit Schwung beim Loslassen
+    let sx = null, vel = 0, lt = 0, fl = 0;
+    const pxh = () => (sb.clientWidth - 64) / 24;
+    sb.onpointerdown = e => { cancelAnimationFrame(fl); sx = e.clientX; vel = 0; lt = e.timeStamp; sb.setPointerCapture(e.pointerId); };
+    sb.onpointermove = e => { if (sx == null) return; const dx = e.clientX - sx, dt = Math.max(1, e.timeStamp - lt);
+      sc.scrollLeft -= dx * cw / pxh(); vel = .8 * vel + .2 * (dx / dt); sx = e.clientX; lt = e.timeStamp; };
+    sb.onpointerup = sb.onpointercancel = () => { if (sx == null) return; sx = null;
+      let v = vel * cw / pxh(), last = performance.now();
+      const step = now => { const dt = now - last; last = now; sc.scrollLeft -= v * dt; v *= Math.pow(.995, dt); if (Math.abs(v) > .02) fl = requestAnimationFrame(step); };
+      if (Math.abs(v) > .05) fl = requestAnimationFrame(step); };
+    addEventListener('resize', () => { if (!document.body.contains(sb)) return; measure(); }, { passive: true });
     upd();
   }
 }
@@ -4240,10 +4382,12 @@ function geoArea() {
   if (!boxes.length) boxes.push(grow(V.lat, V.lat, V.lon, V.lon, 8));
   return { n: Math.max(...boxes.map(x => x.n)), s: Math.min(...boxes.map(x => x.s)), e: Math.max(...boxes.map(x => x.e)), w: Math.min(...boxes.map(x => x.w)) };
 }
-function geoSyncNow(force) {
+function geoSyncNow(force, wide) {
   if (!A.geoSync || P.geo !== '1') return;
   if (!isOnline()) { if (force) toast('Offline – Geozonen werden aktualisiert, sobald wieder Internet da ist.'); return; }
-  A.geoSync(JSON.stringify(geoArea()), !!force);
+  const a = geoArea(), eb = wide ? einsatzBox(25) : null;   // Einsatzgebiet: Zonendaten so weit wie das Kartenbild
+  if (eb) a.vec = { w: eb[0], s: eb[1], e: eb[2], n: eb[3] };
+  A.geoSync(JSON.stringify(a), !!force);
 }
 function fmtDate(ms) {
   const d = new Date(ms);
@@ -4455,7 +4599,7 @@ const SU_STEPS = [
     <div class="set"><div class="l"><div class="t">Zielordner für Pilot 2</div><div class="v">${esc(P.dst)}</div></div><button class="b-sec" data-supick="dst">Ändern</button></div>
     <p class="meta">In Pilot 2 unter „Route importieren“ diesen Zielordner wählen.</p>`,
   () => `<h3>Fast fertig</h3><p><b>1.</b> Wiesen holen – „Abgleichen“ lädt eure Wiesen aus dem UAV Editor.</p><button class="b-ok" id="suSync" style="height:50px">Wiesen jetzt abgleichen</button>
-    <p style="margin-top:16px"><b>2.</b> Danach im WLAN „Einsatzgebiet speichern“: Karten, Geozonen, Windräder, Wetter – dann läuft im Einsatz alles ohne Internet.</p>
+    <p style="margin-top:16px"><b>2.</b> Danach speichert die App das Einsatzgebiet automatisch für offline (Karten, Geozonen, Windräder, Wetter) – am besten im WLAN. Mit dem Knopf geht es jederzeit auch von Hand.</p>
     <button class="b-sec" id="suSave" style="height:50px"${S.files.length ? '' : ' disabled'}>Einsatzgebiet speichern${S.files.length ? '' : ' (erst Wiesen holen)'}</button>`
 ];
 function showSetup(i) {
@@ -4594,7 +4738,7 @@ window.onAppResume = () => {
   resize();
   windWidget();
   netBadge();
-  geoBadge(); geoSyncNow(false);
+  geoBadge(); geoSyncNow(false); setTimeout(einsatzAuto, 2500);
   if (A.notamSync) A.notamSync(false);
   if ($('pgSet').classList.contains('open')) fillSettings();
   if ($('perm').classList.contains('open') && A.hasAccess()) load(false);
@@ -4633,7 +4777,7 @@ loadObstacles();
 loadGeoVectors();
 applyTheme();
 setTimeout(() => geoSyncNow(false), 4000);   // auch ohne Felder
-window.addEventListener('online', () => { tileFail.clear(); draw(); setTimeout(() => { geoSyncNow(false); if (A.notamSync) A.notamSync(false); }, 2000); });
+window.addEventListener('online', () => { tileFail.clear(); draw(); setTimeout(() => { geoSyncNow(false); if (A.notamSync) A.notamSync(false); einsatzAuto(); }, 2000); });
 load(false);
 netBadge();
 loadAirfields();
