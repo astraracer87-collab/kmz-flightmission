@@ -211,6 +211,14 @@
   .pickfacet span{font-weight:700}
   .chipbtn{height:36px;padding:0 12px;border-radius:18px;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:14px}
   .chipbtn.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  .wxwin{border-left:6px solid #13a538}.wxwin.o{border-left-color:#e8a200}.wxwin.r{border-left-color:#d42020}
+  .wxwsel{float:right;font-size:13px;color:var(--muted);font-weight:600}.wxwsel select{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:4px 6px;font-size:14px;font-weight:700;margin:0 2px}
+  .wxwh{display:flex;flex-direction:column;gap:2px}.wxwh b{font-size:19px}.wxwin.r .wxwh b{color:#ff5a4f}.wxwin.o .wxwh b{color:#f0b400}.wxwin.g .wxwh b{color:#27c254}
+  .wxwh span{font-size:14px;color:var(--muted);font-weight:600}
+  .wxwr{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .wxwr li{padding:7px 10px;border-radius:10px;background:var(--card2);border-left:4px solid var(--line)}
+  .wxwr li.l2{border-left-color:#d42020}.wxwr li.l1{border-left-color:#e8a200}.wxwr li.l0{border-left-color:#5ac8fa}
+  .wxwr b{display:block;font-size:15px}.wxwr em{display:block;font-style:normal;font-size:13px;color:var(--muted);margin-top:2px}
   .wxban{display:flex;align-items:center;gap:12px;border-radius:14px;padding:12px 14px;color:#fff;font-weight:800;font-size:20px;line-height:1.2}
   .wxban.l0{background:#13a538}.wxban.l1{background:#d98a00}.wxban.l2{background:#b3131b}
   .wxban svg{width:34px;height:34px;flex:none;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
@@ -242,7 +250,7 @@
   .wxday{border-radius:12px;padding:9px 10px;background:var(--card2);border-top:6px solid #13a538;font-size:13.5px;line-height:1.4}
   .wxday.o{border-top-color:#e8a200;background:var(--o-bg)}.wxday.r{border-top-color:#b3131b;background:var(--r-bg)}
   .wxday .dd{font-weight:900;font-size:16px;display:flex;justify-content:space-between;align-items:center}
-  .wxday .dd svg{width:28px;height:28px}
+  .wxday .dd svg{width:40px;height:40px;margin:-6px -4px -6px 0}
   .wxday .vd{font-weight:800;font-size:13px;margin:-2px 0 4px}
   .wxday .ln{display:flex;justify-content:space-between;gap:6px}.wxday .ln b{font-weight:800}
   .wxday .sub{color:var(--muted);font-size:12px;margin-top:3px;border-top:1px solid var(--line);padding-top:3px}
@@ -264,7 +272,7 @@
   .mtv b{font-size:19px;font-weight:800}.mtv em{display:block;font-style:normal;font-size:12.5px;color:var(--muted)}
   .mtw{margin-top:6px;font-size:14px;font-weight:600}.mtw.hl{font-weight:800}.mtw.hl::before{content:'⚠ '}
   .mt details{margin-top:4px;font-size:12px;color:var(--muted)}.mt code{display:block;white-space:pre-wrap;word-break:break-all;margin-top:3px}
-  .xq{cursor:pointer}.xi{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--acc);color:#fff;font-size:10px;font-style:normal;font-weight:800;margin-left:3px;vertical-align:1px}
+  .xq{cursor:pointer}.xi{display:inline-flex;align-items:center;justify-content:center;flex:none;box-sizing:border-box;width:16px;height:16px;min-width:16px;aspect-ratio:1;line-height:1;border-radius:50%;background:var(--acc);color:#fff;font-size:10px;font-style:normal;font-weight:800;margin-left:3px;vertical-align:1px}
   .wxtl .lb.xq{text-decoration:underline dotted;text-underline-offset:3px}
   #xpl{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center}
   #xpl.open{display:flex}
@@ -276,7 +284,9 @@
   #xpl .xcard h4{margin:0 0 6px;font-size:16px}#xpl .xcard p{margin:0;color:var(--muted);font-size:15px;line-height:1.45}
   #xpl ul{list-style:none;margin:0;padding:0}#xpl li{display:flex;align-items:center;gap:10px;padding:5px 6px;border-radius:8px;font-size:15px;color:var(--muted)}
   #xpl li span{flex:none;width:10px;height:10px;border-radius:50%}#xpl li.on{background:var(--card2);color:var(--txt);font-weight:700}
-  #geoBub{position:absolute;z-index:12;display:none;width:min(380px,calc(100vw - 110px));background:var(--card);color:var(--txt);border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:10px 12px;font-size:14px}
+  .cbadge{font-style:normal;display:inline-flex;align-items:center;gap:2px;padding:1px 7px;border-radius:9px;font-size:12px;font-weight:800;color:#fff;margin-left:5px;vertical-align:middle;white-space:nowrap}
+  .cbadge.a2{background:#1565c0}.cbadge.av{background:#13a538}
+  #geoBub{position:fixed;z-index:19;display:none;width:min(380px,calc(100vw - 110px));background:var(--card);color:var(--txt);border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:10px 12px;font-size:14px}
   #geoBub .gbh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;color:var(--muted)}
   #geoBub .gbx{width:36px;height:36px;border-radius:18px;background:var(--card2);color:var(--txt);font-size:16px}
   #geoBub .gbr{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--line)}
@@ -301,20 +311,21 @@
   .wx4h b{font-size:15px}
   @media (max-width:560px){.wx4{grid-template-columns:1fr}.wx4h{grid-template-columns:repeat(3,1fr)}}
   .sunstick{position:sticky;top:-1px;z-index:4;background:var(--card);padding:2px 0 6px;margin-bottom:6px}
-  .sunwrap{position:relative;overflow:hidden;border-radius:14px;background:linear-gradient(#0d1630,#1a2440);box-shadow:0 4px 18px rgba(0,0,0,.25);touch-action:pan-y}
+  .sunwrap{position:relative;overflow:hidden;border-radius:14px;background:linear-gradient(#0d1630,#1a2440);box-shadow:0 4px 18px rgba(0,0,0,.25);touch-action:none;cursor:grab}
   .sunwrap svg{position:absolute;left:0;top:0;display:block;stroke:none;width:auto;height:100%;fill:initial;stroke-width:initial}
   .sunwrap svg.sunov{width:100%}
   .sunstrip{will-change:transform}
   .sunsvg{width:100%;height:auto;display:block;border-radius:14px;stroke:none;box-shadow:0 4px 18px rgba(0,0,0,.25)}
   .wxt{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
-  .wxl{flex:none;width:122px;border-right:2px solid var(--line);background:var(--card2)}
+  .wxl{flex:none;width:136px;border-right:2px solid var(--line);background:var(--card2)}
   .wxl>div{height:30px;box-sizing:border-box;padding:0 8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:4px;white-space:nowrap;border-bottom:1px solid var(--line2)}
+  .wxl>div .xi{margin-left:auto}   /* alle i-Kreise rechts bündig in einer Spalte */
   .wxl>div small,.wxs small{font-weight:400;color:var(--muted);font-size:10px}
   .wxl>.wh,.wxs td.wh{height:56px}
   .wxl>.ws,.wxs td.ws{height:22px;font-size:10px;color:var(--muted);font-weight:400}
-  .wxs{flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+  .wxs{flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
   .wxs table{border-collapse:separate;border-spacing:0}
-  .wxs td{height:30px;box-sizing:border-box;min-width:64px;max-width:64px;padding:0 3px;text-align:center;font-size:14px;white-space:nowrap;border-bottom:1px solid var(--line2);scroll-snap-align:start}
+  .wxs td{height:30px;box-sizing:border-box;min-width:64px;max-width:64px;padding:0 3px;text-align:center;font-size:14px;white-space:nowrap;border-bottom:1px solid var(--line2)}
   .wxs td.wh{vertical-align:top;padding-top:4px;font-size:14px}
   .wxs td.nd{border-left:2px solid var(--acc)}
   .wxs .day{font-size:10px;color:var(--muted);height:13px}
@@ -491,7 +502,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -699,7 +710,7 @@ function makeTileLayer(div, cfg) {   // cfg: { url(z,x,y), maxz(), minz, id() = 
       want++;
       if (im) { if (im.classList.contains('ok')) have++; continue; }
       const fk = cfg.key(tz, xx, ty), f = tileFail.get(fk);
-      if (f && Date.now() - f.t < Math.min(60000, 4000 * f.n)) continue;
+      if (f && Date.now() - f.t < Math.min(60000, 4000 * f.n)) { if (cfg.failDone) have++; continue; }   // Geozonen: fehlgeschlagen zählt als erledigt (keine verzerrte grobe Stufe stehen lassen)
       im = T.pool.get(fk);
       if (im) { T.pool.delete(fk); have++; }
       else {
@@ -721,7 +732,7 @@ function makeTileLayer(div, cfg) {   // cfg: { url(z,x,y), maxz(), minz, id() = 
     T.levels.forEach((o, z) => {
       if (o === L) return;
       const kk = Math.pow(2, V.z - z);
-      if (done || kk < 0.2 || kk > 6 || T.levels.size > 2) { [...o.tiles.keys()].forEach(key => drop(o, key)); o.el.remove(); T.levels.delete(z); }
+      if (done || kk < 0.2 || kk > (cfg.maxUp || 6) || T.levels.size > 2) { [...o.tiles.keys()].forEach(key => drop(o, key)); o.el.remove(); T.levels.delete(z); }
     });
   };
   return T;
@@ -754,7 +765,7 @@ function geoKeep(z, x, y) {
 // Eine einzige Bild-Ebene für alle eingeschalteten Gruppen (die App setzt sie aus den gespeicherten Einzelbildern zusammen) – spart viel Speicher
 const zgSel = () => ZG.map(([g]) => g).filter(zgOn).join(',');
 const GEOR = makeTileLayer($('mapG'), { url: (z, x, y) => `https://dipul.local/${z}/${x}/${y}?g=${zgSel()}`, key: (z, x, y) => 'g' + zgSel() + z + '/' + x + '/' + y,
-  maxz: () => 18, minz: 7, id: () => zgSel() + (P.geoOwn === '0' ? 'a' : 'o') + (S.geoBox ? S.geoBox.n : ''), keep: geoKeep,
+  maxz: () => 16, maxUp: 2.1, failDone: true, minz: 7, id: () => zgSel() + (P.geoOwn === '0' ? 'a' : 'o') + (S.geoBox ? S.geoBox.n : ''), keep: geoKeep,
   off: () => P.geo !== '1' || P.geoAll === '0' || !zgSel() });
 function zgSet(k, on) {
   const cur = ZG.map(([g]) => g).filter(g => g === k ? on : zgOn(g));
@@ -1343,7 +1354,7 @@ function drawLabel(f) {
 }
 
 function zoomAt(nz, px, py) {
-  nz = Math.max(3, Math.min(20, nz));
+  nz = Math.max(5, Math.min(20, nz));   // weiter raus als Deutschland-Übersicht ergibt keinen Sinn (ab Zoom 5 gespeichert)
   const b = fromScreen(px, py);
   V.z = nz;
   const s = ws();
@@ -1361,7 +1372,7 @@ function fitBounds(b) {
   if (!b) return;
   const bx = lon2x(b.e) - lon2x(b.w), by = lat2y(b.s) - lat2y(b.n);
   const k = Math.min((W - 100) / Math.max(bx, 1e-9), mapH() / Math.max(by, 1e-9)) * 0.85 / 256;
-  V.z = Math.max(3, Math.min(18, Math.log2(k)));
+  V.z = Math.max(5, Math.min(18, Math.log2(k)));
   V.lon = x2lon((lon2x(b.w) + lon2x(b.e)) / 2);
   V.lat = y2lat((lat2y(b.n) + lat2y(b.s)) / 2);
   draw();
@@ -1905,7 +1916,7 @@ function briefingHtml(b, sel) {
     const p = z.f.props || {}, label = z.f.layer === 'flugplaetze' && isHeliZone(z.f) ? 'Hubschrauberlandeplatz' : (LAYER_LABEL[z.f.layer] || z.f.layer);
     const chip = `<span class="chip ${z.k === 'on' ? 'cov' : z.k === 'dist' ? 'dist' : ''}">${z.k === 'on' ? 'Überflug erlaubt' : z.k === 'dist' ? 'Nur mit Abstand' : 'Gesperrt'}</span>`;
     const rules = rulesHtml(z.f.layer, z.reg).replace(/<div id="powerBox"[^>]*>[^<]*<\/div>/, '');
-    h += `<div class="zone" style="border-left:5px solid ${z.k === 'on' ? '#13a538' : z.k === 'dist' ? '#e07800' : '#d42020'}"><h4>${esc(p.name || label)} ${chip}</h4>
+    h += `<div class="zone" style="border-left:5px solid ${z.k === 'on' ? '#13a538' : z.k === 'dist' ? '#e07800' : '#d42020'}"><h4>${esc(p.name || label)} ${chip}${covBadges(z.f.layer, z.reg)}</h4>
       <div class="meta">${esc(label)} · ${esc(regionText(z.reg))}${altText(p) ? ' · ' + esc(altText(p)) : ''}</div>${fl(z.fields)}${rules}</div>`;
   });
   b.rails.forEach(x => {
@@ -1916,9 +1927,9 @@ function briefingHtml(b, sel) {
       <li>Bahnanlagen sind dipul-Geozonen – ohne Allgemeinerlaubnis Zustimmung der DB nötig</li></ul></div>`;
   });
   b.lines.forEach(x => {
-    const c = lineClass(x.l.kv, x.l.p);
+    const c = lineClass(x.l.kv, x.l.p), km = knownMasts(x.l, sel);
     h += `<div class="zone" style="border-left:5px solid ${c.c}"><h4>${x.l.kv ? x.l.kv + ' kV · ' : ''}${esc(c.name)}${x.l.n ? ' · ' + esc(x.l.n) : ''}</h4>${fl(x.fields)}<ul>
-      <li>Typische Masthöhe ${c.h[0]}–${c.h[1]} m${fh ? (fh - c.h[1] < 20 ? ` – <b style="color:#b3131b">knapp bei ${fh} m Missionshöhe</b>` : ` – bei ${fh} m Missionshöhe ausreichend Abstand`) : ''}</li>
+      ${(hmax => `<li>${km.length ? `<b>Masthöhe laut OpenStreetMap: ${km.length > 1 && Math.round(km[km.length - 1]) !== Math.round(km[0]) ? Math.round(km[0]) + '–' : ''}${Math.round(hmax)} m</b> (${km.length} Mast${km.length > 1 ? 'en' : ''} in der Nähe eingetragen)` : `Typische Masthöhe ${c.h[0]}–${c.h[1]} m (keine echte Höhe in OpenStreetMap)`}${fh ? (fh - hmax < 20 ? ` – <b style="color:#b3131b">knapp bei ${fh} m Missionshöhe</b>` : ` – bei ${fh} m Missionshöhe ausreichend Abstand`) : ''}</li>`)(km.length ? km[km.length - 1] : c.h[1])}
       <li>Nur über die Leitung, nie darunter durch; Leiterseile sind im Wärmebild kaum sichtbar</li></ul></div>`;
   });
   b.obs.forEach(x => {
@@ -2112,7 +2123,7 @@ $('sClear').onchange = e => setP('clear', e.target.checked ? 1 : 0);
 $('sLabels').onchange = e => { setP('labels', e.target.checked ? 1 : 0); infoBtnState(); draw(); };
 $('bWxSet').onclick = () => { $('pgSet').classList.remove('open'); showWeather(false); };
 // ---------- Einsatzgebiet vorab laden ----------
-const PF = { zMin: 8, zArea: 15, zMax: 18 };   // bis Zoom 15 das ganze Gebiet, darüber nur rund um die Felder
+const PF = { zMin: 8, zArea: 16, zMax: 18 };   // bis Zoom 16 das ganze Gebiet, darüber rund um die Felder (oder alles: „höchste Detailstufe“)
 function prefetchPlan() {
   const fs = S.files.filter(f => !f.dup && f.bounds);
   if (!fs.length) return null;
@@ -2139,19 +2150,19 @@ function tierCount(tiers) {
     boxes.forEach(q => { for (let x = tx(q[0], z); x <= tx(q[2], z); x++) for (let y = ty(q[3], z); y <= ty(q[1], z); y++) seen.add(x * 1e7 + y); }); n += seen.size; } });
   return n;
 }
-function einsatzJobs(de) {
+function einsatzJobs(de, full) {
   const p = prefetchPlan(); if (!p) return null;
   const eb = einsatzBox(25), fLa = .5 / 111.2;
   const wiesen = S.files.filter(f => !f.dup && f.bounds).map(f => { const fLo = .5 / (111.2 * Math.cos(f.bounds.n * Math.PI / 180)); return [f.bounds.w - fLo, f.bounds.s - fLa, f.bounds.e + fLo, f.bounds.n + fLa]; });
-  const baseT = [[PF.zMin, PF.zArea, [p.area]], [PF.zArea + 1, PF.zMax, p.fields]];
-  const geoT = (de ? [[7, 10, [DE_BOX]]] : []).concat([[de ? 11 : 7, 13, [eb]], [14, 16, wiesen]]);
+  const baseT = [[5, PF.zMin - 1, [DE_BOX]], [PF.zMin, PF.zArea, [p.area]], [PF.zArea + 1, PF.zMax, full ? [p.area] : p.fields]];   // jede Zoomstufe: Übersicht Deutschland bis ganz nah
+  const geoT = (de ? [[7, 10, [DE_BOX]]] : []).concat([[de ? 11 : 7, 14, [eb]], [15, 16, [p.area]]]);   // dipul hat Bilder bis Zoom 16 – im Wiesengebiet + 3 km jede Stufe   // jede Zoomstufe bis 16 – keine groben Flecken beim Reinzoomen
   const geoL = ZG.map(([k]) => 'geo:' + k);   // alle Zonengruppen, damit das Umschalten auch offline geht
   const nb = tierCount(baseT), ng = tierCount(geoT);
   return { jobs: [{ layers: ['bmg', 'bmf', 'dop'], tiers: baseT }, { layers: geoL, tiers: geoT }], tiles: nb * 3 + ng * geoL.length, mb: Math.round((nb * 50 + ng * geoL.length * 4) / 1024) };
 }
 /** Einsatzgebiet speichern (Knopf oder automatisch): Kacheln, Zonendaten, Windräder, Wetter */
-function einsatzRun(de, fresh, auto) {
-  const j = einsatzJobs(de); if (!j) return;
+function einsatzRun(de, fresh, auto, full) {
+  const j = einsatzJobs(de, full); if (!j) return;
   if (fresh && A.dipulClear) { A.dipulClear(); GEOR.reset(); }
   geoSyncNow(fresh, true);   // Zonendaten, Hindernisse, Flugplätze, Orte, NOTAM
   const wb = einsatzBox(30); let stc = wb ? statesInBox(wb) : [];
@@ -2163,14 +2174,18 @@ function einsatzRun(de, fresh, auto) {
   esPending = einsatzBox(25);
   toast(auto ? 'Einsatzgebiet wird automatisch für offline gespeichert (Karte, Geozonen, Windräder, Wetter) – Fortschritt in den Einstellungen.' : 'Einsatzgebiet wird gespeichert – Fortschritt in den Einstellungen.', false, auto ? 6000 : 4000);
 }
-let esPending = null;
+let esPending = null, esPendingNames = null;
 /** Automatisch speichern, sobald Wiesen da sind und Internet: beim ersten Mal und wenn neue Wiesen außerhalb des gespeicherten Gebiets liegen */
 function einsatzAuto() {
   if (!A.prefetchStart || !isOnline() || !S.files.length || (A.prefetchRunning && A.prefetchRunning()) || esPending) return;
   const need = einsatzBox(1); if (!need) return;
-  let have = null; try { have = JSON.parse(A.getPref('esBox', 'null') || 'null'); } catch (e) { }
-  if (have && have[0] <= need[0] && have[1] <= need[1] && have[2] >= need[2] && have[3] >= need[3]) return;
-  einsatzRun(false, false, true);
+  let have = null; try { have = JSON.parse(A.getPref('esBox3', 'null') || 'null'); } catch (e) { }
+  let done = []; try { done = JSON.parse(A.getPref('esFields3', '[]') || '[]'); } catch (e) { }
+  const names = S.files.filter(f => !f.dup && f.bounds).map(f => f.name), dset = new Set(done);
+  const fresh = names.filter(n => !dset.has(n));   // neue Wiesen: Kacheln bis Zoom 18 um sie herum fehlen noch
+  if (have && have[0] <= need[0] && have[1] <= need[1] && have[2] >= need[2] && have[3] >= need[3] && !fresh.length) return;
+  esPendingNames = names;
+  einsatzRun(false, false, true);   // schon gespeicherte Kacheln werden übersprungen – geht schnell
 }
 const startPrefetch = () => {
   if (A.prefetchRunning && A.prefetchRunning()) { busy('Speichere Einsatzgebiet…', { cancel: () => A.prefetchCancel() }); return; }
@@ -2178,14 +2193,16 @@ const startPrefetch = () => {
   if (!einsatzJobs(false)) return toast('Erst Wiesen laden (Abgleichen) – das Einsatzgebiet ergibt sich aus den Wiesen.', true);
   const x = document.createElement('div');
   x.innerHTML = `<label class="pick"><input type="checkbox" id="esDe"><span>Zusätzlich ganz Deutschland (Geozonen-Übersicht bis Zoom 10)</span></label>
+    <label class="pick"><input type="checkbox" id="esFull"><span>Höchste Detailstufe (Zoom 17–18) fürs ganze Gebiet, nicht nur um die Wiesen – sehr groß, nur im WLAN</span></label>
     <label class="pick"><input type="checkbox" id="esNew"><span>Geozonen neu holen – gespeicherte ersetzen (wenn sich bei dipul etwas geändert hat)</span></label><div class="meta" id="esInfo" style="margin-top:6px"></div>`;
-  const info = () => { const j = einsatzJobs(x.querySelector('#esDe').checked); x.querySelector('#esInfo').textContent = `ca. ${j.tiles.toLocaleString('de-DE')} Kacheln · ca. ${j.mb.toLocaleString('de-DE')} MB · bereits gespeicherte werden übersprungen`; };
+  const info = () => { const j = einsatzJobs(x.querySelector('#esDe').checked, x.querySelector('#esFull').checked); x.querySelector('#esInfo').textContent = `ca. ${j.tiles.toLocaleString('de-DE')} Kacheln · ca. ${j.mb.toLocaleString('de-DE')} MB · bereits gespeicherte werden übersprungen`; };
   confirmDlg('Einsatzgebiet speichern',
-    'Holt alles, was im Einsatz gebraucht wird, auf die Fernsteuerung:\n• Karte Grau, Karte und Luftbild (Gebiet der Wiesen + 3 km, um jede Wiese bis ganz nah)\n• dipul-Geozonen im Umkreis von 25 km, um jede Wiese bis Zoom 16\n• Zonendaten zum Antippen (Name, Höhen, Auflagen) ebenfalls 25 km – Wohngrundstücke 3 km um die Wiesen\n• NOTAMs deutschlandweit, Hindernisse, Flugplätze, Orte\n• Windräder mit Betreiber und Höhe aus dem Marktstammdatenregister (30 km)\n• Wetter und Flughafen-Wetter (letzter Stand)\n\nDanach funktioniert alles ohne Internet – online nur noch für „Abgleichen“ (Wiesen holen). Am besten im WLAN, die App kann dabei normal benutzt werden.',
-    [], 'Speichern', () => einsatzRun(x.querySelector('#esDe').checked, x.querySelector('#esNew').checked), x);
+    'Holt alles, was im Einsatz gebraucht wird, auf die Fernsteuerung:\n• Karte Grau, Karte und Luftbild: jede Zoomstufe – Übersicht Deutschland, Gebiet der Wiesen + 3 km bis Zoom 16, um jede Wiese bis Zoom 18\n• dipul-Geozonen im Umkreis von 25 km bis Zoom 14, im Wiesengebiet + 3 km jede Stufe bis 16 (mehr hat dipul nicht)\n• Zonendaten zum Antippen (Name, Höhen, Auflagen) ebenfalls 25 km – Wohngrundstücke 3 km um die Wiesen\n• NOTAMs deutschlandweit, Hindernisse, Flugplätze, Orte\n• Windräder mit Betreiber und Höhe aus dem Marktstammdatenregister (30 km)\n• Wetter und Flughafen-Wetter (letzter Stand)\n\nDanach funktioniert alles ohne Internet – online nur noch für „Abgleichen“ (Wiesen holen). Am besten im WLAN, die App kann dabei normal benutzt werden.',
+    [], 'Speichern', () => einsatzRun(x.querySelector('#esDe').checked, x.querySelector('#esNew').checked, false, x.querySelector('#esFull').checked), x);
   x.querySelectorAll('input').forEach(c => c.onchange = info); info();
 };
 $('bPrefetch').onclick = startPrefetch;
+window.onDopCleaned = n => { toast(`${n} unvollständige Luftbild-Kacheln entfernt – werden neu geladen.`, false, 5000); tiles.clear(); BASE.reset(); draw(); setTimeout(einsatzAuto, 3000); };
 window.onPrefetch = raw => {
   let r = {}; try { r = JSON.parse(raw); } catch (e) { }
   if (r.total == null) return;
@@ -2197,7 +2214,8 @@ window.onPrefetch = raw => {
   if ($('bPrefetch')) $('bPrefetch').textContent = r.finished ? 'Speichern' : 'Abbrechen';
   if ($('bPrefetch')) $('bPrefetch').onclick = r.finished ? startPrefetch : () => { A.prefetchCancel(); };
   if (r.finished) { toast(t, !!r.fail && !r.done, 7000); draw();
-    if (esPending && !r.cancelled) setP('esBox', JSON.stringify(esPending));   // erledigt – nicht nochmal automatisch
+    if (esPending && !r.cancelled) { setP('esBox3', JSON.stringify(esPending)); setP('esFields3', JSON.stringify(esPendingNames || S.files.filter(f => !f.dup && f.bounds).map(f => f.name))); }   // erledigt – nicht nochmal automatisch
+    esPendingNames = null;
     esPending = null; }
 };
 $('bTilesClear').onclick = () => { if (A.tileCacheClear) { A.tileCacheClear(); toast('Kartenspeicher wird geleert…'); } };
@@ -2247,10 +2265,11 @@ function avSeasonOn(av, d) {
   return f <= t ? md >= f && md <= t : md >= f || md <= t;
 }
 function avInForce(av) { const u = avUntil(av); return avSeasonOn(av) || (P.season === '1' && (!u || new Date() <= u)); }
-function avFor(layer, reg) { return reg && reg.st ? avList().find(av => av.on && (av.layers || []).includes(layer) && (av.states || []).includes(reg.st) && (!av.rbGi || reg.rbGi) && avInForce(av)) : null; }
+const avLicOk = av => av.a2 === false || P.lic === 'A2';   // unsere AV gilt nur für Piloten mit A2-Zeugnis
+function avFor(layer, reg) { return reg && reg.st ? avList().find(av => av.on && avLicOk(av) && (av.layers || []).includes(layer) && (av.states || []).includes(reg.st) && (!av.rbGi || reg.rbGi) && avInForce(av)) : null; }
 const avLayersAll = () => [...new Set(avList().filter(a => a.on).flatMap(a => a.layers || []))];
 const mmdd = v => v ? v.slice(3, 5) + '.' + v.slice(0, 2) + '.' : '';
-const avText = av => `${(av.states || []).map(stateName).join(', ') || 'kein Bundesland'}${av.rbGi ? ' (nur RB Gießen)' : ''}${av.from && av.to ? ' · jährlich ' + mmdd(av.from) + '–' + mmdd(av.to) : ''}${av.until ? ' · gültig bis ' + av.until.split('-').reverse().join('.') : ''}`;
+const avText = av => `${(av.states || []).map(stateName).join(', ') || 'kein Bundesland'}${av.rbGi ? ' (nur RB Gießen)' : ''}${av.a2 === false ? '' : ' · nur mit A2'}${av.from && av.to ? ' · jährlich ' + mmdd(av.from) + '–' + mmdd(av.to) : ''}${av.until ? ' · gültig bis ' + av.until.split('-').reverse().join('.') : ''}`;
 function avgiActive(d) { return avList().some(av => av.on && avSeasonOn(av, d)); }
 // Saison-Vorschau: außerhalb 15.04.–30.06. so anzeigen, als wäre Mähsaison (zur Planung)
 function avgiInForce() { return avList().some(av => av.on && avInForce(av)); }
@@ -2322,6 +2341,15 @@ function coverageOf(layer, reg) {
   if (avFor(layer, reg)) return 'avgi';
   return '';
 }
+/** Plaketten: wodurch ist der Flug hier erlaubt? ✓ A2 = Allgemeinerlaubnis (nur mit A2-Zeugnis), ✓ AV = Allgemeinverfügung */
+function covBadges(layer, reg) {
+  reg = reg || regionAt(V.lat, V.lon);
+  let h = '';
+  if (AE_LAYERS.includes(layer) && aeFor(reg)) h += '<i class="cbadge a2" title="Erlaubt durch Allgemeinerlaubnis – nur mit A2-Fernpilotenzeugnis">✓ A2</i>';
+  const av = avFor(layer, reg);
+  if (av) h += `<i class="cbadge av" title="Erlaubt durch Allgemeinverfügung${av.name ? ': ' + esc(av.name) : ''}">✓ AV</i>`;
+  return h;
+}
 // Erlaubt, aber nur mit seitlichem Abstand (1:1-Regel bzw. kein direkter Überflug) → orange statt grün
 const AE_DIST = ['kraftwerke', 'umspannwerke', 'stromleitungen', 'windkraftanlagen', 'industrieanlagen', 'behoerden', 'polizei'];
 function covKind(layer, reg) {
@@ -2337,8 +2365,8 @@ function applyGeoConfig() { covCellCache.clear(); S.geo.forEach(f => { delete f.
 function fillRules() {
   const a2 = P.lic === 'A2';
   $('vLic').textContent = a2
-    ? 'A2: Allgemeinerlaubnis nutzbar (für die eingetragenen Bundesländer).'
-    : 'A1/A3: Allgemeinerlaubnis NICHT nutzbar – es gelten die normalen Regeln. Mavic 3T/Matrice 4T (Klasse C2) nur in A3: 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten.';
+    ? 'A2: Allgemeinerlaubnis und Allgemeinverfügung nutzbar (für die eingetragenen Bundesländer).'
+    : 'A1/A3: Allgemeinerlaubnis und Allgemeinverfügung NICHT nutzbar – es gelten die normalen Regeln. Mavic 3T/Matrice 4T (Klasse C2) nur in A3: 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten.';
   document.querySelectorAll('[data-lic]').forEach(b => b.classList.toggle('on', b.dataset.lic === P.lic));
   const sel = P.aeStates ? P.aeStates.split(',') : [];
   $('aeBox').style.opacity = a2 ? '' : '.45';
@@ -2383,6 +2411,7 @@ function avEdit(i) {
   x.innerHTML = `<label>Bezeichnung<input class="inp" id="avN" value="${esc(av.name)}" placeholder="z. B. Allgemeinverfügung Kreis XY – Wildtierrettung"></label>
     <div class="avt">Gilt in diesen Bundesländern</div><div class="roots" id="avSt">${STATES.map(([k, n]) => `<button data-st="${k}" class="${av.states.includes(k) ? 'on' : ''}">${n}</button>`).join('')}</div>
     ${av.id === 'rpgi' || av.rbGi ? `<label class="pick"><input type="checkbox" id="avRb"${av.rbGi ? ' checked' : ''}><span>Nur Regierungsbezirk Gießen (Hessen)</span></label>` : ''}
+    <label class="pick"><input type="checkbox" id="avA2"${av.a2 === false ? '' : ' checked'}><span>Gilt nur für Piloten mit A2-Fernpilotenzeugnis</span></label>
     <div class="avt">Zonenarten</div><div class="roots" id="avLy">${AV_ZONES.map(([k, n]) => `<button data-ly="${k}" class="${av.layers.includes(k) ? 'on' : ''}">${n}</button>`).join('')}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><label>Jährlich von<input class="inp" id="avF" value="${dd(av.from)}" placeholder="15.04."></label><label>bis<input class="inp" id="avT" value="${dd(av.to)}" placeholder="30.06."></label>
       <label>Gültig bis (Datum)<input class="inp" id="avU" type="date" value="${esc(av.until || '')}"></label></div>
@@ -2396,6 +2425,7 @@ function avEdit(i) {
     av.states = [...x.querySelectorAll('#avSt .on')].map(b => b.dataset.st);
     av.layers = [...x.querySelectorAll('#avLy .on')].map(b => b.dataset.ly);
     av.rbGi = !!(x.querySelector('#avRb') && x.querySelector('#avRb').checked);
+    av.a2 = x.querySelector('#avA2').checked;
     av.from = pd(x.querySelector('#avF').value); av.to = pd(x.querySelector('#avT').value); av.until = x.querySelector('#avU').value || '';
     av.rules = x.querySelector('#avR').value.split('\n').map(t => t.trim()).filter(Boolean); av.link = x.querySelector('#avL').value.trim();
     if (!av.states.length) toast('Hinweis: kein Bundesland gewählt – die Allgemeinverfügung wirkt dann nirgends.', true, 5000);
@@ -2582,21 +2612,22 @@ window.onGeoInfo = raw => {
   let rows = (r.features || []).filter(f => { const k = f.layer + '|' + ((f.props || {}).name || ''); if (seen.has(k)) return false; seen.add(k); return true; }).map(f => {
     const p = f.props || {}, k = covKind(f.layer, reg);
     const label = f.layer === 'flugplaetze' && isHeliZone(f) ? 'Hubschrauberlandeplatz' : (LAYER_LABEL[f.layer] || f.layer);
-    return `<div class="gbr"><span style="background:${COL[k] || COL.off}"></span><div><b>${esc(p.name || label)}</b><em>${esc(label)} · ${k === 'on' ? 'Überflug erlaubt' : k === 'dist' ? 'nur mit Abstand' : 'gesperrt'}${altText(p) ? ' · ' + esc(altText(p)) : ''}</em></div></div>`;
+    return `<div class="gbr"><span style="background:${COL[k] || COL.off}"></span><div><b>${esc(p.name || label)}${covBadges(f.layer, reg)}</b><em>${esc(label)} · ${k === 'on' ? 'Überflug erlaubt' : k === 'dist' ? 'nur mit Abstand' : 'gesperrt'}${altText(p) ? ' · ' + esc(altText(p)) : ''}</em></div></div>`;
   }).join('');
   if ((r.mapGroups || []).length) rows += mapGroupRows(r.mapGroups);
   const obl = obstaclesNear(r.lat, r.lon);
   if (!rows) rows = `<div class="gbr"><span style="background:#8a93a6"></span><div><b>Keine Geozone</b><em>${obl.length ? 'Keine Flugbeschränkung – aber Hindernis in der Nähe (siehe unten)' : 'Allgemeine Regeln gelten (Abstände, max. 120 m)'}</em></div></div>`;
   const ob = obstaclesNear(r.lat, r.lon).slice(0, 1).map(({ o, d }) => `<div class="gbr"><span style="background:#00695c"></span><div><b>${esc(OBS_NAME[o.t] || 'Hindernis')}${o.top ? ' · ' + (o.est ? 'ca. ' : '') + Math.round(o.top) + ' m hoch' : ''}</b><em>${Math.round(d)} m entfernt${o.op ? ' · ' + esc(o.op) : ''}</em></div></div>`).join('');
   let el = $('geoBub');
-  if (!el) { el = document.createElement('div'); el.id = 'geoBub'; $('mapWrap').appendChild(el); }
+  if (!el) { el = document.createElement('div'); el.id = 'geoBub'; document.body.appendChild(el); }   // ganz vorne – über Wind, Kompass, Knöpfen
   el.innerHTML = `<div class="gbh"><b>${esc(regionText(reg))}</b><button class="gbx" aria-label="Schließen">✕</button></div>${rows}${ob}
     <div class="gbf"><span class="meta">${r.mapGroups && r.mapGroups.length && !(r.features || []).length ? 'laut gespeicherter Karte' : r.offline ? 'gespeicherte Daten' : 'live von dipul'}</span><button class="b-sec" id="gbMore">Details</button></div>`;
   el.style.display = 'block';
   const bw = el.offsetWidth, bh = el.offsetHeight;
   let x = Math.max(8, Math.min(W - bw - 90, tx - bw / 2)), y = ty - bh - 34;
   if (y < 8) y = Math.min(mapH() - bh - 8, ty + 18);
-  el.style.left = x + 'px'; el.style.top = y + 'px';
+  const mr = $('mapWrap').getBoundingClientRect();
+  el.style.left = (x + mr.left) + 'px'; el.style.top = (y + mr.top) + 'px';
   el.querySelector('.gbx').onclick = e => { e.stopPropagation(); el.style.display = 'none'; infoPin = null; draw(); };
   $('gbMore').onclick = e => { e.stopPropagation(); el.style.display = 'none'; geoInfoPage(raw); };
 };
@@ -2618,7 +2649,7 @@ function geoInfoPage(raw) {
     const label = f.layer === 'flugplaetze' && isHeliZone(f) ? 'Hubschrauberlandeplatz' : (LAYER_LABEL[f.layer] || f.layer);
     const extra = Object.keys(p).filter(k => p[k] != null && p[k] !== '' && typeof p[k] !== 'object')
       .map(k => `<div>${esc(PROP_LABEL[k] || k)}: ${esc(p[k])}</div>`).join('');
-    html += `<div class="zone"><h4>${esc(p.name || label)} ${(k => `<span class="chip ${k === 'on' ? 'cov' : k === 'dist' ? 'dist' : ''}">${k === 'on' ? 'Überflug erlaubt (grün)' : k === 'dist' ? 'Nur mit Abstand (orange)' : 'Gesperrt (rot)'}</span>`)(covKind(f.layer, reg))}</h4>
+    html += `<div class="zone"><h4>${esc(p.name || label)} ${(k => `<span class="chip ${k === 'on' ? 'cov' : k === 'dist' ? 'dist' : ''}">${k === 'on' ? 'Überflug erlaubt (grün)' : k === 'dist' ? 'Nur mit Abstand (orange)' : 'Gesperrt (rot)'}</span>`)(covKind(f.layer, reg))}${covBadges(f.layer, reg)}</h4>
       <div class="meta">${esc(label)}${altText(p) ? ' · ' + esc(altText(p)) : ''}${p.legal_ref ? ' · ' + esc(p.legal_ref) : ''}</div>
       ${rulesHtml(f.layer, reg)}
       ${AIR_LAYERS.includes(f.layer) ? airZoneExtra(f, r.lat, r.lon) : ''}
@@ -2736,7 +2767,7 @@ function mergeMastrWind() {
     if (!o.top && kw) { o.top = kw >= 2000 ? 200 : kw >= 1000 ? 150 : 100; o.est = true; o.kw = kw; }
   });
 }
-const OBS_NAME = { wind: 'Windrad', mast: 'Mast', tower: 'Turm', chimney: 'Schornstein' };
+const OBS_NAME = { wind: 'Windrad', mast: 'Mast', tower: 'Turm', chimney: 'Schornstein', pmast: 'Strommast' };
 function paintObstacles() {
   const [n0, w0] = fromScreen(0, 0), [s0, e0] = fromScreen(W, H);
   ctx.save(); ctx.lineJoin = 'round';
@@ -2750,7 +2781,8 @@ function paintObstacles() {
   ctx.setLineDash([]);
   if (V.z >= 11) for (const o of S.obs) {
     if (o.lat > n0 || o.lat < s0 || o.lon < w0 || o.lon > e0) continue;
-    if (o.t !== 'wind' && !o.top && V.z < 14) continue;   // Bauwerke ohne Höhenangabe erst nah
+    if (o.t !== 'wind' && !o.top && V.z < 14) continue;
+    if (o.t === 'pmast' && V.z < 14) continue;   // Strommasten (mit OSM-Höhe) erst nah, sonst zu voll   // Bauwerke ohne Höhenangabe erst nah
     const [x, y] = toScreen(o.lat, o.lon);
     if (o.t === 'wind') {   // Windrad: Kreis mit drei Rotorblättern; Rotorkreis maßstäblich ab nahem Zoom
       if (o.rot && V.z >= 15) { const [, y2] = toScreen(o.lat + o.rot / 2 / 111200, o.lon); ctx.beginPath(); ctx.arc(x, y, Math.abs(y - y2), 0, 7); ctx.strokeStyle = 'rgba(0,105,92,.7)'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); }
@@ -2759,7 +2791,7 @@ function paintObstacles() {
       for (let k = 0; k < 3; k++) { const a = -Math.PI / 2 + k * 2 * Math.PI / 3; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 8 * Math.cos(a), y + 8 * Math.sin(a)); ctx.stroke(); }
     } else {   // Mast/Turm/Schornstein: Dreieck
       ctx.beginPath(); ctx.moveTo(x, y - 11); ctx.lineTo(x + 9, y + 7); ctx.lineTo(x - 9, y + 7); ctx.closePath();
-      ctx.fillStyle = '#5d4037'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+      ctx.fillStyle = o.t === 'pmast' ? '#8e24aa' : '#5d4037'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
     }
     if (o.top && V.z >= 13) {
       const fh = flightHeight(), t = Math.round(o.top) + ' m', warn = fh && o.top >= fh - 20;
@@ -2769,6 +2801,12 @@ function paintObstacles() {
     }
   }
   ctx.restore();
+}
+/** Echte Masthöhen (OSM) an dieser Leitung nahe der gewählten Wiesen – aufsteigend sortiert */
+function knownMasts(l, sel) {
+  const cs = sel.filter(f => f.center).map(f => f.center);
+  return S.obs.filter(o => o.t === 'pmast' && o.top > 0 && cs.some(c => distM(c[0], c[1], o.lat, o.lon) < 900)
+    && l.pts.some((p, i) => i + 1 < l.pts.length && segDistM(o.lat, o.lon, [p[1], p[0]], [l.pts[i + 1][1], l.pts[i + 1][0]]) < 40)).map(o => o.top).sort((a, b) => a - b);
 }
 function obstaclesNear(lat, lon) {
   return S.obs.map(o => ({ o, d: Math.hypot((o.lat - lat) * 111200, (o.lon - lon) * 111200 * Math.cos(lat * Math.PI / 180)) }))
@@ -3574,6 +3612,57 @@ function wxTable(hours, kpc) {
 }
 /** Auf einen Blick: die nächsten 4 Stunden – Regen, Sturm/Böen, Scherwind (Windzunahme mit der Höhe) */
 const SHEAR = [5, 8];   // m/s Zunahme zwischen 10 m und Missionshöhe/100 m: Hinweis / kritisch
+/** Einsatzfenster 03–10 Uhr (heute, solange noch nicht vorbei, sonst morgen): klare Bewertung mit Gründen und Uhrzeiten */
+const DRONE_WIND = { M3T: ['Mavic 3T', 12], M4T: ['Matrice 4T', 12] };   // max. Windwiderstand laut DJI (m/s)
+const droneWindTxt = v => { const [n, lim] = DRONE_WIND[P.drone] || DRONE_WIND.M3T; return `Grenze ${n}: ${lim} m/s${v != null ? (v >= lim ? ' – überschritten!' : ` – noch ${f1(lim - v)} m/s Luft`) : ''}`; };
+const WIN = () => { const a = +P.winS, b = +P.winE; return [isNaN(a) ? 3 : a, isNaN(b) || b <= a ? Math.max(a + 1, 10) : b]; };   // Bewertungsfenster, vom Nutzer einstellbar
+function wxMorning(hours, kpc, loc) {
+  const H = flightHeight() || 50, now = new Date(), WINv = WIN();
+  const d0 = new Date(now); d0.setHours(WINv[0], 0, 0, 0);
+  if (now.getHours() >= WINv[1]) d0.setDate(d0.getDate() + 1);
+  const a = Math.max(d0.getTime(), hourFloor(now.getTime())), b = new Date(d0).setHours(WINv[1], 0, 0, 0);
+  const hs = hours.filter(x => x.t >= a && x.t < b);
+  if (hs.length < 2) return '';
+  const lv = (v, t) => v == null ? 0 : v >= t[1] ? 2 : v >= t[0] ? 1 : 0;
+  const per = hs.map(x => {
+    const d = x.d, i = x.i, w10 = d.wind[10] ? d.wind[10][i] : null, wH = windAtH(d, i, H).v, g = d.gust[i];
+    const rain = d.rain[i] || 0, snow = d.snow[i] || 0, vis = visAt(d, i, x.ico, x.t), dew = dewAt(d, i), t2 = (d.tempH[2] || [])[i];
+    const tH = tempAtH(d, i, H).v, hum = (d.hum || [])[i], wet = (vis != null && vis < 1000) || rain >= 0.05 || snow > 0 || (hum != null && hum >= 95) || (dew != null && t2 != null && t2 - dew <= 1);
+    const ice = tH != null && tH <= 2 && tH >= -12 && wet, kp = kpc ? kpAt(kpc, x.t) : null;
+    const shear = w10 != null && wH != null ? wH - w10 : null;
+    const L = { rain: snow > 0 ? 2 : lv(rain, WX_THR.rain), wind: Math.max(lv(g, WX_THR.gust), lv(wH, WX_THR.windH)), vis: vis == null ? 0 : vis < VIS[1] ? 2 : vis < VIS[0] ? 1 : 0,
+      ice: ice ? 2 : 0, cold: t2 != null && t2 < 5 ? 1 : 0, dew: dew != null && t2 != null && t2 - dew <= 1 ? 1 : 0, shear: lv(shear, SHEAR), kp: kp != null ? (kp >= 6 ? 2 : kp >= 5 ? 1 : 0) : 0 };
+    return { t: x.t, w10, wH, g, rain, snow, vis, dew, t2, tH, hum, kp, shear, L, lv: Math.max(L.rain, L.wind, L.vis, L.ice, L.shear, L.kp) };
+  });
+  // Zeitspannen je Problem, z. B. „05–08 Uhr“
+  const span = k => { const on = per.filter(p => p.L[k] > 0); if (!on.length) return ''; const s0 = on[0].t, s1 = on[on.length - 1].t + 3600000;
+    return on.length === per.length ? 'im ganzen Fenster' : `${hm(s0)}–${hm(s1)}`; };
+  const mx = k => per.reduce((m, p) => p[k] != null && (m == null || p[k] > m) ? p[k] : m, null), mn = k => per.reduce((m, p) => p[k] != null && (m == null || p[k] < m) ? p[k] : m, null);
+  const top = k => Math.max(...per.map(p => p.L[k]));
+  const R = [];   // [Stufe, Titel, Erklärung]
+  if (top('ice')) R.push([2, '❄ Vereisungsgefahr an den Rotorblättern', `${span('ice')} · ${f1(mn('tH'))} °C in ${H} m bei Nebel/Feuchte – Eis an den Propellern kostet Auftrieb, die Drohne kann abstürzen. Mavic 3T/Matrice 4T haben keinen Eisschutz: nicht fliegen, Propeller vor dem Start prüfen.`]);
+  if (top('vis')) R.push([top('vis'), top('vis') === 2 ? '🌫 Nebel – Sicht zu schlecht' : '🌫 Dunst – Sicht eingeschränkt', `${span('vis')} · Sicht bis ${visTxt(mn('vis'))} – Sichtflug (VLOS) und Wärmebild leiden, Nebel kann die Linse beschlagen.`]);
+  if (top('rain')) R.push([top('rain'), per.some(p => p.snow > 0) ? '🌨 Schnee' : '🌧 Regen', `${span('rain')} · bis ${f1(mx('rain'))} mm/h – nasse Wiese, Wärmebild verliert Kontrast, Drohnen sind nicht wasserdicht.`]);
+  if (top('wind')) R.push([top('wind'), '💨 Wind/Böen', `${span('wind')} · Böen bis ${f1(mx('g'))} m/s, ${H} m bis ${f1(mx('wH'))} m/s – ${droneWindTxt(Math.max(mx('g') || 0, mx('wH') || 0))} · Akku leert schneller, Bahnen werden ungenau.`]);
+  if (top('shear')) R.push([top('shear'), '↗ Scherwind', `${span('shear')} · Wind nimmt bis ${H} m um ${f1(mx('shear'))} m/s zu – beim Steigen versetzt.`]);
+  if (top('kp')) R.push([top('kp'), '🧭 Sonnensturm', `Kp ${f1(mx('kp'))} – GPS/Kompass können ungenau werden.`]);
+  if (top('dew') && !top('vis')) R.push([1, '💧 Tau / Linse beschlägt', `${span('dew')} · Taupunkt-Abstand unter 1 °C – Kamera vor dem Start akklimatisieren, Linse prüfen.`]);
+  if (top('cold') && !top('ice')) R.push([1, '🔋 Kalt – Akkus vorwärmen', `${span('cold')} · ${f1(mn('t2'))} °C am Boden – kalte Akkus liefern weniger Leistung, auf mind. 15–20 °C vorwärmen.`]);
+  const tm = new Map(); hours.forEach(x => { const v = (x.d.tempH[2] || [])[x.i]; if (v != null) tm.set(x.t, v); });
+  const ti = tempInfo(sunDay(d0.getTime() + 6 * 3600000, loc.lat, loc.lon), tm, d0.getTime());
+  if (ti && ti.rise && ti.rise[0] < b) R.push([0, '🌡 Wärmebild ab ' + hm(ti.rise[0]) + ' schlechter', `ab dann 2 °C wärmer als am Morgen (Tiefstwert ${f1(ti.mn[1])}° um ${hm(ti.mn[0])}) – Kitze heben sich weniger ab. Vorher fertig werden.`]);
+  const lvl = Math.max(0, ...per.map(p => p.lv));
+  // bestes zusammenhängendes Zeitfenster ohne Probleme
+  let best = null, cur = null; per.forEach(p => { if (p.lv === 0) { cur = cur ? [cur[0], p.t] : [p.t, p.t]; if (!best || cur[1] - cur[0] > best[1] - best[0]) best = cur.slice(); } else cur = null; });
+  const day = new Date(d0).toDateString() === now.toDateString() ? 'Heute früh' : 'Morgen früh';
+  const head = `${day} ${hm(a)}–${hm(b)} · ${lvl === 2 ? 'Flug kritisch' : lvl === 1 ? 'Flug mit Vorsicht' : 'gutes Flugwetter'}`;
+  const crit = R.filter(r => r[0] > 0).map(r => r[1].replace(/^\S+\s/, '')).slice(0, 3).join(', ');
+  return `<div class="zone wxwin ${['g', 'o', 'r'][lvl]}" style="display:block">
+    <div class="wxwsel">Bewertung von <select id="winS">${[0,1,2,3,4,5,6,7,8].map(h => `<option value="${h}"${h === WINv[0] ? ' selected' : ''}>${String(h).padStart(2, '0')}:00</option>`).join('')}</select> bis <select id="winE">${[6,7,8,9,10,11,12,13,14].map(h => `<option value="${h}"${h === WINv[1] ? ' selected' : ''}>${String(h).padStart(2, '0')}:00</option>`).join('')}</select> Uhr</div>
+    <div class="wxwh"><b>${head}</b><span>${crit ? 'wegen ' + esc(crit) : 'keine Einschränkungen erkannt'}${best && lvl ? ` · bestes Fenster ${hm(best[0])}–${hm(best[1] + 3600000)}` : ''}</span></div>
+    ${R.length ? `<ul class="wxwr">${R.map(r => `<li class="l${r[0]}"><b>${esc(r[1])}</b><em>${esc(r[2])}</em></li>`).join('')}</ul>` : ''}
+    <div class="meta" style="margin-top:6px">${new Date(d0).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' })} · Missionshöhe ${H} m · Vereisung: ≤ 2 °C in Flughöhe bei Nebel/Feuchte · nur Hinweis, keine Flugfreigabe</div></div>`;
+}
 function wxNext4(hours, kpc, loc) {
   const H = flightHeight() || 50, now = Date.now();
   const hs = hours.filter(x => x.t >= hourFloor(now) && x.t <= hourFloor(now) + 4 * 3600000);
@@ -3598,7 +3687,7 @@ function wxNext4(hours, kpc, loc) {
   // Sturm / Böen
   const lW = Math.max(...per.map(p => p.lWind)), gmax = mx('g'), whmax = mx('wH');
   const windTxt = gmax != null ? 'Böen ' + f1(gmax) : '—';
-  const windD = `Wind ${H} m bis ${whmax != null ? f1(whmax) : '—'} m/s${lW ? ' · ' + (lW === 2 ? 'zu stark für den Einsatz' : 'grenzwertig') : ''}`;
+  const windD = `Wind ${H} m bis ${whmax != null ? f1(whmax) : '—'} m/s${lW ? ' · ' + (lW === 2 ? 'zu stark für den Einsatz' : 'grenzwertig') + ' · ' + droneWindTxt(Math.max(gmax || 0, whmax || 0)) : ''}`;
   // Scherwind
   const lS = Math.max(...per.map(p => p.lShear)), smax = mx('shear'), fs = first('lShear');
   const shearTxt = smax == null ? '—' : smax < 1 ? 'keiner' : '+' + f1(smax) + ' m/s';
@@ -3610,15 +3699,13 @@ function wxNext4(hours, kpc, loc) {
   const p0 = per[0]; S.wxNow = p0;
   // Banner: Ampel in einem Satz
   const banIco = lvl === 0 ? '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>';
-  const ban = lvl === 0 ? 'Flugwetter OK' : lvl === 1 ? 'Vorsicht: ' + why.join(', ') : 'Kritisch: ' + why.join(', ');
+  const ban = 'Jetzt: ' + (lvl === 0 ? 'Flugwetter OK' : lvl === 1 ? 'Vorsicht – ' + why.join(', ') : 'kritisch – ' + why.join(', '));
   // Regen-Karte: Ja/Nein auf einen Blick
   const raining = p0.rain >= WX_THR.rain[0] || p0.snow > 0, anyRain = per.some(p => p.lRain > 0);
   const lastR = [...per].reverse().find(p => p.lRain > 0);
   const rainHead = per.some(p => p.snow > 0) ? 'Schnee' : raining ? 'Regnet' : anyRain ? 'Regen ab ' + hm(fr.x.t) : 'Trocken';
   const rainSub = !anyRain ? 'kein Regen in den nächsten 4 h' : raining ? `jetzt ${f1(p0.rain)} mm/h${lastR && lastR !== p0 ? ' · bis ca. ' + hm(lastR.x.t + 3600000) : ''}` : `bis ${f1(mx('rain'))} mm/h · zusammen ${f1(sumR)} mm`;
-  const rainIco = anyRain
-    ? `<svg class="ic" viewBox="0 0 64 64"><path d="M18 36h28a10 10 0 0 0 1-19.9A15 15 0 0 0 18.5 14 11 11 0 0 0 18 36z" fill="#8a96a3"/><g stroke="${AMP[lR]}" stroke-width="4" stroke-linecap="round"><path d="M22 44l-3 8M33 44l-3 8M44 44l-3 8"/></g></svg>`
-    : `<svg class="ic" viewBox="0 0 64 64"><circle cx="32" cy="32" r="12" fill="#f5b400"/><g stroke="#f5b400" stroke-width="4" stroke-linecap="round"><path d="M32 6v7M32 51v7M6 32h7M51 32h7M13.6 13.6l5 5M45.4 45.4l5 5M13.6 50.4l5-5M45.4 18.6l5-5"/></g></svg>`;
+  const rainIco = per.some(p => p.snow > 0) ? WXI('snow', 'ic') : anyRain ? WXI(mx('rain') >= 1 ? 'rain' : 'drizzle', 'ic') : WXI(sunElev(Date.now(), wxLoc().lat, wxLoc().lon) < -3 ? 'moon' : 'sun', 'ic');
   // Wind-Karte: Pfeil zeigt wohin der Wind weht, Zahl = Wind in Einsatzhöhe
   const wRot = p0.dir != null ? (p0.dir + 180) % 360 : 0, calm = p0.w10 == null || p0.w10 < 0.5;
   const windIco = `<svg class="ic" viewBox="0 0 64 64"><circle cx="32" cy="32" r="29" fill="none" stroke="var(--line)" stroke-width="3"/>
@@ -3649,10 +3736,41 @@ function wxNext4(hours, kpc, loc) {
   </div>`;
 }
 /** Tage (DWD ICON): Gesamtbewertung – Regen über den ganzen Tag (Regen nachts oder nachmittags = Bauer mäht nicht), Wind/Sicht im Flugfenster Startzeit–10 Uhr */
-const WXD_END = 10;   // Uhr: bis dahin wird jeder Tag betrachtet
+const WXD_END = 10;   // (Vorgabe) – tatsächlich gilt das eingestellte Bewertungsfenster
+// ---------- Wettersymbole (modern, mit Verlauf) ----------
+let wxiN = 0;
+function WXI(kind, cls) {
+  const u = 'w' + (++wxiN), c = cls ? ` class="${cls}"` : '';
+  const sun = (cx, cy, r) => `<g><circle cx="${cx}" cy="${cy}" r="${r + 5}" fill="url(#${u}h)"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${u}s)"/></g>`;
+  const cloud = (dy, fill) => `<path transform="translate(0 ${dy})" d="M20 46h26.5a10.5 10.5 0 0 0 1.6-20.9A14 14 0 0 0 21.4 22.6 11.7 11.7 0 0 0 20 46z" fill="${fill || `url(#${u}c)`}" filter="url(#${u}f)"/>`;
+  const defs = `<defs><radialGradient id="${u}s" cx=".38" cy=".35" r=".75"><stop offset="0" stop-color="#fff3a6"/><stop offset=".45" stop-color="#ffc52e"/><stop offset="1" stop-color="#ff9500"/></radialGradient>
+    <radialGradient id="${u}h"><stop offset=".55" stop-color="#ffb800" stop-opacity=".45"/><stop offset="1" stop-color="#ffb800" stop-opacity="0"/></radialGradient>
+    <linearGradient id="${u}c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#cdd6e3"/></linearGradient>
+    <linearGradient id="${u}d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#aab5c6"/><stop offset="1" stop-color="#6f7c90"/></linearGradient>
+    <linearGradient id="${u}m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fdf6d8"/><stop offset="1" stop-color="#d9c98a"/></linearGradient>
+    <linearGradient id="${u}r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6ec6ff"/><stop offset="1" stop-color="#1a73e8"/></linearGradient>
+    <filter id="${u}f" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="1.6" flood-color="#000" flood-opacity=".25"/></filter></defs>`;
+  const drops = n => [22, 32, 42].slice(0, n).map((x, i) => `<path d="M${x} ${50 + (i % 2) * 3}c0 0-3.2 4.4-3.2 6.4a3.2 3.2 0 0 0 6.4 0c0-2-3.2-6.4-3.2-6.4z" fill="url(#${u}r)"/>`).join('');
+  const flakes = [22, 32, 42].map((x, i) => `<g transform="translate(${x} ${54 + (i % 2) * 3})" stroke="#9fd3ff" stroke-width="2" stroke-linecap="round"><path d="M0-4v8M-3.5-2l7 4M-3.5 2l7-4"/></g>`).join('');
+  let b;
+  switch (kind) {
+    case 'sun': b = sun(32, 32, 16); break;
+    case 'moon': b = `<path d="M40 12a20 20 0 1 0 12 30A16 16 0 0 1 40 12z" fill="url(#${u}m)" filter="url(#${u}f)"/><circle cx="46" cy="18" r="1.6" fill="#fff" opacity=".8"/><circle cx="53" cy="28" r="1.1" fill="#fff" opacity=".7"/>`; break;
+    case 'partly': b = sun(24, 22, 10) + cloud(6); break;
+    case 'cloud': b = cloud(-2, `url(#${u}c)`) ; break;
+    case 'overcast': b = `<g opacity=".9" transform="translate(-6 -6) scale(.85)">${cloud(0, `url(#${u}d)`)}</g>` + cloud(2); break;
+    case 'rain': b = cloud(-6, `url(#${u}d)`) + drops(3); break;
+    case 'drizzle': b = cloud(-6) + drops(2); break;
+    case 'snow': b = cloud(-6) + flakes; break;
+    case 'fog': b = cloud(-10) + `<g stroke="#b9c3d1" stroke-width="4" stroke-linecap="round"><path d="M14 46h36M18 54h28"/></g>`; break;
+    case 'storm': b = cloud(-8, `url(#${u}d)`) + `<path d="M34 40l-8 12h6l-3 10 10-14h-6l3-8z" fill="#ffc52e"/>`; break;
+    default: b = sun(32, 32, 13);
+  }
+  return `<svg${c} viewBox="0 0 64 64" style="stroke:none;fill:none">${defs}${b}</svg>`;
+}
 function wxDays(ico, loc, detailEnd) {   // detailEnd: letzte Stunde der 48-h-Detailansicht – Tage bis dahin keine Kachel
   if (!ico || !ico.time || !ico.time.length) return '';
-  const H = flightHeight() || 50, [sh, sm] = String(P.wxStart || '04:00').split(':').map(Number);
+  const H = flightHeight() || 50, sh = WIN()[0], sm = 0;
   const lv = (v, t) => v == null ? 0 : v >= t[1] ? 2 : v >= t[0] ? 1 : 0, C = ['', 'o', 'r'];
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const hh = (h, m) => String(h).padStart(2, '0') + ':' + String(m || 0).padStart(2, '0');
@@ -3660,7 +3778,7 @@ function wxDays(ico, loc, detailEnd) {   // detailEnd: letzte Stunde der 48-h-De
   for (let k = 1, shown = 0; k <= 9 && shown < 8; k++) {   // ab morgen
     const d0 = new Date(today); d0.setDate(d0.getDate() + k);
     const ws = new Date(d0); ws.setHours(sh || 0, sm || 0);
-    const we = new Date(d0); we.setHours(WXD_END, 0, 0, 0);
+    const we = new Date(d0); we.setHours(WIN()[1], 0, 0, 0);
     const pick = (a, b) => ico.time.map((t, i) => t >= a && t < b ? i : -1).filter(i => i >= 0);
     const de = new Date(d0); de.setDate(de.getDate() + 1);
     const all = pick(d0.getTime(), de.getTime()), fly = pick(ws.getTime(), we.getTime());
@@ -3681,11 +3799,14 @@ function wxDays(ico, loc, detailEnd) {   // detailEnd: letzte Stunde der 48-h-De
     const lW = Math.max(lv(g, WX_THR.gust), lv(wh, WX_THR.windH));
     const lV = vmin == null ? 0 : vmin < VIS[1] ? 2 : vmin < VIS[0] ? 1 : 0;
     const l = Math.max(lR, lW, lV);
-    const verdict = lR === 2 ? 'Regen – Mahd unwahrscheinlich' : lR ? 'etwas Regen – Mahd fraglich' : l === 2 ? 'trocken, aber Flug kritisch' : l ? 'trocken · Flug mit Vorsicht' : 'trocken · gutes Flugwetter';
-    const ico3 = rain >= 0.1 || snow > 0
-      ? `<svg viewBox="0 0 64 64"><path d="M18 36h28a10 10 0 0 0 1-19.9A15 15 0 0 0 18.5 14 11 11 0 0 0 18 36z" fill="#8a96a3"/><g stroke="${lR ? AMP[lR] : '#2f7fe0'}" stroke-width="4" stroke-linecap="round"><path d="M22 44l-3 8M33 44l-3 8M44 44l-3 8"/></g></svg>`
-      : lV ? `<svg viewBox="0 0 64 64"><g stroke="#8a96a3" stroke-width="5" stroke-linecap="round"><path d="M10 22h44M6 32h52M10 42h44M16 52h32"/></g></svg>`
-      : `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="12" fill="#f5b400"/><g stroke="#f5b400" stroke-width="4" stroke-linecap="round"><path d="M32 8v6M32 50v6M8 32h6M50 32h6M15 15l4 4M45 45l4 4M15 49l4-4M45 19l4-4"/></g></svg>`;
+    const why = [];
+    if (lV) why.push((vmin < 1000 ? 'Nebel' : 'Dunst') + ', Sicht ' + visTxt(vmin));
+    if (lv(g, WX_THR.gust)) why.push('Böen ' + f1(g) + ' m/s (' + droneWindTxt(null) + ')');
+    if (lv(wh, WX_THR.windH)) why.push('Wind ' + f1(wh) + ' m/s in ' + H + ' m');
+    const whyT = why.length ? ' wegen ' + why.join(', ') : '';
+    const verdict = lR === 2 ? 'Regen – Mahd unwahrscheinlich' : lR ? 'etwas Regen – Mahd fraglich' + (l > lR ? whyT : '') : l === 2 ? 'trocken, aber Flug kritisch' + whyT : l ? 'trocken · Flug mit Vorsicht' + whyT : 'trocken · gutes Flugwetter';
+    const cl = all.map(i => (ico.cloud || [])[i]).filter(v => v != null), cAvg = cl.length ? cl.reduce((a, b) => a + b, 0) / cl.length : 30;
+    const ico3 = snow > 0 ? WXI('snow') : rain >= 1 ? WXI('rain') : rain >= 0.1 ? WXI('drizzle') : lV ? WXI('fog') : cAvg < 30 ? WXI('sun') : cAvg < 70 ? WXI('partly') : WXI('overcast');
     const rainLn = snow > 0 ? 'Schnee' : rain < 0.05 ? 'trocken' : f1(rain) + ' mm';
     const note = when.length ? 'Regen ' + when.join(', ') : '';
     out += `<div class="wxday ${C[l]}"><div class="dd">${k === 0 ? 'Heute' : d0.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}${ico3}</div>
@@ -3700,7 +3821,7 @@ function wxDays(ico, loc, detailEnd) {   // detailEnd: letzte Stunde der 48-h-De
   if (!out) return '';
   return `<div class="zone" style="display:block"><h4>8-Tage-Vorschau · Gesamtbewertung</h4>
     <div class="wxdays">${out}</div>
-    <div class="meta" style="margin:8px 0 0">Regen zählt über den ganzen Tag (nachts oder nachmittags nass = keine Mahd; ab 0,2 mm fraglich, ab 1 mm unwahrscheinlich), Wind/Böen/Sicht im Flugfenster ${hh(sh, sm)}–${WXD_END}:00 · Taupunkt zur Startzeit, Abstand zur Lufttemperatur 1 °C oder weniger = Nebel/Tau wahrscheinlich · DWD ICON (ICON-D2 → ICON-EU → ICON global, je weiter voraus desto gröber), Sichtweite liefert der DWD laut Open-Meteo nur noch bis Ende Nov. 2026 · ${ico.offline ? 'offline gespeichert' : 'Stand ' + fmtDate(ico.t)}</div></div>`;
+    <div class="meta" style="margin:8px 0 0">Regen zählt über den ganzen Tag (nachts oder nachmittags nass = keine Mahd; ab 0,2 mm fraglich, ab 1 mm unwahrscheinlich), Wind/Böen/Sicht im Flugfenster ${hh(sh, sm)}–${hh(WIN()[1], 0)} (oben einstellbar) · Taupunkt zur Startzeit, Abstand zur Lufttemperatur 1 °C oder weniger = Nebel/Tau wahrscheinlich · DWD ICON (ICON-D2 → ICON-EU → ICON global, je weiter voraus desto gröber), Sichtweite liefert der DWD laut Open-Meteo nur noch bis Ende Nov. 2026 · ${ico.offline ? 'offline gespeichert' : 'Stand ' + fmtDate(ico.t)}</div></div>`;
 }
 // ---------- METAR: gemessenes Wetter der nächsten Flughäfen (NOAA Aviation Weather Center, frei) ----------
 const METAR_MAXAGE = 20 * 60000;
@@ -3890,6 +4011,11 @@ function xplNum(k, el) {
   if (k === 'dir') return null;
   const v = parseFloat(t.replace(/^\+/, '')); return isNaN(v) ? null : v;
 }
+document.addEventListener('change', e => {   // Bewertungsfenster im Wetter: gespeichert bis zur nächsten Änderung
+  if (e.target.id !== 'winS' && e.target.id !== 'winE') return;
+  setP(e.target.id, e.target.value);
+  const y = $('iBody').scrollTop; showWeather(false).then(() => { $('iBody').scrollTop = y; });
+});
 document.addEventListener('click', e => {
   const q = e.target.closest && e.target.closest('#iBody [data-x]'); if (!q) return;
   const k = q.dataset.x; let num = xplNum(k, q), txt = q.dataset.t, sub = '';
@@ -3911,7 +4037,7 @@ async function showWeather(force) {
     [r.ico, r.dip].forEach(d => { if (d && d.tempH && d.tempH[2]) d.time.forEach((t, i) => { const v = d.tempH[2][i]; if (v != null) wxTemps.set(t, v); }); });
     if (!hours.length) throw new Error(isOnline() ? 'keine Daten' : 'offline und keine gespeicherte Vorhersage in der Nähe');
     const d0 = hours[0].d;
-    html += wxNext4(hours, kpc, loc) + `<div style="margin:-4px 2px 10px;font-size:13px;color:var(--muted)">${wxSrcLine(d0)}${r.ico && r.dip ? ' · ab Stunde 25: DWD ICON' : ''} · ${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)} · <span class="lnk" id="wxReload">jetzt neu laden</span></div>`;
+    html += wxMorning(hours, kpc, loc) + wxNext4(hours, kpc, loc) + `<div style="margin:-4px 2px 10px;font-size:13px;color:var(--muted)">${wxSrcLine(d0)}${r.ico && r.dip ? ' · ab Stunde 25: DWD ICON' : ''} · ${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)} · <span class="lnk" id="wxReload">jetzt neu laden</span></div>`;
     html += `
       <div class="zone" style="padding:8px;display:block"><h4 style="margin:4px 6px 8px">☀ Tageslauf <span class="meta" style="font-weight:400;margin:0">· im Bild oder in der Tabelle nach links/rechts wischen</span></h4>
         <div id="sunBox"></div><div class="meta" id="sunTxt" style="margin:4px 4px 6px"></div>${wxTable(hours, kpc)}
@@ -3963,15 +4089,21 @@ async function showWeather(force) {
     let raf = 0; const req = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; upd(); }); };
     sc.addEventListener('scroll', req, { passive: true });
     // Im Tageslauf selbst wischen: verschiebt die Zeit (Tabelle läuft mit), mit Schwung beim Loslassen
-    let sx = null, vel = 0, lt = 0, fl = 0;
-    const pxh = () => (sb.clientWidth - 64) / 24;
-    sb.onpointerdown = e => { cancelAnimationFrame(fl); sx = e.clientX; vel = 0; lt = e.timeStamp; sb.setPointerCapture(e.pointerId); };
-    sb.onpointermove = e => { if (sx == null) return; const dx = e.clientX - sx, dt = Math.max(1, e.timeStamp - lt);
-      sc.scrollLeft -= dx * cw / pxh(); vel = .8 * vel + .2 * (dx / dt); sx = e.clientX; lt = e.timeStamp; };
-    sb.onpointerup = sb.onpointercancel = () => { if (sx == null) return; sx = null;
-      let v = vel * cw / pxh(), last = performance.now();
-      const step = now => { const dt = now - last; last = now; sc.scrollLeft -= v * dt; v *= Math.pow(.995, dt); if (Math.abs(v) > .02) fl = requestAnimationFrame(step); };
-      if (Math.abs(v) > .05) fl = requestAnimationFrame(step); };
+    // Geste komplett selbst: waagrecht = Zeit verschieben (1:1 mit dem Finger), senkrecht = Seite scrollen; mit Schwung beim Loslassen
+    let sx = null, sy = 0, ax = null, vel = 0, lt = 0, fl = 0;
+    const pxh = () => (sb.clientWidth - 64) / 24, body = $('iBody');
+    sb.onpointerdown = e => { cancelAnimationFrame(fl); sx = e.clientX; sy = e.clientY; ax = null; vel = 0; lt = e.timeStamp; try { sb.setPointerCapture(e.pointerId); } catch (er) { } };
+    sb.onpointermove = e => { if (sx == null) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy, dt = Math.max(1, e.timeStamp - lt);
+      if (ax == null) { if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return; ax = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y'; }
+      if (ax === 'x') { sc.scrollLeft -= dx * cw / pxh(); vel = .7 * vel + .3 * (dx / dt); }
+      else { body.scrollTop -= dy; vel = .7 * vel + .3 * (dy / dt); }
+      sx = e.clientX; sy = e.clientY; lt = e.timeStamp; };
+    sb.onpointerup = sb.onpointercancel = e => { if (sx == null) return; sx = null;
+      if (e.timeStamp - lt > 80) vel = 0;   // vor dem Loslassen angehalten: kein Schwung
+      const axis = ax; let v = axis === 'x' ? vel * cw / pxh() : vel, last = performance.now();
+      const step = now => { const dt = Math.min(40, now - last); last = now; if (axis === 'x') sc.scrollLeft -= v * dt; else body.scrollTop -= v * dt; v *= Math.pow(.996, dt); if (Math.abs(v) > .02) fl = requestAnimationFrame(step); };
+      if (axis && Math.abs(v) > .05) fl = requestAnimationFrame(step); };
     addEventListener('resize', () => { if (!document.body.contains(sb)) return; measure(); }, { passive: true });
     upd();
   }
@@ -4651,6 +4783,40 @@ function planOrder(fs, start) {
       if (cl + 1 < bl) { best = c; bl = cl; imp = true; } } }
   return best;
 }
+// Sichtweite (VLOS) je Drohne; bis ×1,5 vertretbar – nahe Wiesen dann vom selben Standort fliegen statt umzusetzen
+const VLOS = { M3T: 220, M4T: 255 };
+function planVlos() { const v = VLOS[P.drone] || 220; return { v, max: Math.round(v * 1.5) }; }
+function fieldPts(f) { return f.outline && f.outline.length > 2 ? f.outline : [[f.bounds.n, f.bounds.w], [f.bounds.n, f.bounds.e], [f.bounds.s, f.bounds.w], [f.bounds.s, f.bounds.e]]; }
+/** Gemeinsamer Standort für mehrere Wiesen: Punkt mit kleinster größter Entfernung zu allen Ecken (Näherung) */
+function standFor(fs, max) {
+  const pts = fs.flatMap(fieldPts); if (!pts.length) return null;
+  let c = [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length];
+  const farOf = c => pts.reduce((m, p) => { const d = distM(c[0], c[1], p[0], p[1]); return d > m[0] ? [d, p] : m; }, [0, null]);
+  for (let k = 1; k <= 60; k++) { const [, p] = farOf(c); c = [c[0] + (p[0] - c[0]) / (k + 1), c[1] + (p[1] - c[1]) / (k + 1)]; }
+  const far = farOf(c)[0];
+  if (far > max) return null;
+  // Lieber an einer Wiese stehen (erreichbar, z. B. an der mittleren von dreien): nächster Randpunkt oder Mitte jeder Wiese, wenn alle noch in Sicht
+  let best = null;
+  if (fs.length > 1) fs.forEach(f => {
+    const o = fieldPts(f), cand = [f.center];
+    for (let i = 0; i < o.length; i++) { const a = o[i], b = o[(i + 1) % o.length];
+      for (let k = 0; k <= 8; k++) cand.push([a[0] + (b[0] - a[0]) * k / 8, a[1] + (b[1] - a[1]) * k / 8]); }
+    cand.forEach(q => { const fq = farOf(q)[0]; if (fq > max) return;
+      const sc = fq + distM(q[0], q[1], c[0], c[1]) * .3;   // möglichst kurze Sichtweite, nicht zu weit vom Idealpunkt
+      if (!best || sc < best.sc) best = { c: q, far: fq, at: f, sc }; });
+  });
+  return best ? { c: best.c, far: best.far, at: best.at } : { c, far };
+}
+/** Reihenfolge in Standorte aufteilen: aufeinanderfolgende Wiesen, die von einem Punkt aus in Sicht (×1,5) liegen */
+function planStands(order) {
+  const { max } = planVlos(), out = [];
+  order.forEach(f => {
+    const g = out[out.length - 1];
+    const st = g && standFor(g.fs.concat([f]), max);
+    if (st) { g.fs.push(f); g.st = st; } else out.push({ fs: [f], st: standFor([f], 1e9) });
+  });
+  return out;
+}
 function planTemps(lat, lon) {
   const m = new Map(); const d = wxCacheGet('icon_' + wxKey(lat, lon)) || wxNearest('icon', lat, lon) || wxCacheGet('dipul_' + wxKey(lat, lon));
   if (d && d.time && d.tempH && d.tempH[2]) d.time.forEach((t, i) => { const v = d.tempH[2][i]; if (v != null) m.set(t, v); });
@@ -4663,32 +4829,43 @@ function showPlan() {
   const [sh, sm] = String(P.wxStart || '04:00').split(':').map(Number);
   const now = new Date(), st0 = new Date(now); st0.setHours(sh || 0, sm || 0, 0, 0);
   let t = Math.max(now.getTime(), now.getHours() >= 12 ? st0.getTime() + 86400000 : st0.getTime());   // nachmittags: Plan für morgen früh
-  const startT = t; let fly = 0, drive = 0, prev = S.me ? [S.me[0], S.me[1]] : null;
-  const rows = order.map((f, i) => {
-    const dk = prev ? distM(prev[0], prev[1], f.center[0], f.center[1]) / 1000 * PLAN.road : 0, dm = dk / PLAN.kmh * 60;
-    t += dm * 60000; const arr = t; const fm = fieldFlightMin(f); t += (PLAN.setup + fm) * 60000; fly += fm; drive += dk; prev = f.center;
-    return { f, dk, arr, end: t, fm };
-  });
+  const startT = t; let fly = 0, drive = 0, prev = S.me ? [S.me[0], S.me[1]] : null, saved = 0;
+  const stands = planStands(order), vl = planVlos(), rows = [];
+  stands.forEach(g => g.fs.forEach((f, j) => {
+    const pos = g.fs.length > 1 ? g.st.c : f.center;
+    const dk = j ? 0 : prev ? distM(prev[0], prev[1], pos[0], pos[1]) / 1000 * PLAN.road : 0, dm = dk / PLAN.kmh * 60;
+    t += dm * 60000; const arr = t; const fm = fieldFlightMin(f); t += ((j ? 2 : PLAN.setup) + fm) * 60000; fly += fm; drive += dk; prev = pos;
+    if (j) saved++;
+    rows.push({ f, dk, arr, end: t, fm, hop: j > 0, grp: g.fs.length > 1 ? g : null, far: g.st ? g.st.far : 0 });
+  }));
   const batt = Math.ceil(fly / planBattMin());
   const tm = planTemps(order[0].center[0], order[0].center[1]), ti = tm.size ? tempInfo(sunDay(startT, order[0].center[0], order[0].center[1]), tm, startT) : null;
   const rise = ti && ti.rise ? ti.rise[0] : null, late = rise ? rows.filter(r => r.end > rise) : [];
-  S.plan = order.map(f => f.center); draw();
+  const planPts = () => { S.plan = rows.map(r => r.f.center); S.planHop = rows.map(r => r.hop); S.planStand = stands.filter(g => g.fs.length > 1).map(g => g.st.c); };
+  planPts(); draw();
   const html = `<div class="zone" style="display:block"><h4>${new Date(startT).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' })} · ${order.length} Wiese${order.length > 1 ? 'n' : ''}</h4>
     <div class="plsum"><div><small>Start</small><b>${hm(startT)}</b></div><div><small>Ende ca.</small><b>${hm(t)}</b></div><div><small>Flugzeit</small><b>${Math.round(fly)} min</b></div>
-      <div><small>Akkus</small><b>${batt}</b><em>à ${planBattMin()} min</em></div><div><small>Fahrt</small><b>${f1(drive)} km</b></div></div>
+      <div><small>Akkus</small><b>${batt}</b><em>à ${planBattMin()} min</em></div><div><small>Fahrt</small><b>${f1(drive)} km</b></div>${saved ? `<div><small>Umsetzen gespart</small><b>${saved}×</b><em>vom selben Standort</em></div>` : ''}</div>
     ${rise ? `<div class="wxsh ${late.length ? 'r' : ''}" style="margin-top:8px"><b>🌡 Ab ${hm(rise)} 2 °C wärmer als am Morgen</b> – ${late.length ? `${late.length} Wiese${late.length > 1 ? 'n' : ''} danach: Wärmebild lässt nach, früher starten oder aufteilen` : 'alle Wiesen vorher fertig'}</div>` : '<div class="meta" style="margin-top:6px">Temperaturverlauf noch nicht geladen – Wetter einmal mit Internet öffnen.</div>'}
-    <div class="meta" style="margin-top:6px">Annahmen: ${PLAN.setup} min Auf-/Abbau je Wiese, Fahrt ${PLAN.kmh} km/h (Luftlinie × ${String(PLAN.road).replace('.', ',')}), Flugzeit aus dem UAV Editor (sonst aus der Fläche geschätzt), Akku ${planBattMin()} min nutzbar (Einstellungen). ${S.me ? 'Start an deinem Standort.' : 'Ohne GPS: Start an der westlichsten Wiese.'}</div></div>
-    ${rows.map((r, i) => `<div class="plrow${rise && r.end > rise ? ' late' : ''}"><span class="pln">${i + 1}</span><div class="l"><b>${esc(r.f.title)}</b><em>${hm(r.arr)}–${hm(r.end)} · Flug ${Math.round(r.fm)} min${i || S.me ? ` · ${f1(r.dk)} km Fahrt` : ''}</em></div></div>`).join('')}
+    <div class="meta" style="margin-top:6px">Annahmen: ${PLAN.setup} min Auf-/Abbau je Wiese, Fahrt ${PLAN.kmh} km/h (Luftlinie × ${String(PLAN.road).replace('.', ',')}), Flugzeit aus dem UAV Editor (sonst aus der Fläche geschätzt), Akku ${planBattMin()} min nutzbar (Einstellungen). Nahe Wiesen vom selben Standort, wenn alle Ecken höchstens ${vl.max} m entfernt sind (Sichtweite ${P.drone === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} ${vl.v} m × 1,5), Missionswechsel 2 min. ${S.me ? 'Start an deinem Standort.' : 'Ohne GPS: Start an der westlichsten Wiese.'}</div></div>
+    ${rows.map((r, i) => `<div class="plrow${rise && r.end > rise ? ' late' : ''}"><span class="pln">${i + 1}</span><div class="l"><b>${esc(r.f.title)}</b><em>${hm(r.arr)}–${hm(r.end)} · Flug ${Math.round(r.fm)} min${r.hop ? ` · <b style="color:#13a538">✈ vom selben Standort weiterfliegen – keine Fahrt</b> (bis ${Math.round(r.far)} m${r.far > vl.v ? ', über ' + vl.v + ' m: gut beobachten' : ''})` : (i || S.me) ? ` · ${f1(r.dk)} km Fahrt` : ''}${!r.hop && r.grp ? ` · <b style="color:#13a538">▼ Standort für Pilot + Spotter ${r.grp.st.at ? 'an der Wiese „' + esc(r.grp.st.at.title) + '“' : 'zwischen den Wiesen'} (grünes Dreieck auf der Karte, ${r.grp.st.c[0].toFixed(5)}, ${r.grp.st.c[1].toFixed(5)}) – alle ${r.grp.fs.length} Wiesen von dort, max. ${Math.round(r.far)} m</b>` : ''}</em></div></div>`).join('')}
     <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap"><button class="b-ok" id="plMap" style="height:46px;padding:0 16px">Route auf der Karte</button><button class="b-sec" id="plOff" style="height:46px;padding:0 16px">Route ausblenden</button></div>`;
   openInfoPage('Einsatzplan', html);
-  $('plMap').onclick = () => { $('iBack').onclick(); S.plan = order.map(f => f.center); fitBounds(bounds(order)); draw(); };
-  $('plOff').onclick = () => { S.plan = null; draw(); toast('Route ausgeblendet.'); };
+  $('plMap').onclick = () => { $('iBack').onclick(); planPts(); fitBounds(bounds(order)); draw(); };
+  $('plOff').onclick = () => { S.plan = null; S.planStand = null; draw(); toast('Route ausgeblendet.'); };
 }
 $('bPlan').onclick = showPlan;
 function paintPlan() {
   if (!S.plan || S.plan.length < 2) return;
-  ctx.save(); ctx.setLineDash([10, 7]); ctx.lineWidth = 3; ctx.strokeStyle = '#7b2cbf'; ctx.beginPath();
-  S.plan.forEach((c, i) => { const [x, y] = toScreen(c[0], c[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.setLineDash([]);
+  ctx.save(); ctx.lineWidth = 3;
+  for (let i = 1; i < S.plan.length; i++) {   // lila gestrichelt = fahren, grün durchgezogen = vom selben Standort weiterfliegen
+    const hop = S.planHop && S.planHop[i], [x0, y0] = toScreen(S.plan[i - 1][0], S.plan[i - 1][1]), [x1, y1] = toScreen(S.plan[i][0], S.plan[i][1]);
+    ctx.setLineDash(hop ? [] : [10, 7]); ctx.strokeStyle = hop ? '#13a538' : '#7b2cbf'; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  (S.planStand || []).forEach(c => { const [x, y] = toScreen(c[0], c[1]);   // gemeinsamer Standort
+    ctx.fillStyle = '#13a538'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 11, y - 20); ctx.lineTo(x + 11, y - 20); ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.font = '800 12px Roboto,system-ui,sans-serif'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.strokeText('Pilot + Spotter', x, y - 30); ctx.fillStyle = '#0b6b25'; ctx.fillText('Pilot + Spotter', x, y - 30); });
   ctx.font = '800 13px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   S.plan.forEach((c, i) => { const [x, y] = toScreen(c[0], c[1]); ctx.fillStyle = '#7b2cbf'; ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.fillText(String(i + 1), x, y + .5); });
   ctx.restore();

@@ -93,6 +93,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         prefs = getSharedPreferences("settings", Context.MODE_PRIVATE);
+        dopCleanup();   // einmalig: Luftbilder mit grauem Fleck entfernen
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         web = new WebView(this);
@@ -974,6 +975,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                             for (int k = 0; k < g.length(); k++) { JSONObject p = g.optJSONObject(k); if (p != null) ln.put(Math.round(p.optDouble("lon") * 1e5) / 1e5).put(Math.round(p.optDouble("lat") * 1e5) / 1e5); }
                             String elc = t.optString("electrified");
                             rails.put(new JSONObject().put("e", elc.equals("contact_line") || elc.equals("yes")).put("n", t.optString("name", t.optString("ref", ""))).put("g", ln));
+                            continue;
+                        }
+                        String pw = t.optString("power");
+                        if (pw.matches("tower|portal|pole") && "node".equals(ty)) {   // Strommast: nur wenn in OSM eine echte Höhe eingetragen ist
+                            double mh = num(t.optString("height"));
+                            if (mh > 0) pts.put(new JSONObject().put("t", "pmast").put("h", mh).put("n", t.optString("ref", "")).put("op", t.optString("operator", ""))
+                                    .put("lat", el.optDouble("lat")).put("lon", el.optDouble("lon")));
                             continue;
                         }
                         boolean wind = "generator".equals(t.optString("power")) && "wind".equals(t.optString("generator:source"));
@@ -2087,7 +2095,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     b = dipulTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("g"));
                 } else if (km[0].startsWith("dop3/")) {
                     List<String> seg = u.getPathSegments();
+                    DOP_PARTIAL.set(false);
                     b = dopTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("s"));
+                    if (b != null && DOP_PARTIAL.get()) return new WebResourceResponse("image/jpeg", null, new ByteArrayInputStream(b));   // unvollständig: zeigen, nicht speichern
                     if (b == null) {   // außerhalb HE/RP: Esri nur zum Ansehen
                         byte[] e = httpBytes("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + seg.get(0) + "/" + seg.get(2) + "/" + seg.get(1));
                         if (e != null) return new WebResourceResponse("image/jpeg", null, new ByteArrayInputStream(e));
@@ -2121,7 +2131,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         String url = DIPUL_WMS + "?service=WMS&version=1.1.1&request=GetMap&styles=&format=image/png&transparent=true&srs=EPSG:3857&width=256&height=256"
                 + "&bbox=" + String.format(Locale.ROOT, "%.3f,%.3f,%.3f,%.3f", minx, miny, maxx, maxy)
                 + "&layers=" + URLEncoder.encode(ls.toString(), "UTF-8");
-        return httpBytes(url);
+        return httpBytes(url, 8000, 15000);
     }
 
     /** Mehrere Zonengruppen zu einem Bild: Einzelbilder aus dem Speicher (fehlende online holen und speichern), übereinander zeichnen */
@@ -2130,11 +2140,18 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
             android.graphics.Canvas cv = new android.graphics.Canvas(out);
             int n = 0;
+            // fehlende Gruppen gleichzeitig bei dipul holen (nicht nacheinander) – sonst dauert jede Kachel sehr lange
+            java.util.Map<String, java.util.concurrent.Future<byte[]>> fut = new HashMap<>();
+            for (String g : groups) {
+                File gf = new File(tileDir(), "dipul/" + g + "/" + z + "/" + x + "/" + y + ".png");
+                if (online && !(gf.isFile() && gf.length() > 0)) fut.put(g, GEO_POOL.submit(() -> { byte[] b = dipulTile(z, x, y, g); if (b != null && b.length > 0) saveTile(gf, b); return b; }));
+            }
             for (String g : groups) {
                 File gf = new File(tileDir(), "dipul/" + g + "/" + z + "/" + x + "/" + y + ".png");
                 byte[] b = null;
-                if (gf.isFile() && gf.length() > 0) try (InputStream in = new FileInputStream(gf)) { b = readBytes(in); }
-                else if (online) { b = dipulTile(z, x, y, g); if (b != null && b.length > 0) saveTile(gf, b); }
+                java.util.concurrent.Future<byte[]> fu = fut.get(g);
+                if (fu != null) { try { b = fu.get(12, java.util.concurrent.TimeUnit.SECONDS); } catch (Throwable t) { b = null; } }   // nicht ewig blockieren – sonst kommt auch die Grundkarte nicht mehr durch
+                else if (gf.isFile() && gf.length() > 0) try (InputStream in = new FileInputStream(gf)) { b = readBytes(in); }
                 if (b == null) continue;
                 android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
                 if (bm == null) continue;
@@ -2156,10 +2173,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
     }
 
-    private static byte[] httpBytes(String url) throws Exception {
+    private static byte[] httpBytes(String url) throws Exception { return httpBytes(url, 10000, 30000); }
+    private static byte[] httpBytes(String url, int conn, int read) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         try {
-            c.setConnectTimeout(10000); c.setReadTimeout(30000);
+            c.setConnectTimeout(conn); c.setReadTimeout(read);
             c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Android; Kitzrettung Limburg e.V., nicht-kommerziell)");
             if (c.getResponseCode() != 200) return null;
             String ct = c.getContentType();
@@ -2169,8 +2187,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     /** Luftbild-Kachel aus den Orthophotos von RP (unten) und HE (oben) zusammensetzen; null = an dieser Stelle kein DOP */
+    private static final java.util.concurrent.ExecutorService GEO_POOL = java.util.concurrent.Executors.newFixedThreadPool(12);
     private static final java.util.concurrent.ExecutorService DOP_POOL = java.util.concurrent.Executors.newFixedThreadPool(8);
+    private static final java.util.concurrent.ExecutorService DOP_PF_POOL = java.util.concurrent.Executors.newFixedThreadPool(6);   // eigener Pool fürs Vorladen, damit die Ansicht nicht warten muss
+    static final ThreadLocal<Boolean> DOP_PREFETCH = ThreadLocal.withInitial(() -> false);
 
+    static final ThreadLocal<Boolean> DOP_PARTIAL = ThreadLocal.withInitial(() -> false);
     /** states: "HE", "RP" oder "HE,RP" (Kachel an der Landesgrenze) – nur die nötigen Dienste, parallel */
     private static byte[] dopTile(int z, int x, int y, String states) throws Exception {
         double R = 20037508.342789244, size = 2 * R / (1 << z);
@@ -2179,8 +2201,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (states == null || states.isEmpty()) states = "HE,RP";
         boolean he = states.contains("HE"), rp = states.contains("RP");
         boolean both = he && rp;
-        java.util.concurrent.Future<byte[]> fRp = both ? DOP_POOL.submit(() -> httpBytes(DOP_RP + bbox)) : null;
-        java.util.concurrent.Future<byte[]> fHe = both ? DOP_POOL.submit(() -> httpBytes(DOP_HE + bbox)) : null;
+        java.util.concurrent.ExecutorService dp = DOP_PREFETCH.get() ? DOP_PF_POOL : DOP_POOL;
+        java.util.concurrent.Future<byte[]> fRp = both ? dp.submit(() -> httpBytes(DOP_RP + bbox)) : null;
+        java.util.concurrent.Future<byte[]> fHe = both ? dp.submit(() -> httpBytes(DOP_HE + bbox)) : null;
         // nur ein Land: das JPEG des Landesdienstes direkt übernehmen (keine Transparenz, kein Umrechnen – schnell und farbecht)
         if (!(he && rp)) {
             byte[] b = null;
@@ -2195,10 +2218,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         android.graphics.Canvas cv = new android.graphics.Canvas(out);
         cv.drawColor(0xffd9d9d0);
         boolean any = false;
+        DOP_PARTIAL.set(false);
         for (java.util.concurrent.Future<byte[]> fu : new java.util.concurrent.Future[]{fRp, fHe}) {
             byte[] b = null;
             try { b = fu.get(40, java.util.concurrent.TimeUnit.SECONDS); } catch (Exception ignored) { }
-            if (b == null) continue;
+            if (b == null) { DOP_PARTIAL.set(true); continue; }   // ein Landesdienst fehlt: anzeigen, aber nicht speichern (sonst bleibt ein grauer Fleck)
             android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
             if (bm == null) continue;
             if (hasContent(bm)) { cv.drawBitmap(bm, null, new android.graphics.Rect(0, 0, 256, 256), null); any = true; }
@@ -2209,6 +2233,44 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         out.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, bo);
         out.recycle();
         return bo.toByteArray();
+    }
+
+    /** Für den Vorab-Download: nur vollständige Luftbilder (beide Landesdienste geantwortet) */
+    private static byte[] dopFull(int z, int x, int y) throws Exception {
+        DOP_PARTIAL.set(false); DOP_PREFETCH.set(true);
+        byte[] b;
+        try { b = dopTile(z, x, y, "HE,RP"); } finally { DOP_PREFETCH.set(false); }
+        return DOP_PARTIAL.get() ? null : b;
+    }
+
+    /** Einmalig: früher gespeicherte Luftbilder mit grauem Fleck (ein Landesdienst fehlte) löschen – werden neu geladen */
+    private void dopCleanup() {
+        if (prefs.getBoolean("dop_clean1", false)) return;
+        new Thread(() -> {
+            int del = 0;
+            java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
+            File root = new File(tileDir(), "dop3"); if (root.isDirectory()) st.push(root);
+            android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options(); o.inSampleSize = 4;
+            while (!st.isEmpty()) {
+                File d = st.pop(); File[] fs = d.listFiles(); if (fs == null) continue;
+                for (File f : fs) {
+                    if (f.isDirectory()) { st.push(f); continue; }
+                    try {
+                        android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeFile(f.getPath(), o);
+                        if (bm == null) { f.delete(); del++; continue; }
+                        int w = bm.getWidth(), h = bm.getHeight(), grey = 0, tot = 0;
+                        for (int yy = 0; yy < h; yy += 2) for (int xx = 0; xx < w; xx += 2) {
+                            int p = bm.getPixel(xx, yy), r = (p >> 16) & 255, g = (p >> 8) & 255, bl = p & 255; tot++;
+                            if (Math.abs(r - 0xd9) < 7 && Math.abs(g - 0xd9) < 7 && Math.abs(bl - 0xd0) < 7) grey++;
+                        }
+                        bm.recycle();
+                        if (grey * 10 > tot) { f.delete(); del++; }   // mehr als 10 % Füllgrau = unvollständig
+                    } catch (Throwable ignored) { }
+                }
+            }
+            prefs.edit().putBoolean("dop_clean1", true).apply();
+            if (del > 0) { prefs.edit().remove("esBox3").apply(); js("window.onDopCleaned && window.onDopCleaned(" + del + ")"); }
+        }).start();
     }
 
     /** Hat das Bild sichtbare (nicht transparente, nicht rein weiße) Pixel? Stichprobe 16×16 */
@@ -2300,7 +2362,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                                 else {
                                     if (lay.equals("dop") && t[0] < 12) { synchronized (cnt) { cnt[1]++; } return; }   // Luftbild-Übersicht kommt von Esri (nur beim Ansehen)
                                     byte[] b = geo ? dipulTile(t[0], t[1], t[2], lay.substring(4))
-                                            : lay.equals("dop") ? dopTile(t[0], t[1], t[2], "HE,RP")
+                                            : lay.equals("dop") ? dopFull(t[0], t[1], t[2])
                                             : httpBytes(BM + (lay.equals("bmg") ? "de_basemapde_web_raster_grau" : "de_basemapde_web_raster_farbe") + "/default/GLOBAL_WEBMERCATOR/" + t[0] + "/" + t[2] + "/" + t[1] + ".png");
                                     if (b != null && b.length > 0) { saveTile(f, b); synchronized (cnt) { cnt[0]++; bytes[0] += b.length; } }
                                     else synchronized (cnt) { cnt[2]++; }
