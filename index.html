@@ -669,7 +669,7 @@ function makeTileLayer(div, cfg) {   // cfg: { url(z,x,y), maxz(), minz, id() = 
   const drop = (L, key) => {   // Kachel aus der Ebene nehmen, geladene für späteres Zurückwischen aufheben
     const im = L.tiles.get(key); if (!im) return;
     L.tiles.delete(key); im.remove();
-    if (im.classList.contains('ok')) { T.pool.set(im.dataset.k, im); if (T.pool.size > 300) T.pool.delete(T.pool.keys().next().value); }
+    if (im.classList.contains('ok')) { T.pool.set(im.dataset.k, im); if (T.pool.size > 90) T.pool.delete(T.pool.keys().next().value); }
   };
   T.reset = () => { div.innerHTML = ''; T.levels.clear(); T.pool.clear(); T.cur = null; T.id = cfg.id(); };
   T.update = gest => {
@@ -717,7 +717,7 @@ function makeTileLayer(div, cfg) {   // cfg: { url(z,x,y), maxz(), minz, id() = 
     T.levels.forEach((o, z) => {
       if (o === L) return;
       const kk = Math.pow(2, V.z - z);
-      if (done || kk < 0.2 || kk > 6 || T.levels.size > 3) { [...o.tiles.keys()].forEach(key => drop(o, key)); o.el.remove(); T.levels.delete(z); }
+      if (done || kk < 0.2 || kk > 6 || T.levels.size > 2) { [...o.tiles.keys()].forEach(key => drop(o, key)); o.el.remove(); T.levels.delete(z); }
     });
   };
   return T;
@@ -747,11 +747,11 @@ function geoKeep(z, x, y) {
   const px = v => ((v - X0) * N * 256).toFixed(1), py = v => ((v - Y0) * N * 256).toFixed(1);   // teilweise: Innenbereich ausschneiden
   return { clip: `path(evenodd, "M0 0H256V256H0Z M${px(ix0)} ${py(iy0)}H${px(ix1)}V${py(iy1)}H${px(ix0)}Z")` };
 }
-const GEOL = ZG.map(([g]) => { const d = document.createElement('div'); d.className = 'gl'; $('mapG').appendChild(d);
-  return makeTileLayer(d, { url: (z, x, y) => `https://dipul.local/${z}/${x}/${y}?g=${g}`, key: (z, x, y) => 'g' + g + z + '/' + x + '/' + y,
-    maxz: () => 18, minz: 7, id: () => g + (P.geoOwn === '0' ? 'a' : 'o') + (S.geoBox ? S.geoBox.n : ''), keep: geoKeep,
-    off: () => P.geo !== '1' || P.geoAll === '0' || !zgOn(g) }); });
-const GEOR = { update: gest => GEOL.forEach(l => l.update(gest)), reset: () => GEOL.forEach(l => l.reset()) };
+// Eine einzige Bild-Ebene für alle eingeschalteten Gruppen (die App setzt sie aus den gespeicherten Einzelbildern zusammen) – spart viel Speicher
+const zgSel = () => ZG.map(([g]) => g).filter(zgOn).join(',');
+const GEOR = makeTileLayer($('mapG'), { url: (z, x, y) => `https://dipul.local/${z}/${x}/${y}?g=${zgSel()}`, key: (z, x, y) => 'g' + zgSel() + z + '/' + x + '/' + y,
+  maxz: () => 18, minz: 7, id: () => zgSel() + (P.geoOwn === '0' ? 'a' : 'o') + (S.geoBox ? S.geoBox.n : ''), keep: geoKeep,
+  off: () => P.geo !== '1' || P.geoAll === '0' || !zgSel() });
 function zgSet(k, on) {
   const cur = ZG.map(([g]) => g).filter(g => g === k ? on : zgOn(g));
   setP('zg', cur.join(',')); applyGeoConfig(); drawLive(false);

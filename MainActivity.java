@@ -114,6 +114,18 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 WebResourceResponse r = tileFromCache(req.getUrl());
                 return r != null ? r : super.shouldInterceptRequest(view, req);
             }
+
+            /** Anzeige-Prozess abgestürzt (z. B. zu wenig Speicher): neu laden statt weißem Bildschirm */
+            @Override
+            public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+                try {
+                    android.view.ViewGroup parent = (android.view.ViewGroup) view.getParent();
+                    if (parent != null) parent.removeView(view);
+                    view.destroy();
+                } catch (Exception ignored) { }
+                runOnUiThread(() -> recreate());
+                return true;
+            }
         });
         new Thread(this::tileCacheTrim).start();
         web.addJavascriptInterface(new Bridge(), "Android");
@@ -1964,7 +1976,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         if (host.equals("dipul.local") && n == 3) {   // Geozonen als Bild (dipul WMS), je Zonengruppe g
             String g = u.getQueryParameter("g");
-            if (g == null || !ZONE_GROUPS.containsKey(g)) return null;
+            if (g == null || g.isEmpty()) return null;
+            if (g.contains(",")) {   // mehrere Gruppen: aus den gespeicherten Einzelbildern zu einem Bild zusammensetzen
+                String[] gs = g.split(","); java.util.Arrays.sort(gs);
+                for (String x : gs) if (!ZONE_GROUPS.containsKey(x)) return null;
+                return new String[]{"dipul/c/" + android.text.TextUtils.join("+", gs) + "/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".png", "image/png"};
+            }
+            if (!ZONE_GROUPS.containsKey(g)) return null;
             return new String[]{"dipul/" + g + "/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".png", "image/png"};
         }
         if (host.equals("dop.local") && n == 3) return new String[]{"dop3/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".jpg", "image/jpeg"};
@@ -1983,10 +2001,19 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             boolean on = online();
             long fresh = km[0].startsWith("dipul/") ? Long.MAX_VALUE / 2 : TILE_FRESH;   // Geozonen: nur auf Knopfdruck neu (dipulClear)
             if (have && (!on || System.currentTimeMillis() - f.lastModified() < fresh)) return tileResp(f, km[1]);
+            if (!on && km[0].startsWith("dipul/c/")) {   // offline: aus gespeicherten Einzelbildern zusammensetzen
+                List<String> sg = u.getPathSegments();
+                byte[] cb = dipulCombined(Integer.parseInt(sg.get(0)), Integer.parseInt(sg.get(1)), Integer.parseInt(sg.get(2)), u.getQueryParameter("g").split(","), false, f);
+                if (cb != null) return new WebResourceResponse(km[1], null, new ByteArrayInputStream(cb));
+            }
             if (!on) return new WebResourceResponse(km[1], null, 404, "offline", null, new ByteArrayInputStream(new byte[0]));
             byte[] b = null;
             try {
-                if (km[0].startsWith("dipul/")) {
+                if (km[0].startsWith("dipul/c/")) {
+                    List<String> seg = u.getPathSegments();
+                    byte[] cb = dipulCombined(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("g").split(","), on, f);
+                    if (cb != null) return new WebResourceResponse(km[1], null, new ByteArrayInputStream(cb));
+                } else if (km[0].startsWith("dipul/")) {
                     List<String> seg = u.getPathSegments();
                     b = dipulTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("g"));
                 } else if (km[0].startsWith("dop3/")) {
@@ -2026,6 +2053,31 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 + "&bbox=" + String.format(Locale.ROOT, "%.3f,%.3f,%.3f,%.3f", minx, miny, maxx, maxy)
                 + "&layers=" + URLEncoder.encode(ls.toString(), "UTF-8");
         return httpBytes(url);
+    }
+
+    /** Mehrere Zonengruppen zu einem Bild: Einzelbilder aus dem Speicher (fehlende online holen und speichern), übereinander zeichnen */
+    private byte[] dipulCombined(int z, int x, int y, String[] groups, boolean online, File saveTo) {
+        try {
+            android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas cv = new android.graphics.Canvas(out);
+            int n = 0;
+            for (String g : groups) {
+                File gf = new File(tileDir(), "dipul/" + g + "/" + z + "/" + x + "/" + y + ".png");
+                byte[] b = null;
+                if (gf.isFile() && gf.length() > 0) try (InputStream in = new FileInputStream(gf)) { b = readBytes(in); }
+                else if (online) { b = dipulTile(z, x, y, g); if (b != null && b.length > 0) saveTile(gf, b); }
+                if (b == null) continue;
+                android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
+                if (bm == null) continue;
+                cv.drawBitmap(bm, null, new android.graphics.Rect(0, 0, 256, 256), null); bm.recycle(); n++;
+            }
+            if (n == 0) { out.recycle(); return null; }
+            java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+            out.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, bo); out.recycle();
+            byte[] res = bo.toByteArray();
+            if (n == groups.length && saveTo != null) saveTile(saveTo, res);   // nur vollständige Bilder speichern
+            return res;
+        } catch (Throwable t) { return null; }
     }
 
     private static void saveTile(File f, byte[] b) throws Exception {
