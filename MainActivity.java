@@ -958,7 +958,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public String notams() {
             try {
                 File f = notamFile();
-                return new JSONObject().put("fetched", prefs.getLong("notam_fetched", 0))
+                return new JSONObject().put("fetched", prefs.getLong("notam_fetched", 0)).put("err", prefs.getString("notam_err", ""))
                         .put("data", f.isFile() ? new JSONObject(readFile(f)) : new JSONObject()).toString();
             } catch (Exception e) { return "{}"; }
         }
@@ -1950,6 +1950,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             String lay = u.getPath().contains("_grau/") ? "bmg" : "bmf";
             return new String[]{lay + "/" + seg.get(n - 3) + "/" + seg.get(n - 1).replace(".png", "") + "/" + seg.get(n - 2) + ".png", "image/png"};
         }
+        if (host.equals("dipul.local") && n == 3) {   // Geozonen als Bild (dipul WMS), r = n (ohne) / r (mit Wohngrundstücken)
+            String r = "r".equals(u.getQueryParameter("r")) ? "r" : "n";
+            return new String[]{"dipul/" + r + "/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".png", "image/png"};
+        }
         if (host.equals("dop.local") && n == 3) return new String[]{"dop3/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".jpg", "image/jpeg"};
         if (host.equals("tile.openstreetmap.org") && n == 3) return new String[]{"osm/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2), "image/png"};
         if (host.equals("server.arcgisonline.com") && n >= 3 && u.getPath().contains("/tile/"))   // .../tile/{z}/{y}/{x}
@@ -1964,11 +1968,15 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             File f = new File(tileDir(), km[0]);
             boolean have = f.isFile() && f.length() > 0;
             boolean on = online();
-            if (have && (!on || System.currentTimeMillis() - f.lastModified() < TILE_FRESH)) return tileResp(f, km[1]);
+            long fresh = km[0].startsWith("dipul/") ? 30L * DAY : TILE_FRESH;   // Geozonen ändern sich selten – monatlich neu
+            if (have && (!on || System.currentTimeMillis() - f.lastModified() < fresh)) return tileResp(f, km[1]);
             if (!on) return new WebResourceResponse(km[1], null, 404, "offline", null, new ByteArrayInputStream(new byte[0]));
             byte[] b = null;
             try {
-                if (km[0].startsWith("dop3/")) {
+                if (km[0].startsWith("dipul/")) {
+                    List<String> seg = u.getPathSegments();
+                    b = dipulTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), "r".equals(u.getQueryParameter("r")));
+                } else if (km[0].startsWith("dop3/")) {
                     List<String> seg = u.getPathSegments();
                     b = dopTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("s"));
                     if (b == null) {   // außerhalb HE/RP: Esri nur zum Ansehen
@@ -1982,6 +1990,21 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** Eine Kartenkachel (Web-Mercator) mit allen Geozonen-Ebenen vom dipul-Kartendienst, transparent */
+    private static byte[] dipulTile(int z, int x, int y, boolean resi) throws Exception {
+        double R = 20037508.342789244, sz = 2 * R / (1 << z);
+        double minx = -R + x * sz, maxx = minx + sz, maxy = R - y * sz, miny = maxy - sz;
+        StringBuilder ls = new StringBuilder();
+        for (String l : GEO_LAYERS) {
+            if (!resi && l.equals("wohngrundstuecke")) continue;
+            ls.append(ls.length() > 0 ? "," : "").append("dipul:").append(l);
+        }
+        String url = DIPUL_WMS + "?service=WMS&version=1.1.1&request=GetMap&styles=&format=image/png&transparent=true&srs=EPSG:3857&width=256&height=256"
+                + "&bbox=" + String.format(Locale.ROOT, "%.3f,%.3f,%.3f,%.3f", minx, miny, maxx, maxy)
+                + "&layers=" + URLEncoder.encode(ls.toString(), "UTF-8");
+        return httpBytes(url);
     }
 
     private static void saveTile(File f, byte[] b) throws Exception {
@@ -2444,6 +2467,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private void notamSyncImpl(double n, double s, double e, double w, boolean force) {
         try {
             if (!force && System.currentTimeMillis() - prefs.getLong("notam_fetched", 0) < 3600000L && notamFile().isFile()) return;
+            // Ganz Deutschland – temporäre Einschränkungen sind wenige, die App sortiert nach Entfernung zu den Feldern
+            n = 55.1; s = 47.2; e = 15.1; w = 5.8;
             JSONObject data = new JSONObject();
             for (String layer : new String[]{"temporaere_betriebseinschraenkungen", "inaktive_temporaere_betriebseinschraenkungen"}) {
                 String url = "https://uas-betrieb.de/geoservices/dipul/wfs?service=WFS&version=1.1.0&request=GetFeature"
@@ -2452,16 +2477,24 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
                 c.setConnectTimeout(15000); c.setReadTimeout(60000);
                 c.setRequestProperty("User-Agent", "KMZMissionen/1.7 (Kitzrettung, nicht-kommerziell)");
-                if (c.getResponseCode() != 200) { c.disconnect(); return; }
+                int code = c.getResponseCode();
+                if (code != 200) { c.disconnect(); prefs.edit().putString("notam_err", "dipul antwortet mit HTTP " + code).apply(); return; }
                 String txt;
                 try (InputStream in = c.getInputStream()) { txt = readAll(in); }
                 c.disconnect();
+                if (!txt.trim().startsWith("{")) {
+                    String m = txt.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ").trim();
+                    prefs.edit().putString("notam_err", "dipul: " + (m.length() > 160 ? m.substring(0, 160) : m)).apply();
+                    return;
+                }
                 JSONObject fc = new JSONObject(txt);
                 data.put(layer, fc.optJSONArray("features") != null ? fc.optJSONArray("features") : new JSONArray());
             }
             writeFileAtomic(notamFile(), data.toString());
-            prefs.edit().putLong("notam_fetched", System.currentTimeMillis()).apply();
-        } catch (Exception ignored) { }
+            prefs.edit().putLong("notam_fetched", System.currentTimeMillis()).remove("notam_err").apply();
+        } catch (Exception ex) {
+            prefs.edit().putString("notam_err", "Abruf fehlgeschlagen: " + ex.getMessage()).apply();
+        }
     }
 
     private static double distM(double lat1, double lon1, double lat2, double lon2) {

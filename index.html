@@ -15,13 +15,16 @@
     --o-bg:#5a3d10;--r-bg:#5c1d1d;--y-bg:#4d4510;--g-bg:#173d24;
     --sunday:#25405e;--suntw:#2e2a4c;--sunnight:#0d1220;
     --rose-bg:rgba(22,30,40,.86);--rose-ring:rgba(140,155,180,.6);--rose-tick:#c9d3e0;--rose-tick2:#7d8aa0;--rose-txt:#e6edf3}
-  body.dark #mapWrap{filter:brightness(.72) saturate(.9)}
+  body.dark #mapT::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.28);z-index:9}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font:16px/1.3 Roboto,system-ui,sans-serif;user-select:none}
   #mapWrap{position:fixed;inset:0;overflow:hidden;background:#cfd6dc}
   #map{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
-  #mapT{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform;display:block}
-  #mapWrap.grey #mapT{filter:saturate(.3) brightness(1.1) contrast(.85)}
+  #mapT{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+  #mapG{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+  #mapG .tl,#mapT .tl{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+  #mapG img,#mapT img{position:absolute;width:256px;height:256px;max-width:none;opacity:0;transition:opacity .18s linear;-webkit-user-drag:none}
+  #mapG img.ok,#mapT img.ok{opacity:1}
   #mapO{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform}
   button{font:inherit;border:0;border-radius:10px;font-weight:700;cursor:pointer}
   button:disabled{opacity:.4}
@@ -181,6 +184,10 @@
   .sw-osm{background:linear-gradient(135deg,#f2efe9 0 35%,#cde6b9 35% 55%,#f7d9a8 55% 62%,#aad3df 62%)}
   .sw-sat{background:linear-gradient(135deg,#3d5a2e 0 30%,#6f7f4c 30% 50%,#a39a7a 50% 60%,#25402a 60%)}
   .hicon{width:28px;height:28px;margin-right:10px;color:var(--acc)}
+  .setnav{position:sticky;top:0;z-index:2;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:8px 0 10px;background:var(--bg);box-shadow:0 -24px 0 var(--bg)}
+  .setnav button{flex:none;height:40px;padding:0 16px;border-radius:20px;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:15px;font-weight:700}
+  .setnav button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  h3.setcat{margin:20px 2px 8px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);scroll-margin-top:72px}
   h3.sec{color:var(--acc);margin:16px 0 8px}
   .wxwrap{overflow-x:auto}
   .wxhero{display:flex;gap:14px;align-items:center;background:linear-gradient(135deg,var(--card),var(--card2))}
@@ -233,10 +240,40 @@
   .wxday .vd{font-weight:800;font-size:13px;margin:-2px 0 4px}
   .wxday .ln{display:flex;justify-content:space-between;gap:6px}.wxday .ln b{font-weight:800}
   .wxday .sub{color:var(--muted);font-size:12px;margin-top:3px;border-top:1px solid var(--line);padding-top:3px}
+  .nmapwrap{position:relative;margin-bottom:12px}
+  #nMap{width:100%;height:52vh;min-height:240px;display:block;border-radius:14px;background:#cfd6dc}
+  .nmapbtn{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
+  .nmapbtn button{width:44px;height:44px;border-radius:12px;background:var(--card);color:var(--txt);border:1px solid var(--line);font-size:22px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+  .nmleg{display:flex;gap:6px 12px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted);margin-top:6px}
+  .nmleg span{display:inline-block;width:18px;height:12px;border:2px dashed;border-radius:3px;margin-right:-6px}
+  .nnum{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:12px;background:#b3131b;color:#fff;font-size:13px}
+  .nnum.in{background:#5d6975}
+  .zone.flash{outline:3px solid var(--acc)}
+  .mtgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:8px;margin-top:6px}
+  .mt{border-radius:12px;padding:10px 12px;background:var(--card2);border-left:6px solid #13a538}
+  .mt.o{border-left-color:#e8a200;background:var(--o-bg)}.mt.r{border-left-color:#b3131b;background:var(--r-bg)}
+  .mth{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline}.mth b{font-size:16px}.mth span{font-size:12.5px;color:var(--muted)}
+  .mtv{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:6px}
+  .mtv small{display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:.03em}
+  .mtv b{font-size:19px;font-weight:800}.mtv em{display:block;font-style:normal;font-size:12.5px;color:var(--muted)}
+  .mtw{margin-top:6px;font-size:14px;font-weight:600}.mtw.hl{font-weight:800}.mtw.hl::before{content:'⚠ '}
+  .mt details{margin-top:4px;font-size:12px;color:var(--muted)}.mt code{display:block;white-space:pre-wrap;word-break:break-all;margin-top:3px}
+  .xq{cursor:pointer}.xi{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--acc);color:#fff;font-size:10px;font-style:normal;font-weight:800;margin-left:3px;vertical-align:1px}
+  .wxtl .lb.xq{text-decoration:underline dotted;text-underline-offset:3px}
+  #xpl{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center}
+  #xpl.open{display:flex}
+  #xpl .xbox{width:min(760px,100%);max-height:92vh;overflow:auto;background:var(--bg);border-radius:22px 22px 0 0;padding:0 18px 22px;box-shadow:0 -6px 30px rgba(0,0,0,.35)}
+  #xpl .xhead{position:sticky;top:0;background:var(--bg);display:flex;align-items:center;gap:12px;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+  #xpl .xhead h3{margin:0;font-size:20px;flex:1;text-align:center;padding-right:90px}
+  #xpl .xval{text-align:center;margin:14px 0 6px}#xpl .xval small{display:block;color:var(--muted);font-size:14px}#xpl .xval b{font-size:40px;font-weight:900}#xpl .xval em{display:block;font-style:normal;font-size:16px;font-weight:700;color:var(--muted)}
+  #xpl .xcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 16px;margin-top:10px}
+  #xpl .xcard h4{margin:0 0 6px;font-size:16px}#xpl .xcard p{margin:0;color:var(--muted);font-size:15px;line-height:1.45}
+  #xpl ul{list-style:none;margin:0;padding:0}#xpl li{display:flex;align-items:center;gap:10px;padding:5px 6px;border-radius:8px;font-size:15px;color:var(--muted)}
+  #xpl li span{flex:none;width:10px;height:10px;border-radius:50%}#xpl li.on{background:var(--card2);color:var(--txt);font-weight:700}
   @media (max-width:560px){.wxbig{grid-template-columns:1fr}}
   .wx4h b{font-size:15px}
   @media (max-width:560px){.wx4{grid-template-columns:1fr}.wx4h{grid-template-columns:repeat(3,1fr)}}
-  .sunsvg{width:100%;height:140px;display:block;border-radius:10px;stroke:none}
+  .sunsvg{width:100%;height:auto;display:block;border-radius:14px;stroke:none;box-shadow:0 4px 18px rgba(0,0,0,.25)}
   .wxt{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
   .wxl{flex:none;width:122px;border-right:2px solid var(--line);background:var(--card2)}
   .wxl>div{height:30px;box-sizing:border-box;padding:0 8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:4px;white-space:nowrap;border-bottom:1px solid var(--line2)}
@@ -260,7 +297,7 @@
 </head>
 <body>
 
-<div id="mapWrap"><canvas id="mapT"></canvas><canvas id="mapO"></canvas><canvas id="map"></canvas></div>
+<div id="mapWrap"><div id="mapT"></div><div id="mapG"></div><canvas id="mapO"></canvas><canvas id="map"></canvas></div>
 <div id="busy"></div>
 <div id="wind"></div>
 <div id="notam"></div>
@@ -302,39 +339,13 @@
 <div class="page" id="pgSet">
   <header><img class="logo" data-logo alt=""><h2 class="brand"><span><b>Mission Kitzrettung</b> · Einstellungen</span></h2><button class="b-sec" id="setBack">Zurück zur Karte</button></header>
   <div class="body">
+    <nav class="setnav"><button data-sc="drohne">Drohne &amp; Dateien</button><button data-sc="karte">Karte</button><button data-sc="luft">Luftraum &amp; Regeln</button><button data-sc="wetter">Wetter</button><button data-sc="info">Über die App</button></nav>
+    <h3 class="setcat" id="sc-drohne">Drohne &amp; Dateien</h3>
+    <div class="set"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Gibt es ein Feld als M3T und M4T, zeigt die Karte nur die passende Version; Felder, die es nur einmal gibt, immer (sie werden beim Download bei Bedarf umgerechnet).</div></div><div class="seg"><button data-rcdrone="">Keine</button><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
     <div class="set"><div class="l"><div class="t">Quellordner (KMZ aus UAV Editor)</div><div class="v" id="vSrc"></div></div><button class="b-sec" data-pick="src">Ordner wählen</button></div>
     <div class="set"><div class="l"><div class="t">Zielordner für Pilot 2</div><div class="v" id="vDst"></div></div><button class="b-sec" data-pick="dst">Ordner wählen</button></div>
     <div class="set"><div class="l"><div class="t">Verschieben statt kopieren</div><div class="v">Aus = Original bleibt im Quellordner</div></div><label class="sw"><input type="checkbox" id="sMove"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Zielordner vor Download leeren</div><div class="v">Löscht vorher alle .kmz im Zielordner</div></div><label class="sw"><input type="checkbox" id="sClear"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div><div class="v">Auch über ⓘ → „Felder“ schaltbar</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Gibt es ein Feld als M3T und M4T, zeigt die Karte nur die passende Version; Felder, die es nur einmal gibt, immer (sie werden beim Download bei Bedarf umgerechnet).</div></div><div class="seg"><button data-rcdrone="">Keine</button><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
-    <div class="set"><div class="l"><div class="t">Geozonen (dipul) anzeigen</div><div class="v">Flughäfen, Kontrollzonen, Schutzgebiete, Verkehrswege, Stromleitungen u. a. – nur zur Orientierung, maßgeblich ist dipul.de</div></div><label class="sw"><input type="checkbox" id="sGeo"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Fernpilotenzeugnis</div><div class="v" id="vLic"></div></div><div class="seg"><button data-lic="A1A3">A1/A3</button><button data-lic="A2">A2</button></div></div>
-    <div class="set" id="aeBox" style="flex-direction:column;align-items:stretch"><div class="t">Allgemeinerlaubnis (§ 21h LuftVO) liegt vor für</div>
-      <div class="v" id="vAe" style="margin-bottom:8px"></div>
-      <div class="roots" id="aeStates"></div>
-    </div>
-    <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Bundesland-Erkennung</div>
-      <div class="v" id="vReg"></div>
-    </div>
-    <div class="set"><div class="l"><div class="t">Hindernisse aus OpenStreetMap</div><div class="v">Windräder (grün, mit Gesamthöhe), Masten/Türme/Schornsteine (braunes Dreieck), Bahnstrecken (schwarz-weiß) und alle Freileitungen nach Spannung: violett dick = Höchstspannung (220/380 kV), violett = Hochspannung (110 kV), orange = Mittelspannung, grau gestrichelt = Nieder-/unbekannte Spannung. Auch Leitungen ohne dipul-Geozone – Hindernis beim Start und Tiefflug.</div></div><label class="sw"><input type="checkbox" id="sOsmPower"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Überfluggenehmigung Stromleitungen (Netzbetreiber)</div><div class="v">Genehmigungen der Netzbetreiber liegen vor – Stromtrassen werden grau, in der Info stehen Spannung und Masthöhe</div></div><label class="sw"><input type="checkbox" id="sPower"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Allgemeinverfügung Wildtierrettung (RP Gießen)</div><div class="v" id="vAvgi"></div></div><label class="sw"><input type="checkbox" id="sAvgi"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Saison-Vorschau (Planung)</div><div class="v">Zeigt Naturschutz-, FFH- und Vogelschutzgebiete im RB Gießen so, als wäre Mähsaison (15.04.–30.06.). Nur zur Planung – außerhalb der Saison gilt die Verfügung NICHT.</div></div><label class="sw"><input type="checkbox" id="sSeason"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Die Rose steht mit Norden oben wie die Karte, der Windsack zeigt die Windrichtung (schwarze Marke = woher der Wind kommt). Mit Kompassnadel: die rote Nadelspitze zeigt, wohin die RC schaut · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt ebenfalls die Blickrichtung.</div></div><div class="seg"><button data-rose="dev">Mit Kompassnadel</button><button data-rose="north">Ohne Nadel</button><button data-rose="off">Aus</button></div></div>
-    <div class="set"><div class="l"><div class="t">Einsatzbeginn bei Mähdatum ohne Uhrzeit</div><div class="v">Für das Wetter-Einsatzfenster (1 h vorher bis 1 h nachher)</div></div><input id="sWxStart" class="inp" type="time" style="flex:none;width:130px;min-width:0"></div>
-    <div class="set"><div class="l"><div class="t">Leistungsanzeige</div><div class="v">Zeigt oben auf der Karte Bilder pro Sekunde und Zeichenzeiten – zum Finden von Rucklern</div></div><label class="sw"><input type="checkbox" id="sPerf"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Wetter: Höhen anzeigen bis</div><div class="v">Nur die Höhen, in denen ihr fliegt – Wind, Temperatur und Böen in der Wettertabelle</div></div><div class="seg" id="sWxMax"><button data-wxmax="50">50 m</button><button data-wxmax="100">100 m</button><button data-wxmax="250">alle</button></div></div>
-    <div class="set"><div class="l"><div class="t">Flugplätze anzeigen</div><div class="v" id="vAf">Flugplätze, Segel-/UL-Plätze und Hubschrauberlandeplätze im Gebiet der Felder (+3 km)</div></div><button class="b-sec" id="bAfList">Liste</button><label class="sw"><input type="checkbox" id="sAf"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">NOTAM / temporäre Betriebseinschränkungen</div><div class="v" id="vNotam"></div></div><button class="b-sec" id="bNotamList">Anzeigen</button></div>
-    <div class="set"><div class="l"><div class="t">Regeln &amp; Auflagen</div><div class="v">Übersicht: Allgemeinverfügung, Allgemeinerlaubnis, was gilt wo</div></div><button class="b-sec" id="bRules">Ansehen</button></div>
-    <div class="set"><div class="l"><div class="t">Wohngrundstücke einbeziehen</div><div class="v">Zeigt auch Wohngrundstücke als Geozone (deckt Ortschaften flächig ab)</div></div><label class="sw"><input type="checkbox" id="sGeoRes"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Geozonen-Daten</div><div class="v" id="vGeo"></div></div><button class="b-sec" id="bGeoNow">Jetzt aktualisieren</button></div>
-    <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
-    <div class="set"><div class="l"><div class="t">Kartentyp</div><div class="v" id="vTiles">Angesehene Kacheln werden auf der RC gespeichert und sind danach offline verfügbar.</div></div><button class="b-sec" id="bTilesClear">Leeren</button><div class="seg"><button data-layer="grey">Grau</button><button data-layer="osm">Karte</button><button data-layer="sat">Luftbild</button></div></div>
-    <div class="set"><div class="l"><div class="t">Einsatzgebiet offline speichern</div><div class="v" id="vPrefetch">Lädt Grau, Karte und Luftbild für das Gebiet aller Felder (+ 3 km) einmal komplett auf die RC – danach ruckelfrei und ohne Internet.</div></div><button class="b-ok" id="bPrefetch">Herunterladen</button></div>
-    <div class="set"><div class="l"><div class="t">Wetter</div><div class="v">Tagesgang, Sonnenlauf und Einsatzwetter – auch per Tipp auf die Windanzeige</div></div><button class="b-sec" id="bWxSet">Wetter öffnen</button></div>
-    <div class="set"><div class="l"><div class="t">Dateizugriff</div><div class="v" id="vAcc"></div></div><button class="b-sec" id="bAcc">Berechtigung</button></div>
     <div class="set" style="flex-direction:column;align-items:stretch">
       <div class="t">UAV Editor – Zugang für „Abgleichen“</div>
       <div class="v" id="vUave" style="margin-bottom:8px"></div>
@@ -346,6 +357,39 @@
       </div>
       <div class="v" style="margin-top:6px">Das Passwort wird verschlüsselt nur auf diesem Gerät gespeichert.</div>
     </div>
+    <div class="set"><div class="l"><div class="t">Dateizugriff</div><div class="v" id="vAcc"></div></div><button class="b-sec" id="bAcc">Berechtigung</button></div>
+    <h3 class="setcat" id="sc-karte">Karte</h3>
+    <div class="set"><div class="l"><div class="t">Kartentyp</div><div class="v" id="vTiles">Angesehene Kacheln werden auf der RC gespeichert und sind danach offline verfügbar.</div></div><button class="b-sec" id="bTilesClear">Leeren</button><div class="seg"><button data-layer="grey">Grau</button><button data-layer="osm">Karte</button><button data-layer="sat">Luftbild</button></div></div>
+    <div class="set"><div class="l"><div class="t">Einsatzgebiet offline speichern</div><div class="v" id="vPrefetch">Lädt Grau, Karte und Luftbild für das Gebiet aller Felder (+ 3 km) einmal komplett auf die RC – danach ruckelfrei und ohne Internet.</div></div><button class="b-ok" id="bPrefetch">Herunterladen</button></div>
+    <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
+    <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div><div class="v">Auch über ⓘ → „Felder“ schaltbar</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Die Rose steht mit Norden oben wie die Karte, der Windsack zeigt die Windrichtung (schwarze Marke = woher der Wind kommt). Mit Kompassnadel: die rote Nadelspitze zeigt, wohin die RC schaut · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt ebenfalls die Blickrichtung.</div></div><div class="seg"><button data-rose="dev">Mit Kompassnadel</button><button data-rose="north">Ohne Nadel</button><button data-rose="off">Aus</button></div></div>
+    <div class="set"><div class="l"><div class="t">Hindernisse aus OpenStreetMap</div><div class="v">Windräder (grün, mit Gesamthöhe), Masten/Türme/Schornsteine (braunes Dreieck), Bahnstrecken (schwarz-weiß) und alle Freileitungen nach Spannung: violett dick = Höchstspannung (220/380 kV), violett = Hochspannung (110 kV), orange = Mittelspannung, grau gestrichelt = Nieder-/unbekannte Spannung. Auch Leitungen ohne dipul-Geozone – Hindernis beim Start und Tiefflug.</div></div><label class="sw"><input type="checkbox" id="sOsmPower"><span></span></label></div>
+    <h3 class="setcat" id="sc-luft">Luftraum &amp; Regeln</h3>
+    <div class="set"><div class="l"><div class="t">Fernpilotenzeugnis</div><div class="v" id="vLic"></div></div><div class="seg"><button data-lic="A1A3">A1/A3</button><button data-lic="A2">A2</button></div></div>
+    <div class="set" id="aeBox" style="flex-direction:column;align-items:stretch"><div class="t">Allgemeinerlaubnis (§ 21h LuftVO) liegt vor für</div>
+      <div class="v" id="vAe" style="margin-bottom:8px"></div>
+      <div class="roots" id="aeStates"></div>
+    </div>
+    <div class="set"><div class="l"><div class="t">Allgemeinverfügung Wildtierrettung (RP Gießen)</div><div class="v" id="vAvgi"></div></div><label class="sw"><input type="checkbox" id="sAvgi"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Saison-Vorschau (Planung)</div><div class="v">Zeigt Naturschutz-, FFH- und Vogelschutzgebiete im RB Gießen so, als wäre Mähsaison (15.04.–30.06.). Nur zur Planung – außerhalb der Saison gilt die Verfügung NICHT.</div></div><label class="sw"><input type="checkbox" id="sSeason"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Überfluggenehmigung Stromleitungen (Netzbetreiber)</div><div class="v">Genehmigungen der Netzbetreiber liegen vor – Stromtrassen werden grau, in der Info stehen Spannung und Masthöhe</div></div><label class="sw"><input type="checkbox" id="sPower"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Geozonen (dipul) anzeigen</div><div class="v">Flughäfen, Kontrollzonen, Schutzgebiete, Verkehrswege, Stromleitungen u. a. – nur zur Orientierung, maßgeblich ist dipul.de</div></div><label class="sw"><input type="checkbox" id="sGeo"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Geozonen in ganz Deutschland</div><div class="v">Außerhalb eurer Felder zeigt die Karte die Geozonen als Bild vom dipul-Kartendienst (Aussehen wie die dipul-Karte, ab Zoom 7, angesehene Kacheln bleiben 30 Tage offline gespeichert). Antippen zeigt auch dort die Zonen-Infos. Um eure Felder zeichnet die App die Zonen selbst mit grün/orange/rot.</div></div><label class="sw"><input type="checkbox" id="sGeoAll"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Wohngrundstücke einbeziehen</div><div class="v">Zeigt auch Wohngrundstücke als Geozone (deckt Ortschaften flächig ab)</div></div><label class="sw"><input type="checkbox" id="sGeoRes"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Geozonen-Daten</div><div class="v" id="vGeo"></div></div><button class="b-sec" id="bGeoNow">Jetzt aktualisieren</button></div>
+    <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Bundesland-Erkennung</div>
+      <div class="v" id="vReg"></div>
+    </div>
+    <div class="set"><div class="l"><div class="t">Flugplätze anzeigen</div><div class="v" id="vAf">Flugplätze, Segel-/UL-Plätze und Hubschrauberlandeplätze im Gebiet der Felder (+3 km)</div></div><button class="b-sec" id="bAfList">Liste</button><label class="sw"><input type="checkbox" id="sAf"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">NOTAM / temporäre Betriebseinschränkungen</div><div class="v" id="vNotam"></div></div><button class="b-sec" id="bNotamList">Anzeigen</button></div>
+    <div class="set"><div class="l"><div class="t">Regeln &amp; Auflagen</div><div class="v">Übersicht: Allgemeinverfügung, Allgemeinerlaubnis, was gilt wo</div></div><button class="b-sec" id="bRules">Ansehen</button></div>
+    <h3 class="setcat" id="sc-wetter">Wetter</h3>
+    <div class="set"><div class="l"><div class="t">Wetter</div><div class="v">Tagesgang, Sonnenlauf und Einsatzwetter – auch per Tipp auf die Windanzeige</div></div><button class="b-sec" id="bWxSet">Wetter öffnen</button></div>
+    <div class="set"><div class="l"><div class="t">Wetter: Höhen anzeigen bis</div><div class="v">Nur die Höhen, in denen ihr fliegt – Wind, Temperatur und Böen in der Wettertabelle</div></div><div class="seg" id="sWxMax"><button data-wxmax="50">50 m</button><button data-wxmax="100">100 m</button><button data-wxmax="250">alle</button></div></div>
+    <div class="set"><div class="l"><div class="t">Einsatzbeginn bei Mähdatum ohne Uhrzeit</div><div class="v">Für das Wetter-Einsatzfenster (1 h vorher bis 1 h nachher)</div></div><input id="sWxStart" class="inp" type="time" style="flex:none;width:130px;min-width:0"></div>
+    <div class="set"><div class="l"><div class="t">METAR-Wetter der Flughäfen auf der Karte</div><div class="v">Alle deutschen Flughäfen mit Wettermeldung als Kennung mit Farbpunkt (grün/orange/rot nach Sicht, Nebel, Regen, Böen) – antippen zeigt die aktuelle Meldung auf Deutsch · NOAA Aviation Weather Center, alle 20 min neu</div></div><label class="sw"><input type="checkbox" id="sMetar"><span></span></label></div>
+    <h3 class="setcat" id="sc-info">Über die App</h3>
     <div class="set"><img class="logo" data-logo alt="" style="width:64px;height:64px;border-radius:50%"><div class="l"><div class="t">Mission Kitzrettung</div><div class="v">Version 2.0 · Kitzrettung Limburg e. V.</div></div></div>
   </div>
 </div>
@@ -403,7 +447,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { perf: '0', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -439,7 +483,7 @@ const cv = $('map'), mctx = cv.getContext('2d');
 let ctx = mctx;
 // Vorgerenderte Karte mit Rand: beim Wischen/Zoomen wird nur dieses Bild verschoben, neu gezeichnet erst danach
 const buf = $('mapO'), bctx = buf.getContext('2d');
-const tcv = $('mapT'), tctx = tcv.getContext('2d', { alpha: false });
+const tdiv = $('mapT');
 const BV = { ok: false, lat: 0, lon: 0, z: 0, M: 0, bw: 0, bh: 0, t: 0 };
 // Karte/Grau: basemap.de (amtliche Karte, BKG); Luftbild: Orthophotos HE/RP (außerhalb Esri) – alles auf der RC gespeichert
 const BM_URL = l => (z, x, y) => `https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_${l}/default/GLOBAL_WEBMERCATOR/${z}/${y}/${x}.png`;
@@ -566,16 +610,102 @@ const TV = { ok: false }; let tilesDirty = true;
 // Auflösung der vorgerenderten Bilder begrenzen: kleinere Grafik-Texturen = viel flüssiger auf der RC
 const TILE_DPR = 1, LAYER_DPR = 1.5;
 const PERF = { tiles: 0, layers: 0, frames: [], last: 0 };
-function renderTiles() {
-  const t0 = performance.now(), D0 = DPR; DPR = Math.min(D0, TILE_DPR);
-  const M = Math.round(Math.max(W, H) * 0.25), Wr = W, Hr = H, bw = W + 2 * M, bh = H + 2 * M;
-  if (tcv.width !== Math.round(bw * DPR) || tcv.height !== Math.round(bh * DPR)) { tcv.width = Math.round(bw * DPR); tcv.height = Math.round(bh * DPR); tcv.style.width = bw + 'px'; tcv.style.height = bh + 'px'; }
-  ctx = tctx; W = bw; H = bh;
-  try { ctx.setTransform(DPR, 0, 0, DPR, 0, 0); paintTiles(); }
-  finally { W = Wr; H = Hr; ctx = mctx; DPR = D0; PERF.tiles = performance.now() - t0; }
-  Object.assign(TV, { ok: true, lat: V.lat, lon: V.lon, z: V.z, M, bw, bh, hx: bw / 2, hy: (bh - BAR) / 2 });
-  tilesDirty = false;
+// Kartenkacheln wie bei Leaflet: jede Kachel ein eigenes Bild in einer Ebene je Zoomstufe. Beim Wischen/Zoomen wird nur die Ebene
+// per GPU verschoben/skaliert – nichts wird neu gemalt; neue Kacheln blenden einfach ein. Die alte Zoomstufe bleibt darunter, bis die neue da ist.
+function makeTileLayer(div, cfg) {   // cfg: { url(z,x,y), maxz(), minz, id() = Kennung für Neuaufbau, keep(z,x,y) -> false/true/{clip} }
+  const T = { levels: new Map(), id: null, cur: null, pool: new Map() };
+  const level = z => {
+    let L = T.levels.get(z);
+    if (!L) { const el = document.createElement('div'); el.className = 'tl'; div.appendChild(el); L = { el, z, tiles: new Map(), ox: null, oy: null }; T.levels.set(z, L); }
+    return L;
+  };
+  const place = L => {
+    const k = Math.pow(2, V.z - L.z), n = 256 * Math.pow(2, L.z);
+    const x = (L.ox - lon2x(V.lon) * n) * k + W / 2, y = (L.oy - lat2y(V.lat) * n) * k + mapH() / 2;
+    L.el.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0) scale(${k.toFixed(5)})`;
+  };
+  const drop = (L, key) => {   // Kachel aus der Ebene nehmen, geladene für späteres Zurückwischen aufheben
+    const im = L.tiles.get(key); if (!im) return;
+    L.tiles.delete(key); im.remove();
+    if (im.classList.contains('ok')) { T.pool.set(im.dataset.k, im); if (T.pool.size > 300) T.pool.delete(T.pool.keys().next().value); }
+  };
+  T.reset = () => { div.innerHTML = ''; T.levels.clear(); T.pool.clear(); T.cur = null; T.id = cfg.id(); };
+  T.update = gest => {
+    if (T.id !== cfg.id()) T.reset();
+    const maxz = cfg.maxz();
+    if (V.z < (cfg.minz || 0) - 0.5 || cfg.off && cfg.off()) { div.style.display = 'none'; return; }
+    div.style.display = '';
+    let tz = Math.max(1, Math.min(maxz, Math.round(V.z)));
+    // Während der Finger bewegt: Zoomstufe halten, solange der Maßstab passt (kein Nachladen mitten in der Geste)
+    if (gest && T.cur != null && T.levels.has(T.cur)) { const k = Math.pow(2, V.z - T.cur); if (k > 0.45 && k < 2.2) tz = T.cur; }
+    const L = level(tz), N = 1 << tz, n = 256 * N;
+    if (L.ox == null) { L.ox = Math.floor(lon2x(V.lon) * N) * 256; L.oy = Math.floor(lat2y(V.lat) * N) * 256; }
+    if (T.cur !== tz) { T.cur = tz; T.levels.forEach(o => { o.el.style.zIndex = o === L ? 2 : 1; }); }
+    const k = Math.pow(2, V.z - tz), cx = lon2x(V.lon) * n, cy = lat2y(V.lat) * n, mh = mapH();
+    const x0 = Math.floor((cx - W / 2 / k) / 256) - 1, x1 = Math.floor((cx + W / 2 / k) / 256) + 1;
+    const y0 = Math.max(0, Math.floor((cy - mh / 2 / k) / 256) - 1), y1 = Math.min(N - 1, Math.floor((cy + (H - mh / 2) / k) / 256) + 1);
+    let want = 0, have = 0;
+    for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+      const key = tx + ':' + ty, xx = ((tx % N) + N) % N;
+      const kp = cfg.keep ? cfg.keep(tz, xx, ty) : true;
+      let im = L.tiles.get(key);
+      if (!kp) { if (im) drop(L, key); continue; }
+      want++;
+      if (im) { if (im.classList.contains('ok')) have++; continue; }
+      const fk = cfg.key(tz, xx, ty), f = tileFail.get(fk);
+      if (f && Date.now() - f.t < Math.min(60000, 4000 * f.n)) continue;
+      im = T.pool.get(fk);
+      if (im) { T.pool.delete(fk); have++; }
+      else {
+        im = new Image(); im.decoding = 'async'; im.draggable = false; im.alt = ''; im.dataset.k = fk;
+        im.onload = () => { tileFail.delete(fk); im.classList.add('ok'); tileDraw(250); };
+        im.onerror = () => { for (const o of T.levels.values()) if (o.tiles.get(key) === im) { o.tiles.delete(key); break; } im.remove();
+          const o = tileFail.get(fk); tileFail.set(fk, { t: Date.now(), n: o ? o.n + 1 : 1 }); tileDraw(4500); };
+        im.src = cfg.url(tz, xx, ty);
+      }
+      im.style.left = (tx * 256 - L.ox) + 'px'; im.style.top = (ty * 256 - L.oy) + 'px';
+      im.style.clipPath = kp.clip || '';
+      L.tiles.set(key, im); L.el.appendChild(im);
+    }
+    T.levels.forEach(place);
+    if (gest) return;
+    // Aufräumen nur in Ruhe: Kacheln weit außerhalb weg, andere Zoomstufen weg, sobald die aktuelle vollständig ist
+    for (const key of [...L.tiles.keys()]) { const [tx, ty] = key.split(':').map(Number); if (tx < x0 - 2 || tx > x1 + 2 || ty < y0 - 2 || ty > y1 + 2) drop(L, key); }
+    const done = have >= want;
+    T.levels.forEach((o, z) => {
+      if (o === L) return;
+      const kk = Math.pow(2, V.z - z);
+      if (done || kk < 0.2 || kk > 6 || T.levels.size > 3) { [...o.tiles.keys()].forEach(key => drop(o, key)); o.el.remove(); T.levels.delete(z); }
+    });
+  };
+  return T;
 }
+// Kartenhintergrund: jede Kachel ein eigenes Bild (wie Leaflet) – beim Wischen/Zoomen wird nur per GPU verschoben, nichts neu gemalt
+const BASE = makeTileLayer(tdiv, { url: (z, x, y) => LAYERS[P.layer](z, x, y), key: tKey, maxz: () => LAYER_MAXZ[P.layer] || 18, id: () => P.layer });
+// Geozonen deutschlandweit als Bildkacheln vom dipul-Kartendienst (gleiches Aussehen wie die dipul-Karte). Um die Felder zeichnet die App
+// die Zonen selbst (grün/orange/rot) – dort wird das dipul-Bild ausgespart, damit nichts doppelt liegt.
+const GEO_RASTER = ['flughaefen', 'flugplaetze', 'kontrollzonen', 'flugbeschraenkungsgebiete', 'modellflugplaetze', 'nationalparks', 'naturschutzgebiete', 'ffh-gebiete',
+  'vogelschutzgebiete', 'bundesautobahnen', 'bundesstrassen', 'bahnanlagen', 'binnenwasserstrassen', 'seewasserstrassen', 'schifffahrtsanlagen', 'stromleitungen',
+  'windkraftanlagen', 'umspannwerke', 'kraftwerke', 'industrieanlagen', 'justizvollzugsanstalten', 'militaerische_anlagen', 'labore', 'behoerden',
+  'diplomatische_vertretungen', 'internationale_organisationen', 'polizei', 'sicherheitsbehoerden', 'krankenhaeuser', 'freibaeder'];
+const geoRasterSet = () => P.georesi === '1' ? 'r' : 'n';   // mit / ohne Wohngrundstücke
+function geoVecBox() { try { const b = JSON.parse(A.getPref('geo_vec_bbox', '{}') || '{}'); return b.n != null ? b : null; } catch (e) { return null; } }
+S.geoBox = null;
+const GEOR = makeTileLayer($('mapG'), {
+  url: (z, x, y) => `https://dipul.local/${z}/${x}/${y}?r=${geoRasterSet()}`, key: (z, x, y) => 'g' + geoRasterSet() + z + '/' + x + '/' + y,
+  maxz: () => 18, minz: 7, id: () => geoRasterSet(), off: () => P.geo !== '1' || P.geoAll === '0',
+  keep: (z, x, y) => {
+    const b = S.geoBox; if (!b || !S.geo.length || z < 9) return true;   // eigene Zonen erst ab Zoom 9 gezeichnet
+    const N = 1 << z, X0 = x / N, X1 = (x + 1) / N, Y0 = y / N, Y1 = (y + 1) / N;
+    const bx0 = lon2x(b.w), bx1 = lon2x(b.e), by0 = lat2y(b.n), by1 = lat2y(b.s);
+    const ix0 = Math.max(X0, bx0), ix1 = Math.min(X1, bx1), iy0 = Math.max(Y0, by0), iy1 = Math.min(Y1, by1);
+    if (ix0 >= ix1 || iy0 >= iy1) return true;                      // ganz außerhalb: dipul-Bild zeigen
+    if (ix0 <= X0 && ix1 >= X1 && iy0 <= Y0 && iy1 >= Y1) return false;   // ganz innerhalb: eigene Zonen
+    const px = v => ((v - X0) * N * 256).toFixed(1), py = v => ((v - Y0) * N * 256).toFixed(1);   // teilweise: Innenbereich ausschneiden
+    return { clip: `path(evenodd, "M0 0H256V256H0Z M${px(ix0)} ${py(iy0)}H${px(ix1)}V${py(iy1)}H${px(ix0)}Z")` };
+  }
+});
+function tlReset() { BASE.reset(); GEOR.reset(); }
 const placeEl = (el, B, hideOut) => { const [x, y, k] = bufPlace(B); el.style.visibility = !hideOut || (k > .3 && k < 3.5) ? 'visible' : 'hidden'; el.style.transform = `translate3d(${x}px,${y}px,0) scale(${k})`; };
 let lastMove = 0;
 function paint() {
@@ -588,8 +718,7 @@ function paint() {
   if (sizeChanged || (!gest && (dirty || !cover))) renderBuf();
   // Drei Ebenen: Kacheln und Zonen/Felder als fertige Bilder, die nur per CSS verschoben werden (gleichzeitig, kein Versatz), oben Position/Kompass
   // Kacheln: neu, wenn die Ebenen gerade neu gerendert wurden (gleicher Ausschnitt), neue Kacheln angekommen sind (nicht während Bewegung) oder der Rand erreicht ist
-  if (!TV.ok || (BV.ok && BV.t !== TV.bt && !gest) || (tilesDirty && !gest) || !covers(TV, .55, 1.8)) { renderTiles(); TV.bt = BV.t; }
-  placeEl(tcv, TV, false);
+  BASE.update(gest); GEOR.update(gest);
   if (BV.ok) placeEl(buf, BV, true);
   ctx = mctx;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
@@ -642,11 +771,12 @@ function paintStatic() {
     S.airfields.map(a => a.kind === 'heliport' && S.geo.length ? heliSnap(a) : a).filter(a => !nearIcon(a)).forEach(drawAirfield);
   }
   icons.forEach(drawGeoAirIcon);
+  if (P.metar !== '0' && S.metar.length && V.z >= 6) paintMetar();
 }
 
 /** Schnell wechselnde Teile direkt auf den Bildschirm: Markierung, eigene Position, Blickrichtung, Quellenangabe */
 function paintLive() {
-  if (P.perf === '1') {   // Leistungsanzeige (Einstellungen): Bilder pro Sekunde und Zeichenzeiten
+  if (false) {   // Leistungsanzeige (Schalter entfernt) (Einstellungen): Bilder pro Sekunde und Zeichenzeiten
     const now = performance.now(); PERF.frames.push(now); while (PERF.frames.length && now - PERF.frames[0] > 1000) PERF.frames.shift();
     const t = `${PERF.frames.length} fps · Kacheln ${Math.round(PERF.tiles)} ms · Ebenen ${Math.round(PERF.layers)} ms · DPR ${DPR} · ${W}×${H}`;
     ctx.font = '700 12px Roboto,system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
@@ -655,7 +785,7 @@ function paintLive() {
   }
   { // Pflicht-Quellenangabe der Kartendienste, klein unten rechts
     const at = P.layer === 'sat' ? 'Luftbild © GeoBasis-DE / HVBG, LVermGeoRP (dl-de/by-2-0) · außerhalb © Esri' : '© GeoBasis-DE / BKG ' + new Date().getFullYear() + ' CC BY 4.0';
-    const at2 = at + (P.osmPower === '1' ? ' · Hindernisse © OpenStreetMap' : '');
+    const at2 = at + (P.geo === '1' ? ' · Geozonen © DFS dipul' : '') + (P.osmPower === '1' ? ' · Hindernisse © OpenStreetMap' : '');
     ctx.font = '11px Roboto,system-ui,sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
     const tw = ctx.measureText(at2).width;
     const ax = W - 80;   // links neben den Kartenknöpfen
@@ -704,6 +834,7 @@ function loadGeoVectors() {
     // große Flächen zuerst zeichnen, kleine obendrauf
     out.sort((a, b) => (b.bb.n - b.bb.s) * (b.bb.e - b.bb.w) - (a.bb.n - a.bb.s) * (a.bb.e - a.bb.w));
     S.geo = out;
+    const nb = geoVecBox(); if (JSON.stringify(nb) !== JSON.stringify(S.geoBox)) { S.geoBox = nb; GEOR.reset(); }
   } catch (e) { S.geo = []; }
   draw();
 }
@@ -1269,6 +1400,10 @@ function hit(x, y) {
     const [gx, gy] = toScreen(g.lat, g.lon);
     if (Math.hypot(x - gx, y - gy) < 20) return geoInfoAt(gx, gy);
   }
+  if (P.metar !== '0' && V.z >= 6) for (const m of S.metar) {
+    const [mx, my] = metarPos(m);
+    if (Math.abs(x - mx) < 34 && Math.abs(y - my) < 16) return showMetar(m);
+  }
   if (P.airf === '1' && V.z >= 9) for (const a of S.airfields) {
     const [ax, ay] = toScreen(a.lat, a.lon);
     if (Math.hypot(x - ax, y - ay) < 20) return showAirfield(a);
@@ -1448,6 +1583,7 @@ async function load(keepView) {
   update();
   if (!keepView) fitAll();
   geoSyncNow(false);
+  try { notamChip(); } catch (e) { }
   setTimeout(() => wxPrefetch().then(windWidget), 3000);
   windWidget();
   if (stop) toast(`Laden abgebrochen – ${out.length} von ${r.files.length} Feldern angezeigt. Beim nächsten Öffnen der App werden wieder alle geladen.`, true, 6000);
@@ -1726,8 +1862,8 @@ function briefingHtml(b, sel) {
   });
   b.obs.forEach(x => {
     const o = x.o, warn = fh && o.top && o.top >= fh - 20;
-    h += `<div class="zone" style="border-left:5px solid ${warn ? '#b3131b' : '#5d4037'}"><h4>${esc(OBS_NAME[o.t] || 'Hindernis')}${o.n ? ' ' + esc(o.n) : ''} · ${o.top ? Math.round(o.top) + ' m hoch' : 'Höhe unbekannt'}</h4>
-      ${fl(x.fields)}<div>${Math.round(x.d)} m vom Flugweg${o.t === 'wind' && o.rot ? ` · Rotor ${Math.round(o.rot)} m (Nabe ${Math.round(o.hub || 0)} m)` : ''}</div>
+    h += `<div class="zone" style="border-left:5px solid ${warn ? '#b3131b' : '#5d4037'}"><h4>${esc(OBS_NAME[o.t] || 'Hindernis')}${o.n ? ' ' + esc(o.n) : ''} · ${o.top ? (o.est ? 'ca. ' : '') + Math.round(o.top) + ' m hoch' + (o.est ? ' (geschätzt)' : '') : 'Höhe unbekannt'}</h4>
+      ${fl(x.fields)}<div>${Math.round(x.d)} m vom Flugweg${o.t === 'wind' && o.rot ? ` · Rotor ${Math.round(o.rot)} m (Nabe ${Math.round(o.hub || 0)} m)` : ''}${o.op ? ` · Betreiber: ${esc(o.op)}` : ''}</div>
       ${warn ? `<div style="color:#b3131b;font-weight:700">Höher als bzw. nah an der Missionshöhe (${fh} m) – seitlich ausreichend Abstand halten${o.t === 'wind' ? ', 1:1-Regel zur Anlage' : ''}</div>` : ''}</div>`;
   });
   return h;
@@ -1959,7 +2095,7 @@ window.onPrefetch = raw => {
   if (r.finished) { toast(t, !!r.fail && !r.done, 7000); draw(); }
 };
 $('bTilesClear').onclick = () => { if (A.tileCacheClear) { A.tileCacheClear(); toast('Kartenspeicher wird geleert…'); } };
-window.onTileCache = () => { tiles.clear(); fillSettings(); toast('Kartenspeicher geleert.'); };
+window.onTileCache = () => { tiles.clear(); tlReset(); fillSettings(); toast('Kartenspeicher geleert.'); };
 document.querySelectorAll('[data-layer]').forEach(b => b.onclick = () => { setP('layer', b.dataset.layer); fillSettings(); draw(); });
 document.querySelectorAll('[data-rcdrone]').forEach(b => b.onclick = () => { setP('drone', b.dataset.rcdrone); markDups(); update(); fillSettings(); });
 $('bAcc').onclick = () => A.requestAccess();
@@ -2095,10 +2231,9 @@ function fillRules() {
   $('sSeason').checked = P.season === '1';
   $('sPower').checked = P.power === '1';
   $('sOsmPower').checked = P.osmPower === '1';
-  $('sAf').checked = P.airf === '1';
+  $('sAf').checked = P.airf === '1'; $('sGeoAll').checked = P.geoAll !== '0'; $('sMetar').checked = P.metar !== '0';
   $('sWxStart').value = P.wxStart;
   document.querySelectorAll('[data-wxmax]').forEach(b => b.classList.toggle('on', b.dataset.wxmax === P.wxMaxH));
-  $('sPerf').checked = P.perf === '1';
   const rm = P.rose === '0' ? 'off' : P.compass === '0' ? 'north' : 'dev';
   document.querySelectorAll('[data-rose]').forEach(b => b.classList.toggle('on', b.dataset.rose === rm));
   $('vNotam').textContent = (S.notams.length ? `${S.notams.filter(n => n.active).length} aktiv, ${S.notams.filter(n => !n.active).length} geplant` : 'keine im Gebiet') + (S.notamFetched ? ` · Stand ${fmtDate(S.notamFetched)}` : ' · noch nicht geladen');
@@ -2259,8 +2394,9 @@ window.onGeoInfo = raw => {
   const fhm = flightHeight();
   obstaclesNear(r.lat, r.lon).slice(0, 3).forEach(({ o, d }) => {
     const top = Math.round(o.top || 0), warn = fhm && top && top >= fhm - 20;
-    html += `<div class="zone" style="border-left:5px solid ${o.t === 'wind' ? '#00695c' : '#5d4037'}"><h4>${OBS_NAME[o.t] || 'Bauwerk'}${top ? ' · ' + top + ' m hoch' : ' · Höhe nicht erfasst'} <span class="chip grey">${Math.round(d)} m entfernt</span></h4>
-      <div class="meta">${o.n ? esc(o.n) + ' · ' : ''}${o.t === 'wind' ? `${o.hub ? 'Nabenhöhe ' + Math.round(o.hub) + ' m · ' : ''}${o.rot ? 'Rotor ⌀ ' + Math.round(o.rot) + ' m · ' : ''}` : ''}Daten © OpenStreetMap-Mitwirkende, ohne Gewähr</div>
+    html += `<div class="zone" style="border-left:5px solid ${o.t === 'wind' ? '#00695c' : '#5d4037'}"><h4>${OBS_NAME[o.t] || 'Bauwerk'}${top ? ' · ' + (o.est ? 'ca. ' : '') + top + ' m hoch' + (o.est ? ' (geschätzt)' : '') : ' · Höhe nicht erfasst'} <span class="chip grey">${Math.round(d)} m entfernt</span></h4>
+      ${o.est ? `<div class="meta" style="color:#a85d00">Im Register stehen weder Nabenhöhe noch Rotor noch Anlagentyp – Höhe nach Leistung (${Math.round(o.kw)} kW) vorsichtig geschätzt. Vor Ort prüfen.</div>` : ''}${o.mastr ? `<div><b>Betreiber:</b> ${esc(o.op || 'nicht angegeben')}</div><div class="meta">${esc(o.n || '')}${o.place ? ' · ' + esc(o.place) : ''}${o.act === 0 ? ' · <b>vorübergehend stillgelegt</b> (steht noch)' : ''}</div>` : ''}
+      <div class="meta">${!o.mastr && o.n ? esc(o.n) + ' · ' : ''}${o.t === 'wind' ? `${o.hub ? 'Nabenhöhe ' + Math.round(o.hub) + ' m · ' : ''}${o.rot ? 'Rotor ⌀ ' + Math.round(o.rot) + ' m · ' : ''}${o.top && o.mastr && !o.est ? 'Blattspitze ' + Math.round(o.top) + ' m · ' : ''}` : ''}${o.mastr ? esc(MASTR_SRC) + ` · <span class="lnk" data-url="https://www.marktstammdatenregister.de/MaStR/Einheit/Detail/IndexOeffentlich/${o.did}">${esc(o.mastr)}</span>` : 'Daten © OpenStreetMap-Mitwirkende, ohne Gewähr'}</div>
       ${warn ? `<div style="margin-top:6px;padding:8px 10px;border-radius:8px;background:#b3131b;color:#fff;font-weight:700">⚠ Missionshöhe ${fhm} m – das Hindernis ist ${top} m hoch! Abstand halten bzw. Route meiden.</div>` : top ? `<div>Missionshöhe ${fhm || '–'} m · Hindernis ${top} m – Geländeunterschiede zum Startpunkt beachten.</div>` : '<div>Höhe vor Ort prüfen.</div>'}
       ${o.t === 'wind' ? '<div class="meta" style="margin-top:4px">Windkraftanlagen sind auch dipul-Geozonen (§ 21h LuftVO). Drehende Rotoren und Verwirbelungen hinter der Anlage meiden.</div>' : ''}</div>`;
   });
@@ -2305,7 +2441,7 @@ window.onOsmLines = () => { loadOsmLines(); loadObstacles(); };
 S.obs = []; S.rails = []; S.places = [];
 function foldTxt(t) { return String(t || "").toLowerCase().replace(/ß/g, "ss").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function loadObstacles() {
-  if (!A.osmObstacles) return;
+  if (!A.osmObstacles) { S.obs = []; mergeMastrWind(); draw(); return; }
   try {
     const d = JSON.parse(A.osmObstacles() || '{}');
     S.obs = (d.pts || []).map(o => Object.assign(o, { top: o.h || (o.hub ? o.hub + (o.rot || 0) / 2 : 0) }));   // Gesamthöhe: height, sonst Nabe + halber Rotor
@@ -2314,8 +2450,27 @@ function loadObstacles() {
       return { e: r.e, n: r.n, pts, bb: { n, s, e, w } }; });
     S.osmPlaces = (d.places || []).filter(p => p.n);
   } catch (e) { S.obs = []; S.rails = []; }
+  mergeMastrWind();
   loadPlaces();
   draw();
+}
+// Windenergieanlagen aus dem Marktstammdatenregister (BNetzA, Abruf 17.10.2026, 50 km um Limburg; in Betrieb + vorübergehend stillgelegt)
+// [lat, lon, Nabenhöhe, Rotor-⌀, Blattspitzenhöhe, Anlage, Betreiber, Ort, MaStR-Nr., 1 = in Betrieb, Detail-ID, Leistung kW]
+const MASTR_WIND = [[50.358854,8.059275,77.9,44.0,99.9,"DiaWind · EnerconE40S","DiaWind Gesellschaft zum Betrieb von Windenergieanlagen","Holzheim","SEE993111850773",1,4658323,600.0],[50.409264,8.002457,141.0,116.8,199.4,"EL Elzer Berg · E6 Elz 6","ENERTRAG Windfeld Elzer Berg GmbH & Co. KG","Elz","SEE988910431650",1,2975788,2400.0],[50.412174,7.999547,141.0,116.8,199.4,"EL Elzer Berg · E5 Elz 5","ENERTRAG Windfeld Elzer Berg GmbH & Co. KG","Elz","SEE901479792437",1,2975711,2400.0],[50.422155,8.081639,70.0,48.0,94.0,"Windpark Limburg · WKA I","Laux Windkraftanlagen","Limburg","SEE936854511556",1,2116089,600.0],[50.422155,8.081639,70.0,48.0,94.0,"Windpark Limburg · WKA II","Laux Windkraftanlagen","Limburg","SEE986374101430",1,3693694,600.0],[50.408805,7.994259,141.0,116.8,199.4,"EL Elzer Berg · E4 Elz 4","ENERTRAG Windfeld Elzer Berg GmbH & Co. KG","Elz","SEE966014112149",1,2975657,2400.0],[50.410605,7.988616,141.0,116.8,199.4,"EL Elzer Berg · E3 Elz 3","ENERTRAG Windfeld Elzer Berg GmbH & Co. KG","Elz","SEE959078545374",1,2975635,2400.0],[50.36856,8.1218,65.0,40.0,85.0,"Lindenholzhausen · WEA Brunnenstr. 11","SeMa Wind GbR","Limburg","SEE980234565899",1,3445349,500.0],[50.410717,7.974067,141.0,116.8,199.4,"EL Elzer Berg · E2 Elz 2","ENERTRAG Windfeld Elzer Berg GmbH & Co. KG","Elz","SEE913092387679",1,2975560,2400.0],[50.410717,7.974067,141.0,116.8,199.4,"EL Elzer Berg · E1 Elz 1","ENERTRAG Windfeld Elzer Berg GmbH & Co. KG","Elz","SEE983787280288",1,2975325,2400.0],[50.331781,8.130531,141.0,116.8,199.4,"Trianel Onshore Windkraftwerke Hünfelden · Hünfelden 01","Trianel Onshore Windkraftwerke Hünfelden GmbH & Co. KG","Hünfelden","SEE940954248779",1,2289215,2400.0],[50.328517,8.131294,141.0,116.8,199.4,"Trianel Onshore Windkraftwerke Hünfelden · Hünfelden 02","Trianel Onshore Windkraftwerke Hünfelden GmbH & Co. KG","Hünfelden","SEE952928346633",1,2289471,2400.0],[50.395581,7.9332,78.0,44.0,100.0,"E · WEA-E","natürliche Person (ABR922021998480)","Eppenrod","SEE970999973527",1,3509335,600.0],[50.397043,7.931485,73.8,52.2,99.9,"Windpark Eppenrod · Eppenrod WEA 3","EnBW Windkraftprojekte GmbH","Eppenrod","SEE917131622509",1,2830908,900.0],[50.394061,7.930412,73.8,52.2,99.9,"Windpark Eppenrod · Eppenrod WEA 2","EnBW Windkraftprojekte GmbH","Eppenrod","SEE907053873493",1,2830852,900.0],[50.394908,7.927232,78.0,44.0,100.0,"WP Eppenrod · Kessler Eppenrod","natürliche Person (ABR924958255810)","Eppenrod","SEE980958513282",1,2273046,600.0],[50.39391,7.923868,73.8,52.2,99.9,"Windpark Eppenrod · Eppenrod WEA 1","EnBW Windkraftprojekte GmbH","Eppenrod","SEE958212715239",1,2830814,900.0],[50.320278,8.134338,141.0,116.8,199.4,"Trianel Onshore Windkraftwerke Hünfelden · Hünfelden 03","Trianel Onshore Windkraftwerke Hünfelden GmbH & Co. KG","Hünfelden","SEE968386962100",1,2289503,2400.0],[50.315225,8.135078,141.0,116.8,199.4,"Trianel Onshore Windkraftwerk Hünfelden · Hünfelden 04","Trianel Onshore Windkraftwerke Hünfelden GmbH & Co. KG","Hünfelden","SEE931437027684",1,2289535,2400.0],[50.291922,8.133356,164.0,149.1,238.55,"WP Hünfeldener Wald · H3","Bürgerwindpark Hünfeldener Wald GmbH Co. KG","Hünfelden","SEE943120222597",1,2850691,4500.0],[50.287845,8.126737,164.0,149.1,238.55,"WP Hünfeldener Wald · H2","Bürgerwindpark Hünfeldener Wald GmbH Co. KG","Hünfelden","SEE924628522716",1,2850633,4500.0],[50.283521,8.122032,164.0,149.1,238.55,"WP Hünfeldener Wald · H1","Bürgerwindpark Hünfeldener Wald GmbH Co. KG","Hünfelden","SEE920807847076",1,2850597,4500.0],[50.270108,7.97512,41.5,29.5,56.25,"Windpark Langenbach · Fuhrländer 250","Mann Naturenergie GmbH & Co. KG","Langenbach","SEE952947697655",1,3052088,250.0],[50.256844,8.016799,59.0,62.0,90.0,"Berghausen · Berghausen","Hanse Windkraft GmbH","Berghausen","SEE940147573077",1,2246921,1300.0],[50.517114,7.992605,160.0,138.0,229.0,"Salz-Berzhahn · 1390081","Alterric Windpark Salz-Berzhahn GmbH & Co. KG","Salz","SEE925510078953",1,6304263,4260.0],[50.517748,7.984887,113.5,70.0,148.5,"Windpark Girkenroth · Windpark Girkenroth Anlage 2","pfalzwind GmbH","Girkenroth","SEE929539443549",1,2977010,2000.0],[50.519823,7.994022,138.0,82.0,179.0,"Windpark Girkenroth 3 · Windpark Girkenroth Anlage 3","pfalzwind GmbH","Girkenroth","SEE950713103317",1,2979154,2000.0],[50.519124,7.988923,138.0,92.0,184.0,"Girkenroth · 920836","Windenergie Girkenroth GmbH & Co. KG","Girkenroth","SEE945323895356",1,2687335,2350.0],[50.518535,7.982332,113.5,70.0,148.5,"Windpark Girkenroth · Windpark Girkenroth Anlage 1","pfalzwind GmbH","Girkenroth","SEE902058173180",1,2976904,2000.0],[50.522646,7.999992,139.0,120.0,199.0,"WW Westerwald · W2 Watzenhahn 2","ENERTRAG Windfeld Westerwald GmbH & Co. KG","Dornburg","SEE976985577359",1,1889543,2780.0],[50.47,8.23,60.0,48.0,84.0,"Windpark Hirzenhain · FL 49","natürliche Person (ABR915213181685)","Eschenburg","SEE984959665186",1,4344388,750.0],[50.246624,7.97376,73.0,53.0,99.5,"Windpark Katzenelnbogen · E531559 - KEB","WEAG Windkraft Berndroth GmbH","Berndroth","SEE960974148347",1,1821115,800.0],[50.526439,7.998642,139.0,120.0,199.0,"WW Westerwald · W1 Watzenhahn 1","ENERTRAG Windfeld Westerwald GmbH & Co. KG","Dornburg","SEE924294745532",1,1889670,2780.0],[50.24443,7.973163,70.0,54.0,97.0,"WP Berndroth · WEA Berndroth 169","SK Wind GmbH & Co. KG","Berndroth","SEE947915518650",1,3262649,1000.0],[50.527597,7.992227,169.0,162.0,250.0,"Salz-Berzhahn · 253662","Alterric Windpark Salz-Berzhahn GmbH & Co. KG","Berzhahn","SEE940696738422",1,7384842,6200.0],[50.291309,8.233914,140.6,117.0,199.1,"Windpark Bad Camberg · NX-84802_WEA 4","Windpark Bad Camberg GmbH &Co. KG","Bad Camberg","SEE980567784479",1,2703824,2400.0],[50.242807,7.965243,70.0,54.0,97.0,"WP Berndroth · WEA Berndroth 168","SK Wind GmbH & Co. KG","Berndroth","SEE990490347788",1,3262377,1000.0],[50.288408,8.23716,140.6,117.0,199.1,"Windpark Bad Camberg · NX-84803_WEA 3","Windpark Bad Camberg GmbH &Co. KG","Bad Camberg","SEE956307107877",1,2706191,2400.0],[50.282691,8.237209,140.6,117.0,199.1,"Windpark Bad Camberg · NX-84804_WEA 2","Windpark Bad Camberg GmbH &Co. KG","Bad Camberg","SEE921553820207",1,2706510,2400.0],[50.28611,8.243611,74.0,52.0,100.0,"Windpark Hessenweiler · Windpark Hessenweiler","Windpark Hessenweiler GmbH & Co. KG","Bad Camberg","SEE908700612434",1,4309451,850.0],[50.28249,8.243394,74.0,52.0,100.0,"Windpark Hessenweiler · Windpark Hessenweiler","Windpark Hessenweiler GmbH & Co. KG","Bad Camberg","SEE907254515659",1,4311258,850.0],[50.236944,7.945,65.0,44.0,87.0,"WKA-Rettert · WKA-Rettert","NET energy GmbH","Rettert","SEE977742801045",1,3328495,600.0],[50.399269,8.308128,105.0,90.0,150.0,"Windpark Blessenbach · S/N: V37144","Haack Energy GmbH & Co. KG","Weinbach","SEE995672159876",1,2808225,2000.0],[50.402326,8.308663,105.0,90.0,150.0,"Windpark Blessenbach · S/N: V37143","Haack Energy GmbH & Co. KG","Weinbach","SEE939574590702",1,2808143,2000.0],[50.400021,8.313498,105.0,90.0,150.0,"Windpark Blessenbach · S/N: V37145","Haack Energy GmbH & Co. KG","Weinbach","SEE904382126559",1,2808262,2000.0],[50.394574,8.315266,65.0,70.0,100.0,"Laubuseschbach · FL 212","PNE WIND Laubuseschbach GmbH & Co. KG","Weilmünster","SEE925485234835",1,3155742,1500.0],[50.39458,8.315277,65.0,70.0,100.0,"Laubuseschbach · FL 213","PNE WIND Laubuseschbach GmbH & Co. KG","Weilmünster","SEE983442588933",1,3147885,1500.0],[50.398015,8.315615,65.0,70.0,100.0,"Laubuseschbach · WEA Laubuseschbach","GFW Energy e.K. Inh. Jürgen Fuhrländer","Weilmünster","SEE901134176893",1,3177416,1500.0],[50.519482,7.882494,41.5,29.5,56.25,"Windkraftanlage FL17 · Windkraftanlage FL 17","Mann Naturenergie GmbH & Co. KG","Ettinghausen","SEE925869224063",1,2443951,250.0],[50.423158,8.318353,164.5,137.0,233.0,"Windpark Stollberg · 36190326","Windpark Stollberg GmbH","Weinbach","SEE978909436216",1,2330096,3630.0],[50.332505,8.316722,149.0,115.71,206.85,"CEE Windpark Kuhbett · WP Kuhbett WEA 1","CEE Windpark Kuhbett GmbH & Co. KG","Bad Camberg","SEE919861746494",1,1848333,3000.0],[50.421674,8.323076,164.5,137.0,233.0,"Windpark Stollberg · 36190327","Windpark Stollberg GmbH","Weinbach","SEE934612154908",1,2330309,3630.0],[50.420373,8.32826,164.5,137.0,233.0,"Windpark Stollberg · 36190328","Windpark Stollberg GmbH","Weilmünster","SEE911421746944",1,2330324,3630.0],[50.536232,7.895927,149.0,115.7,206.85,"Elbinger Lei · 1150733","Windpark Elbinger Lei GmbH & Co. KG","Elbingen","SEE907645434873",1,2662022,3000.0],[50.329824,8.32242,149.0,115.71,206.85,"CEE Windpark Kuhbett · WP Kuhbett WEA 4","CEE Windpark Kuhbett GmbH & Co. KG","Bad Camberg","SEE958141631075",1,1850130,3000.0],[50.212143,7.955082,139.0,120.0,199.0,"WPH · WPH WEA 11","Windenergiepark Heidenrod GmbH","Heidenrod","SEE917671890840",1,2679210,2530.0],[50.527725,7.873258,73.25,53.0,99.75,"Windpark Wallmerod · Windenergieanlage Wallmerod Süd","Renewable Energy Harvest Five GmbH & Co. KG","Arnshöfen","SEE981881431438",1,2681743,800.0],[50.530817,7.878062,70.0,54.0,97.0,"Windkraftanlage FL188 · Windkraftanlage FL188","Mann Naturenergie GmbH & Co. KG","Hahn","SEE996691195463",1,2444095,1000.0],[50.211451,7.949171,139.0,120.0,199.0,"WPH · WPH WEA 10","Windenergiepark Heidenrod GmbH","Heidenrod","SEE937460082461",1,2679169,2530.0],[50.536512,7.889583,149.0,115.7,206.85,"Elbinger Lei · 1150731","Windpark Elbinger Lei GmbH & Co. KG","Hahn","SEE910851733890",1,2662436,3000.0],[50.52106,7.85787,50.0,29.0,64.5,"Sainerholz · Windkraftanlage Sainerholz","natürliche Person (ABR901289819577)","Ötzingen","SEE951487843898",1,3417567,250.0],[50.20889,7.958333,139.0,120.0,199.0,"WPH · WPH WEA 8","Windenergiepark Heidenrod GmbH","Heidenrod","SEE940524080075",1,2672993,2530.0],[50.328095,8.326125,149.0,115.71,206.85,"CEE Windpark Kuhbett · WP Kuhbett WEA 5","CEE Windpark Kuhbett GmbH & Co. KG","Bad Camberg","SEE983904502880",1,1850271,3000.0],[50.529604,7.872282,73.0,53.0,99.5,"WP Wallmerod · Kessler Arnshöfen","natürliche Person (ABR924958255810)","Arnshöfen","SEE929568711459",1,2268015,800.0],[50.208826,7.952227,139.0,120.0,199.0,"WPH · WPH WEA 12","Windenergiepark Heidenrod GmbH","Heidenrod","SEE940025892962",1,2673070,2530.0],[50.202976,8.119461,76.0,48.0,100.0,"WP Hohenstein · Hohenstein 481515","Windmüller Hohenstein eGbR","Hohenstein","SEE971574457517",1,3936298,800.0],[50.540435,7.891576,149.0,115.7,206.85,"Elbinger Lei · 1150732","Windpark Elbinger Lei GmbH & Co. KG","Elbingen","SEE999289963079",1,2661946,3000.0],[50.208586,7.946516,139.0,120.0,199.0,"WPH · WPH WEA 9","Windenergiepark Heidenrod GmbH","Heidenrod","SEE951947248812",1,2673023,2530.0],[50.201243,8.118526,76.0,48.0,100.0,"WP Hohenstein · Hohenstein 481514","Windmüller Hohenstein eGbR","Hohenstein","SEE931564692571",1,3936202,800.0],[50.206068,7.955383,139.0,120.0,199.0,"WPH · WPH WEA 7","Windenergiepark Heidenrod GmbH","Heidenrod","SEE932231483829",1,2672960,2530.0],[50.324438,8.330038,149.0,115.71,206.85,"CEE Windpark Kuhbett · WP Kuhbett WEA 6","CEE Windpark Kuhbett GmbH & Co. KG","Bad Camberg","SEE930455271109",1,1850683,3000.0],[50.203369,7.958229,139.0,120.0,199.0,"WPH · WPH WEA 6","Windenergiepark Heidenrod GmbH","Heidenrod","SEE943651368672",1,2672914,2530.0],[50.201428,7.962277,139.0,120.0,199.0,"WPH · WPH WEA 5","Windenergiepark Heidenrod GmbH","Heidenrod","SEE942587848647",1,2672872,2530.0],[50.211111,7.918611,70.0,46.0,93.0,"Einzelanlage · Windkraft-Anlage","Minor Windkraft","Holzhausen","SEE937026099506",1,3877965,600.0],[50.563011,7.941263,140.6,116.8,199.0,"Roter Kopf · 83469","Windpark Westerburg GmbH & Co. KG","Westerburg","SEE951701024720",1,2664447,2400.0],[50.197896,7.970589,139.0,120.0,199.0,"WPH · WPH WEA 3","Windenergiepark Heidenrod GmbH","Heidenrod","SEE954752779816",1,2672784,2530.0],[50.198775,7.964254,139.0,120.0,199.0,"WPH · WPH WEA 4","Windenergiepark Heidenrod GmbH","Heidenrod","SEE994154430335",1,2672845,2530.0],[50.565065,7.935738,140.6,116.8,199.0,"Roter Kopf · 83470","Windpark Westerburg GmbH & Co. KG","Westerburg","SEE968742907387",1,2664452,2400.0],[50.566649,7.940786,140.6,116.8,199.0,"Roter Kopf · 83468","Windpark Westerburg GmbH & Co. KG","Westerburg","SEE998104662203",1,2664431,2400.0],[50.195118,7.96649,139.0,120.0,199.0,"WPH · WPH WEA 2","Windenergiepark Heidenrod GmbH","Heidenrod","SEE922660718197",1,2672715,2530.0],[50.192429,7.96939,139.0,120.0,199.0,"WPH · WPH WEA 1","Windenergiepark Heidenrod GmbH","Heidenrod","SEE958227166125",1,2671918,2530.0],[50.305554,8.346019,141.0,117.0,199.5,"WP Weilrod · WRD01_83420","WP Weilrod GmbH & Co. KG","Weilrod","SEE971992912643",1,2546290,2400.0],[50.178852,8.036418,139.0,120.0,199.0,"Windpark Hohenstein · Windpark Hohenstein 3","QE Hohenstein Bestand GmbH & Co. KG","Heidenrod","SEE956332357407",1,1911445,2530.0],[50.579756,8.146994,140.6,116.8,199.0,"Windpark Mengerskirchen · WEA3","Windpark Mengerskirchen GmbH","Mengerskirchen","SEE920680264168",1,2156498,2400.0],[50.176275,8.040181,139.0,120.0,199.0,"Windpark Hohenstein · Windpark Hohenstein 2","QE Hohenstein Bestand GmbH & Co. KG","Heidenrod","SEE948074444316",1,1910996,2530.0],[50.305068,8.352317,141.0,117.0,199.5,"WP Weilrod · WRD02_83419","WP Weilrod GmbH & Co. KG","Weilrod","SEE968832545901",1,2546341,2400.0],[50.301038,8.352161,141.0,117.0,199.5,"WP Weilrod · WRD03_83421","WP Weilrod GmbH & Co. KG","Weilrod","SEE906681970017",1,2546381,2400.0],[50.173102,8.039222,139.0,120.0,199.0,"Windpark Hohenstein · Windpark Hohenstein 1","QE Hohenstein Bestand GmbH & Co. KG","Heidenrod","SEE992484180753",1,1910860,2530.0],[50.585395,8.148629,140.6,116.8,199.0,"Windpark Mengerskirchen · WEA2","Windpark Mengerskirchen GmbH","Mengerskirchen","SEE901739173167",1,2156457,2400.0],[50.31682,8.364953,141.0,117.0,199.5,"WP Weilrod · WRD07_83418","WP Weilrod GmbH & Co. KG","Weilrod","SEE945128452051",1,2493991,2400.0],[50.31315,8.366505,141.0,117.0,199.5,"WP Weilrod · WRD05_83417","WP Weilrod GmbH & Co. KG","Weilrod","SEE915113832120",1,2493822,2400.0],[50.307035,8.365013,141.0,117.0,199.5,"WP Weilrod · WRD04_83415","WP Weilrod GmbH & Co. KG","Weilrod","SEE904319564713",1,2493713,2400.0],[50.590059,8.152033,140.6,116.8,199.0,"Windpark Mengerskirchen · WEA1","Windpark Mengerskirchen GmbH","Mengerskirchen","SEE933695884030",1,2156422,2400.0],[50.1665,8.0356,135.4,101.0,185.9,"Heidenrod-Kemel · 1010077","Herborn Illek Nischik H. Schneider L. Schneider Schreiber GbR","Heidenrod","SEE927122458659",1,3184281,3000.0],[50.312932,8.372631,141.0,117.0,199.5,"WP Weilrod · WRD06_83416","WP Weilrod GmbH & Co. KG","Weilrod","SEE931875914522",1,2493937,2400.0],[50.304601,8.368441,169.0,162.0,250.0,"ABO Wind WP Weilrod II · ABO Wind WP Weilrod II WEA 1","WP Weilrod II GmbH & Co. KG","Weilrod","SEE913207046392",1,7402416,6200.0],[50.546547,8.278133,160.0,138.25,229.13,"Leun · 1381014","Windpark GmbH & Co. Leun KG","Löhnberg","SEE976389025005",1,4594128,4200.0],[50.1655,8.0291,138.38,82.0,179.38,"Heidenrod-Kemel · 824348","Herborn Illek Nischik H. Schneider L. Schneider Schreiber GbR","Heidenrod","SEE975560207438",1,3184258,2300.0],[50.545695,8.282761,160.0,138.25,229.13,"Leun · 1381015","Windpark GmbH & Co. Leun KG","Leun","SEE967400590428",1,4594141,4200.0],[50.308227,8.373826,169.0,162.0,250.0,"ABO Wind WP Weilrod II · ABO Wind WP Weilrod II WEA 2","WP Weilrod II GmbH & Co. KG","Weilrod","SEE934309224037",1,7402427,6200.0],[50.163443,8.038033,135.4,101.0,185.9,"Windpark Heidenrod-Kemel · WKA 1010194","Windenergie Heidenrod GmbH & Co. KG","Heidenrod","SEE969933280623",1,2391235,3050.0],[50.163,8.0334,138.38,82.0,179.38,"Heidenrod-Kemel · 824347","Herborn Illek Nischik H. Schneider L. Schneider Schreiber GbR","Heidenrod","SEE940666408539",1,3184194,2300.0],[50.16237,8.04127,135.4,101.0,185.9,"Windpark Heidenrod-Kemel · WKA 1010195","Windenergie Heidenrod GmbH & Co. KG","Heidenrod","SEE995188411130",1,2391045,3050.0],[50.312806,8.379494,169.0,162.0,250.0,"ABO Wind WP Weilrod II · ABO Wind WP Weilrod II WEA 3","WP Weilrod II GmbH & Co. KG","Weilrod","SEE904956976245",1,7402436,6200.0],[50.595512,8.156583,135.4,101.0,185.9,"Windpark Knoten · WEA4","Windpark Knoten","Greifenstein","SEE935370638617",1,2156313,3050.0],[50.599032,8.155402,135.4,101.0,185.9,"Windpark Knoten · WEA2","Windpark Knoten","Greifenstein","SEE996424961532",1,2156234,3050.0],[50.598727,8.16006,135.4,101.0,185.9,"Windpark Knoten · WEA3","Windpark Knoten","Greifenstein","SEE923064639248",1,2156276,3050.0],[50.600918,8.150314,135.4,101.0,185.9,"Windpark Knoten · WEA1","Windpark Knoten","Driedorf","SEE924545064313",1,2156093,3050.0],[50.5936,8.22214,137.0,126.0,200.0,"WP Odersberg · V 219509-01","Windpark Odersberg GmbH & Co. KG","Greifenstein","SEE972189867418",1,1893503,3450.0],[50.611,8.1653,60.0,54.0,87.0,"JOCERE_N54-1000","natürliche Person (ABR988320277107)","Driedorf","SEE999734143100",1,4768653,1000.0],[50.6182,8.1521,65.0,40.3,85.15,"Driedorf · 41204","Erhard und Ulrich Theis GbR","Driedorf","SEE928309443840",1,1849018,500.0],[50.625571,8.008841,134.0,130.0,199.0,"Windpark Höhn II · Windpark Höhn II - 2 - GE 3.2","evm Windpark Höhn GmbH & Co. KG","Höhn","SEE914092904910",1,3435726,3230.0],[50.618389,8.158422,108.0,82.0,149.0,"Mademühlen · WKA Würz","Würz Fertigungstechnik GmbH","Driedorf","SEE900195986625",1,2049956,2300.0],[50.452893,8.418535,139.0,120.0,199.0,"Windpark Buhlenberg · BB01-GE-27191186","MVV Windenergie GmbH","Weilmünster","SEE918674497760",1,1859729,2780.0],[50.6265,7.9964,70.0,58.6,99.3,"Höhn · 58201","Merz & Fischbach GbR","Höhn","SEE968871209208",1,2666626,1000.0],[50.6194,8.1585,108.38,82.0,149.38,"Driedorf-Mademühlen · 823417","Erhard und Ulrich Theis GbR","Driedorf","SEE918302308420",1,1849028,2300.0],[50.628485,8.016412,139.0,120.0,199.0,"Windpark Höhn I · Windpark Höhn I - 2 - GE 2.5","evm Windpark Höhn GmbH & Co. KG","Höhn","SEE996624787697",1,3435572,2530.0],[50.6121,8.1943,65.0,40.3,85.15,"Driedorf-Münchhausen · 40226","natürliche Person (ABR970958779788)","Driedorf","SEE933955690708",1,1867991,500.0],[50.451493,8.422491,139.0,120.0,199.0,"Windpark Buhlenberg · BB02-GE-27191187","MVV Windenergie GmbH","Weilmünster","SEE923592355610",1,1859840,2780.0],[50.628907,8.008926,139.0,120.0,199.0,"Windpark Höhn I · Windpark Höhn I - 1 - GE 2.5","evm Windpark Höhn GmbH & Co. KG","Höhn","SEE918943805630",1,3435481,2530.0],[50.628856,8.001931,134.0,130.0,199.0,"Windpark Höhn II · Windpark Höhn II - 1 - GE 3.2","evm Windpark Höhn GmbH & Co. KG","Höhn","SEE933171344980",1,3435702,3230.0],[50.628856,8.001931,139.0,120.0,199.0,"Windpark Höhn I · Windpark Höhn I - 3 - GE 2.5","evm Windpark Höhn GmbH & Co. KG","Höhn","SEE948227436236",1,3435666,2530.0],[50.449944,8.42589,139.0,120.0,199.0,"Windpark Buhlenberg · BB03-GE-27191188","MVV Windenergie GmbH","Waldsolms","SEE957356169526",1,1859883,2780.0],[50.132609,7.97184,149.08,115.72,206.94,"Windpark Heidenrod-Springen · WKA 1150846","Springer Wind GmbH & Co. KG","Heidenrod","SEE903867973671",1,2393309,3000.0],[50.40944,8.450386,139.0,120.0,199.0,"Windpark Siegfriedeiche · SF03-GE-27185542","MVV Windenergie GmbH","Grävenwiesbach","SEE969004093916",1,1829530,2780.0],[50.130716,7.980021,149.08,115.72,206.94,"Windpark Heidenrod-Springen · WKA 1150847","Springer Wind GmbH & Co. KG","Heidenrod","SEE908139252850",1,2393456,3000.0],[50.129363,7.969892,149.08,115.72,206.94,"Windpark Heidenrod-Springen · WKA 1150848","Springer Wind GmbH & Co. KG","Heidenrod","SEE975985356605",1,2393563,3000.0],[50.409215,8.458014,139.0,120.0,199.0,"Windpark Siegfriedeiche · SF02-GE-27185541","MVV Windenergie GmbH","Grävenwiesbach","SEE925377908066",1,1829497,2780.0],[50.407924,8.466455,139.0,120.0,199.0,"Windpark Siegfriedeiche · SF04-GE-27185543","MVV Windenergie GmbH","Grävenwiesbach","SEE923993752292",1,1829557,2780.0],[50.412047,8.465916,139.0,120.0,199.0,"Windpark Siegfriedeiche · SF01-GE-27185540","MVV Windenergie GmbH","Grävenwiesbach","SEE948383845170",1,1829440,2780.0],[50.6196,7.8544,65.0,40.3,85.15,"Alpenrod · ALWIN","Alternative Energie Kroppacher Schweiz GmbH & Co. KG","Alpenrod","SEE933298149512",1,1819395,500.0],[50.645544,8.138149,65.0,40.3,85.15,"Windpark Driedorf · E_40943, WE04","WP6 Hohenlohe GmbH","Driedorf","SEE932003416604",1,2050915,500.0],[50.649344,8.104439,100.0,77.0,138.5,"Windpark Westerwald · Windpark Westerwald 11 - FL-310","Windpark Westerwald GmbH","Waigandshain","SEE948845519830",1,3128880,1500.0],[50.65,8.00336,53.0,44.0,75.0,"Fehl · V44","SOPREMA","Fehl-Ritzhausen","SEE961622918008",1,2294861,600.0],[50.6208,7.8527,65.0,44.0,87.0,"Alpenrod · ALWINE","Alternative Energie Kroppacher Schweiz GmbH & Co. KG","Alpenrod","SEE939178441813",1,1819420,600.0],[50.647178,8.132222,75.6,48.0,99.6,"Driedorf-Hohenroth · E-48","natürliche Person (ABR929989196958)","Driedorf","SEE913798001084",1,1818139,800.0],[50.650183,8.107217,100.0,77.0,138.5,"Windpark Westerwald · Windpark Westerwald 10 - FL-312","BEE Bioenergieerzeugung Koblenz GmbH","Waigandshain","SEE923188690910",1,3128841,1500.0],[50.648611,8.126357,149.0,101.0,199.5,"Driedorf-Hohenroth · E-101","K & N GbR","Driedorf","SEE974457797076",1,1816204,3050.0],[50.650856,8.104069,100.0,77.0,138.5,"Windpark Westerwald · Windpark Westerwald 8 - FL-309","BEE Bioenergieerzeugung Koblenz GmbH","Waigandshain","SEE913694441502",1,3128785,1500.0],[50.650742,8.107611,100.0,77.0,138.5,"Windpark Westerwald · Windpark Westerwald 12- FL-313","Windpark Westerwald GmbH","Waigandshain","SEE969070539752",1,3128927,1500.0],[50.650878,8.106461,100.0,77.0,138.5,"Windpark Westerwald · Windpark Westerwald 9 - FL-311","BEE Bioenergieerzeugung Koblenz GmbH","Waigandshain","SEE975369211926",1,3128807,1500.0],[50.651444,8.100603,100.0,77.0,138.5,"Windpark Westerwald · Windpark Westerwald 7 - FL-308","BEE Bioenergieerzeugung Koblenz GmbH","Waigandshain","SEE963387290061",1,3128747,1500.0],[50.401955,8.472514,139.0,120.0,199.0,"Windpark Siegfriedeiche · SF06-GE-27185545","MVV Windenergie GmbH","Grävenwiesbach","SEE923151668694",1,1829601,2780.0],[50.651629,8.001196,65.0,40.0,85.0,"Fehl · E40","SOPREMA","Fehl-Ritzhausen","SEE980634784203",1,2294891,500.0],[50.650195,8.117834,100.0,77.0,138.5,"Windpark Westerwald · Windpark Westerwald 6 - FL-307","BEE Bioenergieerzeugung Koblenz GmbH","Homberg","SEE952025373402",1,3128719,1500.0],[50.6223,7.8513,65.0,44.0,87.0,"Alpenrod · 441102","Buchta GbR","Alpenrod","SEE929242366760",1,1840930,600.0],[50.649,8.1306,65.0,40.3,85.15,"Driedorf-Hohenroth · GEMBRETT 1","K & N GbR","Driedorf","SEE958609973471",1,1818748,500.0],[50.406487,8.472773,139.0,120.0,199.0,"Windpark Siegfriedeiche · SF05-GE-27185544","MVV Windenergie GmbH","Grävenwiesbach","SEE984054529413",1,1829579,2780.0],[50.6488,8.1337,65.0,40.3,85.15,"Driedorf-Hohenroth · GEMBRETT 2","K & N GbR","Driedorf","SEE938038563863",1,1821921,500.0],[50.6485,8.1365,65.0,40.3,85.15,"Driedorf-Hohenroth · GEMBRETT 3","K & N GbR","Driedorf","SEE908194160398",1,1821944,500.0],[50.648314,8.14019,63.0,40.0,83.0,"E-40 · WKA","natürliche Person (ABR965199224364)","Driedorf","SEE929867397408",1,2297789,500.0],[50.651914,8.113228,100.0,77.0,138.5,"Windpark Westerwald · Windpark Westerwald 5 - FL-306","BEE Bioenergieerzeugung Koblenz GmbH","Waigandshain","SEE949465853786",1,3128691,1500.0],[50.653402,8.005816,85.0,70.0,120.0,"E-66 · E-66","SOPREMA","Fehl-Ritzhausen","SEE951536234110",1,1876410,1800.0],[50.652394,8.109406,100.0,77.0,138.5,"Windpark Westerwald · Windpark Westerwald 4 - FL-305","BEE Bioenergieerzeugung Koblenz GmbH","Waigandshain","SEE937215416213",1,3128671,1500.0],[50.655058,8.062317,113.0,70.0,148.0,"Zehnhausen · 782505","Windpark GmbH & Co. Zehnhausen KG","Zehnhausen","SEE908466426986",1,2899278,2000.0],[50.6237,7.8508,65.0,40.3,85.15,"Alpenrod · 41340","Buchta GbR","Alpenrod","SEE941731904147",1,1840909,500.0],[50.653028,8.105739,100.0,77.0,138.5,"Windpark Westerwald · Windpark Westerwald 3 - FL-304","BEE Bioenergieerzeugung Koblenz GmbH","Waigandshain","SEE934699169048",1,3127248,1500.0],[50.653786,8.101897,100.0,77.0,138.5,"Windpark Westerwald · Windpark Westerwald 2 - FL-303","BEE Bioenergieerzeugung Koblenz GmbH","Waigandshain","SEE921161872360",1,3127172,1500.0],[50.654519,8.099289,100.0,77.0,138.5,"Windpark Westerwald · Windpark Westerwald 1 - FL-302","BEE Bioenergieerzeugung Koblenz GmbH","Waigandshain","SEE982903715390",1,3126960,1500.0],[50.652,8.129,55.0,43.0,76.5,"TW600WW · TW600WW","natürliche Person (ABR974706286139)","Driedorf","SEE959175438623",1,2020695,600.0],[50.651746,8.136672,73.25,52.9,99.7,"Driedorf-Waldaubach · E-53","Walburga Kranz Energieerzeugung WEA Kranz 2","Driedorf","SEE994680864611",1,1816516,800.0],[50.65922,8.06024,108.0,82.0,149.0,"Zehnhausen · 822959","Windpark GmbH & Co. Zehnhausen KG","Zehnhausen","SEE974813155083",1,2899328,2000.0],[50.6565,8.1387,50.0,43.0,71.5,"Driedorf-Waldaubach · TW 600","natürliche Person (ABR945207401291)","Driedorf","SEE937558216501",1,1846508,600.0],[50.633194,7.855452,107.0,82.0,148.0,"WP_Alpenrod · 822350","Ludwig GbR.","Alpenrod","SEE972842959481",1,2690621,2000.0],[50.599628,7.773052,160.0,138.6,229.3,"Hartenfelser Kopf · 1380453","E138 Hartenfelser Kopf GmbH & Co. KG","Herschbach","SEE962902058216",1,2679350,4200.0],[50.602396,7.777649,138.0,92.0,184.0,"Windpark Schenkelberg · Schenkelberg I  02","Windpark Schenkelberg I GmbH & Co.KG","Schenkelberg","SEE938048103035",1,4804867,2350.0],[50.632995,7.852586,107.0,82.0,148.0,"WP_Alpenrod · 822347","Ludwig GbR.","Alpenrod","SEE950726828245",1,2690546,2000.0],[50.634217,7.85431,107.0,82.0,148.0,"WP_Alpenrod · 822349","Ludwig GbR.","Alpenrod","SEE982714072187",1,2690597,2000.0],[50.635188,7.855206,107.0,82.0,148.0,"WP_Alpenrod · 822348","Ludwig GbR.","Alpenrod","SEE984406876868",1,2690571,2000.0],[50.634992,7.852707,107.0,82.0,148.0,"WP_Alpenrod · 822346","Ludwig GbR.","Alpenrod","SEE933952930128",1,2690517,2000.0],[50.604813,7.777755,138.0,92.0,184.0,"Windpark Schenkelberg · Schenkelberg I  01","Windpark Schenkelberg I GmbH & Co.KG","Schenkelberg","SEE933051006243",1,4804818,2350.0],[50.664279,8.010153,65.0,40.0,85.0,"Hof · 41007","WP5 Hohenlohe GmbH","Hof","SEE976740942705",1,2465751,500.0],[50.601607,7.765129,138.0,92.0,184.0,"Windpark Schenkelberg · Schenkelberg I  03","Windpark Schenkelberg I GmbH & Co.KG","Herschbach","SEE949070712737",1,4804902,2350.0],[50.6671,8.0304,53.0,39.0,72.5,"WP Westerwald · Vestas V39 Hof","Wullengerd Hagenlüke GbR","Hof","SEE986908443074",1,2942254,500.0],[50.604095,7.769169,138.0,92.0,184.0,"WP_Schenkelberg · 920361","natürliche Person (ABR975248281835)","Herschbach","SEE915773962892",1,2690482,2350.0],[50.6675,8.0347,65.0,40.0,85.0,"WP Westerwald · E40 Salzburg","Wullengerd Hagenlüke GbR","Salzburg","SEE945943334341",1,2942141,500.0],[50.607408,7.775155,138.0,92.0,184.0,"WP_Schenkelberg · 920362","natürliche Person (ABR944544966197)","Herschbach","SEE947254118948",1,2690452,2350.0],[50.668215,8.032498,89.0,58.0,118.0,"Hof · WKA Hof","Kolb&Fischbach GbR","Hof","SEE933495466092",1,1837352,950.0],[50.668294,8.035482,42.0,29.5,56.75,"WKA  FUH37G1D250","natürliche Person (ABR921576934936)","Salzburg","SEE919149133329",1,1839270,250.0],[50.6683,8.0301,65.0,40.3,85.15,"Hof (Westerwald) · 40968","Rainer & Klaus Weber Windkraft GbR","Hof","SEE970052783049",1,1866886,500.0],[50.599094,7.756632,160.0,138.6,229.3,"Hartenfelser Kopf · 1380452","Öko-Aktiv Beteiligungsgesellschaft mbH","Herschbach","SEE922653820234",1,2678295,3500.0],[50.603013,7.762049,113.0,70.0,148.0,"WP Hartenfelser Kopf · E 78647-02","Statkraft Windenergie GmbH & Co. KG","Herschbach","SEE910614000436",1,3315199,2000.0],[50.67,8.051,48.0,40.3,68.15,"Salzburger Kopf · 40547","natürliche Person (ABR921332098889)","Salzburg","SEE911935943761",1,1827169,500.0],[50.606671,7.76711,113.0,70.0,148.0,"WP Hartenfelser Kopf · E 78651-06","Statkraft Windenergie GmbH & Co. KG","Herschbach","SEE908637560204",1,3315272,2000.0],[50.670606,8.043634,36.0,27.0,49.5,"Windpark_Windmühle · Windmühle","natürliche Person (ABR981101676816)","Stein-Neukirch","SEE918338564708",1,1900069,200.0],[50.66781,7.985619,65.0,40.0,85.0,"Windenergie - Pfuhler Höhe · E 40 - 40835","natürliche Person (ABR969491942667)","Nisterau","SEE962238831170",1,4279986,500.0],[50.67083,8.05378,50.0,29.0,64.5,"Salzburg · Salzburg","LiSa GmbH & Co. KG","Salzburg","SEE967359940879",1,3296448,250.0],[50.610827,7.772412,113.0,70.0,148.0,"WP Hartenfelser Kopf · E 78656-11","Statkraft Windenergie GmbH & Co. KG","Hartenfels","SEE907083410910",1,3314802,2000.0],[50.609029,7.76565,113.0,70.0,148.0,"WP Hartenfelser Kopf · E 78650-05","Statkraft Windenergie GmbH & Co. KG","Mündersbach","SEE994707216782",1,3315242,2000.0],[50.606557,7.759739,113.0,70.0,148.0,"WP Hartenfelser Kopf · E 78646-01","Statkraft Windenergie GmbH & Co. KG","Mündersbach","SEE968626574285",1,3315037,2000.0],[50.612453,7.770576,113.0,70.0,148.0,"WP Hartenfelser Kopf · E 78655-10","Statkraft Windenergie GmbH & Co. KG","Hartenfels","SEE972490037005",1,3314859,2000.0],[50.608,7.7597,113.5,71.0,149.0,"Hartenfelser Kopf · MÜWI","Alternative Energie Kroppacher Schweiz GmbH & Co. KG","Mündersbach","SEE901931856097",1,1819311,2000.0],[50.611068,7.764593,113.0,70.0,148.0,"WP Hartenfelser Kopf · E 78649-04","Statkraft Windenergie GmbH & Co. KG","Mündersbach","SEE962493529126",1,3315108,2000.0],[50.61453,7.768996,113.0,70.0,148.0,"WP Hartenfelser Kopf · E 78654-09","Statkraft Windenergie GmbH & Co. KG","Hartenfels","SEE900195207904",1,3314910,2000.0],[50.612847,7.761127,113.0,70.0,148.0,"WP Hartenfelser Kopf · E 78648-03","Statkraft Windenergie GmbH & Co. KG","Mündersbach","SEE903386805552",1,3315155,2000.0],[50.615968,7.765482,113.0,70.0,148.0,"WP Hartenfelser Kopf · E 78653-08","Statkraft Windenergie GmbH & Co. KG","Hartenfels","SEE978555327968",1,3314756,2000.0],[50.60975,7.75289,137.6,110.0,192.6,"Windpark Hartenfelser Kopf · SCHÜTZ VT110 (WEA 15 - VT 20081001)","Schütz Industrie KGaA & Co. KG","Mündersbach","SEE986708938657",1,2672306,3200.0],[50.61311,7.75533,137.6,110.0,192.6,"Windpark Hartenfelser Kopf · SCHÜTZ VT110 (WEA 14 - VT 20081002)","Schütz GmbH & Co. KGaA","Mündersbach","SEE939125622616",1,2670526,3200.0],[50.616703,7.761902,113.0,70.0,148.0,"WP Hartenfelser Kopf · E 78652-07","Statkraft Windenergie GmbH & Co. KG","Höchstenbach","SEE957637464159",1,3314945,2000.0],[50.61924,7.76666,143.2,110.0,198.2,"Windpark Hartenfelser Kopf · SCHÜTZ VT110 (WEA 21 - VT 20081004)","Schütz Industrie KGaA & Co. KG","Höchstenbach","SEE935984347394",1,2681607,3200.0],[50.616579,7.757758,138.0,82.0,179.0,"Hartenfelser Kopf · HK1-82095","ENGIE Windpark Portfolio 2 GmbH","Hartenfels","SEE974108331161",1,2900372,2000.0],[50.61376,7.74884,143.2,110.0,198.2,"Windpark Hartenfelser Kopf · SCHÜTZ VT110 (WEA 16 - VT 20081003)","Schütz GmbH & Co. KGaA","Mündersbach","SEE907122036859",1,2681542,3200.0],[50.62186,7.76432,143.2,110.0,198.2,"Windpark Hartenfelser Kopf · SCHÜTZ VT110 (WEA 20 - VT 20081005)","Schütz Industrie KGaA & Co. KG","Höchstenbach","SEE974775871311",1,2681851,3200.0],[50.61653,7.75162,143.2,110.0,198.2,"Windpark Hartenfelser Kopf · SCHÜTZ VT110 (WEA 17 - VT 20081008)","Schütz Industrie KGaA & Co. KG","Mündersbach","SEE961953470572",1,2681939,3200.0],[50.61936,7.75456,143.2,110.0,198.2,"Windpark Hartenfelser Kopf · SCHÜTZ VT110 (WEA 18 - VT 20081006)","Schütz Industrie KGaA & Co. KG","Höchstenbach","SEE935476290764",1,2681893,3200.0],[50.62193,7.75805,143.2,110.0,198.2,"Windpark Hartenfelser Kopf · SCHÜTZ VT110 (WEA 19 - VT 20081007)","Schütz Industrie KGaA & Co. KG","Höchstenbach","SEE983486592316",1,2681924,3200.0],[50.705,7.9496,65.0,40.3,85.15,"Langenbach · LAWIN","Alternative Energie Kroppacher Schweiz GmbH & Co. KG","Langenbach","SEE925626575339",1,1819262,500.0],[50.7047,7.9463,89.0,52.9,115.45,"Langenbach · 58105","Langenbach Wind GbR","Langenbach","SEE922807103862",1,2116265,1000.0],[50.704533,7.944676,30.0,23.0,41.5,"Windpark Langenbach b.K. · AN Bonus 150","Mann Naturenergie GmbH & Co. KG","Langenbach","SEE913846650967",1,2285244,150.0],[50.707,7.947,65.0,40.3,85.15,"Langenbach · E-40","Mann Naturenergie GmbH & Co. KG","Langenbach","SEE999919714026",1,1845250,500.0],[50.708,7.9456,50.0,41.0,70.5,"Langenbach · AN 600","Mann Naturenergie GmbH & Co. KG","Langenbach","SEE952751996449",1,1845305,600.0],[50.71272,7.947602,143.2,110.0,198.2,"Windkraftanlage Schütz VT110 · Windkraftanlage Schütz VT110","Wäller Energie e.G.","Weitefeld","SEE974545215697",1,2603027,3200.0],[50.175197,7.599469,138.0,103.0,189.5,"Boppard · BO 01","Rhein-Höhenwind GmbH & Co. KG","Boppard","SEE909184690017",1,3452269,2350.0],[50.171838,7.601317,138.0,103.0,189.5,"Boppard · BO 02","Windkraft Auma GmbH & Co. KG","Boppard","SEE908910146927",1,3452342,2350.0],[50.196857,7.572795,143.0,114.0,200.0,"WP Kolbenstein · WEA07 - 300556 - JNE007","JWP Jade Windpark GmbH & Co. 17. Betriebs KG","Kratzenburg","SEE936498825965",1,2513667,3200.0],[50.199154,7.569533,143.0,114.0,200.0,"WP Kolbenstein · WEA05 - 300553 - JNE005","JWP Jade Windpark GmbH & Co. 17. Betriebs KG","Kratzenburg","SEE932982789690",1,2513494,3200.0],[50.168562,7.600433,138.0,103.0,189.5,"Boppard · BO 03","Windkraft Auma GmbH & Co. KG","Boppard","SEE968021473978",1,3452375,2350.0],[50.165408,7.601407,131.0,138.0,200.0,"Dörth · DOE01.1","Windkraft Vorderhunsrück GmbH & Co. KG","Dörth","SEE941872708376",1,7614355,4260.0],[50.673056,8.389722,85.0,77.0,123.5,"WP Schelder Wald · Schelder Wald WEA 3","energy 20+ Gmbh","Siegbach","SEE981814435557",1,3524482,1500.0],[50.191366,7.570788,143.0,114.0,200.0,"WP Kolbenstein · WEA09 - 300762 - JNE009","JWP Jade Windpark GmbH & Co. 17. Betriebs KG","Kratzenburg","SEE930188618073",1,2513764,3200.0],[50.19391,7.567813,143.0,114.0,200.0,"WP Kolbenstein · WEA08 - 300761 - JNE008","JWP Jade Windpark GmbH & Co. 17. Betriebs KG","Kratzenburg","SEE973415438587",1,2513717,3200.0],[50.675833,8.3875,85.0,77.0,123.5,"WP Schelder Wald · Schelder Wald WEA 2","energy 20+ Gmbh","Dillenburg","SEE952106180301",1,3499942,1500.0],[50.625813,8.474413,139.0,120.0,199.0,"CEE Windpark Aßlar GmbH ＆ Co. KG · WP Aßlar WEA 6","CEE Windpark Aßlar GmbH & Co. KG","Aßlar","SEE923857228628",1,2275439,2780.0],[50.196715,7.563485,143.0,114.0,200.0,"WP Kolbenstein · WEA06 - 300554 - JNE006","JWP Jade Windpark GmbH & Co. 17. Betriebs KG","Kratzenburg","SEE964315061487",1,2513588,3200.0],[50.162788,7.599005,131.0,138.0,200.0,"Dörth · DOE02.1","Windkraft Vorderhunsrück GmbH & Co. KG","Dörth","SEE914160602069",1,7614414,4260.0],[50.199441,7.559958,143.0,114.0,200.0,"WP Kolbenstein · WEA04 - 300555 - JNE004","JWP Jade Windpark GmbH & Co. 17. Betriebs KG","Kratzenburg","SEE942375659868",1,2513418,3200.0],[50.637784,8.458913,138.0,120.0,198.0,"CEE Windpark Aßlar GmbH ＆ Co. KG · WP Aßlar WEA 1","CEE Windpark Aßlar GmbH & Co. KG","Aßlar","SEE965753412985",1,2275189,2780.0],[50.63307,8.466526,139.0,120.0,199.0,"CEE Windpark Aßlar GmbH ＆ Co. KG · WP Aßlar WEA 4","CEE Windpark Aßlar GmbH & Co. KG","Aßlar","SEE915080825736",1,2275370,2780.0],[50.629136,8.475147,139.0,120.0,199.0,"CEE Windpark Aßlar GmbH ＆ Co. KG · WP Aßlar WEA 5","CEE Windpark Aßlar GmbH & Co. KG","Aßlar","SEE917138637216",1,2275393,2780.0],[50.634975,8.469507,139.0,120.0,199.0,"CEE Windpark Aßlar GmbH ＆ Co. KG · WP Aßlar WEA 3","CEE Windpark Aßlar GmbH & Co. KG","Aßlar","SEE944358736214",1,2275344,2780.0],[50.638276,8.466471,139.0,120.0,199.0,"CEE Windpark Aßlar GmbH ＆ Co. KG · WP Aßlar WEA 2","CEE Windpark Aßlar GmbH & Co. KG","Aßlar","SEE924472627629",1,2275308,2780.0],[50.198952,7.553221,143.0,114.0,200.0,"WP Kolbenstein · WEA03 - 300760 - JNE003","JWP Jade Windpark GmbH & Co. 17. Betriebs KG","Kratzenburg","SEE994593844144",1,2513077,3200.0],[50.625223,8.485399,164.0,149.0,238.5,"Qair WP Altenschlag GmbH ＆ Co. KG · Qair WP Altenschlag GmbH ＆ Co. KG WEA 3","Qair WP Altenschlag GmbH & Co. KG","Wetzlar","SEE918127492946",1,5823456,4500.0],[50.201989,7.550132,143.0,114.0,200.0,"WP Kolbenstein · WEA02 - 300759 - JNE002","JWP Jade Windpark GmbH & Co. 17. Betriebs KG","Kratzenburg","SEE949495022015",1,2303111,3200.0],[50.628742,8.484343,164.0,149.0,238.5,"Qair WP Altenschlag GmbH ＆ Co. KG · Qair WP Altenschlag GmbH ＆ Co. KG WEA 2","Qair WP Altenschlag GmbH & Co. KG","Wetzlar","SEE995907343322",1,5823383,4500.0],[50.631987,8.482273,164.0,149.0,238.5,"Qair WP Altenschlag GmbH ＆ Co. KG · Qair WP Altenschlag GmbH ＆ Co. KG WEA 1","Qair WP Altenschlag GmbH & Co. KG","Wetzlar","SEE923253464071",1,5823238,4500.0],[50.20128,7.543052,143.0,114.0,200.0,"WP Kolbenstein · WEA01 - 300758 - JNE001","JWP Jade Windpark GmbH & Co. 17. Betriebs KG","Kratzenburg","SEE945003321823",1,2303006,3200.0],[50.694,7.725945,42.0,30.0,57.0,"KROWI · KROWI","Alternative Energie Kroppacher Schweiz GmbH & Co. KG","Giesenhausen","SEE962097502426",1,1804640,250.0],[50.622329,8.502386,166.0,150.0,241.0,"Windpark Blasbach · Windpark Blasbach WEA 1","Windenergiepark Wetzlar GmbH","Wetzlar","SEE907083492855",1,3289876,4200.0],[50.631679,8.49123,141.0,117.0,199.5,"Windpark Hohenahr · Windpark Hohenahr WEA06","Mainova Gemeinschaftswindpark Hohenahr GmbH & Co. KG","Hohenahr","SEE946976202027",1,2944984,2400.0],[50.626694,8.501039,166.0,150.0,241.0,"Windpark Blasbach · Windpark Blasbach WEA 2","Windenergiepark Wetzlar GmbH","Wetzlar","SEE938706858024",1,3290152,4200.0],[50.698864,7.727179,53.0,44.0,75.0,"Giesenhausen01 · Giesenhausen01","natürliche Person (ABR981101676816)","Giesenhausen","SEE964312948682",1,2693048,600.0],[50.725391,7.802329,73.0,53.0,99.5,"Kundert-Höhenweg · WEA 531343","Infrastruktur-Höhenweg GbR","Kundert","SEE930944011414",1,3272634,800.0],[50.634949,8.491364,141.0,117.0,199.5,"Windpark Hohenahr · Windpark Hohenahr WEA04","Mainova Gemeinschaftswindpark Hohenahr GmbH & Co. KG","Hohenahr","SEE911820337941",1,2944917,2400.0],[50.727333,7.803342,114.0,70.0,149.0,"WP Kundert · W118","juwi Beteiligungs GmbH & Co. Kundert KG","Kundert","SEE932002154279",1,2770059,1800.0],[50.725213,7.795547,73.0,53.0,99.5,"Kundert-Höhenweg · WEA 531344","Infrastruktur-Höhenweg GbR","Kundert","SEE984421333438",1,3273192,800.0],[50.727294,7.797876,114.0,70.0,149.0,"WP Kundert · W117","juwi Beteiligungs GmbH & Co. Kundert KG","kundert","SEE984823669890",1,2769210,1800.0],[50.127269,7.610172,164.0,163.0,245.5,"Utz · WEA Utz","WE Badenhard II GmbH & Co.KG","Utzenhain","SEE948302192484",1,4838986,6800.0],[50.632784,8.503506,141.0,117.0,199.5,"Windpark Hohenahr · Windpark Hohenahr WEA05","Mainova Gemeinschaftswindpark Hohenahr GmbH & Co. KG","Hohenahr","SEE903768753129",1,2944932,2400.0],[50.635878,8.499443,141.0,117.0,199.5,"Windpark Hohenahr · Windpark Hohenahr WEA03","Mainova Gemeinschaftswindpark Hohenahr GmbH & Co. KG","Hohenahr","SEE958755966570",1,2944882,2400.0],[50.639785,8.496106,141.0,117.0,199.5,"Windpark Hohenahr · Windpark Hohenahr WEA02","Mainova Gemeinschaftswindpark Hohenahr GmbH & Co. KG","Hohenahr","SEE961951724257",1,2941937,2400.0],[50.132726,7.598708,140.0,112.0,196.0,"Windpark Norath · V_201751, W536","ERG Wind Norath GmbH & Co. KG","Norath","SEE991484686005",1,1866810,3075.0],[50.734458,7.806467,100.0,90.0,145.0,"WP Gebhardshain · NX 8314-06","Statkraft Windenergie GmbH & Co. KG","Gebhardshain","SEE901346844979",1,3267468,2300.0],[50.127337,7.603104,140.0,112.0,196.0,"Windpark Norath · V_201753, W534","ERG Wind Norath GmbH & Co. KG","Norath","SEE970156035464",1,1972441,3075.0],[50.733267,7.799018,100.0,90.0,145.0,"WP Gebhardshain · NX 8315-05","Statkraft Windenergie GmbH & Co. KG","Gebhardshain","SEE951024294268",1,3267502,2300.0],[50.13803,7.587343,143.0,114.0,200.0,"WP Leiningen · WEA_Leiningen_01","WP Leiningen GmbH & Co. KG","Leiningen","SEE995385162583",1,1818124,3170.0],[50.0,8.0,65.0,44.0,87.0,"Hahnstruth 1 · ENERCON E-44","HH-Erneuerbare Energien Projekt GmbH","Greifenstein","SEE974987404864",1,3721960,600.0],[50.639294,8.503225,141.0,117.0,199.5,"Windpark Hohenahr · Windpark Hohenahr WEA01","Mainova Gemeinschaftswindpark Hohenahr GmbH & Co. KG","Hohenahr","SEE965538440844",1,1953979,2400.0],[50.636238,8.507853,141.0,117.0,199.5,"Windpark Hohenahr · Windpark Hohenahr WEA07","Mainova Gemeinschaftswindpark Hohenahr GmbH & Co. KG","Hohenahr","SEE938236125238",1,2945000,2400.0],[50.123714,7.605051,141.0,117.0,199.5,"Bad. · Bad. 1","WE Badenhard GmbH&Co.KG","Badenhard","SEE992431000615",1,2603068,2400.0],[50.129148,7.597385,140.0,112.0,196.0,"Windpark Norath · V_201752, W535","ERG Wind Norath GmbH & Co. KG","Norath","SEE997946516699",1,1890472,3075.0],[50.1327,7.5915,65.0,70.0,100.0,"Windpark Norath · WEA 70027","Höhenwind GmbH & Co. Beltheim KG","Norath","SEE998099751128",1,1951126,1500.0],[50.736122,7.801325,100.0,90.0,145.0,"WP Gebhardshain · NX 8316-03","Statkraft Windenergie GmbH & Co. KG","Gebhardshain","SEE987056732645",1,3267487,2300.0],[50.132128,7.590078,65.0,70.0,100.0,"Windpark Norath · WEA 70025","Höhenwind GmbH & Co. Beltheim KG","Norath","SEE973522972301",1,2999171,1500.0],[50.734562,7.792964,100.0,90.0,145.0,"WP Gebhardshain · NX 8319-02","Statkraft Windenergie GmbH & Co. KG","Gebhardshain","SEE947937887987",1,3267518,2300.0],[50.121888,7.602783,141.0,117.0,199.5,"Bad. · Bad. 2","WE Badenhard GmbH&Co.KG","Badenhard","SEE997552979116",1,2603557,2400.0],[50.734357,7.788819,100.0,90.0,145.0,"WP Gebhardshain · NX 8317-08","Statkraft Windenergie GmbH & Co. KG","Gebhardshain","SEE949477933933",1,3267448,2300.0],[50.736797,7.795258,100.0,90.0,145.0,"WP Gebhardshain · NX 8320-01","Statkraft Windenergie GmbH & Co. KG","Gebhardshain","SEE941321121213",1,3267527,2300.0],[50.739006,7.800231,100.0,90.0,145.0,"WP Gebhardshain · NX 8318-04","Statkraft Windenergie GmbH & Co. KG","Gebhardshain","SEE928880470495",1,3267541,2300.0],[50.130569,7.587522,60.0,70.0,95.0,"Norath · S70026/Norath","Höhenwind GmbH & Co. Beltheim KG","Norath","SEE904180992486",1,2555213,1500.0],[50.101988,7.62465,128.0,104.0,180.0,"Windpark Oberwesel III GmbH ＆ Co. KG · A4568320220110","Windpark Oberwesel III GmbH & Co. KG","Damscheid","SEE931250473316",1,2298120,3370.0],[50.104597,7.62017,164.0,149.0,238.5,"WEA O-D","WE Badenhard II GmbH & Co.KG","Damscheid","SEE974674049460",1,2671923,5700.0],[50.099593,7.626746,128.0,104.0,180.0,"Windpark Oberwesel II GmbH ＆ Co. KG · A6779540216670","Windpark Oberwesel II GmbH & Co. KG","Damscheid","SEE920019250077",1,2287591,3370.0],[50.100719,7.617806,128.0,104.0,180.0,"Windpark Oberwesel III GmbH ＆ Co. KG · A7627340220122","Windpark Oberwesel III GmbH & Co. KG","Damscheid","SEE969350796943",1,2298152,3370.0],[50.096332,7.624826,128.0,104.0,180.0,"Windpark Oberwesel II GmbH ＆ Co. KG · A1728620216661","Windpark Oberwesel II GmbH & Co. KG","Damscheid","SEE943830253300",1,2287553,3370.0],[50.096673,7.618678,128.0,104.0,180.0,"Windpark Oberwesel III GmbH ＆ Co. KG · A2839730220109","Windpark Oberwesel III GmbH & Co. KG","Damscheid","SEE988427866211",1,2298050,3370.0],[50.092996,7.621859,128.0,104.0,180.0,"Windpark Oberwesel II GmbH ＆ Co. KG · A5811420216651","Windpark Oberwesel II GmbH & Co. KG","Damscheid","SEE952744094954",1,2287370,3370.0],[50.090332,7.61714,138.0,82.0,179.0,"Windpark Oberwesel GmbH ＆ Co. KG · A9239230106157","Windpark Oberwesel GmbH & Co. KG","Damscheid","SEE988384832182",1,2336344,2300.0],[50.091812,7.614581,138.0,82.0,179.0,"Windpark Oberwesel GmbH ＆ Co. KG · A8358820101462","Windpark Oberwesel GmbH & Co. KG","Damscheid","SEE962111216315",1,2336357,2300.0],[50.093347,7.612076,138.0,82.0,179.0,"Windpark Oberwesel GmbH ＆ Co. KG · A2525290101476","Windpark Oberwesel GmbH & Co. KG","Damscheid","SEE988227712954",1,2336296,2300.0],[50.094845,7.609446,138.0,82.0,179.0,"Windpark Oberwesel GmbH ＆ Co. KG · A8567940101485","Windpark Oberwesel GmbH & Co. KG","Damscheid","SEE944993058979",1,2336248,2300.0],[50.786559,8.089494,116.5,117.0,175.0,"Windpark Burbach I · 254963","Windpark Burbach GmbH","Burbach","SEE914546079119",1,6361326,3450.0],[50.781316,8.162762,160.0,138.25,229.13,"HAI2 · HAI2 - WEA 07","ENTEGA AG","Haiger","SEE984494321509",1,4924996,4200.0],[50.054963,7.680216,164.0,163.0,245.5,"Windpark Perscheid GmbH ＆ Co. KG · WEA 1","Windpark Perscheid GmbH & Co. KG","Perscheid","SEE980228564112",1,5918275,5700.0],[50.084289,7.621088,135.0,101.0,185.5,"Windpark Laudert GmbH ＆ Co. KG · A9494210236235","Windpark Laudert GmbH & Co. KG","Laudert","SEE999650271062",1,2272257,3050.0],[50.78435,8.159416,122.5,113.0,179.0,"HAI · HAI WEA 06","ENTEGA Windpark Haiger GmbH & Co. KG","Haiger","SEE907497594534",1,1947166,2300.0],[50.783971,8.165457,122.5,113.0,179.0,"HAI · HAI WEA 05","ENTEGA Windpark Haiger GmbH & Co. KG","Haiger","SEE961371796131",1,1947190,2300.0],[50.085783,7.616558,135.0,101.0,185.5,"Windpark Laudert GmbH ＆ Co. KG · A3355870236224","Windpark Laudert GmbH & Co. KG","Laudert","SEE995869256487",1,2272146,3050.0],[50.069228,7.64585,149.0,126.0,212.0,"Wiebelsheim · Wiebelsheim WEA 01","WISAG Windpark GmbH","Wiebelsheim","SEE971932076503",1,2944811,3300.0],[50.785743,8.150684,122.5,113.0,179.0,"HAI · HAI WEA 01","ENTEGA Windpark Haiger GmbH & Co. KG","Haiger","SEE978865949799",1,1948684,2300.0],[50.732431,8.383264,140.0,100.0,190.0,"Windpark Siegbach · Windpark Siegbach WEA01","Mainova Windpark Siegbach GmbH & Co. KG","Siegbach","SEE991702357977",1,1955681,2500.0],[50.05016,7.682199,164.0,163.0,245.5,"Windpark Perscheid GmbH ＆ Co. KG · WEA 2","Windpark Perscheid GmbH & Co. KG","Perscheid","SEE990186439155",1,5918453,5700.0],[50.791083,8.11528,100.0,100.0,150.0,"Burbach II · FL 425","Windpark Burbach 2008 2 UG (haftungsbeschränkt) & Co. KG","Wilnsdorf","SEE921376172514",1,2400753,2500.0],[50.787125,8.165393,122.5,113.0,179.0,"HAI · HAI WEA 04","ENTEGA Windpark Haiger GmbH & Co. KG","Haiger","SEE940244713673",1,1947066,2300.0],[50.78866,8.154999,122.5,113.0,179.0,"HAI · HAI WEA 02","ENTEGA Windpark Haiger GmbH & Co. KG","Haiger","SEE995640409712",1,1947216,2300.0],[50.065829,7.643668,149.0,126.0,212.0,"Wiebelsheim · Wiebelsheim WEA 02","WISAG Windpark GmbH","Wiebelsheim","SEE952760437605",1,2948351,3300.0],[50.788693,8.159522,122.5,113.0,179.0,"HAI · HAI WEA 03","ENTEGA Windpark Haiger GmbH & Co. KG","Haiger","SEE946222646254",1,1947138,2300.0],[50.095527,7.590104,100.0,92.0,146.0,"Windpark Lingerhahn GmbH ＆ Co. KG · A8482447099106","Windpark Lingerhahn GmbH & Co. KG","Lingerhahn","SEE987168839447",1,2360838,2050.0],[50.737655,8.381784,140.0,100.0,190.0,"Windpark Siegbach · Windpark Siegbach WEA02","Mainova Windpark Siegbach GmbH & Co. KG","Dillenburg","SEE992421639603",1,2944147,2500.0],[50.79343,8.117372,100.0,100.0,150.0,"Burbach I · FL 424","Windpark Burbach 2008 1 UG (haftungsbeschränkt) & Co. KG","Wilnsdorf","SEE994159750032",1,2400710,2500.0],[50.046287,7.680234,164.0,163.0,245.5,"Windpark Perscheid GmbH ＆ Co. KG · WEA 3","Windpark Perscheid GmbH & Co. KG","Perscheid","SEE931646338915",1,5917764,5700.0],[50.093625,7.591935,100.0,92.0,146.0,"Windpark Lingerhahn GmbH ＆ Co. KG · A8411887099131","Windpark Lingerhahn GmbH & Co. KG","Lingerhahn","SEE997183920747",1,2360994,2050.0],[50.736531,8.386872,140.0,100.0,190.0,"Windpark Siegbach · Windpark Siegbach WEA03","Mainova Windpark Siegbach GmbH & Co. KG","Siegbach","SEE987255905727",1,2944776,2500.0],[50.091148,7.594454,166.0,150.0,241.0,"Laudert III · Laudert III WEA 01","Windpark Laudert III GmbH & Co. KG","Laudert","SEE996813871046",1,4995565,5600.0],[50.794875,8.132236,85.0,100.0,135.0,"Kalteiche · 698","Achte Volkswind GmbH & Co.KG","Wilnsdorf","SEE923424414423",1,3575406,2500.0],[50.740556,8.384167,85.0,77.0,123.5,"WP Schelder Wald · Schelder Wald WEA 1","energy 20+ Gmbh","Dillenburg","SEE922143977554",1,2377419,1500.0],[50.795632,8.143427,85.0,100.0,135.0,"Kalteiche · 700","Achte Volkswind GmbH & Co.KG","Wilnsdorf","SEE953723186806",1,3678280,2500.0],[50.092098,7.585397,100.0,92.0,146.0,"Windpark Lingerhahn GmbH ＆ Co. KG · A5166345099125","Windpark Lingerhahn GmbH & Co. KG","Lingerhahn","SEE969488034528",1,2360934,2050.0],[50.796231,8.139331,85.0,100.0,135.0,"Kalteiche · 699","Achte Volkswind GmbH & Co.KG","Wilnsdorf","SEE910537045132",1,3678190,2500.0],[50.089985,7.586088,100.0,92.0,146.0,"Windpark Lingerhahn GmbH ＆ Co. KG · A7324152099112","Windpark Lingerhahn GmbH & Co. KG","Lingerhahn","SEE923264966731",1,2360873,2050.0],[50.062963,7.630165,108.0,82.0,149.0,"WP Kisselbach · E 82022-09","Statkraft Windenergie GmbH & Co. KG","Kisselbach","SEE951518673197",1,3315426,2000.0],[50.116228,7.544455,null,null,null,"Ha II · Ha II","Infrastruktur WBH GmbH & Co.KG","Hausbay","SEE963143118455",1,3446246,3300.0],[50.060677,7.630719,113.0,70.0,148.0,"WP Kisselbach · E 78851-01","Statkraft Windenergie GmbH & Co. KG","Kisselbach","SEE988660186152",1,3315522,2300.0],[50.058745,7.630802,113.0,70.0,148.0,"WP Kisselbach · E 78853-03","Statkraft Windenergie GmbH & Co. KG","Kisselbach","SEE901864877503",1,3315457,2300.0],[50.058745,7.630802,113.0,70.0,148.0,"WP Kisselbach · E 78852-02","Statkraft Windenergie GmbH & Co. KG","Kisselbach","SEE968826540677",1,3315490,2300.0],[50.784278,8.260669,149.08,115.71,206.94,"Windpark Hemmrain · WEA1","Windpark Hemmrain","Dillenburg","SEE988706034065",1,2156374,3000.0],[50.11309,7.543039,null,null,null,"Ha I · Ha I","Infrastruktur WBH GmbH & Co.KG","Hausbay","SEE980333141673",1,3446129,3000.0],[50.783282,8.266219,149.08,115.71,206.94,"Windpark Hemmrain · WEA2","Windpark Hemmrain","Dillenburg","SEE967933626724",1,2156404,3000.0],[50.054568,7.631102,108.0,82.0,149.0,"WP Kisselbach · E 82023-10","Statkraft Windenergie GmbH & Co. KG","Kisselbach","SEE910906949139",1,3315366,2000.0],[50.109874,7.542703,null,null,null,"Ha III · Ha III","Infrastruktur WBH GmbH & Co.KG","Hausbay","SEE916959404458",1,3446342,3300.0],[50.052502,7.631231,113.0,70.0,148.0,"WP Kisselbach · E 78854-04","Statkraft Windenergie GmbH & Co. KG","Kisselbach","SEE905508828098",1,3315324,2300.0],[50.050615,7.631354,113.0,70.0,148.0,"WP Kisselbach · E 78855-05","Statkraft Windenergie GmbH & Co. KG","Kisselbach","SEE902496419963",1,3315546,2300.0],[50.11042,7.533903,null,null,null,"Bic · Bic 7","Windpark Bickenbach Innen-GbR","Bickenbach","SEE900284763922",1,3827259,2050.0],[50.048736,7.632106,113.0,70.0,148.0,"WP Kisselbach · E 78856-06","Statkraft Windenergie GmbH & Co. KG","Kisselbach","SEE922022427538",1,3315606,2300.0],[50.046978,7.633203,113.0,70.0,148.0,"WP Kisselbach · E 78857-07","Statkraft Windenergie GmbH & Co. KG","Kisselbach","SEE971597364809",1,3315625,2300.0],[50.106731,7.536595,null,null,null,"Bic · Bic I","Windpark Bickenbach Innen-GbR","Bickenbach","SEE948116469659",1,3828584,2050.0],[50.045502,7.634954,113.0,70.0,148.0,"WP Kisselbach · E 78858-08","Statkraft Windenergie GmbH & Co. KG","Liebshausen","SEE939888806346",1,3315642,2300.0],[50.11391,7.52637,null,null,null,"Bic · Bic IV","Windpark Bickenbach Innen-GbR","Bickenbach","SEE947127862312",1,3828828,2050.0],[50.113905,7.52637,null,null,null,"Bic · Bic IX","Windpark Bickenbach Innen-GbR","Bickenbach","SEE987764871865",1,3829277,2050.0],[50.001159,7.740992,149.0,101.0,199.5,"Gemeinschaftswindpark Kandrich · K09","Gemeinschaftswindpark Kandrich GmbH & Co. KG","Weiler","SEE969167641016",1,1930708,3050.0],[50.066848,7.592496,143.0,114.0,200.0,"Windpark Riegenroth GmbH ＆ Co. KG · A5417750209433","Windpark Riegenroth GmbH & Co. KG","Riegenroth","SEE993841309190",1,2314763,3170.0],[50.002616,7.7336,149.0,101.0,199.5,"Gemeinschaftswindpark Kandrich · K11","Gemeinschaftswindpark Kandrich GmbH & Co. KG","Weiler","SEE926288904345",1,1930886,3050.0],[50.096249,7.546754,null,null,null,"Bic · Bic 8","Windpark Bickenbach Innen-GbR","Lingerhahn","SEE980945728354",1,3827532,2050.0],[50.789285,8.28347,140.6,116.8,199.0,"Windpark Harzkopf · WEA 6","Windpark Frohnhausen","Dillenburg","SEE995322558325",1,2059122,2400.0],[50.071296,7.584023,143.0,114.0,200.0,"Windpark Riegenroth GmbH ＆ Co. KG · A9849560209420","Windpark Riegenroth GmbH & Co. KG","Riegenroth","SEE911868691470",1,2314439,3170.0],[50.791183,8.275395,140.6,116.8,199.0,"Windpark Harzkopf · WEA 5","Windpark Frohnhausen","Dillenburg","SEE989388835643",1,2059097,2400.0],[50.069105,7.587246,143.0,114.0,200.0,"Windpark Riegenroth GmbH ＆ Co. KG · A8244750209395","Windpark Riegenroth GmbH & Co. KG","Riegenroth","SEE991750330212",1,2310981,3170.0],[50.734458,8.447223,149.1,115.7,206.95,"Windpark Lahn-Dill-Bergland-Mitte · WP LDBM - 1150159 - WEA 3","Windpark Lahn-Dill-Bergland-Mitte GmbH","Bad Endbach","SEE907231242653",1,2827332,3050.0],[50.097857,7.542835,null,null,null,"Bic · Bic V","Windpark Bickenbach Innen-GbR","Beltheim","SEE970656374315",1,3825580,2000.0],[50.106968,7.529771,null,null,null,"Bic 11 · Bic 11","Infrastruktur WBH GmbH & Co.KG","Bickenbach","SEE934823669727",1,3446430,3300.0],[49.99803,7.741864,135.4,101.0,185.9,"WP Kandrich · WP Kandrich 10029 100095","Windpark Kandrich GmbH & Co. KG","Daxweiler","SEE945295508957",1,2173925,3050.0],[50.003009,7.726752,149.0,101.0,199.5,"Gemeinschaftswindpark Kandrich · K12","Gemeinschaftswindpark Kandrich GmbH & Co. KG","Oberdiebach","SEE978994921321",1,1930945,3050.0],[49.999055,7.736063,135.4,101.0,185.9,"WP Kandrich · WP Kandrich 10029 100094","Windpark Kandrich GmbH & Co. KG","Daxweiler","SEE920460466560",1,2161102,3050.0],[50.100618,7.535078,null,null,null,"Bic · Bic III","Windpark Bickenbach Innen-GbR","Beltheim","SEE928789986578",1,3829022,2000.0],[50.738763,8.444678,149.1,115.7,206.95,"Windpark Lahn-Dill-Bergland-Mitte · WP LDBM - 1150158 - WEA 2","Windpark Lahn-Dill-Bergland-Mitte GmbH","Bad Endbach","SEE924876512699",1,2827238,3050.0],[50.792767,8.282448,140.6,116.8,199.0,"Windpark Harzkopf · WEA 3","Windpark Frohnhausen","Dillenburg","SEE997667440723",1,2059006,2400.0],[50.794932,8.27423,140.6,116.8,199.0,"Windpark Harzkopf · WEA 2","Windpark Frohnhausen","Dillenburg","SEE975597370556",1,2058968,2400.0],[50.791967,8.288749,140.6,116.8,199.0,"Windpark Harzkopf · WEA 4","Windpark Frohnhausen","Dillenburg","SEE961999469882",1,2059067,2400.0],[50.101759,7.531105,null,null,null,"Bic · Bic II","Windpark Bickenbach Innen-GbR","Bickenbach","SEE934504181692",1,3827029,2050.0],[50.07147,7.574725,143.0,114.0,200.0,"Windpark Riegenroth GmbH ＆ Co. KG · A1235990209419","Windpark Riegenroth GmbH & Co. KG","Bubach","SEE987372328201",1,2314380,3170.0],[49.998801,7.728495,135.4,101.0,185.9,"Windpark Dichtelbach · 1010134","VERBUND Green Power Deutschland GmbH","Dichtelbach","SEE916459378143",1,1843181,3050.0],[49.995658,7.73649,135.4,101.0,185.9,"WP Kandrich · WP Kandrich 10029 100183","Windpark Kandrich GmbH & Co. KG","Daxweiler","SEE995523337460",1,3393957,3050.0],[50.103211,7.526316,null,null,null,"Bic · Bic VI","Windpark Bickenbach Innen-GbR","Bickenbach","SEE992309404217",1,3826758,2050.0],[49.999384,7.723401,135.4,101.0,185.9,"Windpark Dichtelbach · 1010133","VERBUND Green Power Deutschland GmbH","Dichtelbach","SEE950569566458",1,1843105,3050.0],[50.097122,7.532855,100.0,92.0,146.0,"Windpark Braunshorn GmbH ＆ Co. KG · A3325785088003","Windpark Braunshorn GmbH & Co. KG","Braunshorn","SEE951197278188",1,2336434,2050.0],[49.978233,7.791959,139.0,120.0,199.0,"Trianel Windpark Zellertal · Waldalgesheim 07","Trianel Windpark Zellertal GmbH & Co. KG","Waldalgesheim","SEE932007619995",1,2291966,2530.0],[50.066732,7.577855,143.0,114.0,200.0,"Windpark Riegenroth GmbH ＆ Co. KG · A5263160209408","Windpark Riegenroth GmbH & Co. KG","Riegenroth","SEE991363248027",1,2313593,3170.0],[49.996305,7.730813,113.5,71.0,149.0,"WKA Ingelheimer Wald/ Kandrich KG · K03","GEDEA- Ingelheim GmbH & Co. WKA Ingelheimer Wald/ Kandrich KG","Daxweiler","SEE941986956472",1,1926487,2000.0],[50.796683,8.280838,140.6,116.8,199.0,"Windpark Harzkopf · WEA 1","Windpark Frohnhausen","Dillenburg","SEE956227150922",1,2058828,2400.0],[50.743847,8.445383,149.1,115.7,206.95,"Windpark Lahn-Dill-Bergland-Mitte · WP LDBM - 1150157 - WEA 1","Windpark Lahn-Dill-Bergland-Mitte GmbH","Siegbach","SEE904586131175",1,2827118,3050.0],[49.975338,7.798027,139.0,120.0,199.0,"Trianel Windpark Zellertar · Waldalgesheim 08","Trianel Windpark Zellertal GmbH & Co. KG","Waldalgesheim","SEE972610314368",1,2291995,2530.0],[50.097871,7.528791,100.0,92.0,146.0,"Windpark Braunshorn GmbH ＆ Co. KG · A3961218087993","Windpark Braunshorn GmbH & Co. KG","Braunshorn","SEE918984784352",1,2336406,2050.0],[49.992622,7.734761,149.0,101.0,199.5,"WKA Ingelheimer Wald/ Kandrich KG · K05","GEDEA- Ingelheim GmbH & Co. WKA Ingelheimer Wald/ Kandrich KG","Daxweiler","SEE914699892900",1,1927529,3050.0],[49.993678,7.729912,65.0,70.0,100.0,"WKA Ingelheimer Wald / Kandrich KG · K02","GEDEA- Ingelheim GmbH & Co. WKA Ingelheimer Wald/ Kandrich KG","Daxweiler","SEE947841204153",1,1926432,1800.0],[49.994312,7.727852,67.0,66.0,100.0,"K01","GEDEA- Ingelheim GmbH & Co. WKA Ingelheimer Wald/ Kandrich KG","Daxweiler","SEE934947327473",1,1926255,1500.0],[50.10208,7.520216,100.0,92.0,146.0,"Windpark Braunshorn GmbH ＆ Co. KG · A9719143088011","Windpark Braunshorn GmbH & Co. KG","Beltheim","SEE981342872534",1,2336468,2050.0],[49.97496,7.79034,138.0,82.0,179.0,"Windpark Waldalgesheim · Waldalgesheim 822383","Windpark Rheinhessen I GmbH & Co. KG","Waldalgesheim","SEE952363413938",1,3068626,2300.0],[49.995065,7.723306,149.0,101.0,199.5,"Gemeinschaftswindpark Kandrich · K08","Gemeinschaftswindpark Kandrich GmbH & Co. KG","Daxweiler","SEE954648572606",1,1927774,3050.0],[49.97566,7.78635,138.0,82.0,179.0,"Windpark Waldalgesheim · Waldalgesheim 822382","Windpark Rheinhessen I GmbH & Co. KG","Waldalgesheim","SEE915942324711",1,3068784,2300.0],[49.9765,7.78238,138.0,82.0,179.0,"Windpark Waldalgesheim · Waldalgesheim 822381","Windpark Rheinhessen I GmbH & Co. KG","Waldalgesheim","SEE928302964656",1,3068161,2300.0],[50.039373,7.616706,137.0,126.0,200.0,"Benzweiler · WEA Benzweiler 3 (V-218510)","Windpark Benzweiler GmbH & Co. KG","Erbach","SEE917885024376",1,4138016,3300.0],[49.97208,7.79765,135.0,101.0,185.5,"Windpark Waldalgesheim · Waldalgesheim 1010129","Windpark Rheinhessen I GmbH & Co. KG","Waldalgesheim","SEE964440721508",1,3069002,3050.0],[49.97298,7.79178,138.0,82.0,179.0,"Windpark Waldalgesheim · Waldalgesheim 822384","Windpark Rheinhessen I GmbH & Co. KG","Waldalgesheim","SEE935181401240",1,3068908,2300.0],[50.819285,8.180566,140.0,112.0,196.0,"AVIA Windpark Haiger-Dillbrecht GmbH＆Co.KG WEA 02 · AVIA Windpark Haiger-Dillbrecht GmbH＆Co.KG WEA 02","AVIA Windpark Haiger-Dillbrecht GmbH&Co.KG","Haiger","SEE908025771380",1,1977400,3075.0],[49.990386,7.728843,149.0,101.0,199.5,"Gemeinschaftswindpark Kandrich · K07","Gemeinschaftswindpark Kandrich GmbH & Co. KG","Daxweiler","SEE989548748882",1,1927720,3050.0],[50.730425,8.487696,149.1,115.7,206.95,"Windpark Lahn-Dill-Bergland-Mitte · WP LDBM - 1150160 - WEA 5","Windpark Lahn-Dill-Bergland-Mitte GmbH","Bischoffen","SEE977204982909",1,2827392,3050.0],[49.972484,7.78479,138.0,92.0,184.0,"Bürger- Windpark Waldalgesheim · G01","GEDEA- Ingelheim GmbH & Co. Bürger- Windpark Waldalgesheim KG","Waldalgesheim","SEE969801118577",1,1931342,2350.0],[49.99036,7.723882,149.0,101.0,199.5,"WKA Ingelheimer Wald/ Kandrich KG · K04","GEDEA- Ingelheim GmbH & Co. WKA Ingelheimer Wald/ Kandrich KG","Daxweiler","SEE984546378826",1,1926612,3050.0],[49.971001,7.788126,138.0,92.0,184.0,"Bürger- Windpark Waldalgesheim · G02","GEDEA- Ingelheim GmbH & Co. Bürger- Windpark Waldalgesheim KG","Waldalgesheim","SEE978881883367",1,1931436,2350.0],[49.969897,7.791474,138.0,92.0,184.0,"Bürger- Windpark Waldalgesheim · G03","GEDEA- Ingelheim GmbH & Co. Bürger- Windpark Waldalgesheim KG","Waldalgesheim","SEE907276769573",1,1931459,2350.0],[49.991421,7.719049,149.0,101.0,199.5,"Gemeinschaftswindpark Kandrich · K06","Gemeinschaftswindpark Kandrich GmbH & Co. KG","Daxweiler","SEE902892536868",1,1927592,3050.0],[50.038052,7.608504,137.0,126.0,200.0,"Benzweiler · WEA Benzweiler 2 (V-218509)","Windpark Benzweiler GmbH & Co. KG","Steinbach","SEE901142632060",1,4137973,3300.0],[50.104107,7.505736,143.0,114.0,200.0,"Windpark Beltheim II GmbH ＆ Co. KG · A6781540223176","Windpark Beltheim II GmbH & Co. KG","Beltheim","SEE904505295278",1,2378691,3170.0],[49.954639,8.246128,169.0,162.0,250.0,"WP Mainz-Hechtsheim II · WEA Mainz-Hechtsheim II","Windpark Mainz-Hechtsheim II GmbH & Co. KG","Mainz","SEE910284277633",1,6434151,6200.0],[50.822801,8.181854,140.0,112.0,196.0,"AVIA Windpark Haiger-Dillbrecht GmbH＆Co.KG WEA 03 · AVIA Windpark Haiger-Dillbrecht GmbH＆Co.KG WEA 03","AVIA Windpark Haiger-Dillbrecht GmbH&Co.KG","Haiger","SEE966480277731",1,1977421,3075.0],[50.033701,7.612498,137.0,126.0,200.0,"Benzweiler · WEA Benzweiler 4 (V-218511)","Windpark Benzweiler GmbH & Co. KG","Benzweiler","SEE986869938985",1,4137931,3300.0],[50.734397,8.490997,149.1,115.7,206.95,"Windpark Lahn-Dill-Bergland-Mitte · WP LDBM - 1150161 - WEA 6","Windpark Lahn-Dill-Bergland-Mitte GmbH","Bad Endbach","SEE978873185400",1,2827442,3050.0],[50.669854,8.020838,33.0,21.0,43.5,"Windpark Weber Hof · Oberm Gemüll Windstromgenerator 1","CaSi-Systems Windenergie GmbH","Hof","SEE931624792807",0,5219993,100.0],[50.670973,8.022326,33.0,21.0,43.5,"Hof · Windstromgenerator 2 Oberm Gemüll","CaSi-Systems Windenergie GmbH","Hof","SEE969991277047",0,5624604,100.0],[50.388809,7.571999,34.0,21.0,44.5,"WEA HwK Koblenz · WEA HwK Koblenz","Handwerkskammer Koblenz","Koblenz","SEE920526665388",0,3431139,100.0]];
+const distM = (la1, lo1, la2, lo2) => Math.hypot((lo2 - lo1) * Math.cos((la1 + la2) * Math.PI / 360), la2 - la1) * 111195;
+const MASTR_SRC = 'Marktstammdatenregister (Bundesnetzagentur), Stand 17.10.2026, Datenlizenz Deutschland – Namensnennung 2.0';
+/** MaStR-Anlagen in die Hindernisliste: gleiches Windrad aus OSM (≤ 80 m) wird ergänzt statt doppelt gezeigt */
+function mergeMastrWind() {
+  const osmW = S.obs.filter(o => o.t === 'wind');
+  MASTR_WIND.forEach(([lat, lon, hub, rot, tip, name, op, place, id, act, did, kw]) => {
+    let o = osmW.find(x => !x.mastr && distM(lat, lon, x.lat, x.lon) < 80);
+    if (!o) { o = { t: 'wind', lat, lon }; S.obs.push(o); }
+    Object.assign(o, { mastr: id, did, n: name, op, place, act, hub: hub || o.hub, rot: rot || o.rot });
+    o.top = tip || (o.hub ? o.hub + (o.rot || 0) / 2 : o.top || 0);
+    // Register ohne Nabe/Rotor (und ohne Typ): Gesamthöhe vorsichtig nach Leistungsklasse schätzen – lieber zu hoch als zu niedrig
+    o.est = false;
+    if (!o.top && kw) { o.top = kw >= 2000 ? 200 : kw >= 1000 ? 150 : 100; o.est = true; o.kw = kw; }
+  });
 }
 const OBS_NAME = { wind: 'Windrad', mast: 'Mast', tower: 'Turm', chimney: 'Schornstein' };
 function paintObstacles() {
@@ -2578,7 +2733,8 @@ function showAirfield(a) {
     <div class="zone"><h4>Funkfrequenzen</h4>${freqs ? `<ul>${freqs}</ul>` : '<div class="meta">Keine Frequenzen hinterlegt.</div>'}
       <div class="meta" style="margin-top:6px">Frequenzen: OurAirports (CC-BY) · Platzdaten: © OpenStreetMap-Mitwirkende · verbindlich ist das AIP der DFS</div></div>
     ${a.website ? `<div class="zone"><span class="lnk" data-url="${esc(a.website)}">Website des Flugplatzes öffnen</span></div>` : ''}`;
-  openInfoPage(a.kind === 'heliport' ? 'Hubschrauberlandeplatz' : 'Flugplatz', (isVincenz(a) ? vincenzHtml(a) : '') + html);
+  const mt = a.icao && S.metar.find(x => x.id === a.icao);
+  openInfoPage(a.kind === 'heliport' ? 'Hubschrauberlandeplatz' : 'Flugplatz', (isVincenz(a) ? vincenzHtml(a) : '') + (mt ? `<div class="zone" style="display:block"><h4>Wetter jetzt (METAR)</h4>${metarCard(mt)}</div>` : '') + html);
   if ($('ilsSave')) $('ilsSave').onclick = () => { A.setPref('ils_phone', $('ilsPhone').value.trim()); toast('Nummer der Rettungsleitstelle gespeichert.'); showAirfield(a); };
   $('afSave').onclick = () => { A.setPref('afphone_' + a.id, $('afPhone').value.trim()); toast('Nummer gespeichert.'); showAirfield(a); };
 }
@@ -2657,10 +2813,15 @@ function showAirfieldList() {
   $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => showAirfield(S.airfields.find(a => a.id === el.dataset.af)));
 }
 document.querySelectorAll('[data-rose]').forEach(b => b.onclick = () => { const v = b.dataset.rose; setP('rose', v === 'off' ? 0 : 1); if (v !== 'off') setP('compass', v === 'dev' ? 1 : 0); fillSettings(); windWidget(); draw(); });
-$('sPerf').onchange = e => { setP('perf', e.target.checked ? 1 : 0); draw(); };
 document.querySelectorAll('[data-wxmax]').forEach(b => b.onclick = () => { setP('wxMaxH', b.dataset.wxmax); fillSettings(); });
 $('sWxStart').onchange = e => { if (e.target.value) setP('wxStart', e.target.value); };
 $('sAf').onchange = e => { setP('airf', e.target.checked ? 1 : 0); draw(); };
+document.querySelectorAll('.setnav [data-sc]').forEach(b => b.onclick = () => { const h = $('sc-' + b.dataset.sc); if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+(() => { const body = $('pgSet').querySelector('.body'); if (!body) return;
+  body.addEventListener('scroll', () => { let cur = 'drohne'; document.querySelectorAll('h3.setcat').forEach(h => { if (h.getBoundingClientRect().top - body.getBoundingClientRect().top < 80) cur = h.id.slice(3); });
+    document.querySelectorAll('.setnav [data-sc]').forEach(b => b.classList.toggle('on', b.dataset.sc === cur)); }, { passive: true }); })();
+$('sGeoAll').onchange = e => { setP('geoAll', e.target.checked ? 1 : 0); drawLive(false); };
+$('sMetar').onchange = e => { setP('metar', e.target.checked ? 1 : 0); if (e.target.checked) metarRefresh(false); draw(); };
 $('bAfList').onclick = showAirfieldList;
 
 // ================= Wetter: dipul (DFS, ICON-D2, 24 h) + DWD ICON über Open-Meteo für spätere Termine =================
@@ -2918,34 +3079,100 @@ function sunDay(ms, lat, lon) {
 }
 const hm = ms => new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 const durTxt = ms => `${Math.floor(ms / 3600000)} h ${Math.round(ms % 3600000 / 60000)} min`;
-function sunSvg(day, ms, lat, lon, Wd) {
-  Wd = Math.max(280, Math.round(Wd || 360)); const Hd = 140, top = Math.max(15, Math.ceil(day.maxE / 10) * 10 + 5), bot = -25;
-  const X = t => (t - day.t0) / (day.t1 - day.t0) * Wd, Y = e => 8 + (top - Math.max(bot, Math.min(top, e))) / (top - bot) * (Hd - 16);
-  let bands = '';
-  day.samples.forEach(([t, e], k) => { if (k === day.samples.length - 1) return;
-    const c = e > 0 ? 'var(--sunday)' : e > -6 ? 'var(--suntw)' : 'var(--sunnight)';
-    bands += `<rect x="${X(t).toFixed(1)}" y="0" width="${(X(day.samples[k + 1][0]) - X(t) + .6).toFixed(1)}" height="${Hd}" fill="${c}"/>`; });
-  const path = day.samples.map(([t, e], k) => `${k ? 'L' : 'M'}${X(t).toFixed(1)} ${Y(e).toFixed(1)}`).join(' ');
-  const hours = [0, 3, 6, 9, 12, 15, 18, 21].map(h => { const t = new Date(new Date(day.t0).setHours(h)).getTime();
-    return `<line x1="${X(t)}" y1="${Hd - 4}" x2="${X(t)}" y2="${Hd}" stroke="var(--muted)"/><text x="${X(t) + 2}" y="${Hd - 6}" font-size="9" fill="var(--muted)">${h}</text>`; }).join('');
-  const evm = (t, up) => t == null ? '' : `<line x1="${X(t)}" y1="${Y(-0.833)}" x2="${X(t)}" y2="${Y(top - 4)}" stroke="#e8a200" stroke-dasharray="2 3"/>
-    <text x="${X(t) + (up ? 3 : -3)}" y="12" font-size="10" font-weight="700" text-anchor="${up ? 'start' : 'end'}" fill="#c77800">${up ? '↑' : '↓'} ${hm(t)}</text>`;
-  const e = sunElev(ms, lat, lon), mx = X(Math.min(day.t1, Math.max(day.t0, ms))), my = Y(e);
-  return `<svg viewBox="0 0 ${Wd} ${Hd}" class="sunsvg">${bands}
-    <line x1="0" y1="${Y(0)}" x2="${Wd}" y2="${Y(0)}" stroke="var(--txt)" stroke-width=".8"/>
-    <line x1="0" y1="${Y(-6)}" x2="${Wd}" y2="${Y(-6)}" stroke="var(--muted)" stroke-width=".6" stroke-dasharray="3 3"/>
-    <text x="3" y="${Y(0) - 3}" font-size="9" fill="var(--txt)">Horizont 0°</text><text x="3" y="${Y(-6) + 10}" font-size="9" fill="var(--muted)">−6° Dämmerung</text>
-    ${evm(day.sunrise, true)}${evm(day.sunset, false)}${hours}
-    <path d="${path}" fill="none" stroke="#f0b400" stroke-width="2.6" stroke-linejoin="round"/>
-    <line x1="${mx}" y1="0" x2="${mx}" y2="${Hd}" stroke="var(--acc)" stroke-width="1"/>
-    <circle cx="${mx}" cy="${my}" r="9" fill="#ffd54a" opacity=".35"/><circle cx="${mx}" cy="${my}" r="5.5" fill="${e > 0 ? '#ffc400' : '#8a93a6'}" stroke="#fff" stroke-width="1.6"/></svg>`;
+/** Temperaturverlauf eines Tages aus der Stundenreihe (Map t → °C) */
+function dayTemps(day, temps) {
+  if (!temps) return [];
+  const out = [];
+  for (let t = day.t0; t <= day.t1; t += 3600000) { const v = temps.get(t); if (v != null) out.push([t, v]); }
+  return out;
 }
-function sunLine(day, ms, lat, lon) {
-  const e = sunElev(ms, lat, lon);
+/** Thermik-Hinweis: Tiefstwert am Morgen und ab wann es spürbar wärmer wird (Wärmebild verliert Kontrast) */
+function tempInfo(day, temps, ms) {
+  const tt = dayTemps(day, temps); if (tt.length < 4) return null;
+  const morning = tt.filter(([t]) => t < day.t0 + 13 * 3600000);
+  const mn = (morning.length ? morning : tt).reduce((a, b) => b[1] < a[1] ? b : a);
+  const rise = tt.find(([t, v]) => t > mn[0] && v >= mn[1] + 2);
+  const mx = tt.reduce((a, b) => b[1] > a[1] ? b : a);
+  let now = null; for (let k = 0; k < tt.length - 1; k++) if (ms >= tt[k][0] && ms <= tt[k + 1][0]) { const f = (ms - tt[k][0]) / 3600000; now = tt[k][1] + (tt[k + 1][1] - tt[k][1]) * f; }
+  return { mn, rise, mx, now };
+}
+function sunSvg(day, ms, lat, lon, Wd, temps) {
+  Wd = Math.max(300, Math.round(Wd || 360));
+  const Hd = 230, L = 34, R = 38, T = 26, B = 26, pw = Wd - L - R, ph = Hd - T - B;
+  const minE = Math.min(...day.samples.map(s => s[1])), top = day.maxE + 6, bot = minE - 4;
+  const X = t => L + (t - day.t0) / (day.t1 - day.t0) * pw, Y = e => T + (top - e) / (top - bot) * ph, Y0 = Y(0);
+  // Sonnenbahn als glatte Kurve (Catmull-Rom → Bezier)
+  const pts = day.samples.map(([t, e]) => [X(t), Y(e)]);
+  let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  for (let k = 0; k < pts.length - 1; k++) {
+    const p0 = pts[Math.max(0, k - 1)], p1 = pts[k], p2 = pts[k + 1], p3 = pts[Math.min(pts.length - 1, k + 2)];
+    d += ` C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)} ${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)} ${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+  }
+  const area = `${d} L${pts[pts.length - 1][0].toFixed(1)} ${Y0.toFixed(1)} L${pts[0][0].toFixed(1)} ${Y0.toFixed(1)} Z`;
+  const uid = 's' + Math.random().toString(36).slice(2, 7);
+  // Temperatur
+  const tt = dayTemps(day, temps), ti = tempInfo(day, temps, ms);
+  let tSvg = '', nowSvg = '';
+  if (tt.length > 2) {
+    const tmin = Math.floor(Math.min(...tt.map(x => x[1])) - 1), tmax = Math.ceil(Math.max(...tt.map(x => x[1])) + 1);
+    const TY = v => T + (tmax - v) / (tmax - tmin) * ph;
+    const tp = tt.map(([t, v]) => [X(t), TY(v)]);
+    for (let k = 0; k < tp.length - 1; k++) {
+      const rate = tt[k + 1][1] - tt[k][1];   // K pro Stunde
+      const col = rate >= 1 ? '#ff3b30' : rate >= 0.4 ? '#ff8a3d' : rate <= -0.3 ? '#5ac8fa' : '#ffb27a';
+      tSvg += `<line x1="${tp[k][0].toFixed(1)}" y1="${tp[k][1].toFixed(1)}" x2="${tp[k + 1][0].toFixed(1)}" y2="${tp[k + 1][1].toFixed(1)}" stroke="${col}" stroke-width="${rate >= 0.4 ? 4 : 3}" stroke-linecap="round"/>`;
+    }
+    tSvg += [tmin + 1, Math.round((tmin + tmax) / 2), tmax - 1].map(v => `<text x="${Wd - 4}" y="${(TY(v) + 4).toFixed(1)}" font-size="11" text-anchor="end" fill="#ff9f6b" font-weight="700">${v}°</text>`).join('');
+    if (ti) {
+      const [mxx, myy] = [X(ti.mn[0]), TY(ti.mn[1])];
+      tSvg += `<circle cx="${mxx}" cy="${myy}" r="5" fill="#5ac8fa" stroke="#fff" stroke-width="1.5"/><text x="${mxx}" y="${myy + 18}" font-size="11" font-weight="800" text-anchor="middle" fill="#9fdcff">${f1(ti.mn[1])}°</text>`;
+      if (ti.now != null) { const nx = X(Math.min(day.t1, Math.max(day.t0, ms))), ny = TY(ti.now), bx = Math.min(nx + 10, Wd - R - 56), by = Math.max(T, Math.min(T + ph - 20, ny - 26));
+        nowSvg = `<circle cx="${nx}" cy="${ny}" r="5" fill="#ff6b3d" stroke="#fff" stroke-width="1.5"/><rect x="${bx}" y="${by}" width="52" height="20" rx="10" fill="#ff6b3d"/><text x="${bx + 26}" y="${by + 14}" font-size="12" font-weight="800" text-anchor="middle" fill="#fff">${f1(ti.now)}°</text>`; }
+      if (ti.rise) { const rx = X(ti.rise[0]);
+        tSvg += `<rect x="${rx}" y="${T}" width="${Math.max(0, X(ti.mx[0]) - rx)}" height="${ph}" fill="url(#${uid}w)"/>
+        <line x1="${rx}" y1="${T}" x2="${rx}" y2="${T + ph}" stroke="#ff3b30" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="${rx + 4}" y="${T + ph - 6}" font-size="11" font-weight="800" fill="#ff6b5e">ab ${hm(ti.rise[0])} 2 °C wärmer</text>`; }
+    }
+  }
+  const ev = (t, up) => t == null ? '' : `<circle cx="${X(t)}" cy="${Y0}" r="3.5" fill="#ffc400"/><text x="${X(t)}" y="${Y0 - 9}" font-size="11" font-weight="800" text-anchor="middle" fill="#ffd25e">${up ? '↑' : '↓'} ${hm(t)}</text>`;
+  const hours = [0, 6, 12, 18, 24].map(h => { const t = Math.min(day.t1, new Date(new Date(day.t0).setHours(h)).getTime() || day.t1);
+    const x = h === 24 ? X(day.t1) : X(t);
+    return `<text x="${x}" y="${Hd - 8}" font-size="11" text-anchor="middle" fill="#9aa7bd">${String(h % 24).padStart(2, '0')}:00</text>`; }).join('');
+  const e = sunElev(ms, lat, lon), mx = X(Math.min(day.t1, Math.max(day.t0, ms))), my = Y(e), up = e > 0;
+  return `<svg viewBox="0 0 ${Wd} ${Hd}" class="sunsvg">
+    <defs>
+      <linearGradient id="${uid}k" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1630"/><stop offset="1" stop-color="#1a2440"/></linearGradient>
+      <linearGradient id="${uid}a" x1="0" y1="${Y(day.maxE)}" x2="0" y2="${Y0}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffc83d" stop-opacity=".75"/><stop offset="1" stop-color="#ff8a00" stop-opacity=".08"/></linearGradient>
+      <linearGradient id="${uid}n" x1="0" y1="${Y0}" x2="0" y2="${Y(minE)}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4b5d9a" stop-opacity=".1"/><stop offset="1" stop-color="#6c7fd1" stop-opacity=".5"/></linearGradient>
+      <linearGradient id="${uid}w" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff3b30" stop-opacity=".22"/><stop offset="1" stop-color="#ff3b30" stop-opacity=".04"/></linearGradient>
+      <radialGradient id="${uid}g"><stop offset="0" stop-color="#fff3b0" stop-opacity=".95"/><stop offset=".35" stop-color="#ffc400" stop-opacity=".55"/><stop offset="1" stop-color="#ff8a00" stop-opacity="0"/></radialGradient>
+      <clipPath id="${uid}u"><rect x="0" y="0" width="${Wd}" height="${Y0}"/></clipPath>
+      <clipPath id="${uid}d"><rect x="0" y="${Y0}" width="${Wd}" height="${Hd}"/></clipPath>
+    </defs>
+    <rect width="${Wd}" height="${Hd}" rx="14" fill="url(#${uid}k)"/>
+    ${day.sunrise != null && day.sunset != null ? `<rect x="${X(day.sunrise)}" y="${T}" width="${X(day.sunset) - X(day.sunrise)}" height="${ph}" fill="#ffd25e" opacity=".06"/>` : ''}
+    ${[30, 0, -30].filter(v => v < top && v > bot).map(v => `<text x="6" y="${(Y(v) + 4).toFixed(1)}" font-size="11" fill="#9aa7bd">${v}°</text>`).join('')}
+    <path d="${area}" fill="url(#${uid}a)" clip-path="url(#${uid}u)"/>
+    <path d="${area}" fill="url(#${uid}n)" clip-path="url(#${uid}d)"/>
+    <line x1="${L}" y1="${Y0}" x2="${L + pw}" y2="${Y0}" stroke="#c9d3e6" stroke-width="1" stroke-dasharray="5 4" opacity=".7"/>
+    ${tSvg}
+    <path d="${d}" fill="none" stroke="#ffc83d" stroke-width="3.5" stroke-linecap="round" clip-path="url(#${uid}u)"/>
+    <path d="${d}" fill="none" stroke="#8fa3e8" stroke-width="2.5" stroke-linecap="round" clip-path="url(#${uid}d)" opacity=".8"/>
+    ${ev(day.sunrise, true)}${ev(day.sunset, false)}${hours}
+    <line x1="${mx}" y1="${T - 6}" x2="${mx}" y2="${T + ph}" stroke="#7fb2ff" stroke-width="1.2" opacity=".8"/>
+    ${up ? `<circle cx="${mx}" cy="${my}" r="26" fill="url(#${uid}g)"/>` : ''}
+    <circle cx="${mx}" cy="${my}" r="${up ? 8 : 6.5}" fill="${up ? '#ffd23f' : '#3a4670'}" stroke="${up ? '#fff6c8' : '#aab6d6'}" stroke-width="2"/>
+    ${nowSvg}
+    <text x="${Wd - 6}" y="16" font-size="11" fill="#9aa7bd" font-weight="700" text-anchor="end">☀ Sonnenhöhe · <tspan fill="#ff9f6b">— Temperatur 2 m</tspan> <tspan fill="#ff3b30">(rot = steigt)</tspan></text>
+  </svg>`;
+}
+function sunLine(day, ms, lat, lon, temps) {
+  const e = sunElev(ms, lat, lon), ti = tempInfo(day, temps, ms);
   const d = new Date(ms).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
   return `<b>${d} ${hm(ms)}</b> · Sonne ${f1(Math.abs(e))}° ${e >= 0 ? 'über' : 'unter'} Horizont${e < 0 && e > -6 ? ' (Dämmerung)' : e <= -6 ? ' (Nacht)' : ''} · `
     + (day.polar ? day.polar : `↑ ${hm(day.sunrise)} · ↓ ${hm(day.sunset)} · ${durTxt(day.daylight)} Tageslicht`)
-    + (day.dawn ? ` · Dämmerung ab ${hm(day.dawn)} bis ${day.dusk ? hm(day.dusk) : '—'}` : '');
+    + (day.dawn ? ` · Dämmerung ab ${hm(day.dawn)} bis ${day.dusk ? hm(day.dusk) : '—'}` : '')
+    + (ti ? `<br><b style="color:#ff7a45">🌡 Tiefstwert ${f1(ti.mn[1])}° um ${hm(ti.mn[0])}${ti.rise ? ` · ab ${hm(ti.rise[0])} schon 2 °C wärmer als am Morgen – Wärmebild verliert Kontrast, Kitze schlechter zu erkennen` : ' · bleibt kühl, kein deutlicher Anstieg'} · Höchstwert ${f1(ti.mx[1])}° um ${hm(ti.mx[0])}</b>` : '');
 }
 
 // ---------- Wetterseite ----------
@@ -2992,7 +3219,9 @@ function wxTable(hours, kpc) {
   add('Kp-Index', '', x => { const k = kpc ? kpAt(kpc, x.t) : null; return { t: k ? f1(k.kp) : '—', c: k ? evalCell('kp', k.kp) : '' }; });
   const cells = rows.map(r => hours.map(x => r.fn(x)));
   const sum = hours.map((x, k) => { const cs = cells.map(rw => rw[k].c); return cs.includes('r') ? 2 : cs.includes('o') ? 1 : 0; });
-  let lab = `<div class="wh">Uhrzeit</div><div class="ws">Quelle</div>` + rows.map(r => `<div class="wr">${r.label}${r.unit ? ` <small>${r.unit}</small>` : ''}</div>`).join('');
+  const XK = { Temp: 'temp', Wind: 'wind', Böen: 'gust', Richtung: 'dir', Wolken: 'cloud', Regen: 'rain', Sicht: 'vis', Taupunkt: 'dew', Feuchte: 'hum', Luftdruck: 'pres', 'Kp-Index': 'kp' };
+  let lab = `<div class="wh">Uhrzeit</div><div class="ws">Quelle</div>` + rows.map((r, ri) => { const k = XK[r.label.split(' ')[0]], hh = parseInt((r.label.match(/\d+/) || [])[0]) || 0;
+    return `<div class="wr${k ? ' xq' : ''}"${k ? ` data-x="${k}" data-h="${hh}" data-t="${esc(String(cells[ri][0].t).replace(/<[^>]+>/g, ''))}"` : ''}>${r.label}${r.unit ? ` <small>${r.unit}</small>` : ''}${k ? ' <i class="xi">i</i>' : ''}</div>`; }).join('');
   let head = '', src = '';
   hours.forEach((x, k) => {
     const dt = new Date(x.t), newDay = k === 0 || dt.getHours() === 0;
@@ -3037,7 +3266,7 @@ function wxNext4(hours, kpc, loc) {
   const lvl = Math.max(lR, lW, lS, lV);
   const why = [lR && (per.some(p => p.snow > 0) ? 'Schnee' : 'Regen'), lW && (lW === 2 ? 'Sturm/Böen' : 'Böen'), lV && (lV === 2 ? 'Nebel/Sicht' : 'Sicht'), lS && 'Scherwind'].filter(Boolean);
   const kp = kpc ? kpAt(kpc, now) : null;
-  const p0 = per[0];
+  const p0 = per[0]; S.wxNow = p0;
   // Banner: Ampel in einem Satz
   const banIco = lvl === 0 ? '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>';
   const ban = lvl === 0 ? 'Flugwetter OK' : lvl === 1 ? 'Vorsicht: ' + why.join(', ') : 'Kritisch: ' + why.join(', ');
@@ -3060,12 +3289,12 @@ function wxNext4(hours, kpc, loc) {
   const rMax = Math.max(1, mx('rain') || 0), wMax = Math.max(WX_THR.gust[1] + 2, gmax || 0, whmax || 0);
   const pct = (v, m) => Math.max(0, Math.min(100, (v || 0) / m * 100));
   let tl = `<div class="lb"></div>` + per.map(p => `<div class="hh">${String(new Date(p.x.t).getHours()).padStart(2, '0')}</div>`).join('');
-  tl += `<div class="lb">Regen<br><small style="text-transform:none">mm/h</small></div>` + per.map(p => `<div class="bar rain ${C[p.lRain]}"><i style="height:${p.snow > 0 ? 100 : pct(p.rain, rMax)}%"></i><b>${p.snow > 0 ? '❄' : p.rain >= 0.05 ? f1(p.rain) : ''}</b></div>`).join('');
-  tl += `<div class="lb">Wind<br><small style="text-transform:none">${H} m</small></div>` + per.map(p => `<div class="bar wind ${C[Math.max(lv(p.wH, WX_THR.windH), lv(p.w10, WX_THR.wind10))]}"><i style="height:${pct(p.wH, wMax)}%"></i>${p.g != null ? `<span class="g" style="bottom:${pct(p.g, wMax)}%"></span>` : ''}<b>${f1(p.wH)}</b></div>`).join('');
-  tl += `<div class="lb">Böen</div>` + per.map(p => `<div class="gu ${C[lv(p.g, WX_THR.gust)]}">${f1(p.g)}</div>`).join('');
-  tl += `<div class="lb">Sicht</div>` + per.map(p => `<div class="gu ${C[p.lVis]}">${visTxt(p.vis)}</div>`).join('');
-  tl += `<div class="lb">Taupkt.</div>` + per.map(p => `<div class="gu ${p.dew != null && p.t2 != null && p.t2 - p.dew <= 1 ? 'o' : ''}" style="font-weight:600">${p.dew == null ? '—' : f1(p.dew) + '°'}</div>`).join('');
-  tl += `<div class="lb">aus</div>` + per.map(p => `<div class="wd">${p.dir != null && p.w10 >= 0.5 ? `<span class="arr" style="transform:rotate(${(p.dir + 180) % 360}deg)">↑</span> ${DIR8[Math.round(p.dir / 45) % 8]}` : 'still'}</div>`).join('');
+  tl += `<div class="lb xq" data-x="rain" data-h="${H}" data-t="${esc(String(f1(p0.rain) + ' mm/h'))}">Regen<br><small style="text-transform:none">mm/h</small></div>` + per.map(p => `<div class="bar rain ${C[p.lRain]}"><i style="height:${p.snow > 0 ? 100 : pct(p.rain, rMax)}%"></i><b>${p.snow > 0 ? '❄' : p.rain >= 0.05 ? f1(p.rain) : ''}</b></div>`).join('');
+  tl += `<div class="lb xq" data-x="wind" data-h="${H}" data-t="${esc(String(f1(p0.wH) + ' m/s'))}">Wind<br><small style="text-transform:none">${H} m</small></div>` + per.map(p => `<div class="bar wind ${C[Math.max(lv(p.wH, WX_THR.windH), lv(p.w10, WX_THR.wind10))]}"><i style="height:${pct(p.wH, wMax)}%"></i>${p.g != null ? `<span class="g" style="bottom:${pct(p.g, wMax)}%"></span>` : ''}<b>${f1(p.wH)}</b></div>`).join('');
+  tl += `<div class="lb xq" data-x="gust" data-h="${H}" data-t="${esc(String(f1(p0.g) + ' m/s'))}">Böen</div>` + per.map(p => `<div class="gu ${C[lv(p.g, WX_THR.gust)]}">${f1(p.g)}</div>`).join('');
+  tl += `<div class="lb xq" data-x="vis" data-h="${H}" data-t="${esc(String(visTxt(p0.vis)))}">Sicht</div>` + per.map(p => `<div class="gu ${C[p.lVis]}">${visTxt(p.vis)}</div>`).join('');
+  tl += `<div class="lb xq" data-x="dew" data-h="${H}" data-t="${esc(String(p0.dew == null ? '—' : f1(p0.dew) + '°'))}">Taupkt.</div>` + per.map(p => `<div class="gu ${p.dew != null && p.t2 != null && p.t2 - p.dew <= 1 ? 'o' : ''}" style="font-weight:600">${p.dew == null ? '—' : f1(p.dew) + '°'}</div>`).join('');
+  tl += `<div class="lb xq" data-x="dir" data-h="${H}" data-t="${esc(String(p0.dir == null ? '—' : dirTxt(p0.dir)))}">aus</div>` + per.map(p => `<div class="wd">${p.dir != null && p.w10 >= 0.5 ? `<span class="arr" style="transform:rotate(${(p.dir + 180) % 360}deg)">↑</span> ${DIR8[Math.round(p.dir / 45) % 8]}` : 'still'}</div>`).join('');
   return `<div class="zone" style="display:block">
     <div class="wxban l${lvl}">${banIco}<div>${ban}<small>Nächste 4 h · ${loc.what}${kp ? ` · Kp ${f1(kp.kp)}` : ''}</small></div></div>
     <div class="wxbig">
@@ -3073,8 +3302,8 @@ function wxNext4(hours, kpc, loc) {
       <div class="wxc ${C[lW]}">${windIco}<div style="min-width:0"><div class="k">Wind</div><div class="v">${windHead}</div><div class="d">${windSub}</div></div></div>
     </div>
     <div class="wxtl" style="--n:${per.length}">${tl}</div>
-    <div class="wxsh ${C[lV]}"><b>👁 Sicht: ${vmin == null ? 'keine Angabe' : 'min. ' + visTxt(vmin)}</b>${p0.dew != null ? ` · Taupunkt jetzt ${f1(p0.dew)}°${p0.t2 != null ? ` bei ${f1(p0.t2)}° Luft (Abstand ${f1(p0.t2 - p0.dew)} K${p0.t2 - p0.dew <= 1 ? ' – Nebel/Tau wahrscheinlich, Linse kann beschlagen' : p0.t2 - p0.dew <= 2.5 ? ' – Nebel möglich' : ''})` : ''}` : ''}</div>
-    <div class="wxsh ${C[lS]}"><b>↗ Scherwind: ${shearTxt}</b> · ${shearD}</div>
+    <div class="wxsh ${C[lV]}"><b>👁 Sicht: ${vmin == null ? 'keine Angabe' : 'min. ' + visTxt(vmin)}</b>${p0.dew != null ? ` · Taupunkt jetzt ${f1(p0.dew)}°${p0.t2 != null ? ` bei ${f1(p0.t2)}° Luft (Taupunkt-Abstand ${f1(p0.t2 - p0.dew)} °C${p0.t2 - p0.dew <= 1 ? ' – Nebel/Tau wahrscheinlich, Linse kann beschlagen' : p0.t2 - p0.dew <= 2.5 ? ' – Nebel möglich' : ''})` : ''}` : ''}</div>
+    <div class="wxsh xq ${C[lS]}" data-x="shear" data-t="${esc(shearTxt)}"><b>↗ Scherwind: ${shearTxt}</b> · ${shearD}</div>
     <div class="meta" style="margin:8px 0 0">Balken: Wind in ${H} m, gestrichelt = Böe · Grenzen: Böen ${WX_THR.gust[0]}/${WX_THR.gust[1]} m/s, Wind in Höhe ${WX_THR.windH[0]}/${WX_THR.windH[1]} m/s, Regen ${f1(WX_THR.rain[0])}/${f1(WX_THR.rain[1])} mm/h, Sicht unter 3/1 km · keine Flugfreigabe</div>
   </div>`;
 }
@@ -3124,13 +3353,207 @@ function wxDays(ico, loc, detailEnd) {   // detailEnd: letzte Stunde der 48-h-De
       <div class="ln"><span>Böen</span><b>${f1(g)}</b></div>
       <div class="ln"><span>Sicht min.</span><b>${visTxt(vmin)}</b></div>
       <div class="ln"><span>Taupunkt ${hh(sh, sm)}</span><b>${dew == null ? '—' : f1(dew) + '°'}</b></div>
-      <div class="sub">${note || (spread != null ? `Luft ${f1(t0)}° · Abstand ${f1(spread)} K${spread <= 1 ? ' · Nebel/Tau' : spread <= 2.5 ? ' · Nebel möglich' : ''}` : '&nbsp;')}</div></div>`;
+      <div class="sub">${note || (spread != null ? `Luft ${f1(t0)}° · Taupunkt-Abstand ${f1(spread)} °C${spread <= 1 ? ' · Nebel/Tau' : spread <= 2.5 ? ' · Nebel möglich' : ''}` : '&nbsp;')}</div></div>`;
   }
   if (!out) return '';
   return `<div class="zone" style="display:block"><h4>Weitere Tage · Gesamtbewertung</h4>
     <div class="wxdays">${out}</div>
-    <div class="meta" style="margin:8px 0 0">Regen zählt über den ganzen Tag (nachts oder nachmittags nass = keine Mahd; ab 0,2 mm fraglich, ab 1 mm unwahrscheinlich), Wind/Böen/Sicht im Flugfenster ${hh(sh, sm)}–${WXD_END}:00 · Taupunkt zur Startzeit, Abstand zur Lufttemperatur ≤ 1 K = Nebel/Tau wahrscheinlich · DWD ICON (ICON-D2 → ICON-EU → ICON global, je weiter voraus desto gröber), Sichtweite liefert der DWD laut Open-Meteo nur noch bis Ende Nov. 2026 · ${ico.offline ? 'offline gespeichert' : 'Stand ' + fmtDate(ico.t)}</div></div>`;
+    <div class="meta" style="margin:8px 0 0">Regen zählt über den ganzen Tag (nachts oder nachmittags nass = keine Mahd; ab 0,2 mm fraglich, ab 1 mm unwahrscheinlich), Wind/Böen/Sicht im Flugfenster ${hh(sh, sm)}–${WXD_END}:00 · Taupunkt zur Startzeit, Abstand zur Lufttemperatur 1 °C oder weniger = Nebel/Tau wahrscheinlich · DWD ICON (ICON-D2 → ICON-EU → ICON global, je weiter voraus desto gröber), Sichtweite liefert der DWD laut Open-Meteo nur noch bis Ende Nov. 2026 · ${ico.offline ? 'offline gespeichert' : 'Stand ' + fmtDate(ico.t)}</div></div>`;
 }
+// ---------- METAR: gemessenes Wetter der nächsten Flughäfen (NOAA Aviation Weather Center, frei) ----------
+const METAR_MAXAGE = 20 * 60000;
+const WX_CODE = { MI: 'flacher', BC: 'Schwaden von', PR: 'teilweise', DR: 'fegender', BL: 'treibender', SH: 'Schauer', TS: 'Gewitter', FZ: 'gefrierender',
+  DZ: 'Niesel', RA: 'Regen', SN: 'Schnee', SG: 'Schneegriesel', PL: 'Eiskörner', GR: 'Hagel', GS: 'Graupel', UP: 'Niederschlag',
+  BR: 'Dunst (feucht)', FG: 'Nebel', FU: 'Rauch', VA: 'Vulkanasche', DU: 'Staub', SA: 'Sand', HZ: 'trockener Dunst', SQ: 'Böenwalze', FC: 'Trichterwolke' };
+function wxDecode(tok) {
+  let m = /^(-|\+|VC)?([A-Z]+)$/.exec(tok); if (!m) return tok;
+  const parts = []; let t = m[2];
+  while (t.length >= 2) { const c = t.slice(0, 2); if (!WX_CODE[c]) return tok; parts.push(WX_CODE[c]); t = t.slice(2); }
+  let txt = parts.join(' ');
+  if (/^BC/.test(m[2]) && /FG/.test(m[2])) txt = 'Nebelschwaden'; else if (/^MIFG/.test(m[2])) txt = 'flacher Bodennebel'; else if (/^PRFG/.test(m[2])) txt = 'teilweise Nebel';
+  else if (/^FZFG/.test(m[2])) txt = 'gefrierender Nebel'; else if (/^SH/.test(m[2])) txt = parts.slice(1).join(' ') + 'schauer'; else if (/^TS/.test(m[2])) txt = 'Gewitter' + (parts.length > 1 ? ' mit ' + parts.slice(1).join(' ') : '');
+  return (m[1] === '-' ? 'leichter ' : m[1] === '+' ? 'starker ' : m[1] === 'VC' ? 'in der Nähe: ' : '') + txt;
+}
+/** METAR-Rohtext lesen: Sicht (prevailing + Minimum), Wetter, Wind, Wolken, Temp/Taupunkt */
+function metarParse(j) {
+  const raw = String(j.rawOb || ''), tk = raw.split(/\s+/);
+  const r = { id: j.icaoId, name: String(j.name || '').replace(/\s*,\s*[A-Z]{2}\s*,\s*DE$/, '').replace(/ Arpt$/, ''), lat: j.lat, lon: j.lon, raw,
+    t: j.obsTime ? j.obsTime * 1000 : Date.parse(j.reportTime), temp: j.temp, dew: j.dewp, wx: [], clouds: [], auto: /\bAUTO\b/.test(raw) };
+  let wi = tk.findIndex(x => /^(\d{3}|VRB)\d{2,3}(G\d{2,3})?(KT|MPS)$/.test(x));
+  if (wi >= 0) { const m = /^(\d{3}|VRB)(\d{2,3})(?:G(\d{2,3}))?(KT|MPS)$/.exec(tk[wi]), f = m[4] === 'KT' ? 0.5144 : 1;
+    r.dir = m[1] === 'VRB' ? null : +m[1]; r.vrb = m[1] === 'VRB'; r.ws = +m[2] * f; r.wg = m[3] ? +m[3] * f : null; }
+  for (let i = Math.max(0, wi + 1); i < tk.length; i++) {
+    const x = tk[i];
+    if (x === 'CAVOK') { r.vis = 10000; r.cavok = true; continue; }
+    if (/^\d{3}V\d{3}$/.test(x)) continue;
+    if (/^\d{4}$/.test(x) && r.vis == null) { r.vis = +x === 9999 ? 10000 : +x; continue; }
+    if (/^\d{4}(N|NE|E|SE|S|SW|W|NW)?$/.test(x) && r.vis != null && r.visMin == null && !r.wx.length && !r.clouds.length) { r.visMin = +x.slice(0, 4); continue; }
+    if (/^R\d{2}/.test(x)) continue;
+    let m = /^(FEW|SCT|BKN|OVC|VV)(\d{3})/.exec(x); if (m) { r.clouds.push({ c: m[1], h: Math.round(+m[2] * 30.48) }); continue; }
+    if (/^(NSC|NCD|SKC|CLR)$/.test(x)) continue;
+    m = /^(M?\d{2})\/(M?\d{2})?$/.exec(x); if (m) break;
+    if (/^(-|\+|VC)?(MI|BC|PR|DR|BL|SH|TS|FZ)?(DZ|RA|SN|SG|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|SQ|FC)+$/.test(x)) r.wx.push(x);
+  }
+  const ceil = r.clouds.find(c => c.c === 'BKN' || c.c === 'OVC' || c.c === 'VV'); r.ceil = ceil ? ceil.h : null;
+  const v = Math.min(r.vis ?? 1e9, r.visMin ?? 1e9);
+  r.fog = r.wx.some(w => /FG/.test(w)); r.rain = r.wx.some(w => /(RA|DZ|SN|GR|GS|PL|TS)/.test(w));
+  const realFog = r.wx.some(w => /FG/.test(w) && !/^(VC|BC|MI|PR)/.test(w.replace(/^[-+]/, '')));
+  const lv2 = v < VIS[1] || realFog || r.wx.some(w => /TS|^\+(SH)?RA|SN|GR/.test(w));
+  const lv1 = v < VIS[0] || r.fog || r.rain || (r.ceil != null && r.ceil < 150);
+  const lg = r.wg != null ? (r.wg >= WX_THR.gust[1] ? 2 : r.wg >= WX_THR.gust[0] ? 1 : 0) : 0;
+  r.lv = Math.max(lv2 ? 2 : lv1 ? 1 : 0, lg);
+  return r;
+}
+// Deutschlandweit in einem Abruf (ca. 100 Stationen), für Karte und Wetter-Reiter
+S.metar = [];
+function metarCache() { try { return JSON.parse(localStorage.getItem('metarDE') || 'null'); } catch (e) { return null; } }
+function metarApply(c) { S.metarT = c ? c.t : 0; S.metarOff = !!(c && c.offline); S.metar = c ? c.list.map(metarParse).filter(r => r.lat != null) : []; draw(); }
+let metarBusy = null;
+async function metarLoad(loc, force) {
+  let c = metarCache();
+  if (c && !force && Date.now() - c.t < METAR_MAXAGE) return c;
+  if (!isOnline()) { if (c) { c.offline = true; return c; } throw new Error('offline'); }
+  if (metarBusy) return metarBusy;
+  metarBusy = (async () => {
+    try {
+      const txt = await getText('https://aviationweather.gov/api/data/metar?bbox=47.2,5.8,55.1,15.1&format=json&hours=3');
+      const arr = JSON.parse(txt || '[]'), by = {};
+      (Array.isArray(arr) ? arr : []).filter(j => /^E[DT]/.test(j.icaoId || '')).forEach(j => { if (!by[j.icaoId] || j.obsTime > by[j.icaoId].obsTime) by[j.icaoId] = j; });
+      c = { t: Date.now(), list: Object.values(by) };
+      try { localStorage.setItem('metarDE', JSON.stringify(c)); } catch (e) { }
+      metarApply(c);
+      return c;
+    } catch (e) { if (c) { c.offline = true; return c; } throw e; }
+    finally { metarBusy = null; }
+  })();
+  return metarBusy;
+}
+function metarRefresh(force) { if (P.metar === '0' && !force) return; metarLoad(null, force).then(metarApply).catch(() => { }); }
+metarApply(metarCache());
+setTimeout(() => metarRefresh(false), 4000);
+setInterval(() => metarRefresh(false), METAR_MAXAGE);
+window.addEventListener('online', () => setTimeout(() => metarRefresh(false), 2000));
+/** Kennung unter dem Flugplatz-Symbol (ab Zoom 9 sitzen dort Symbole), weiter draußen direkt am Ort */
+function metarPos(m) { const [x, y] = toScreen(m.lat, m.lon); return [x, y + (V.z >= 9 ? 24 : 0)]; }
+function paintMetar() {
+  const [n0, w0] = fromScreen(-W * .4, -H * .4), [s0, e0] = fromScreen(W * 1.4, H * 1.4);
+  ctx.save(); ctx.font = '700 12px Roboto,system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  const col = ['#13a538', '#e8a200', '#b3131b'];
+  for (const m of S.metar) {
+    if (m.lat > n0 || m.lat < s0 || m.lon < w0 || m.lon > e0) continue;
+    const [x, y] = metarPos(m), old = Date.now() - m.t > 3 * 3600000;
+    const tw = ctx.measureText(m.id).width, w = tw + 26, h = 20, x0 = x - w / 2, y0 = y - h / 2;
+    ctx.fillStyle = old ? '#6b7385' : col[m.lv]; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x0, y0, w, h, 10) : ctx.rect(x0, y0, w, h); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x0 + 10, y, 3.5, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.fillText(m.id, x0 + 19, y + .5);
+  }
+  ctx.restore();
+}
+function showMetar(m) {
+  const a = S.airfields.find(x => x.icao === m.id);
+  openInfoPage(`Wetter ${m.name || m.id}`, metarCard(m) + (a ? `<div class="zone"><span class="lnk" id="mtAf">Flugplatz-Infos (Telefon, Frequenzen) öffnen</span></div>` : '')
+    + `<div class="meta" style="margin-top:6px">METAR = gemessenes Flughafenwetter, meist halbstündlich · Quelle: NOAA Aviation Weather Center · ${S.metarOff ? 'offline gespeichert, ' : ''}abgerufen ${fmtDate(S.metarT)} · <span class="lnk" id="mtReload">neu laden</span> · keine Flugfreigabe, verbindlich ist das DWD-Flugwetter</div>`, CLOUD_ICON);
+  if ($('mtAf')) $('mtAf').onclick = () => showAirfield(a);
+  $('mtReload').onclick = () => metarLoad(null, true).then(c => { metarApply(c); const n = S.metar.find(x => x.id === m.id); showMetar(n || m); }).catch(e => toast(e.message, true));
+}
+function metarCard(r) {
+  const C = ['', 'o', 'r'], age = Math.round((Date.now() - r.t) / 60000);
+  const wxTxt = r.wx.length ? r.wx.map(wxDecode).join(', ') : r.cavok ? 'keine Wolken unter 1.500 m, kein Wetter' : 'kein Niederschlag, kein Nebel';
+  const spread = r.temp != null && r.dew != null ? r.temp - r.dew : null;
+  return `<div class="mt ${C[r.lv]}">
+      <div class="mth"><b>${esc(r.name || r.id)}</b><span>${esc(r.id)}${r.dist != null ? ' · ' + Math.round(r.dist / 1000) + ' km' : ''} · vor ${age < 120 ? age + ' min' : Math.round(age / 60) + ' h'}${r.auto ? ' · automatisch' : ''}</span></div>
+      <div class="mtv"><div><small>Sicht</small><b>${visTxt(r.vis)}</b>${r.visMin != null ? `<em>stellenweise ${visTxt(r.visMin)}</em>` : ''}</div>
+        <div><small>Wind</small><b>${r.ws == null ? '—' : r.ws < 0.5 ? 'still' : f1(r.ws) + ' m/s'}</b><em>${r.vrb ? 'umlaufend' : r.dir != null && r.ws >= 0.5 ? 'aus ' + dirTxt(r.dir) : ''}${r.wg ? ' · Böen ' + f1(r.wg) : ''}</em></div>
+        <div><small>Temp / Taupunkt</small><b>${r.temp != null ? f1(r.temp) + '°' : '—'}${r.dew != null ? ' / ' + f1(r.dew) + '°' : ''}</b>${spread != null ? `<em>${spread <= 1 ? 'Nebel/Tau wahrscheinlich' : spread <= 2.5 ? 'Nebel möglich' : 'Abstand ' + f1(spread) + ' °C'}</em>` : ''}</div>
+        <div><small>Wolkenuntergrenze</small><b>${r.ceil != null ? r.ceil + ' m' : r.clouds.length ? 'aufgelockert' : 'frei'}</b>${r.clouds.length ? `<em>${r.clouds.map(x => ({ FEW: 'wenige', SCT: 'aufgelockert', BKN: 'durchbrochen', OVC: 'bedeckt', VV: 'Vertikalsicht' })[x.c] + ' ' + x.h + ' m').join(', ')}</em>` : ''}</div></div>
+      <div class="mtw ${r.fog || r.rain ? 'hl' : ''}">${esc(wxTxt)}</div>
+      <details><summary>Originalmeldung</summary><code>${esc(r.raw)}</code></details></div>`;
+}
+function metarHtml(c, loc) {
+  const st = c.list.map(metarParse).filter(r => r.lat != null).map(r => Object.assign(r, { dist: distM(loc.lat, loc.lon, r.lat, r.lon) })).sort((a, b) => a.dist - b.dist).slice(0, 4);
+  if (!st.length) return `<div class="meta">Keine Flughafen-Meldungen.</div>`;
+  return `<div class="mtgrid">${st.map(metarCard).join('')}</div>
+  <div class="meta" style="margin-top:6px">Die 4 nächsten Flughäfen · alle deutschen Flughäfen siehst du als Kennung auf der Karte (antippen) · Quelle: NOAA Aviation Weather Center · ${c.offline ? 'offline gespeichert, ' : ''}abgerufen ${fmtDate(c.t)} · Flugplätze liegen meist 20–90 km entfernt, Nebel in Tälern und an Wiesen kann lokal ganz anders sein</div>`;
+}
+// ---------- Erklärungen zu den Wetterwerten (Tipp auf eine Zeilenbeschriftung) ----------
+const XPL = {
+  temp: { t: 'Temperatur', what: 'Lufttemperatur in 2 m Höhe und in den Flughöhen. Mit „~“ markierte Höhenwerte sind geschätzt (−0,65 °C pro 100 m).',
+    more: 'Am Boden ist es nach klaren Nächten oft kälter als in 50–100 m (Inversion). Ab Sonnenaufgang erwärmt sich zuerst die Wiese, dann die Luft darüber.',
+    why: 'Das Wärmebild lebt vom Unterschied zwischen warmem Kitz und kühler Wiese. Je kühler der Boden, desto heller leuchtet das Kitz. Wird es wärmer – besonders mit Sonne auf der Wiese – verschwindet dieser Kontrast. Kalte Akkus liefern weniger Leistung: unter 10 °C vorwärmen.',
+    vals: [[-99, 0, 2, 'unter 0 °C: Akkus vorwärmen, Vereisung und Beschlag möglich'], [0, 10, 0, '0–10 °C: ideal fürs Wärmebild, Akkus warm halten'], [10, 15, 0, '10–15 °C: gut'], [15, 20, 1, '15–20 °C: Kontrast lässt nach – früh fliegen'], [20, 99, 2, 'über 20 °C: Kitze kaum noch vom Boden zu unterscheiden']] },
+  wind: { t: 'Wind', u: 'm/s', what: 'Mittlere Windgeschwindigkeit in 10 m und in den Flughöhen (1 m/s = 3,6 km/h).',
+    more: 'Am Boden bremsen Gras, Hecken und Wald den Wind. In 50–100 m weht er oft deutlich stärker als unten gefühlt – darum zeigt die App mehrere Höhen.',
+    why: 'Gegenwind kostet Akku und Zeit, Rückweg gegen den Wind einplanen. Mavic 3T und Matrice 4T halten laut DJI Wind bis 12 m/s stand; darüber kann die Drohne nicht mehr sicher gegenhalten.',
+    vals: [[0, 3, 0, 'unter 3 m/s: kaum Wind – ideal'], [3, 6, 0, '3–6 m/s: gut fliegbar'], [6, 8, 1, '6–8 m/s: spürbar, Akku früher tauschen'], [8, 12, 1, '8–12 m/s: grenzwertig, Rückweg im Blick behalten'], [12, 99, 2, 'über 12 m/s: über der Herstellergrenze – nicht fliegen']] },
+  gust: { t: 'Böen', u: 'm/s', what: 'Kurze Windspitzen von wenigen Sekunden in 10 m Höhe.',
+    more: 'Böen können deutlich stärker sein als der mittlere Wind. Sie entstehen durch Hindernisse, Geländekanten und aufsteigende warme Luft.',
+    why: 'Böen versetzen die Drohne seitlich und bringen sie aus der Flugbahn – bei Start und Landung in Bodennähe besonders unangenehm.',
+    vals: [[0, 6, 0, 'unter 6 m/s: schwach'], [6, 9, 0, '6–9 m/s: merklich'], [9, 12, 1, '9–12 m/s: Vorsicht, Start/Landung im Windschatten'], [12, 99, 2, 'über 12 m/s: zu böig für den Einsatz']] },
+  dir: { t: 'Windrichtung', what: 'Richtung, aus der der Wind kommt. Der Pfeil zeigt, wohin er weht.',
+    more: 'Westwind ist bei uns am häufigsten. Ostwind bringt meist trockene Luft und klare, kalte Morgen.',
+    why: 'Startplatz so wählen, dass der Rückweg nicht gegen starken Wind geht. Hinter Waldrändern, Hecken und Windrädern (windabgewandte Seite) gibt es Verwirbelungen.',
+    vals: [[-1, -1, 0, 'W / SW: häufig, oft mild und feucht'], [-1, -1, 0, 'O / NO: trocken, oft klare kalte Morgen – gute Wärmebild-Bedingungen'], [-1, -1, 0, 'N: kalte Luft'], [-1, -1, 1, 'umlaufend / still: Nebelgefahr in Tälern']] },
+  cloud: { t: 'Bewölkung', u: '%', what: 'Wie viel Prozent des Himmels mit Wolken bedeckt sind.',
+    more: 'Wolken wirken nachts wie eine Decke (Boden kühlt weniger aus) und dämpfen tagsüber die Sonne.',
+    why: 'Nach einer klaren Nacht ist die Wiese kalt – bester Kontrast fürs Wärmebild, aber Nebel und Tau sind wahrscheinlicher. Bei Bedeckung erwärmt sich die Wiese am Morgen langsamer, der Kontrast hält länger.',
+    vals: [[0, 25, 0, '0–25 %: klar – beste Kontraste, Nebel möglich'], [25, 75, 0, '25–75 %: wechselnd'], [75, 101, 0, '75–100 %: bedeckt – Wiese erwärmt sich langsamer']] },
+  rain: { t: 'Regen', u: 'mm/h', what: 'Niederschlag in der Stunde. 1 mm = 1 Liter Wasser pro Quadratmeter.',
+    more: 'Schon 0,1 mm machen Gras nass. Schnee wird als geschmolzene Menge angegeben.',
+    why: 'Tropfen auf der Linse verwischen das Bild, nasses Gras gleicht die Temperaturen an – Kitze sind schlechter zu sehen. Auf nasser Wiese mäht kein Bauer. Die Mavic 3T ist nicht gegen Regen geschützt.',
+    vals: [[0, 0.05, 0, '0: trocken'], [0.05, 0.1, 0, 'unter 0,1 mm: Spuren'], [0.1, 0.5, 1, '0,1–0,5 mm: Niesel / leichter Regen'], [0.5, 99, 2, 'über 0,5 mm: Regen – nicht fliegen']] },
+  vis: { t: 'Sichtweite', what: 'Wie weit man waagerecht sehen kann.',
+    more: 'Eingeschränkt durch Nebel, Dunst und Niederschlag. Die Vorhersage stammt vom DWD-Modell, gemessene Werte zeigen die Flughäfen (METAR).',
+    why: 'Die Drohne muss mit bloßem Auge in Sicht bleiben (Sichtflug). Nebel macht das Wärmebild flau und lässt die Linse beschlagen.',
+    vals: [[0, 1000, 2, 'unter 1 km: Nebel – nicht fliegen'], [1000, 3000, 1, '1–3 km: Dunst oder Nebelfelder'], [3000, 10000, 0, '3–10 km: leicht diesig'], [10000, 1e9, 0, 'über 10 km: klar']] },
+  dew: { t: 'Taupunkt', what: 'Temperatur, bei der die Luft so feucht ist, dass Tau oder Nebel entsteht. Entscheidend ist der Abstand zur Lufttemperatur.',
+    more: 'Kühlt die Luft bis auf den Taupunkt ab, kondensiert Wasser – als Tau auf dem Gras, als Nebel in der Luft oder als Beschlag auf der Linse.',
+    why: 'Ist der Abstand klein (1 °C oder weniger), sind Nebel und nasses Gras wahrscheinlich. Eine kalte Drohne aus dem Auto beschlägt in feuchter Luft sofort.',
+    vals: [[-99, 1, 2, 'Abstand 1 °C oder weniger: Nebel/Tau wahrscheinlich'], [1, 2.5, 1, '1–2,5 °C: Nebel möglich'], [2.5, 5, 0, '2,5–5 °C: Tau am Boden möglich'], [5, 99, 0, 'über 5 °C: trocken']] },
+  hum: { t: 'Luftfeuchte', u: '%', what: 'Relative Luftfeuchtigkeit in Prozent.',
+    more: '100 % heißt: Die Luft ist gesättigt und kann kein Wasser mehr aufnehmen – dann bilden sich Nebel oder Tau.',
+    why: 'Bei über 90 % und kühler Luft drohen Nebel und Beschlag, unter 0 °C auch Vereisung an Propellern.',
+    vals: [[0, 60, 0, 'unter 60 %: trocken'], [60, 80, 0, '60–80 %: normal'], [80, 90, 0, '80–90 %: feucht, Tau möglich'], [90, 101, 1, 'über 90 %: Nebel/Beschlag möglich']] },
+  pres: { t: 'Luftdruck', u: 'hPa', what: 'Luftdruck, auf Meereshöhe umgerechnet (QNH bei dipul, MSL beim ICON-Modell).',
+    more: 'Fallender Luftdruck kündigt oft Wind und Regen an, steigender eine Wetterberuhigung.',
+    why: 'Hochdruck bringt ruhige, klare und kalte Morgen – gut fürs Wärmebild, aber Nebel in Tälern. Die Höhe der Drohne misst ein Barometer relativ zum Startpunkt.',
+    vals: [[0, 1000, 1, 'unter 1000 hPa: Tief – Wind und Regen'], [1000, 1013, 0, '1000–1013 hPa: wechselhaft'], [1013, 1025, 0, '1013–1025 hPa: normal'], [1025, 2000, 0, 'über 1025 hPa: Hoch – ruhig, Nebel in Tälern möglich']] },
+  kp: { t: 'Kp-Index', what: 'Stärke von Störungen des Erdmagnetfelds durch die Sonne, Skala 0–9 (NOAA).',
+    more: 'Bei Sonnenstürmen schwankt das Magnetfeld und die Ionosphäre wird unruhig.',
+    why: 'Kompass und GPS der Drohne können ungenauer werden – Positionsfehler, Kompasswarnungen. Ab Kp 5 aufmerksam fliegen.',
+    vals: [[0, 3, 0, '0–2: ruhig'], [3, 5, 1, '3–4: leicht gestört'], [5, 6, 1, '5: geomagnetischer Sturm (G1)'], [6, 10, 2, 'ab 6: starker Sturm – GPS/Kompass ungenau']] },
+  shear: { t: 'Scherwind', u: 'm/s', what: 'Wie stark der Wind mit der Höhe zunimmt – hier von 10 m bis zur Missionshöhe bzw. 100 m.',
+    more: 'Am Boden ist es oft fast windstill, darüber weht es kräftig. Besonders morgens nach klaren Nächten ist dieser Unterschied groß.',
+    why: 'Beim Steigen gerät die Drohne plötzlich in deutlich stärkeren Wind und wird versetzt. Am Boden wirkt alles ruhig – oben nicht.',
+    vals: [[0, 5, 0, 'unter +5 m/s: unkritisch'], [5, 8, 1, '+5 bis +8 m/s: ruppig, Drohne wird versetzt'], [8, 99, 2, 'über +8 m/s: kritisch']] }
+};
+function openXpl(k, txt, num, sub) {
+  const x = XPL[k]; if (!x) return;
+  const col = ['#13a538', '#e8a200', '#b3131b'];
+  const vals = x.vals.map(([lo, hi, lv, t]) => { const on = num != null && lo !== -1 && num >= lo && num < hi;
+    return `<li class="${on ? 'on' : ''}"><span style="background:${col[lv]}"></span>${esc(t)}${on ? ' <b>← jetzt</b>' : ''}</li>`; }).join('');
+  let el = $('xpl');
+  if (!el) { el = document.createElement('div'); el.id = 'xpl'; document.body.appendChild(el); el.onclick = e => { if (e.target === el || e.target.closest('.xclose')) el.classList.remove('open'); }; }
+  el.innerHTML = `<div class="xbox"><div class="xhead"><button class="b-sec xclose">Fertig</button><h3>${esc(x.t)}</h3></div>
+    ${txt ? `<div class="xval"><small>Aktueller Wert</small><b>${esc(txt)}</b>${sub ? `<em>${esc(sub)}</em>` : ''}</div>` : ''}
+    <div class="xcard"><h4>ℹ Was ist das?</h4><p>${esc(x.what)}</p></div>
+    <div class="xcard"><h4>📖 Genauer erklärt</h4><p>${esc(x.more)}</p></div>
+    <div class="xcard"><h4>🦌 Warum ist das für uns wichtig?</h4><p>${esc(x.why)}</p></div>
+    <div class="xcard"><h4>📊 Typische Werte</h4><ul>${vals}</ul></div></div>`;
+  el.classList.add('open'); el.querySelector('.xbox').scrollTop = 0;
+}
+function xplNum(k, el) {
+  const t = (el.dataset.t || '').replace(/[~<>]/g, '').replace(',', '.');
+  if (k === 'vis') { const m = /([\d.]+)\s*(km|m)/.exec(t); return m ? +m[1] * (m[2] === 'km' ? 1000 : 1) : null; }
+  if (k === 'dir') return null;
+  const v = parseFloat(t.replace(/^\+/, '')); return isNaN(v) ? null : v;
+}
+document.addEventListener('click', e => {
+  const q = e.target.closest && e.target.closest('#iBody [data-x]'); if (!q) return;
+  const k = q.dataset.x; let num = xplNum(k, q), txt = q.dataset.t, sub = '';
+  if (k === 'dew' && S.wxNow && S.wxNow.t2 != null && num != null) { num = S.wxNow.t2 - num; sub = `Abstand zur Lufttemperatur ${f1(num)} °C`; }
+  openXpl(k, txt, num, sub);
+});
 async function showWeather(force) {
   const loc = wxLoc();
   openInfoPage('Wetter', '<div class="meta">Lade Vorhersage…</div>', CLOUD_ICON);
@@ -3138,13 +3561,17 @@ async function showWeather(force) {
   const now = Date.now();
   const kpc = await kpLoad(force);
   let hours = [];
+  const wxTemps = new Map();
   try {
     const r = await wxHours(loc.lat, loc.lon, force);
     hours = r.hours;
+    // Temperaturreihe für den Sonnenlauf: ICON (ganze Tage inkl. gestern), dipul überschreibt wo vorhanden
+    [r.ico, r.dip].forEach(d => { if (d && d.tempH && d.tempH[2]) d.time.forEach((t, i) => { const v = d.tempH[2][i]; if (v != null) wxTemps.set(t, v); }); });
     if (!hours.length) throw new Error(isOnline() ? 'keine Daten' : 'offline und keine gespeicherte Vorhersage in der Nähe');
     const d0 = hours[0].d;
     html += wxNext4(hours, kpc, loc) + `<div style="margin:-4px 2px 10px;font-size:13px;color:var(--muted)">${wxSrcLine(d0)}${r.ico && r.dip ? ' · ab Stunde 25: DWD ICON' : ''} · ${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)} · <span class="lnk" id="wxReload">jetzt neu laden</span></div>`;
     html += `
+      <div class="zone" style="display:block"><h4>✈ Jetzt gemessen an Flughäfen (METAR)</h4><div id="metarBox"><div class="meta">Lade Flughafen-Meldungen…</div></div></div>
       <div class="zone"><h4>☀ Sonnenlauf</h4><div id="sunBox"></div><div class="meta" id="sunTxt" style="margin-top:6px"></div></div>
       <div class="zone" style="padding:8px"><h4 style="margin:4px 6px 8px">Tagesgang <span class="meta" style="font-weight:400;margin:0">· nach links/rechts wischen – Bezug: linke Spalte</span></h4>${wxTable(hours, kpc)}
         <div class="meta" style="margin:8px 6px 0">~ = geschätzt (Temperatur über Standardgradient −0,65 °C/100 m bzw. zwischen Quellhöhen interpoliert) · — = nicht verfügbar · Luftdruck: QNH (dipul) bzw. MSL (ICON, auf Meereshöhe reduziert) · Farben: Hinweis/kritisch nach App-Schwellen, keine Flugfreigabe · Grenze Mavic 3T/Matrice 4T: 12 m/s</div></div>
@@ -3175,6 +3602,8 @@ async function showWeather(force) {
   html += '<div class="meta" style="margin-top:6px">Wetter: DFS dipul Weather Service (DWD ICON-D2) für 24 h, danach und für die nächsten Tage DWD ICON über Open-Meteo.com (CC BY 4.0) · für offline gespeichert, online stündlich aktualisiert · Sonnenstand lokal berechnet (Gelände/Gebäude nicht berücksichtigt)</div>';
   openInfoPage('Wetter', html, CLOUD_ICON);
   if ($('wxReload')) $('wxReload').onclick = () => showWeather(true);
+  if ($('metarBox')) metarLoad(loc, force).then(c => { if ($('metarBox')) $('metarBox').innerHTML = metarHtml(c, loc); })
+    .catch(e => { if ($('metarBox')) $('metarBox').innerHTML = `<div class="meta">Keine Flughafen-Meldungen (${esc(e.message)}).</div>`; });
   const sc = $('wxs');
   if (sc && hours.length) {
     let curDay = null;
@@ -3183,8 +3612,8 @@ async function showWeather(force) {
       const pos = Math.max(0, sc.scrollLeft / cw), li = Math.min(hours.length - 1, Math.floor(pos)), ri = Math.min(li + 1, hours.length - 1);
       const t = hours[li].t + (hours[ri].t - hours[li].t) * (pos - li);
       const day = sunDay(t, loc.lat, loc.lon);
-      $('sunBox').innerHTML = sunSvg(day, t, loc.lat, loc.lon, $('sunBox').clientWidth);
-      $('sunTxt').innerHTML = sunLine(day, t, loc.lat, loc.lon);
+      $('sunBox').innerHTML = sunSvg(day, t, loc.lat, loc.lon, $('sunBox').clientWidth, wxTemps);
+      $('sunTxt').innerHTML = sunLine(day, t, loc.lat, loc.lon, wxTemps);
       curDay = day.t0;
     };
     let raf = 0; sc.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; upd(); }); }, { passive: true });
@@ -3382,7 +3811,8 @@ function loadNotams() {
   if (!A.notams) return;
   try {
     const r = JSON.parse(A.notams() || '{}');
-    S.notamFetched = r.fetched || 0;
+    S.notamFetched = r.fetched || 0; S.notamErr = r.err || '';
+    S.notamSig = null;
     const d = r.data || {};
     const list = [];
     (d.temporaere_betriebseinschraenkungen || []).forEach(f => list.push({ active: true, props: f.properties || {}, geom: f.geometry }));
@@ -3392,10 +3822,20 @@ function loadNotams() {
   notamChip(); draw();
 }
 window.onNotams = () => { loadNotams(); if ($('pgSet').classList.contains('open')) fillSettings(); };
+const NOTAM_NEAR = 50000;   // m – im Hinweis-Chip und oben in der Liste
+/** Entfernung jeder Einschränkung zum nächsten Feld (ohne Felder: zur Kartenmitte); neu, wenn sich die Felder ändern */
+function notamDists() {
+  const fs = S.files.filter(f => !f.dup && f.center), sig = fs.length + ':' + S.notams.length + ':' + (fs[0] ? fs[0].center.join() : V.lat.toFixed(2));
+  if (S.notamSig === sig) return; S.notamSig = sig;
+  const ref = fs.length ? fs.map(f => f.center) : [[V.lat, V.lon]];
+  S.notams.forEach(n => { const pts = geomRings(n.geom).flat().filter((p, i, a) => a.length < 60 || i % Math.ceil(a.length / 60) === 0);
+    n.dist = pts.length ? Math.min(...ref.map(c => Math.min(...pts.map(p => distM(c[0], c[1], p[1], p[0]))))) : 1e9; });
+}
 function notamChip() {
+  notamDists();
   const el = $('notam');
-  const act = S.notams.filter(n => n.active).length, inact = S.notams.length - act;
-  if (!S.notams.length) { el.style.display = 'none'; return; }
+  const near = S.notams.filter(n => n.dist <= NOTAM_NEAR), act = near.filter(n => n.active).length, inact = near.length - act;
+  if (!near.length) { el.style.display = 'none'; return; }
   el.className = act ? '' : 'inact';
   el.textContent = act ? `⚠ ${act} aktive Einschränkung${act > 1 ? 'en' : ''} (NOTAM)` : `${inact} geplante Einschränkung${inact > 1 ? 'en' : ''}`;
   el.style.display = 'block';
@@ -3412,25 +3852,122 @@ function notamTitle(n) {
   const p = n.props;
   return p.name || p.type_code_detail || p.type_code || 'Temporäre Betriebseinschränkung';
 }
+/** Eigene kleine Karte (NOTAM-Seite): Hintergrundkarte, Felder blau, Einschränkungen rot/grau; ziehen, Zwei-Finger-Zoom, +/- */
+function notamMapView(cv, items, nNear, onPick) {
+  const dpr = window.devicePixelRatio || 1, g = cv.getContext('2d');
+  let Wm = 0, Hm = 0, cx = 0, cy = 0, z = 10, sel = -1;
+  const tiles = new Map();
+  const size = () => { Wm = cv.clientWidth || 320; Hm = cv.clientHeight || 260; cv.width = Math.round(Wm * dpr); cv.height = Math.round(Hm * dpr); };
+  const fit = pts => {
+    if (!pts.length) return;
+    let n = -90, s2 = 90, e = -180, w = 180;
+    pts.forEach(([lo, la]) => { n = Math.max(n, la); s2 = Math.min(s2, la); e = Math.max(e, lo); w = Math.min(w, lo); });
+    const bx = Math.max(1e-6, lon2x(e) - lon2x(w)), by = Math.max(1e-6, lat2y(s2) - lat2y(n));
+    z = Math.max(6, Math.min(16, Math.log2(Math.min(Wm * .8 / (bx * 256), Hm * .8 / (by * 256)))));
+    cx = (lon2x(e) + lon2x(w)) / 2; cy = (lat2y(s2) + lat2y(n)) / 2;
+  };
+  const fieldPts = S.files.filter(f => !f.dup).flatMap(f => (f.outline || (f.shapes[0] || {}).pts || []).map(p => [p[1], p[0]]));
+  const allPts = () => { const np = items.slice(0, nNear).flatMap(n => geomRings(n.geom).flat()); return np.length ? np.concat(fieldPts) : fieldPts.length ? fieldPts : items.flatMap(n => geomRings(n.geom).flat()); };
+  const P2 = (la, lo) => { const k = 256 * Math.pow(2, z); return [(lon2x(lo) - cx) * k + Wm / 2, (lat2y(la) - cy) * k + Hm / 2]; };
+  function paint() {
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = '#cfd6dc'; g.fillRect(0, 0, Wm, Hm);
+    const lz = Math.max(0, Math.min(Math.round(z), LAYER_MAXZ[P.layer] || 18)), nT = 1 << lz, ts = 256 * Math.pow(2, z - lz), k = 256 * Math.pow(2, z);
+    const px = cx * k - Wm / 2, py = cy * k - Hm / 2;
+    for (let ty = Math.floor(py / ts); ty <= Math.floor((py + Hm) / ts); ty++) for (let tx = Math.floor(px / ts); tx <= Math.floor((px + Wm) / ts); tx++) {
+      if (ty < 0 || ty >= nT) continue;
+      const key = lz + '/' + tx + '/' + ty;
+      let im = tiles.get(key);
+      if (!im) { im = new Image(); im.onload = () => req(); im.src = LAYERS[P.layer](lz, ((tx % nT) + nT) % nT, ty); tiles.set(key, im); }
+      if (im.complete && im.naturalWidth) g.drawImage(im, tx * ts - px, ty * ts - py, ts + .5, ts + .5);
+    }
+    S.files.filter(f => !f.dup).forEach(f => (f.outline ? [f.outline] : f.shapes.map(sh => sh.pts)).forEach(r => {
+      g.beginPath(); r.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath();
+      g.fillStyle = 'rgba(30,123,255,.25)'; g.fill(); g.strokeStyle = '#1e7bff'; g.lineWidth = 1.5; g.stroke(); }));
+    items.forEach((n, i) => {
+      const on = i === sel;
+      g.save(); g.setLineDash(n.active ? [12, 5] : [6, 5]); g.lineWidth = on ? 5 : n.active ? 3.5 : 2.5;
+      g.strokeStyle = n.active ? '#ff2d2d' : '#5d6975'; g.fillStyle = n.active ? (on ? 'rgba(255,45,45,.35)' : 'rgba(255,45,45,.18)') : (on ? 'rgba(93,105,117,.35)' : 'rgba(93,105,117,.12)');
+      geomRings(n.geom).forEach(r => { g.beginPath(); r.forEach((c, j) => { const [x, y] = P2(c[1], c[0]); j ? g.lineTo(x, y) : g.moveTo(x, y); }); if (r.length > 2) { g.closePath(); g.fill(); } g.stroke(); });
+      g.restore();
+      const pts = geomRings(n.geom).flat(); if (!pts.length) return;
+      const [lx, ly] = P2(pts.reduce((a, c) => a + c[1], 0) / pts.length, pts.reduce((a, c) => a + c[0], 0) / pts.length);
+      g.font = '700 12px Roboto,system-ui,sans-serif'; g.textAlign = 'center';
+      const t = String(i + 1); g.fillStyle = n.active ? '#b3131b' : '#5d6975'; g.beginPath(); g.arc(lx, ly, 11, 0, 7); g.fill(); g.fillStyle = '#fff'; g.fillText(t, lx, ly + 4);
+    });
+    if (!nNear) { g.fillStyle = 'rgba(19,165,56,.92)'; g.font = '700 14px Roboto,system-ui,sans-serif'; g.textAlign = 'center';
+      const m = 'Keine temporären Einschränkungen im Umkreis von 50 km'; const tw = g.measureText(m).width + 24; g.beginPath(); g.roundRect ? g.roundRect(Wm / 2 - tw / 2, 12, tw, 30, 15) : g.rect(Wm / 2 - tw / 2, 12, tw, 30); g.fill(); g.fillStyle = '#fff'; g.fillText(m, Wm / 2, 32); }
+    g.font = '11px Roboto,system-ui,sans-serif'; g.textAlign = 'right'; const at = '© GeoBasis-DE / BKG · dipul';
+    g.fillStyle = 'rgba(255,255,255,.8)'; g.fillRect(Wm - g.measureText(at).width - 8, Hm - 15, 400, 15); g.fillStyle = '#334'; g.fillText(at, Wm - 4, Hm - 4);
+  }
+  let raf = 0; const req = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint(); }); };
+  // Gesten
+  const ptr = new Map(); let last = null;
+  cv.style.touchAction = 'none';
+  let down = null;
+  cv.onpointerdown = e => { cv.setPointerCapture(e.pointerId); ptr.set(e.pointerId, [e.offsetX, e.offsetY]); last = null; if (ptr.size === 1) down = [e.offsetX, e.offsetY, 0]; else if (down) down[2] = 1; };
+  cv.onpointermove = e => {
+    if (!ptr.has(e.pointerId)) return; ptr.set(e.pointerId, [e.offsetX, e.offsetY]);
+    const ps = [...ptr.values()], mx = ps.reduce((a, p) => a + p[0], 0) / ps.length, my = ps.reduce((a, p) => a + p[1], 0) / ps.length;
+    const dist = ps.length > 1 ? Math.hypot(ps[0][0] - ps[1][0], ps[0][1] - ps[1][1]) : 0;
+    if (last && last.n === ps.length) {
+      const k = 256 * Math.pow(2, z); cx -= (mx - last.mx) / k; cy -= (my - last.my) / k;
+      if (dist && last.dist) zoomAt(mx, my, Math.log2(dist / last.dist));
+      req();
+    }
+    last = { mx, my, dist, n: ps.length };
+  };
+  cv.onpointerup = cv.onpointercancel = e => { ptr.delete(e.pointerId); last = null; };
+  cv.onwheel = e => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, e.deltaY < 0 ? .5 : -.5); req(); };
+  function zoomAt(x, y, dz) {
+    const nz = Math.max(5, Math.min(18, z + dz)); if (nz === z) return;
+    const k0 = 256 * Math.pow(2, z), k1 = 256 * Math.pow(2, nz);
+    const wx = cx + (x - Wm / 2) / k0, wy = cy + (y - Hm / 2) / k0;
+    z = nz; cx = wx - (x - Wm / 2) / k1; cy = wy - (y - Hm / 2) / k1;
+  }
+  cv.onclick = e => {   // Tipp auf eine Einschränkung → Eintrag auswählen
+    if (!down || down[2] || Math.hypot(e.offsetX - down[0], e.offsetY - down[1]) > 8) return;
+    const [la, lo] = [(() => { const k = 256 * Math.pow(2, z); return y2lat(cy + (e.offsetY - Hm / 2) / k); })(), (() => { const k = 256 * Math.pow(2, z); return x2lon(cx + (e.offsetX - Wm / 2) / k); })()];
+    const hit = items.findIndex(n => geomRings(n.geom).some(r => r.length > 2 && inRing(lo, la, r)));
+    if (hit >= 0 && onPick) onPick(hit);
+  };
+  size(); fit(allPts()); paint();
+  return {
+    zoomIn() { zoomAt(Wm / 2, Hm / 2, 1); req(); }, zoomOut() { zoomAt(Wm / 2, Hm / 2, -1); req(); },
+    all() { sel = -1; fit(allPts()); req(); },
+    focus(i) { sel = i; const pts = geomRings(items[i].geom).flat(); fit(pts); z = Math.min(z, 15); req(); },
+    resize() { size(); req(); }
+  };
+}
+function inRing(x, y, r) { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
 function showNotams() {
+  notamDists();
   const stamp = S.notamFetched ? `Stand ${fmtDate(S.notamFetched)}` + (Date.now() - S.notamFetched > 7 * 86400000 ? ' <b style="color:#b3131b">⚠ veraltet</b>' : '') : 'noch nicht geladen';
-  let html = `<div class="meta" style="margin-bottom:10px">Temporäre Betriebseinschränkungen im Gebiet der Felder (+3 km) · ${stamp} · online stündlich aktualisiert · Quelle: dipul, CC BY-ND 4.0 ·
+  let html = `<div class="meta" style="margin-bottom:10px">Temporäre Betriebseinschränkungen (dipul) in ganz Deutschland – oben die im Umkreis von 50 km um deine Felder · ${stamp} · online stündlich aktualisiert · Quelle: dipul, CC BY-ND 4.0 ·
     <span class="lnk" data-url="${LINK_TBE}">Infos zu temporären Betriebseinschränkungen</span> · <span class="lnk" data-url="${LINK_MAPTOOL}">dipul-Karte öffnen</span> · <span class="lnk" id="nReload">jetzt neu laden</span></div>`;
-  const sorted = [...S.notams].sort((a, b) => b.active - a.active);
+  const sorted = [...S.notams].sort((a, b) => (b.dist <= NOTAM_NEAR) - (a.dist <= NOTAM_NEAR) || b.active - a.active || a.dist - b.dist);
+  const nNear = sorted.filter(n => n.dist <= NOTAM_NEAR).length;
+  html += `<div class="nmapwrap"><canvas id="nMap"></canvas><div class="nmapbtn"><button id="nmIn">+</button><button id="nmOut">−</button><button id="nmAll" title="Alles zeigen">⤢</button></div>
+    <div class="nmleg"><span style="border-color:#ff2d2d;background:rgba(255,45,45,.2)"></span>aktiv <span style="border-color:#5d6975;background:rgba(93,105,117,.15)"></span>geplant/inaktiv <span style="border-color:#1e7bff;border-style:solid;background:rgba(30,123,255,.25)"></span>deine Felder</div></div>`;
+  if (S.notamErr) html += `<div class="zone" style="border-left:5px solid #b3131b"><h4>Abruf fehlgeschlagen</h4><div class="meta">${esc(S.notamErr)} – angezeigt wird der letzte gespeicherte Stand.</div></div>`;
   sorted.forEach((n, i) => {
     const p = n.props;
     const rows = Object.keys(p).filter(k => p[k] != null && p[k] !== '' && typeof p[k] !== 'object')
       .map(k => `<div><b>${esc(NOTAM_LABEL[k] || k)}:</b> ${isDateStr(p[k]) ? esc(fmtDate(new Date(p[k]).getTime())) : /^https?:/.test(p[k]) ? `<span class="lnk" data-url="${esc(p[k])}">${esc(p[k])}</span>` : esc(p[k])}</div>`).join('');
     const nf = S.files.length ? S.files.map(f => ({ f, d: Math.min(...geomRings(n.geom).flat().map(c => fieldDistTo(f, c[1], c[0]))) })).sort((a, b) => a.d - b.d)[0] : null;
-    html += `<div class="zone"><h4>${esc(notamTitle(n))} <span class="chip ${n.active ? '' : 'grey'}">${n.active ? 'Aktiv' : 'Geplant / inaktiv'}</span></h4>
-      ${nf ? `<div class="meta">Nächstes Feld: ${esc(nf.f.title)} – ${nf.d < 1000 ? Math.round(nf.d) + ' m' : (nf.d / 1000).toFixed(1) + ' km'}</div>` : ''}
+    if (i === nNear && i < sorted.length) html += `<h3 class="sec">Weiter entfernt in Deutschland (${sorted.length - nNear})</h3>`;
+    html += `<div class="zone" data-ni="${i}"><h4><span class="nnum ${n.active ? '' : 'in'}">${i + 1}</span>${esc(notamTitle(n))} <span class="chip ${n.active ? '' : 'grey'}">${n.active ? 'Aktiv' : 'Geplant / inaktiv'}</span></h4>
+      ${nf && nf.d < 1e8 ? `<div class="meta">Nächstes Feld: ${esc(nf.f.title)} – ${nf.d < 1000 ? Math.round(nf.d) + ' m' : (nf.d / 1000).toFixed(1).replace('.', ',') + ' km'}</div>` : ''}
       <div style="margin-top:6px">${rows || '<span class="meta">Keine Details</span>'}</div>
-      <div style="margin-top:8px;display:flex;gap:18px;flex-wrap:wrap"><span class="lnk" data-zoom="${i}">Auf der Karte zeigen</span>
+      <div style="margin-top:8px;display:flex;gap:18px;flex-wrap:wrap"><span class="lnk" data-focus="${i}">Hier oben zeigen</span><span class="lnk" data-zoom="${i}">Auf der Hauptkarte zeigen</span>
         ${n.props.name ? `<span class="lnk" data-url="${esc(notamLink(n))}">Details auf dipul.de</span>` : ''}</div></div>`;
   });
-  if (!sorted.length) html += `<div class="zone"><h4>Keine temporären Einschränkungen</h4><div class="meta">Im Gebiet der Felder ist laut dipul derzeit nichts eingetragen. Vor dem Flug trotzdem kurz in der dipul-Karte prüfen.</div></div>`;
+  if (!sorted.length) html += `<div class="zone"><h4>Keine temporären Einschränkungen</h4><div class="meta">In Deutschland ist laut dipul derzeit nichts eingetragen. Vor dem Flug trotzdem kurz in der dipul-Karte prüfen.</div></div>`;
   openInfoPage('NOTAM / temporäre Einschränkungen', html);
   if ($('nReload')) $('nReload').onclick = () => { if (A.notamSync) { A.notamSync(true); toast('Wird aktualisiert…'); } };
+  const mv = notamMapView($('nMap'), sorted, nNear, i => { mv.focus(i); const z2 = $('iBody').querySelector(`[data-ni="${i}"]`); if (z2) { z2.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); z2.classList.add('flash'); setTimeout(() => z2.classList.remove('flash'), 1200); } });
+  $('nmIn').onclick = () => mv.zoomIn(); $('nmOut').onclick = () => mv.zoomOut(); $('nmAll').onclick = () => mv.all();
+  $('iBody').querySelectorAll('[data-focus]').forEach(el => el.onclick = () => { mv.focus(+el.dataset.focus); $('nMap').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
   $('iBody').querySelectorAll('[data-zoom]').forEach(el => el.onclick = () => {
     const n = sorted[+el.dataset.zoom];
     const pts = geomRings(n.geom).flat();
