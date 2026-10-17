@@ -94,9 +94,6 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         prefs = getSharedPreferences("settings", Context.MODE_PRIVATE);
         dopCleanup();   // einmalig: Luftbilder mit grauem Fleck entfernen
-        if (!prefs.getBoolean("mig_vec1", false)) {   // einmalig: alte Bildkacheln der Grundkarte löschen – die Vektorkarte ersetzt sie (spart GB)
-            new Thread(() -> { for (String d : new String[]{"bmg", "bmf", "osm"}) deleteTree(new File(tileDir(), d)); prefs.edit().putBoolean("mig_vec1", true).apply(); }).start();
-        }
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         web = new WebView(this);
@@ -2316,7 +2313,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 }
             }
             prefs.edit().putBoolean("dop_clean1", true).apply();
-            if (del > 0) { prefs.edit().remove("esBox4").apply(); js("window.onDopCleaned && window.onDopCleaned(" + del + ")"); }
+            if (del > 0) { prefs.edit().remove("esBox5").apply(); js("window.onDopCleaned && window.onDopCleaned(" + del + ")"); }
         }).start();
     }
 

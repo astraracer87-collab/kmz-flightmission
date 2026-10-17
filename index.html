@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Mission Kitzrettung</title>
-<link rel="stylesheet" href="maplibre-gl.css">
-<script src="maplibre-gl.js"></script>
 <style>
   :root{--acc:#0b63c5;--ok:#1f9d48;--bad:#e01b1b;--txt:#15202b;--muted:#5d6975;--line:#dde3ea;--line2:#eef1f4;--bar:rgba(255,255,255,.94);
     --bg:#eef2f5;--card:#fff;--card2:#f6f8fa;--ctrl:rgba(255,255,255,.92);--ctrltxt:#15202b;--sec:#e7eef7;--brand:#6b4a2b;--brand2:#4f8a2b;
@@ -17,15 +15,17 @@
     --o-bg:#5a3d10;--r-bg:#5c1d1d;--y-bg:#4d4510;--g-bg:#173d24;
     --sunday:#25405e;--suntw:#2e2a4c;--sunnight:#0d1220;
     --rose-bg:rgba(22,30,40,.86);--rose-ring:rgba(140,155,180,.6);--rose-tick:#c9d3e0;--rose-tick2:#7d8aa0;--rose-txt:#e6edf3}
-  body.dark #mlDim{display:block}
+  body.dark #mapT::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.28);z-index:9}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font:16px/1.3 Roboto,system-ui,sans-serif;user-select:none}
   #mapWrap{position:fixed;inset:0;overflow:hidden;background:#cfd6dc}
-  #map{position:absolute;left:0;top:0;width:100%;height:100%;display:block;pointer-events:none;z-index:3}
-  /* Kartenmotor: MapLibre (Vektorkarte, GPU) – bekommt alle Gesten; darüber nur durchsichtige Zeichenebenen */
-  #ml{position:absolute;left:0;top:0;width:100%;bottom:72px;z-index:0;touch-action:none}
-  #ml .maplibregl-canvas{outline:none}
-  #mlDim{display:none;position:absolute;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.28);pointer-events:none;z-index:1}
+  #map{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none;z-index:3}
+  #mapT{position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;pointer-events:none;z-index:0}
+  #mapG{position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;pointer-events:none;z-index:1}
+  #mapG .gl{position:absolute;left:0;top:0;width:100%;height:100%}
+  #mapG .tl,#mapT .tl{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+  #mapG img,#mapT img{position:absolute;width:256px;height:256px;max-width:none;opacity:0;transition:opacity .18s linear;-webkit-user-drag:none}
+  #mapG img.ok,#mapT img.ok{opacity:1}
   #mapO{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform;z-index:2}
   button{font:inherit;border:0;border-radius:10px;font-weight:700;cursor:pointer}
   button:disabled{opacity:.4}
@@ -350,7 +350,7 @@
 </head>
 <body>
 
-<div id="mapWrap"><div id="ml"></div><div id="mlDim"></div><canvas id="mapO"></canvas><canvas id="map"></canvas></div>
+<div id="mapWrap"><div id="mapT"></div><div id="mapG"></div><canvas id="mapO"></canvas><canvas id="map"></canvas></div>
 <div id="busy"></div>
 <div id="wind"></div>
 <div id="notam"></div>
@@ -551,6 +551,7 @@ const cv = $('map'), mctx = cv.getContext('2d');
 let ctx = mctx;
 // Vorgerenderte Karte mit Rand: beim Wischen/Zoomen wird nur dieses Bild verschoben, neu gezeichnet erst danach
 const buf = $('mapO'), bctx = buf.getContext('2d');
+const tdiv = $('mapT');
 const BV = { ok: false, lat: 0, lon: 0, z: 0, M: 0, bw: 0, bh: 0, t: 0 };
 // Karte/Grau: basemap.de (amtliche Karte, BKG); Luftbild: Orthophotos HE/RP (außerhalb Esri) – alles auf der RC gespeichert
 const BM_URL = l => (z, x, y) => `https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_${l}/default/GLOBAL_WEBMERCATOR/${z}/${y}/${x}.png`;
@@ -748,7 +749,7 @@ function makeTileLayer(div, cfg) {   // cfg: { url(z,x,y), maxz(), minz, id() = 
   return T;
 }
 // Kartenhintergrund: jede Kachel ein eigenes Bild (wie Leaflet) – beim Wischen/Zoomen wird nur per GPU verschoben, nichts neu gemalt
-const BASE = { reset: () => mlBaseReset() };   // Grundkarte zeichnet MapLibre
+const BASE = makeTileLayer(tdiv, { url: (z, x, y) => LAYERS[P.layer](z, x, y), key: tKey, maxz: () => LAYER_MAXZ[P.layer] || 18, id: () => P.layer });
 // Zonengruppen zum Ein-/Ausschalten (wie auf der dipul-Karte) – gelten für die eigene Zonenkarte und die dipul-Ebene
 const ZG = [
   ['luft', 'Luftfahrt', ['flughaefen', 'flugplaetze', 'kontrollzonen', 'flugbeschraenkungsgebiete', 'modellflugplaetze']],
@@ -774,7 +775,9 @@ function geoKeep(z, x, y) {
 }
 // Eine einzige Bild-Ebene für alle eingeschalteten Gruppen (die App setzt sie aus den gespeicherten Einzelbildern zusammen) – spart viel Speicher
 const zgSel = () => ZG.map(([g]) => g).filter(zgOn).join(',');
-const GEOR = { reset: () => mlGeoReset() };   // dipul-Geozonen als Bild-Ebene in MapLibre
+const GEOR = makeTileLayer($('mapG'), { url: (z, x, y) => `https://dipul.local/${z}/${x}/${y}?g=${zgSel()}`, key: (z, x, y) => 'g' + zgSel() + z + '/' + x + '/' + y,
+  maxz: () => 16, maxUp: 2.1, failDone: true, minz: 7, id: () => zgSel() + (P.geoOwn === '0' ? 'a' : 'o') + (S.geoBox ? S.geoBox.n : ''), keep: geoKeep,
+  off: () => P.geo !== '1' || P.geoAll === '0' || !zgSel() });
 function zgSet(k, on) {
   const cur = ZG.map(([g]) => g).filter(g => g === k ? on : zgOn(g));
   setP('zg', cur.join(',')); applyGeoConfig(); drawLive(false);
@@ -784,9 +787,7 @@ const placeEl = (el, B, hideOut) => { const [x, y, k] = bufPlace(B); el.style.vi
 let lastMove = 0;
 function paint() {
   pend = false;
-  mlSyncCamera();   // im Code geänderter Ausschnitt → MapLibre nachziehen
-  const gest = ML.moving || Date.now() - lastMove < 120;   // Karte bewegt sich gerade (Finger, Schwung, Animation)
-  if (ML.map && !gest) { if (ML.styleKey !== P.layer) mlApplyBase(); else if (ML.ready) mlEnsureOwn(); }
+  const gest = (ptr.size > 0 || fling) && Date.now() - lastMove < 180;   // Finger (oder Schwung) bewegt die Karte gerade
   let cover = false;
   cover = covers(BV, .55, 1.8);
   // Ebenen (Zonen, Felder, Hindernisse) nur neu rendern, wenn nicht gerade gewischt wird – beim Wischen wird das fertige Bild verschoben
@@ -794,6 +795,7 @@ function paint() {
   if (sizeChanged || (!gest && (dirty || !cover))) renderBuf();
   // Drei Ebenen: Kacheln und Zonen/Felder als fertige Bilder, die nur per CSS verschoben werden (gleichzeitig, kein Versatz), oben Position/Kompass
   // Kacheln: neu, wenn die Ebenen gerade neu gerendert wurden (gleicher Ausschnitt), neue Kacheln angekommen sind (nicht während Bewegung) oder der Rand erreicht ist
+  BASE.update(gest); GEOR.update(gest);
   if (BV.ok) placeEl(buf, BV, true);
   ctx = mctx;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
@@ -833,7 +835,8 @@ function paintStatic() {
   if (S.notams.length) S.notams.forEach(drawNotam);
   const vis = S.files.filter(visible);
   const ord = vis.filter(fieldOnScreen).sort(byAreaDesc);
-  // Wiesen (Flächen, Grenzen, Routen) zeichnet MapLibre – hier nur noch die Namensschilder
+  ord.forEach(f => { drawOutline(f); drawField(f); });
+  ord.filter(f => f.selected).forEach(drawField);   // Route markierter Felder obenauf
   labelBoxes = [];
   if (P.labels === '1') { vis.filter(f => f.selected).forEach(drawLabel); vis.filter(f => !f.selected).forEach(drawLabel); }
   // dipul ist maßgeblich: Symbol und Vincenz-Ringe in der Mitte des dipul-Kreises; OSM-Marker nur, wo dipul keinen Platz hat
@@ -893,151 +896,6 @@ function paintLive() {
   }
 }
 
-// ================= Kartenmotor: MapLibre GL (Vektorkarte basemap.de, Luftbild, dipul-Geozonen, Wiesen – alles auf der GPU) =================
-// Gesten (Wischen, Zoomen, Schwung) macht MapLibre. V (Mitte/Zoom) wird bei jeder Bewegung übernommen; die App-Ebenen (Zonen, Hindernisse,
-// Beschriftungen) liegen als vorgerendertes Bild darüber und werden beim Bewegen nur verschoben.
-// Zoom: App rechnet mit 256-px-Kacheln (V.z), MapLibre mit 512 px → MapLibre-Zoom = V.z − 1.
-const ML = { map: null, ready: false, moving: false, wasMoving: false, cam: null, styleKey: '', geoKey: null, fieldsSig: '', vecFail: false };
-const BMV = 'https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/';
-const mlZoom = z => z - 1, ourZoom = z => z + 1;
-function mlFromMap() {
-  const c = ML.map.getCenter(); V.lat = c.lat; V.lon = c.lng; V.z = ourZoom(ML.map.getZoom());
-  ML.cam = { lat: V.lat, lon: V.lon, z: V.z };
-}
-/** Ausschnitt wurde im Code geändert (Feld suchen, Standort, Alle zeigen …) → MapLibre nachziehen */
-function mlSyncCamera() {
-  const m = ML.map; if (!m || !ML.cam) return;
-  if (Math.abs(ML.cam.lat - V.lat) > 1e-9 || Math.abs(ML.cam.lon - V.lon) > 1e-9 || Math.abs(ML.cam.z - V.z) > 1e-6) {
-    ML.cam = { lat: V.lat, lon: V.lon, z: V.z };
-    m.jumpTo({ center: [V.lon, V.lat], zoom: mlZoom(V.z) });
-  }
-}
-// Alle Anfragen der Vektorkarte laufen über den Hauptfaden (fetch) – so kann die App sie auf der RC speichern und offline liefern
-const kmzc = u => 'kmzc://' + u;
-async function mlVectorStyle(kind) {
-  const r = await fetch(BMV + 'styles/bm_web_' + kind + '.json');
-  if (!r.ok) throw new Error('Stil ' + r.status);
-  const st = await r.json();
-  if (!st || !st.layers || !st.sources) throw new Error('Stil unvollständig');
-  Object.values(st.sources || {}).forEach(src => {
-    if (src.type === 'vector' && src.url) { src.tiles = [kmzc(src.url.replace(/\/[^/]+\.json$/, '/{z}/{x}/{y}.pbf'))]; delete src.url; src.minzoom = 0; src.maxzoom = 15; }
-    else if (src.tiles) src.tiles = src.tiles.map(kmzc);
-  });
-  if (st.sprite) st.sprite = typeof st.sprite === 'string' ? kmzc(st.sprite) : st.sprite.map(x => Object.assign({}, x, { url: kmzc(x.url) }));
-  if (st.glyphs) st.glyphs = kmzc(st.glyphs);
-  return st;
-}
-function mlRasterStyle(kind) {
-  const bg = { id: 'bg', type: 'background', paint: { 'background-color': '#cfd6dc' } };
-  if (kind === 'sat') return { version: 8, sources: {
-      esri: { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 19 },
-      dop: { type: 'raster', tiles: ['https://dop.local/{z}/{x}/{y}?s=auto'], tileSize: 256, minzoom: 12, maxzoom: 19 } },
-    layers: [bg, { id: 'esri', type: 'raster', source: 'esri', maxzoom: mlZoom(12) }, { id: 'dop', type: 'raster', source: 'dop', minzoom: mlZoom(12) }] };
-  // Grau/Farbe als Bildkacheln – nur Notfall, wenn die Vektorkarte (noch) nicht da ist
-  return { version: 8, sources: { bm: { type: 'raster', tiles: [BM_URL(kind === 'osm' ? 'farbe' : 'grau')('{z}', '{x}', '{y}')], tileSize: 256, maxzoom: 18 } },
-    layers: [bg, { id: 'bm', type: 'raster', source: 'bm' }] };
-}
-async function mlApplyBase(force) {
-  if (!ML.map) return;
-  const key = P.layer;
-  if (!force && ML.styleKey === key) return;
-  ML.styleKey = key;
-  let st;
-  if (P.layer === 'sat') st = mlRasterStyle('sat');
-  else {
-    try { st = await mlVectorStyle(P.layer === 'osm' ? 'col' : 'gry'); ML.vecFail = false; }
-    catch (e) { st = mlRasterStyle(P.layer); ML.vecFail = true; }
-  }
-  if (ML.styleKey !== key) return;   // inzwischen umgeschaltet
-  ML.ready = false; ML.map.setStyle(st, { diff: false });
-}
-function mlBaseReset() { ML.styleKey = ''; mlApplyBase(true); }
-// dipul-Geozonen (Bild, wie auf dipul.de) – eine Ebene für alle eingeschalteten Gruppen
-function mlGeoUrl() { const on = P.geo === '1' && P.geoAll !== '0' && zgSel(); return on ? 'https://dipul.local/{z}/{x}/{y}?g=' + zgSel() : ''; }
-function mlGeoReset() { ML.geoKey = null; if (ML.ready) mlEnsureOwn(); }
-// Wiesen als GPU-Ebenen: Fläche, Feldgrenze, Flugroute, überflogener Streifen
-const FSEL = ['==', ['get', 'sel'], 1];
-function mlFieldsData() {
-  const F = [];
-  const ring = pts => { const c = pts.map(p => [p[1], p[0]]); const a = c[0], b = c[c.length - 1]; if (a[0] !== b[0] || a[1] !== b[1]) c.push(a); return c; };
-  S.files.forEach(f => {
-    if (!visible(f)) return;
-    const sel = f.selected ? 1 : 0, a = f.areaM2 || 0;
-    if (f.outline && f.outline.length > 2) F.push({ type: 'Feature', properties: { k: 'o', sel, a }, geometry: { type: 'Polygon', coordinates: [ring(f.outline)] } });
-    (f.shapes || []).forEach(sh => {
-      if (!sh.pts || sh.pts.length < 2) return;
-      if (sh.type === 'poly') {
-        if (!f.outline && sh.pts.length > 2) F.push({ type: 'Feature', properties: { k: 'p', sel, a }, geometry: { type: 'Polygon', coordinates: [ring(sh.pts)] } });
-        F.push({ type: 'Feature', properties: { k: 'r', sel }, geometry: { type: 'LineString', coordinates: ring(sh.pts) } });
-      } else {
-        const sp = !f.outline && sh.pts.length > 3 ? (sh._sp != null ? sh._sp : (sh._sp = trackSpacing(sh.pts))) : 0;
-        const w0 = sp ? sp * 512 / (40075016 * Math.cos(f.center[0] * Math.PI / 180)) : 0;   // Streifenbreite in px bei MapLibre-Zoom 0
-        F.push({ type: 'Feature', properties: { k: 'r', sel, w0 }, geometry: { type: 'LineString', coordinates: sh.pts.map(p => [p[1], p[0]]) } });
-      }
-    });
-  });
-  return { type: 'FeatureCollection', features: F };
-}
-let mlFid = 0;
-function mlFieldsUpdate(force) {
-  const m = ML.map; if (!m || !ML.ready || !m.getSource('fields')) return;
-  const q = $('q') ? $('q').value : '';
-  const sig = q + '|' + S.files.map(f => (f._mid || (f._mid = ++mlFid)) + (f.selected ? 's' : '') + (f.outline ? 'o' : '') + (f.dup ? 'd' : '')).join(',');
-  if (!force && sig === ML.fieldsSig) return;
-  ML.fieldsSig = sig;
-  m.getSource('fields').setData(mlFieldsData());
-}
-/** Eigene Ebenen (Geozonen-Bild, Wiesen) – nach jedem Stilwechsel neu anlegen */
-function mlEnsureOwn() {
-  const m = ML.map; if (!m || !ML.ready) return;
-  const gu = mlGeoUrl(), own = P.geoOwn !== '0' && S.geo.length > 0, gk = gu + '|' + own;
-  if (gk !== ML.geoKey) {
-    ML.geoKey = gk;
-    if (m.getLayer('geo')) m.removeLayer('geo');
-    if (m.getSource('geo')) m.removeSource('geo');
-    if (gu) {
-      m.addSource('geo', { type: 'raster', tiles: [gu], tileSize: 256, minzoom: 7, maxzoom: 16 });
-      // eigene Zonenkarte (Einstellung): ab Zoom 9 zeichnet die App die Zonen selbst – dort kein dipul-Bild darunter
-      m.addLayer({ id: 'geo', type: 'raster', source: 'geo', minzoom: mlZoom(7), maxzoom: own ? mlZoom(9) : 24, paint: { 'raster-fade-duration': 120 } }, m.getLayer('f-fill') ? 'f-fill' : undefined);
-    }
-  }
-  if (!m.getSource('fields')) {
-    m.addSource('fields', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, tolerance: 0.2 });
-    const fillC = ['case', FSEL, 'rgba(255,122,0,.28)', 'rgba(30,123,255,.22)'], lineC = ['case', FSEL, FC.routeSel, FC.route];
-    m.addLayer({ id: 'f-fill', type: 'fill', source: 'fields', filter: ['in', ['get', 'k'], ['literal', ['o', 'p']]], layout: { 'fill-sort-key': ['-', 0, ['get', 'a']] }, paint: { 'fill-color': fillC } });
-    m.addLayer({ id: 'f-swath', type: 'line', source: 'fields', filter: ['all', ['==', ['get', 'k'], 'r'], ['>', ['coalesce', ['get', 'w0'], 0], 0]],
-      layout: { 'line-cap': 'butt', 'line-join': 'miter', 'line-miter-limit': 2.5 },
-      paint: { 'line-color': fillC, 'line-width': ['interpolate', ['exponential', 2], ['zoom'], 0, ['get', 'w0'], 22, ['*', ['get', 'w0'], 4194304]] } });
-    m.addLayer({ id: 'f-ow', type: 'line', source: 'fields', filter: ['==', ['get', 'k'], 'o'], layout: { 'line-join': 'round' }, paint: { 'line-color': 'rgba(255,255,255,.95)', 'line-width': ['case', FSEL, 3, 2] } });
-    m.addLayer({ id: 'f-od', type: 'line', source: 'fields', filter: ['==', ['get', 'k'], 'o'], paint: { 'line-color': lineC, 'line-width': ['case', FSEL, 2, 1.5], 'line-dasharray': [4, 2.7] } });
-    m.addLayer({ id: 'f-route', type: 'line', source: 'fields', filter: ['==', ['get', 'k'], 'r'], layout: { 'line-join': 'round', 'line-cap': 'round', 'line-sort-key': ['get', 'sel'] },
-      paint: { 'line-color': lineC, 'line-width': ['case', FSEL, 3.5, 2.5] } });
-    ML.fieldsSig = '';
-  }
-  mlFieldsUpdate();
-}
-function mlInit() {
-  if (!window.maplibregl) { toast('Kartenbibliothek fehlt (maplibre-gl.js) – bitte zusammen mit index.html in den assets-Ordner hochladen.', true, 15000); return; }
-  maplibregl.addProtocol('kmzc', async (params, ac) => {
-    const r = await fetch(params.url.slice(7), { signal: ac.signal });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return { data: params.type === 'json' ? await r.json() : await r.arrayBuffer() };
-  });
-  const m = new maplibregl.Map({ container: 'ml', style: { version: 8, sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#cfd6dc' } }] },
-    center: [V.lon, V.lat], zoom: mlZoom(V.z), minZoom: mlZoom(5), maxZoom: mlZoom(20), renderWorldCopies: false,
-    dragRotate: false, pitchWithRotate: false, touchPitch: false, doubleClickZoom: false, keyboard: false, attributionControl: false,
-    fadeDuration: 150, maxTileCacheSize: 600, pixelRatio: Math.min(2, window.devicePixelRatio || 1), antialias: false, refreshExpiredTiles: false });
-  m.touchZoomRotate.disableRotation();
-  ML.map = m; ML.cam = { lat: V.lat, lon: V.lon, z: V.z };
-  m.on('movestart', () => { ML.moving = true; });
-  m.on('move', () => { mlFromMap(); lastMove = Date.now(); drawLive(false); });
-  m.on('moveend', () => { ML.moving = false; lastMove = 0; mlFromMap(); draw(); });
-  m.on('style.load', () => { ML.ready = true; ML.geoKey = null; mlEnsureOwn(); draw(); });
-  m.on('error', e => { window.__mlerr = (window.__mlerr || []).concat(String(e.error && e.error.message || e.error)).slice(-5); });
-  mlTapSetup($('ml'));
-  mlApplyBase(true);
-  window.addEventListener('online', () => { if (ML.vecFail && P.layer !== 'sat') mlBaseReset(); });
-}
 // ---------- Geozonen als Vektordaten (dipul WFS, offline gespeichert) ----------
 function loadGeoVectors() {
   if (!A.geoVectors) return;
@@ -1531,44 +1389,77 @@ function fitBounds(b) {
   draw();
 }
 
-// Touch: Wischen, Zoomen und Schwung macht MapLibre (flüssig auf der GPU) – hier nur Tippen und langes Drücken
+// Touch
 const ptr = new Map();
 let infoMode = false, infoPin = null;
 let g = null;
+// Schwung: schnelles Wischen läuft weich aus (wie bei üblichen Karten-Apps)
 let fling = null, trail = [];
-function stopFling() { if (ML.map) ML.map.stop(); }
-function mlTapSetup(el) {
-  el.addEventListener('pointerdown', e => {
-    ptr.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    geoBubHide();
-    if (ptr.size === 1) {
-      g = { tap: true, sx: e.clientX, sy: e.clientY, t: Date.now() };
+function stopFling() { if (fling) { cancelAnimationFrame(fling.raf); fling = null; } }
+function startFling(vx, vy) {
+  stopFling();
+  fling = { vx, vy, t: performance.now(), raf: 0 };
+  const step = now => {
+    if (!fling) return;
+    const dt = Math.min(40, now - fling.t); fling.t = now;
+    panBy(fling.vx * dt, fling.vy * dt);
+    const k = Math.exp(-dt / 320); fling.vx *= k; fling.vy *= k;
+    if (Math.hypot(fling.vx, fling.vy) < 0.03) { fling = null; clearTimeout(settleT); draw(); return; }
+    fling.raf = requestAnimationFrame(step);
+  };
+  fling.raf = requestAnimationFrame(step);
+}
+cv.addEventListener('pointerdown', e => {
+  stopFling(); trail = [];
+  cv.setPointerCapture(e.pointerId);
+  ptr.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptr.size === 1) {
+    g = { tap: true, sx: e.clientX, sy: e.clientY, d: 0 };
+    // Info-Modus: normaler Tipp zeigt Infos, langes Drücken markiert das Feld
+    if (infoMode) {
       const gg = g, x = e.clientX, y = e.clientY;
-      if (infoMode) gg.lp = setTimeout(() => {   // Info-Modus: langes Drücken markiert das Feld
+      gg.lp = setTimeout(() => {
         if (g !== gg || !gg.tap || ptr.size !== 1) return;
         gg.tap = false; gg.long = true;
         if (hitField(x, y)) { if (navigator.vibrate) try { navigator.vibrate(30); } catch (er) { } }
         else toast('Hier ist kein Feld zum Markieren.', false, 1800);
       }, 550);
-    } else if (g) { g.tap = false; }
-  }, true);
-  el.addEventListener('pointermove', e => {
-    const p = ptr.get(e.pointerId); if (!p) return;
-    p.x = e.clientX; p.y = e.clientY;
-    if (g && Math.hypot(e.clientX - g.sx, e.clientY - g.sy) > 10) g.tap = false;
-  }, true);
-  const up = e => {
-    const p = ptr.get(e.pointerId); ptr.delete(e.pointerId);
-    if (g && g.lp) clearTimeout(g.lp);
-    if (e.type === 'pointerup' && ptr.size === 0 && g && g.tap && p && Date.now() - g.t < 700 && !ML.wasMoving) {
-      const r = el.getBoundingClientRect(), x = p.x - r.left, y = p.y - r.top;
-      if (infoMode) geoInfoAt(x, y); else hit(x, y);
     }
-    if (ptr.size === 0) g = null;
-  };
-  el.addEventListener('pointerup', up, true);
-  el.addEventListener('pointercancel', up, true);
-}
+  }
+  else if (ptr.size === 2) { const [a, b] = [...ptr.values()]; g = { tap: false, d: Math.hypot(a.x - b.x, a.y - b.y), z: V.z }; }
+});
+cv.addEventListener('pointermove', e => {
+  const p = ptr.get(e.pointerId); if (!p) return;
+  if (ptr.size === 1) {
+    panBy(e.clientX - p.x, e.clientY - p.y);
+    if (g && Math.hypot(e.clientX - g.sx, e.clientY - g.sy) > 10) g.tap = false;
+    const now = performance.now(); trail.push([now, e.clientX, e.clientY]); while (trail.length && now - trail[0][0] > 100) trail.shift();
+  }
+  p.x = e.clientX; p.y = e.clientY;
+  if (ptr.size === 2 && g && g.d) {
+    const [a, b] = [...ptr.values()];
+    zoomAt(g.z + Math.log2(Math.hypot(a.x - b.x, a.y - b.y) / g.d), (a.x + b.x) / 2, (a.y + b.y) / 2);
+  }
+});
+cv.addEventListener('pointerup', e => {
+  const p = ptr.get(e.pointerId); ptr.delete(e.pointerId);
+  if (g && g.lp) clearTimeout(g.lp);
+  if (ptr.size === 0 && g && g.tap && p) { geoBubHide(); if (infoMode) geoInfoAt(p.x, p.y); else hit(p.x, p.y); }
+  if (g && g.long) { g = ptr.size ? g : null; return; }   // langes Drücken: schon markiert, nichts weiter
+  if (ptr.size === 0) {
+    if (g && !g.tap) {
+      // Geschwindigkeit der letzten 100 ms: schnell gewischt → mit Schwung weiter, sonst sofort scharf zeichnen
+      const now = performance.now(); trail = trail.filter(t => now - t[0] <= 100);
+      const a = trail[0], b = trail[trail.length - 1], dt = a && b ? b[0] - a[0] : 0;
+      const vx = dt > 8 ? (b[1] - a[1]) / dt : 0, vy = dt > 8 ? (b[2] - a[2]) / dt : 0;
+      if (!g.z && Math.hypot(vx, vy) > 0.35) startFling(vx, vy);
+      else { clearTimeout(settleT); draw(); }
+    }
+    g = null; trail = [];
+  } else if (g) { g.d = 0; g.tap = false; }
+});
+cv.addEventListener('pointercancel', e => { ptr.delete(e.pointerId); g = null; draw(); });
+cv.addEventListener('wheel', e => { e.preventDefault(); zoomAt(V.z - Math.sign(e.deltaY) * 0.5, e.clientX, e.clientY); }, { passive: false });
 
 function inPoly(x, y, pts) {
   let c = false;
@@ -1810,8 +1701,8 @@ function fitAll() {
   fitBounds(bounds(S.files.filter(visible)) || bounds(sel));
 }
 
-$('zIn').onclick = () => ML.map ? ML.map.zoomIn({ duration: 220 }) : zoomAt(V.z + 1, W / 2, mapH() / 2);
-$('zOut').onclick = () => ML.map ? ML.map.zoomOut({ duration: 220 }) : zoomAt(V.z - 1, W / 2, mapH() / 2);
+$('zIn').onclick = () => zoomAt(V.z + 1, W / 2, mapH() / 2);
+$('zOut').onclick = () => zoomAt(V.z - 1, W / 2, mapH() / 2);
 $('bFit').onclick = fitAll;
 $('bLoc').onclick = () => {
   if (S.me) { V.lat = S.me[0]; V.lon = S.me[1]; V.z = Math.max(V.z, 15); draw(); }
@@ -2275,28 +2166,16 @@ function einsatzJobs(de, full) {
   const p = prefetchPlan(); if (!p) return null;
   const eb = einsatzBox(25), fLa = .5 / 111.2;
   const wiesen = S.files.filter(f => !f.dup && f.bounds).map(f => { const fLo = .5 / (111.2 * Math.cos(f.bounds.n * Math.PI / 180)); return [f.bounds.w - fLo, f.bounds.s - fLa, f.bounds.e + fLo, f.bounds.n + fLa]; });
-  // Grundkarte als Vektorkarte (basemap.de, Kachelstufe 512 px bis 15 – darüber zeichnet MapLibre scharf weiter): klein, jede Zoomstufe scharf
-  const vecT = [[4, 6, [DE_BOX]], [7, 12, [eb]], [13, 15, [p.area]]];
-  // Luftbild nur, wo es gebraucht wird: um die Wiesen bis ganz nah (mit „Höchste Detailstufe“ das ganze Gebiet bis Zoom 16)
-  const dopT = full ? [[12, 16, [p.area]], [17, 18, wiesen]] : [[12, 18, wiesen]];
-  const geoT = (de ? [[7, 10, [DE_BOX]]] : []).concat([[de ? 11 : 7, 14, [eb]], [15, 16, [p.area]]]);   // dipul hat Bilder bis Zoom 16 – im Wiesengebiet + 3 km jede Stufe
+  const baseT = [[5, PF.zMin - 1, [DE_BOX]], [PF.zMin, PF.zArea, [p.area]], [PF.zArea + 1, PF.zMax, full ? [p.area] : p.fields]];   // jede Zoomstufe: Übersicht Deutschland bis ganz nah
+  const geoT = (de ? [[7, 10, [DE_BOX]]] : []).concat([[de ? 11 : 7, 14, [eb]], [15, 16, [p.area]]]);   // dipul hat Bilder bis Zoom 16 – im Wiesengebiet + 3 km jede Stufe   // jede Zoomstufe bis 16 – keine groben Flecken beim Reinzoomen
   const geoL = ZG.map(([k]) => 'geo:' + k);   // alle Zonengruppen, damit das Umschalten auch offline geht
-  const nv = tierCount(vecT.map(([a, b, x]) => [a + 1, b + 1, x])) , nd = tierCount(dopT), ng = tierCount(geoT);
-  return { jobs: [{ layers: ['bmv'], tiers: vecT.map(([a, b, x]) => [a, b, x]) }, { layers: ['dop'], tiers: dopT }, { layers: geoL, tiers: geoT }],
-    tiles: nv + nd + ng * geoL.length, mb: Math.round((nv * 25 + nd * 45 + ng * geoL.length * 4) / 1024) };
-}
-/** Stil, Symbole und Schriften der Vektorkarte vorab holen (für offline) */
-async function mlWarmCache() {
-  for (const k of ['gry', 'col']) {
-    try {
-      const st = await (await fetch(BMV + 'styles/bm_web_' + k + '.json')).json();
-      const sp = typeof st.sprite === 'string' ? [st.sprite] : (st.sprite || []).map(x => x.url);
-      for (const u of sp) for (const x of ['.json', '.png', '@2x.json', '@2x.png']) { try { await fetch(u + x); } catch (e) { } }
-      const fonts = new Set(); (st.layers || []).forEach(l => { const f = l.layout && l.layout['text-font']; if (Array.isArray(f) && f.every(x => typeof x === 'string')) fonts.add(f.join(',')); });
-      if (!fonts.size) fonts.add('Open Sans Regular,Arial Unicode MS Regular');
-      for (const f of fonts) for (const r of ['0-255', '256-511', '8192-8447']) { try { await fetch(st.glyphs.replace('{fontstack}', encodeURIComponent(f)).replace('{range}', r)); } catch (e) { } }
-    } catch (e) { }
-  }
+  const ng = tierCount(geoT);
+  // Speicher sparen: nur die gerade benutzte Kartenart (Grau oder Farbe) fürs ganze Gebiet, Luftbild nur um die Wiesen
+  const baseL = [P.layer === 'osm' ? 'bmf' : 'bmg'];
+  const dopT = full ? [[12, PF.zArea, [p.area]], [PF.zArea + 1, PF.zMax, p.fields]] : [[12, PF.zMax, wiesen]];
+  const baseT2 = [[5, PF.zMin - 1, [DE_BOX]], [PF.zMin, PF.zArea, [p.area]], [PF.zArea + 1, PF.zMax, p.fields]];
+  const nb2 = tierCount(baseT2), nd = tierCount(dopT);
+  return { jobs: [{ layers: baseL, tiers: baseT2 }, { layers: ['dop'], tiers: dopT }, { layers: geoL, tiers: geoT }], tiles: nb2 + nd + ng * geoL.length, mb: Math.round((nb2 * 20 + nd * 45 + ng * geoL.length * 4) / 1024) };
 }
 /** Einsatzgebiet speichern (Knopf oder automatisch): Kacheln, Zonendaten, Windräder, Wetter */
 /** Kleiner Fortschritts-Hinweis unten links – blockiert nichts; Tippen fragt nach Abbrechen */
@@ -2316,7 +2195,6 @@ function einsatzRun(de, fresh, auto, full) {
   if (A.mastrSync && sts.length) A.mastrSync(JSON.stringify({ states: sts, box: wb }));   // Windräder fürs eigene Gebiet
   try { metarLoad(null, true).then(metarApply).catch(() => { }); wxPrefetch(); } catch (e) { }
   A.prefetchStart(JSON.stringify({ jobs: j.jobs }));
-  mlWarmCache();
   esPending = einsatzBox(25);
   if (auto) setTimeout(tourAsk, 2500);   // Wartezeit sinnvoll nutzen
   toast(auto ? 'Einsatzgebiet wird automatisch für offline gespeichert (Karte, Geozonen, Windräder, Wetter) – Fortschritt in den Einstellungen.' : 'Einsatzgebiet wird gespeichert – Fortschritt in den Einstellungen.', false, auto ? 6000 : 4000);
@@ -2326,7 +2204,7 @@ let esPending = null, esPendingNames = null;
 function einsatzAuto() {
   if (!A.prefetchStart || !isOnline() || !S.files.length || (A.prefetchRunning && A.prefetchRunning()) || esPending) return;
   const need = einsatzBox(1); if (!need) return;
-  let have = null; try { have = JSON.parse(A.getPref('esBox4', 'null') || 'null'); } catch (e) { }
+  let have = null; try { have = JSON.parse(A.getPref('esBox5', 'null') || 'null'); } catch (e) { }
   let done = []; try { done = JSON.parse(A.getPref('esFields3', '[]') || '[]'); } catch (e) { }
   const names = S.files.filter(f => !f.dup && f.bounds).map(f => f.name), dset = new Set(done);
   const fresh = names.filter(n => !dset.has(n));   // neue Wiesen: Kacheln bis Zoom 18 um sie herum fehlen noch
@@ -2344,7 +2222,7 @@ const startPrefetch = () => {
     <label class="pick"><input type="checkbox" id="esNew"><span>Geozonen neu holen – gespeicherte ersetzen (wenn sich bei dipul etwas geändert hat)</span></label><div class="meta" id="esInfo" style="margin-top:6px"></div>`;
   const info = () => { const j = einsatzJobs(x.querySelector('#esDe').checked, x.querySelector('#esFull').checked); x.querySelector('#esInfo').textContent = `ca. ${j.tiles.toLocaleString('de-DE')} Kacheln · ca. ${j.mb.toLocaleString('de-DE')} MB · bereits gespeicherte werden übersprungen`; };
   confirmDlg('Einsatzgebiet speichern',
-    'Holt alles, was im Einsatz gebraucht wird, auf die Fernsteuerung:\n• Vektorkarte (Grau und Farbe): jede Zoomstufe scharf – Übersicht Deutschland, Gebiet der Wiesen + 3 km komplett\n• Luftbild um jede Wiese bis ganz nah\n• dipul-Geozonen im Umkreis von 25 km bis Zoom 14, im Wiesengebiet + 3 km jede Stufe bis 16 (mehr hat dipul nicht)\n• Zonendaten zum Antippen (Name, Höhen, Auflagen) ebenfalls 25 km – Wohngrundstücke 3 km um die Wiesen\n• NOTAMs deutschlandweit, Hindernisse, Flugplätze, Orte\n• Windräder mit Betreiber und Höhe aus dem Marktstammdatenregister (30 km)\n• Wetter und Flughafen-Wetter (letzter Stand)\n\nDanach funktioniert alles ohne Internet – online nur noch für „Abgleichen“ (Wiesen holen). Am besten im WLAN, die App kann dabei normal benutzt werden.',
+    'Holt alles, was im Einsatz gebraucht wird, auf die Fernsteuerung:\n• Karte (die gerade gewählte Art, Grau oder Farbe): Übersicht Deutschland, Gebiet der Wiesen + 3 km bis Zoom 16, um jede Wiese bis Zoom 18\n• Luftbild um jede Wiese bis ganz nah\n• dipul-Geozonen im Umkreis von 25 km bis Zoom 14, im Wiesengebiet + 3 km jede Stufe bis 16 (mehr hat dipul nicht)\n• Zonendaten zum Antippen (Name, Höhen, Auflagen) ebenfalls 25 km – Wohngrundstücke 3 km um die Wiesen\n• NOTAMs deutschlandweit, Hindernisse, Flugplätze, Orte\n• Windräder mit Betreiber und Höhe aus dem Marktstammdatenregister (30 km)\n• Wetter und Flughafen-Wetter (letzter Stand)\n\nDanach funktioniert alles ohne Internet – online nur noch für „Abgleichen“ (Wiesen holen). Am besten im WLAN, die App kann dabei normal benutzt werden.',
     [], 'Speichern', () => einsatzRun(x.querySelector('#esDe').checked, x.querySelector('#esNew').checked, false, x.querySelector('#esFull').checked), x);
   x.querySelectorAll('input').forEach(c => c.onchange = info); info();
 };
@@ -2362,7 +2240,7 @@ window.onPrefetch = raw => {
   if ($('bPrefetch')) $('bPrefetch').onclick = r.finished ? startPrefetch : () => { A.prefetchCancel(); };
   pfChip(r.finished ? null : pct);
   if (r.finished) { toast(t, !!r.fail && !r.done, 7000); draw();
-    if (esPending && !r.cancelled) { setP('esBox4', JSON.stringify(esPending)); setP('esFields3', JSON.stringify(esPendingNames || S.files.filter(f => !f.dup && f.bounds).map(f => f.name))); }   // erledigt – nicht nochmal automatisch
+    if (esPending && !r.cancelled) { setP('esBox5', JSON.stringify(esPending)); setP('esFields3', JSON.stringify(esPendingNames || S.files.filter(f => !f.dup && f.bounds).map(f => f.name))); }   // erledigt – nicht nochmal automatisch
     esPendingNames = null;
     esPending = null; }
 };
@@ -5211,7 +5089,6 @@ setInterval(applyTheme, 60 * 1000);
 // ================= Start =================
 addEventListener('resize', resize);
 resize();
-mlInit();
 update();
 loadRegions();
 loadOsmLines();
