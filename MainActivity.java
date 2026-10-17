@@ -562,6 +562,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             }
         }
 
+        /** Gespeicherte Geozonen-Bilder (dipul) löschen – vor dem Aktualisieren auf Knopfdruck */
+        @JavascriptInterface
+        public void dipulClear() { deleteTree(new File(tileDir(), "dipul")); }
+
         /** Ordner anlegen (z. B. Zielordner beim Start, damit er in Pilot 2 beim Import schon da ist) */
         @JavascriptInterface
         public boolean ensureDir(String path) {
@@ -967,8 +971,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public void notamSync(boolean force) {
             new Thread(() -> {
                 try {
-                    JSONObject b = new JSONObject(prefs.getString("af_bbox", "{}"));
-                    if (b.has("n")) notamSyncImpl(b.getDouble("n"), b.getDouble("s"), b.getDouble("e"), b.getDouble("w"), force);
+                    notamSyncImpl(55.1, 47.2, 15.1, 5.8, force);   // immer ganz Deutschland, unabhängig von Feldern/Geozonen
                 } catch (Exception ignored) { }
                 js("window.onNotams && window.onNotams()");
             }).start();
@@ -1950,9 +1953,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             String lay = u.getPath().contains("_grau/") ? "bmg" : "bmf";
             return new String[]{lay + "/" + seg.get(n - 3) + "/" + seg.get(n - 1).replace(".png", "") + "/" + seg.get(n - 2) + ".png", "image/png"};
         }
-        if (host.equals("dipul.local") && n == 3) {   // Geozonen als Bild (dipul WMS), r = n (ohne) / r (mit Wohngrundstücken)
-            String r = "r".equals(u.getQueryParameter("r")) ? "r" : "n";
-            return new String[]{"dipul/" + r + "/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".png", "image/png"};
+        if (host.equals("dipul.local") && n == 3) {   // Geozonen als Bild (dipul WMS), je Zonengruppe g
+            String g = u.getQueryParameter("g");
+            if (g == null || !ZONE_GROUPS.containsKey(g)) return null;
+            return new String[]{"dipul/" + g + "/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".png", "image/png"};
         }
         if (host.equals("dop.local") && n == 3) return new String[]{"dop3/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2) + ".jpg", "image/jpeg"};
         if (host.equals("tile.openstreetmap.org") && n == 3) return new String[]{"osm/" + seg.get(0) + "/" + seg.get(1) + "/" + seg.get(2), "image/png"};
@@ -1968,14 +1972,14 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             File f = new File(tileDir(), km[0]);
             boolean have = f.isFile() && f.length() > 0;
             boolean on = online();
-            long fresh = km[0].startsWith("dipul/") ? 30L * DAY : TILE_FRESH;   // Geozonen ändern sich selten – monatlich neu
+            long fresh = km[0].startsWith("dipul/") ? Long.MAX_VALUE / 2 : TILE_FRESH;   // Geozonen: nur auf Knopfdruck neu (dipulClear)
             if (have && (!on || System.currentTimeMillis() - f.lastModified() < fresh)) return tileResp(f, km[1]);
             if (!on) return new WebResourceResponse(km[1], null, 404, "offline", null, new ByteArrayInputStream(new byte[0]));
             byte[] b = null;
             try {
                 if (km[0].startsWith("dipul/")) {
                     List<String> seg = u.getPathSegments();
-                    b = dipulTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), "r".equals(u.getQueryParameter("r")));
+                    b = dipulTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("g"));
                 } else if (km[0].startsWith("dop3/")) {
                     List<String> seg = u.getPathSegments();
                     b = dopTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("s"));
@@ -1993,14 +1997,22 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     /** Eine Kartenkachel (Web-Mercator) mit allen Geozonen-Ebenen vom dipul-Kartendienst, transparent */
-    private static byte[] dipulTile(int z, int x, int y, boolean resi) throws Exception {
+    private static final Map<String, String[]> ZONE_GROUPS = new HashMap<>();
+    static {
+        ZONE_GROUPS.put("luft", new String[]{"flughaefen", "flugplaetze", "kontrollzonen", "flugbeschraenkungsgebiete", "modellflugplaetze"});
+        ZONE_GROUPS.put("natur", new String[]{"nationalparks", "naturschutzgebiete", "ffh-gebiete", "vogelschutzgebiete"});
+        ZONE_GROUPS.put("verkehr", new String[]{"bundesautobahnen", "bundesstrassen", "bahnanlagen", "binnenwasserstrassen", "seewasserstrassen", "schifffahrtsanlagen"});
+        ZONE_GROUPS.put("energie", new String[]{"stromleitungen", "windkraftanlagen", "umspannwerke", "kraftwerke", "industrieanlagen", "labore"});
+        ZONE_GROUPS.put("sicher", new String[]{"justizvollzugsanstalten", "militaerische_anlagen", "behoerden", "diplomatische_vertretungen", "internationale_organisationen", "polizei", "sicherheitsbehoerden", "krankenhaeuser", "freibaeder"});
+        ZONE_GROUPS.put("wohn", new String[]{"wohngrundstuecke"});
+    }
+    private static byte[] dipulTile(int z, int x, int y, String group) throws Exception {
         double R = 20037508.342789244, sz = 2 * R / (1 << z);
         double minx = -R + x * sz, maxx = minx + sz, maxy = R - y * sz, miny = maxy - sz;
+        String[] gl = ZONE_GROUPS.get(group);
+        if (gl == null) return null;
         StringBuilder ls = new StringBuilder();
-        for (String l : GEO_LAYERS) {
-            if (!resi && l.equals("wohngrundstuecke")) continue;
-            ls.append(ls.length() > 0 ? "," : "").append("dipul:").append(l);
-        }
+        for (String l : gl) ls.append(ls.length() > 0 ? "," : "").append("dipul:").append(l);
         String url = DIPUL_WMS + "?service=WMS&version=1.1.1&request=GetMap&styles=&format=image/png&transparent=true&srs=EPSG:3857&width=256&height=256"
                 + "&bbox=" + String.format(Locale.ROOT, "%.3f,%.3f,%.3f,%.3f", minx, miny, maxx, maxy)
                 + "&layers=" + URLEncoder.encode(ls.toString(), "UTF-8");
@@ -2091,10 +2103,25 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             final long[] bytes = new long[1];
             try {
                 JSONObject p = new JSONObject(json);
-                JSONArray layers = p.getJSONArray("layers"), area = p.getJSONArray("area"), fields = p.optJSONArray("fields");
+                JSONArray layers = p.optJSONArray("layers"), area = p.optJSONArray("area"), fields = p.optJSONArray("fields");
+                if (layers == null) layers = new JSONArray();
                 int zMin = p.optInt("zMin", 8), zArea = p.optInt("zArea", 15), zMax = p.optInt("zMax", 18);
                 List<int[]> list = new ArrayList<>();
-                for (int z = zMin; z <= zMax; z++) {
+                JSONArray tiers = p.optJSONArray("tiers");   // [[zVon, zBis, [[w,s,e,n], …]], …] – z. B. Deutschland grob, Einsatzgebiet mittel, Wiesen fein
+                if (tiers != null) {
+                    for (int ti = 0; ti < tiers.length(); ti++) {
+                        JSONArray tr = tiers.getJSONArray(ti); JSONArray bx = tr.getJSONArray(2);
+                        for (int z = tr.getInt(0); z <= tr.getInt(1); z++) {
+                            java.util.Set<Long> seen = new java.util.HashSet<>();
+                            for (int i = 0; i < bx.length(); i++) {
+                                JSONArray b = bx.getJSONArray(i);
+                                int xa = lon2tile(b.getDouble(0), z), xb = lon2tile(b.getDouble(2), z), ya = lat2tile(b.getDouble(3), z), yb = lat2tile(b.getDouble(1), z);
+                                for (int x = xa; x <= xb; x++) for (int y = ya; y <= yb; y++) if (seen.add(((long) x << 32) | y)) list.add(new int[]{z, x, y});
+                            }
+                        }
+                    }
+                }
+                if (tiers == null && area != null) for (int z = zMin; z <= zMax; z++) {
                     java.util.Set<Long> seen = new java.util.HashSet<>();
                     List<double[]> boxes = new ArrayList<>();
                     if (z <= zArea) boxes.add(new double[]{area.getDouble(0), area.getDouble(1), area.getDouble(2), area.getDouble(3)});
@@ -2104,21 +2131,46 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         for (int x = xa; x <= xb; x++) for (int y = ya; y <= yb; y++) if (seen.add(((long) x << 32) | y)) list.add(new int[]{z, x, y});
                     }
                 }
-                cnt[3] = list.size() * layers.length();
+                // Mehrere Aufträge in einem Lauf: je Auftrag eigene Ebenen und Zoomstufen (Kartenhintergrund, Geozonen-Bilder)
+                JSONArray jobs = p.optJSONArray("jobs");
+                List<Object[]> work = new ArrayList<>();
+                if (jobs != null) {
+                    for (int ji = 0; ji < jobs.length(); ji++) {
+                        JSONObject jb = jobs.getJSONObject(ji); JSONArray jl = jb.getJSONArray("layers"), tr = jb.getJSONArray("tiers");
+                        List<int[]> tl = new ArrayList<>();
+                        for (int ti = 0; ti < tr.length(); ti++) {
+                            JSONArray t = tr.getJSONArray(ti); JSONArray bx = t.getJSONArray(2);
+                            for (int z = t.getInt(0); z <= t.getInt(1); z++) {
+                                java.util.Set<Long> seen = new java.util.HashSet<>();
+                                for (int i = 0; i < bx.length(); i++) {
+                                    JSONArray b = bx.getJSONArray(i);
+                                    int xa = lon2tile(b.getDouble(0), z), xb = lon2tile(b.getDouble(2), z), ya = lat2tile(b.getDouble(3), z), yb = lat2tile(b.getDouble(1), z);
+                                    for (int x = xa; x <= xb; x++) for (int y = ya; y <= yb; y++) if (seen.add(((long) x << 32) | y)) tl.add(new int[]{z, x, y});
+                                }
+                            }
+                        }
+                        for (int li = 0; li < jl.length(); li++) for (int[] t : tl) work.add(new Object[]{jl.getString(li), t});
+                    }
+                } else for (int li = 0; li < layers.length(); li++) for (int[] t : list) work.add(new Object[]{layers.getString(li), t});
+                cnt[3] = work.size();
                 java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(4);
                 final long[] lastEv = {0};
-                for (int li = 0; li < layers.length(); li++) {
-                    final String lay = layers.getString(li);
-                    for (int[] t : list) {
+                {
+                    for (Object[] w : work) {
+                        final String lay = (String) w[0]; final int[] t = (int[]) w[1];
                         ex.submit(() -> {
                             if (prefetchStop) return;
                             try {
-                                String key = lay.equals("dop") ? "dop3/" + t[0] + "/" + t[1] + "/" + t[2] + ".jpg" : lay + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png";
+                                boolean geo = lay.startsWith("geo:");
+                                String key = lay.equals("dop") ? "dop3/" + t[0] + "/" + t[1] + "/" + t[2] + ".jpg"
+                                        : geo ? "dipul/" + lay.substring(4) + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png"
+                                        : lay + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png";
                                 File f = new File(tileDir(), key);
                                 if (f.isFile() && f.length() > 0) { synchronized (cnt) { cnt[1]++; } }
                                 else {
                                     if (lay.equals("dop") && t[0] < 12) { synchronized (cnt) { cnt[1]++; } return; }   // Luftbild-Übersicht kommt von Esri (nur beim Ansehen)
-                                    byte[] b = lay.equals("dop") ? dopTile(t[0], t[1], t[2], "HE,RP")
+                                    byte[] b = geo ? dipulTile(t[0], t[1], t[2], lay.substring(4))
+                                            : lay.equals("dop") ? dopTile(t[0], t[1], t[2], "HE,RP")
                                             : httpBytes(BM + (lay.equals("bmg") ? "de_basemapde_web_raster_grau" : "de_basemapde_web_raster_farbe") + "/default/GLOBAL_WEBMERCATOR/" + t[0] + "/" + t[2] + "/" + t[1] + ".png");
                                     if (b != null && b.length > 0) { saveTile(f, b); synchronized (cnt) { cnt[0]++; bytes[0] += b.length; } }
                                     else synchronized (cnt) { cnt[2]++; }
@@ -2467,6 +2519,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private void notamSyncImpl(double n, double s, double e, double w, boolean force) {
         try {
             if (!force && System.currentTimeMillis() - prefs.getLong("notam_fetched", 0) < 3600000L && notamFile().isFile()) return;
+            // 1. Wahl: dipul-Dienst „affectedAreas“ (mit Aktivierungszeiten, Höhen, Kreisen); bei Fehler: WFS-Ebenen wie bisher
+            try {
+                JSONArray areas = dipulAffectedAreas();
+                if (areas != null) {
+                    JSONObject data = new JSONObject().put("areas", areas).put("src", "api");
+                    writeFileAtomic(notamFile(), data.toString());
+                    prefs.edit().putLong("notam_fetched", System.currentTimeMillis()).remove("notam_err").apply();
+                    return;
+                }
+            } catch (Exception apiErr) { /* weiter mit WFS */ }
             // Ganz Deutschland – temporäre Einschränkungen sind wenige, die App sortiert nach Entfernung zu den Feldern
             n = 55.1; s = 47.2; e = 15.1; w = 5.8;
             JSONObject data = new JSONObject();
@@ -2495,6 +2557,63 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         } catch (Exception ex) {
             prefs.edit().putString("notam_err", "Abruf fehlgeschlagen: " + ex.getMessage()).apply();
         }
+    }
+
+    // ---------- dipul: temporäre Beschränkungsgebiete über die offizielle Schnittstelle ----------
+    private String dipulToken = null; private long dipulTokenExp = 0;
+    private String dipulTokenGet(boolean renew) throws Exception {
+        if (!renew && dipulToken != null && System.currentTimeMillis() < dipulTokenExp - 60000) return dipulToken;
+        Exception last = null;
+        for (String realm : new String[]{"bmv", "bmdv"}) {
+            try {
+                HttpURLConnection c = (HttpURLConnection) new URL("https://uas-betrieb.dfs.de/api/token/v1/anonymous/" + realm + "/token").openConnection();
+                c.setConnectTimeout(10000); c.setReadTimeout(10000);
+                c.setRequestProperty("Accept", "application/json");
+                c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Android; Kitzrettung, nicht-kommerziell)");
+                if (c.getResponseCode() != 200) { c.disconnect(); continue; }
+                String body; try (InputStream in = c.getInputStream()) { body = readAll(in); }
+                c.disconnect();
+                JSONObject j = new JSONObject(body);
+                String tok = j.optString("token", j.optString("access_token", ""));
+                if (tok.isEmpty()) continue;
+                long exp = System.currentTimeMillis() + 10 * 60000;
+                Object ex = j.opt("expiration");
+                if (ex instanceof Number) { long v = ((Number) ex).longValue(); exp = v > 1e12 ? v : v > 1e9 ? v * 1000 : System.currentTimeMillis() + v * 1000; }
+                else if (ex instanceof String) try { java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ROOT); f.setTimeZone(java.util.TimeZone.getTimeZone("UTC")); exp = f.parse(((String) ex).substring(0, 19)).getTime(); } catch (Exception ignored) { }
+                dipulToken = tok; dipulTokenExp = exp;
+                return tok;
+            } catch (Exception e) { last = e; }
+        }
+        throw last != null ? last : new Exception("kein dipul-Token");
+    }
+
+    /** Alle temporären UAS-Beschränkungsgebiete (U_NFZ) in Deutschland: Kreis um die Mitte Deutschlands, 120 m AGL */
+    private JSONArray dipulAffectedAreas() throws Exception {
+        JSONObject q = new JSONObject().put("type", "Feature")
+                .put("properties", new JSONObject().put("subType", "Circle").put("radius", 560000)
+                        .put("altitude", new JSONObject().put("value", 120).put("altitudeReference", "AGL").put("unit", "m")))
+                .put("geometry", new JSONObject().put("type", "Point").put("coordinates", new JSONArray().put(10.4515).put(51.1657)));
+        byte[] body = q.toString().getBytes(StandardCharsets.UTF_8);
+        for (int attempt = 0; attempt < 2; attempt++) {
+            String tok = dipulTokenGet(attempt > 0);
+            HttpURLConnection c = (HttpURLConnection) new URL("https://dipul-service.dfs.de/api/geoapi/dipul/v4/affectedAreas?typeCode=U_NFZ&locale=de").openConnection();
+            c.setConnectTimeout(15000); c.setReadTimeout(30000);
+            c.setRequestMethod("POST"); c.setDoOutput(true);
+            c.setRequestProperty("Authorization", "Bearer " + tok);
+            c.setRequestProperty("Content-Type", "application/json");
+            c.setRequestProperty("Accept", "application/json");
+            c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Android; Kitzrettung, nicht-kommerziell)");
+            try (OutputStream o = c.getOutputStream()) { o.write(body); }
+            int code = c.getResponseCode();
+            if (code == 401 && attempt == 0) { c.disconnect(); continue; }   // Token abgelaufen: einmal erneuern
+            if (code != 200) { c.disconnect(); throw new Exception("dipul-Dienst antwortet mit HTTP " + code); }
+            String txt; try (InputStream in = c.getInputStream()) { txt = readAll(in); }
+            c.disconnect();
+            JSONObject j = new JSONObject(txt);
+            JSONArray a = j.optJSONArray("affectedAreas");
+            return a != null ? a : new JSONArray();
+        }
+        return null;
     }
 
     private static double distM(double lat1, double lon1, double lat2, double lon2) {
@@ -2604,7 +2723,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 covers = ob.has("n") && ob.getDouble("n") >= n && ob.getDouble("s") <= s && ob.getDouble("e") >= e && ob.getDouble("w") <= w;
             } catch (Exception ignored) { }
             boolean fresh = System.currentTimeMillis() - geoFetched() < DAY;
-            if (!force && fresh && covers) {
+            if (!force && covers) {   // nur auf Knopfdruck neu – oder wenn neue Felder außerhalb des gespeicherten Gebiets liegen
                 geoEvent(new JSONObject().put("type", "done").put("ok", 0).put("fail", 0).put("fetched", geoFetched()).put("tiles", geoTileCount()));
                 return;
             }
