@@ -232,29 +232,6 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return new String(bos.toByteArray(), StandardCharsets.UTF_8);
     }
 
-    private static void scanDir(File d, File root, int depth, StringBuilder sb) {
-        if (depth > 5 || sb.length() > 20000) return;
-        File[] fs = d.listFiles();
-        String rel = d.getAbsolutePath().replace(root.getAbsolutePath() + "/", "");
-        if (fs == null) { sb.append(rel).append("/  (nicht lesbar)\n"); return; }
-        int kmz = 0, files = 0; String sample = null;
-        List<File> dirs = new ArrayList<>();
-        for (File f : fs) {
-            if (f.isDirectory()) dirs.add(f);
-            else { files++; String n = f.getName().toLowerCase(Locale.ROOT); if (n.endsWith(".kmz") || n.endsWith(".kml") || n.endsWith(".wpml") || n.endsWith(".db")) { kmz++; if (sample == null) sample = f.getName(); } }
-        }
-        boolean w = d.canWrite();
-        if (kmz > 0 || depth < 3 || dirs.size() < 40)
-            sb.append(rel).append("/  ").append(dirs.size()).append(" Ordner, ").append(files).append(" Dateien")
-              .append(kmz > 0 ? ", " + kmz + " KMZ/DB z. B. " + sample : "").append(w ? " · schreibbar" : " · nur lesen").append("\n");
-        int shown = 0;
-        for (File x : dirs) { if (shown++ >= 12) { sb.append(rel).append("/…  (").append(dirs.size() - 12).append(" weitere Ordner)\n"); break; } scanDir(x, root, depth + 1, sb); }
-    }
-
-    private static String libKey(String n) {
-        return n.toLowerCase(Locale.ROOT).replaceAll("(?i)\\.kmz$", "").replaceAll("(?i)[_-]?[\\d.,]+\\s*ha_?\\d+\\s*wp$", "").replaceAll("[^a-z0-9äöüß]", "");
-    }
-
     /** Datei mit gleichem Namen bis auf Leerzeichen/Bindestriche/Groß-Klein im selben Ordner */
     private static File findSimilar(File f) {
         File dir = f.getParentFile();
@@ -585,84 +562,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             }
         }
 
+        /** Ordner anlegen (z. B. Zielordner beim Start, damit er in Pilot 2 beim Import schon da ist) */
+        @JavascriptInterface
+        public boolean ensureDir(String path) {
+            try { File d = new File(path); return d.isDirectory() || d.mkdirs(); } catch (Exception e) { return false; }
+        }
+
         /** Kopiert/verschiebt Dateien in den Zielordner */
-        /** Missions-Bibliothek von Pilot 2 suchen: Ordner mit Unterordnern aus 32 Hex-Zeichen, die je eine KMZ enthalten */
-        @JavascriptInterface
-        public String pilotLibFind() {
-            JSONArray out = new JSONArray();
-            try {
-                File root = Environment.getExternalStorageDirectory();
-                java.util.ArrayDeque<Object[]> st = new java.util.ArrayDeque<>();
-                File ad = new File(root, "Android/data");
-                File[] pk = ad.listFiles();
-                if (pk != null) for (File p : pk) if (p.getName().toLowerCase(Locale.ROOT).contains("dji")) st.push(new Object[]{p, 0});
-                File dj = new File(root, "DJI"); if (dj.isDirectory()) st.push(new Object[]{dj, 0});
-                int visited = 0;
-                while (!st.isEmpty() && visited < 4000) {
-                    Object[] e = st.pop(); File d = (File) e[0]; int depth = (Integer) e[1]; visited++;
-                    File[] fs = d.listFiles(); if (fs == null) continue;
-                    int missions = 0;
-                    for (File x : fs) {
-                        if (!x.isDirectory()) continue;
-                        if (x.getName().matches("[0-9a-f]{32}")) {
-                            File[] in = x.listFiles();
-                            if (in != null) for (File y : in) if (y.isFile() && y.getName().toLowerCase(Locale.ROOT).endsWith(".kmz")) { missions++; break; }
-                        } else if (depth < 6) st.push(new Object[]{x, depth + 1});
-                    }
-                    if (missions >= 1) out.put(new JSONObject().put("path", d.getAbsolutePath()).put("missions", missions).put("writable", d.canWrite()));
-                }
-            } catch (Exception ignored) { }
-            return out.toString();
-        }
-
-        /** Felder direkt in die Pilot-2-Bibliothek legen (Test): gleichnamige Mission ersetzen, sonst neue anlegen */
-        @JavascriptInterface
-        public String pilotLibPut(String pathsJson, String libPath, String drone) {
-            JSONObject res = new JSONObject();
-            int replaced = 0, created = 0;
-            JSONArray errors = new JSONArray();
-            try {
-                File lib = new File(libPath);
-                if (!lib.isDirectory()) return err("Bibliothek nicht gefunden: " + libPath).toString();
-                // vorhandene Missionen: Name (vereinfacht) -> Ordner
-                Map<String, File> byName = new HashMap<>();
-                File[] ms = lib.listFiles();
-                if (ms != null) for (File m : ms) {
-                    if (!m.isDirectory() || !m.getName().matches("[0-9a-f]{32}")) continue;
-                    File[] in = m.listFiles(); if (in == null) continue;
-                    for (File y : in) if (y.isFile() && y.getName().toLowerCase(Locale.ROOT).endsWith(".kmz")) byName.put(libKey(y.getName()), m);
-                }
-                JSONArray paths = new JSONArray(pathsJson);
-                for (int i = 0; i < paths.length(); i++) {
-                    File src = new File(paths.getString(i));
-                    try {
-                        if (!src.isFile()) { File alt = findSimilar(src); if (alt == null) throw new Exception("nicht mehr im Quellordner"); src = alt; }
-                        boolean conv = drone != null && !drone.isEmpty() && needsConvert(src, drone);
-                        byte[] data = rewriteKmz(src, conv ? drone : null);
-                        String name = (conv ? swapDroneInName(src.getName(), drone) : src.getName()).replaceAll("(?i)\\.kmz$", "")
-                                .replaceAll("(?i)_[\\d.,]+\\s*ha(_\\d+\\s*WP)?$", "").replaceAll("[-_. ]+$", "").replaceAll("[\\\\/:*?\"<>|]", "_");
-                        File dir = byName.get(libKey(name + ".kmz"));
-                        if (dir != null) {
-                            // ersetzen: alte KMZ und von Pilot 2 entpackte Zwischenstände löschen, damit neu eingelesen wird
-                            File[] in = dir.listFiles();
-                            if (in != null) for (File y : in) { if (y.isDirectory()) deleteTree(y); else if (y.getName().toLowerCase(Locale.ROOT).endsWith(".kmz")) y.delete(); }
-                            replaced++;
-                        } else {
-                            dir = new File(lib, java.util.UUID.randomUUID().toString().replace("-", ""));
-                            if (!dir.mkdirs()) throw new Exception("Ordner kann nicht angelegt werden (kein Schreibrecht?)");
-                            created++;
-                        }
-                        File target = new File(dir, name + ".kmz");
-                        try (OutputStream o = new FileOutputStream(target)) { o.write(data); }
-                        File cache = new File(dir, "cache"); cache.mkdirs();
-                        try (OutputStream o = new FileOutputStream(new File(cache, java.util.UUID.randomUUID().toString().replace("-", "_") + ".kmz"))) { o.write(data); }
-                    } catch (Exception e) { errors.put(src.getName() + ": " + e.getMessage()); }
-                }
-                res.put("ok", errors.length() == 0).put("replaced", replaced).put("created", created).put("errors", errors);
-            } catch (Exception e) { return err(e.getMessage()).toString(); }
-            return res.toString();
-        }
-
         @JavascriptInterface
         public String transfer(String pathsJson, String dstPath, boolean move, boolean clear, String drone) {
             JSONObject res = new JSONObject();
@@ -934,23 +840,6 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public String tileCacheInfo() { return String.valueOf(tileCacheBytes()); }
 
-        /** Diagnose: Wo speichern DJI-Apps (Pilot 2, Cloud-Sync) ihre Missionen, und darf diese App dort schreiben? Nur Namen/Anzahlen. */
-        @JavascriptInterface
-        public String pilotScan() {
-            StringBuilder sb = new StringBuilder();
-            try {
-                File root = Environment.getExternalStorageDirectory();
-                sb.append("Android ").append(Build.VERSION.RELEASE).append(" (API ").append(Build.VERSION.SDK_INT).append(")\n");
-                List<File> starts = new ArrayList<>();
-                File ad = new File(root, "Android/data");
-                File[] pk = ad.listFiles();
-                sb.append("Android/data lesbar: ").append(pk != null ? "ja (" + pk.length + " Ordner)" : "nein").append("\n");
-                if (pk != null) for (File p : pk) if (p.getName().toLowerCase(Locale.ROOT).contains("dji")) starts.add(p);
-                for (String extra : new String[]{"DJI", "DJI/Mission", "DJI/dji.pilot2", "DJI/dji.go.v5"}) { File f = new File(root, extra); if (f.isDirectory()) starts.add(f); }
-                for (File st : starts) scanDir(st, root, 0, sb);
-            } catch (Exception e) { sb.append("Fehler: ").append(e.getMessage()); }
-            return sb.toString();
-        }
 
         /** Einsatzgebiet vorab laden: {layers:["bmg","bmf","dop"], area:[w,s,e,n], fields:[[w,s,e,n],…], zMin, zArea, zMax} */
         @JavascriptInterface

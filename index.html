@@ -198,16 +198,42 @@
   .pickfacet span{font-weight:700}
   .chipbtn{height:36px;padding:0 12px;border-radius:18px;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:14px}
   .chipbtn.on{background:var(--acc);border-color:var(--acc);color:#fff}
-  .wx4{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
-  .wx4 .tile{border-radius:12px;padding:10px 12px;background:var(--card2);border-left:6px solid #13a538;min-width:0}
-  .wx4 .tile.o{border-left-color:#e8a200;background:var(--o-bg)}
-  .wx4 .tile.r{border-left-color:#b3131b;background:var(--r-bg)}
-  .wx4 .tile .k{font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
-  .wx4 .tile .v{font-size:22px;font-weight:800;margin:2px 0}
-  .wx4 .tile .d{font-size:13px;color:var(--muted)}
-  .wx4h{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
-  .wx4h div{border-radius:10px;background:var(--card2);padding:6px 4px;text-align:center;font-size:13px;line-height:1.35;border-top:5px solid #13a538}
-  .wx4h div.o{border-top-color:#e8a200}.wx4h div.r{border-top-color:#b3131b}
+  .wxban{display:flex;align-items:center;gap:12px;border-radius:14px;padding:12px 14px;color:#fff;font-weight:800;font-size:20px;line-height:1.2}
+  .wxban.l0{background:#13a538}.wxban.l1{background:#d98a00}.wxban.l2{background:#b3131b}
+  .wxban svg{width:34px;height:34px;flex:none;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  .wxban small{display:block;font-size:13px;font-weight:600;opacity:.92;margin-top:2px}
+  .wxbig{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .wxc{border-radius:14px;padding:12px;background:var(--card2);border:3px solid #13a538;display:flex;gap:12px;align-items:center;min-width:0}
+  .wxc.o{border-color:#e8a200;background:var(--o-bg)}.wxc.r{border-color:#b3131b;background:var(--r-bg)}
+  .wxc .ic{width:64px;height:64px;flex:none}
+  .wxc .k{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .wxc .v{font-size:26px;font-weight:900;line-height:1.1;margin:2px 0}
+  .wxc .v small{font-size:15px;font-weight:700}
+  .wxc .d{font-size:13.5px;color:var(--muted);line-height:1.35}
+  .wxtl{display:grid;grid-template-columns:62px repeat(var(--n),1fr);gap:4px 5px;margin-top:12px;align-items:end;font-size:13px}
+  .wxtl .lb{font-weight:800;color:var(--muted);font-size:12px;align-self:center;text-transform:uppercase}
+  .wxtl .hh{text-align:center;font-weight:800;font-size:14px}
+  .wxtl .bar{height:46px;border-radius:8px;background:var(--card2);position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+  .wxtl .bar i{position:absolute;left:0;right:0;bottom:0;border-radius:6px 6px 0 0}
+  .wxtl .bar b{position:relative;font-size:13px;padding-bottom:3px;text-shadow:0 0 3px var(--card)}
+  .wxtl .rain i{background:#2f7fe0}.wxtl .rain.o i{background:#e8a200}.wxtl .rain.r i{background:#b3131b}
+  .wxtl .wind i{background:#13a538}.wxtl .wind.o i{background:#e8a200}.wxtl .wind.r i{background:#b3131b}
+  .wxtl .wind .g{position:absolute;left:3px;right:3px;height:0;border-top:3px dashed var(--txt);opacity:.6}
+  .wxtl .wd{text-align:center;font-size:13px;color:var(--muted);line-height:1.15}
+  .wxtl .wd .arr{display:inline-block;font-size:20px;font-weight:900;color:var(--txt)}
+  .wxtl .gu{text-align:center;font-size:14px;font-weight:800;border-radius:8px;padding:3px 0;background:var(--card2)}
+  .wxtl .gu.o{background:var(--o-bg)}.wxtl .gu.r{background:var(--r-bg)}
+  .wxsh{margin-top:10px;border-radius:10px;padding:8px 12px;background:var(--card2);border-left:6px solid #13a538;font-size:14px}
+  .wxsh.o{border-left-color:#e8a200;background:var(--o-bg)}.wxsh.r{border-left-color:#b3131b;background:var(--r-bg)}
+  .wxdays{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
+  .wxday{border-radius:12px;padding:9px 10px;background:var(--card2);border-top:6px solid #13a538;font-size:13.5px;line-height:1.4}
+  .wxday.o{border-top-color:#e8a200;background:var(--o-bg)}.wxday.r{border-top-color:#b3131b;background:var(--r-bg)}
+  .wxday .dd{font-weight:900;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+  .wxday .dd svg{width:28px;height:28px}
+  .wxday .vd{font-weight:800;font-size:13px;margin:-2px 0 4px}
+  .wxday .ln{display:flex;justify-content:space-between;gap:6px}.wxday .ln b{font-weight:800}
+  .wxday .sub{color:var(--muted);font-size:12px;margin-top:3px;border-top:1px solid var(--line);padding-top:3px}
+  @media (max-width:560px){.wxbig{grid-template-columns:1fr}}
   .wx4h b{font-size:15px}
   @media (max-width:560px){.wx4{grid-template-columns:1fr}.wx4h{grid-template-columns:repeat(3,1fr)}}
   .sunsvg{width:100%;height:140px;display:block;border-radius:10px;stroke:none}
@@ -277,7 +303,7 @@
   <header><img class="logo" data-logo alt=""><h2 class="brand"><span><b>Mission Kitzrettung</b> · Einstellungen</span></h2><button class="b-sec" id="setBack">Zurück zur Karte</button></header>
   <div class="body">
     <div class="set"><div class="l"><div class="t">Quellordner (KMZ aus UAV Editor)</div><div class="v" id="vSrc"></div></div><button class="b-sec" data-pick="src">Ordner wählen</button></div>
-    <div class="set"><div class="l"><div class="t">Zielordner (Download)</div><div class="v" id="vDst"></div></div><button class="b-sec" data-pick="dst">Ordner wählen</button></div>
+    <div class="set"><div class="l"><div class="t">Zielordner für Pilot 2</div><div class="v" id="vDst"></div></div><button class="b-sec" data-pick="dst">Ordner wählen</button></div>
     <div class="set"><div class="l"><div class="t">Verschieben statt kopieren</div><div class="v">Aus = Original bleibt im Quellordner</div></div><label class="sw"><input type="checkbox" id="sMove"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Zielordner vor Download leeren</div><div class="v">Löscht vorher alle .kmz im Zielordner</div></div><label class="sw"><input type="checkbox" id="sClear"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div><div class="v">Auch über ⓘ → „Felder“ schaltbar</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
@@ -307,8 +333,6 @@
     <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
     <div class="set"><div class="l"><div class="t">Kartentyp</div><div class="v" id="vTiles">Angesehene Kacheln werden auf der RC gespeichert und sind danach offline verfügbar.</div></div><button class="b-sec" id="bTilesClear">Leeren</button><div class="seg"><button data-layer="grey">Grau</button><button data-layer="osm">Karte</button><button data-layer="sat">Luftbild</button></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzgebiet offline speichern</div><div class="v" id="vPrefetch">Lädt Grau, Karte und Luftbild für das Gebiet aller Felder (+ 3 km) einmal komplett auf die RC – danach ruckelfrei und ohne Internet.</div></div><button class="b-ok" id="bPrefetch">Herunterladen</button></div>
-    <div class="set"><div class="l"><div class="t">Pilot-2-Bibliothek (Test)</div><div class="v" id="vPilotLib">Felder zusätzlich direkt in die Missions-Bibliothek von Pilot 2 legen – gleichnamige Missionen werden ersetzt, neue angelegt. Erst mit einem unwichtigen Feld testen!</div></div><button class="b-sec" id="bPilotLib">Suchen</button><label class="sw"><input type="checkbox" id="sPilotLib"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Pilot-2-Speicher prüfen</div><div class="v">Zeigt, wo DJI Pilot 2 und der Cloud-Sync Missionen ablegen und ob diese App dort schreiben darf (nur Ordnernamen und Anzahlen)</div></div><button class="b-sec" id="bPilotScan">Prüfen</button></div>
     <div class="set"><div class="l"><div class="t">Wetter</div><div class="v">Tagesgang, Sonnenlauf und Einsatzwetter – auch per Tipp auf die Windanzeige</div></div><button class="b-sec" id="bWxSet">Wetter öffnen</button></div>
     <div class="set"><div class="l"><div class="t">Dateizugriff</div><div class="v" id="vAcc"></div></div><button class="b-sec" id="bAcc">Berechtigung</button></div>
     <div class="set" style="flex-direction:column;align-items:stretch">
@@ -379,10 +403,14 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { pilotLib: '', pilotLibOn: '0', perf: '0', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/DJI/Mission/Download', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { perf: '0', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: 'M3T', src: ROOT + '/KMZ Mission', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
+// Zielordner: eigener Ordner direkt im internen Speicher – in Pilot 2 beim „Route importieren“ sofort zu finden.
+// Wer noch den alten Standard (DJI/Mission/Download) hat, wird einmal umgestellt; selbst gewählte Ordner bleiben.
+if (P.dst === ROOT + '/DJI/Mission/Download' && A.getPref('dstMigrated', '') !== '1') { setP('dst', DEF.dst); setP('dstMigrated', 1); }
+try { if (A.ensureDir) A.ensureDir(P.dst); } catch (e) { }   // Ordner gleich anlegen, damit er in Pilot 2 schon sichtbar ist
 
 // ---------- Meldungen ----------
 let tt;
@@ -1602,15 +1630,12 @@ const DRONE_INFO = {
   M4T: 'Wird beim Übertragen auf Matrice 4T umgerechnet: Flughöhe +20 m (50 → 70 m), Bahnen bleiben gleich.'
 };
 
+
 function doTransfer(paths, drone) {
   const move = P.move === '1';
   busy(drone ? 'Rechne um und übertrage…' : 'Übertrage…');
   setTimeout(async () => {
-    // zusätzlich direkt in die Pilot-2-Bibliothek (Test), vor dem Verschieben – danach gäbe es die Quelle nicht mehr
-    let lib = null;
-    if (P.pilotLibOn === '1' && P.pilotLib && A.pilotLibPut) { try { lib = JSON.parse(A.pilotLibPut(JSON.stringify(paths), P.pilotLib, drone || '')); } catch (e) { lib = { errors: [String(e)] }; } }
     const r = JSON.parse(A.transfer(JSON.stringify(paths), P.dst, move, P.clear === '1', drone || ''));
-    if (lib) setTimeout(() => toast(lib.error ? 'Pilot-2-Bibliothek: ' + lib.error : `Pilot-2-Bibliothek: ${lib.replaced || 0} ersetzt, ${lib.created || 0} neu${lib.errors && lib.errors.length ? ' · Fehler: ' + lib.errors.join(', ') : ''} – Pilot 2 neu starten und prüfen`, !!(lib.error || (lib.errors && lib.errors.length)), 8000), 6500);
     busy('');
     if (r.error) return toast('Fehler: ' + r.error, true);
     S.files.forEach(f => f.selected = false);
@@ -1819,18 +1844,22 @@ function pickDlg(title, text, items, okWord, cb) {
     const vals = [...new Set(items.flatMap(x => (x.facets && x.facets[k]) || []))].sort((a, b) => String(b).localeCompare(String(a), 'de', { numeric: true }));
     if (vals.length < 2) return;
     fsel[k] = new Set();
+    // Abgleich: primär die Drohne aus den Einstellungen vorfiltern (Chip lässt sich abwählen)
+    if (k === 'Drohne' && vals.includes(P.drone)) { fsel[k].add(P.drone); if (vals.includes('?')) fsel[k].add('?'); }
     const row = document.createElement('div'); row.className = 'pickfacet';
     row.innerHTML = `<span>${esc(k)}</span>`;
     vals.forEach(v => {
       const c = document.createElement('button'); c.className = 'chipbtn';
       const n = items.filter(x => ((x.facets && x.facets[k]) || []).includes(v)).length;
-      c.textContent = `${v} (${n})`;
+      c.textContent = `${v} (${n})`; if (fsel[k].has(v)) c.classList.add('on');
       c.onclick = () => { fsel[k].has(v) ? fsel[k].delete(v) : fsel[k].add(v); c.classList.toggle('on', fsel[k].has(v)); refilter(); };
       row.appendChild(c);
     });
     frow.appendChild(row);
   });
   if (frow.children.length) bar.appendChild(frow);
+  // Vorfilter wirkt auch auf die Auswahl: was ausgeblendet ist, ist nicht angehakt
+  if (Object.values(fsel).some(st => st.size)) items.forEach(x => { if (!shown(x)) x.on = false; });
   box.appendChild(bar);
   items.forEach((x, i) => {
     const l = document.createElement('label'); l.className = 'pick';
@@ -1848,7 +1877,7 @@ function pickDlg(title, text, items, okWord, cb) {
     };
     box.appendChild(l);
   });
-  upd();
+  refilter(); upd();
   dlgCb = () => cb(items.map((x, i) => x.on ? i : -1).filter(i => i >= 0));
 }
 $('dNo').onclick = () => { $('dlg').classList.remove('open'); if (dlgOnCancel) { const c = dlgOnCancel; dlgOnCancel = null; c(); } };
@@ -2070,7 +2099,6 @@ function fillRules() {
   $('sWxStart').value = P.wxStart;
   document.querySelectorAll('[data-wxmax]').forEach(b => b.classList.toggle('on', b.dataset.wxmax === P.wxMaxH));
   $('sPerf').checked = P.perf === '1';
-  pilotLibText();
   const rm = P.rose === '0' ? 'off' : P.compass === '0' ? 'north' : 'dev';
   document.querySelectorAll('[data-rose]').forEach(b => b.classList.toggle('on', b.dataset.rose === rm));
   $('vNotam').textContent = (S.notams.length ? `${S.notams.filter(n => n.active).length} aktiv, ${S.notams.filter(n => !n.active).length} geplant` : 'keine im Gebiet') + (S.notamFetched ? ` · Stand ${fmtDate(S.notamFetched)}` : ' · noch nicht geladen');
@@ -2629,23 +2657,6 @@ function showAirfieldList() {
   $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => showAirfield(S.airfields.find(a => a.id === el.dataset.af)));
 }
 document.querySelectorAll('[data-rose]').forEach(b => b.onclick = () => { const v = b.dataset.rose; setP('rose', v === 'off' ? 0 : 1); if (v !== 'off') setP('compass', v === 'dev' ? 1 : 0); fillSettings(); windWidget(); draw(); });
-function pilotLibText() {
-  $('vPilotLib').textContent = P.pilotLib ? `Bibliothek: ${P.pilotLib} · ${P.pilotLibOn === '1' ? 'aktiv – beim Übertragen wird zusätzlich dorthin geschrieben' : 'aus'} · erst mit einem unwichtigen Feld testen` : 'Noch nicht gefunden – „Suchen“ tippen. Felder werden dann zusätzlich direkt in die Missions-Bibliothek von Pilot 2 gelegt (gleichnamige ersetzt, neue angelegt).';
-  $('sPilotLib').checked = P.pilotLibOn === '1'; $('sPilotLib').disabled = !P.pilotLib;
-}
-$('bPilotLib').onclick = () => {
-  let r = []; try { r = JSON.parse(A.pilotLibFind ? A.pilotLibFind() : '[]'); } catch (e) { }
-  if (!r.length) { toast('Keine Pilot-2-Bibliothek gefunden (Ordner mit Missions-Unterordnern). Ggf. fehlt der Zugriff auf Android/data.', true, 7000); return; }
-  r.sort((a, b) => b.missions - a.missions);
-  const best = r[0];
-  setP('pilotLib', best.path); pilotLibText();
-  toast(`Gefunden: ${best.path}\n${best.missions} Missionen · ${best.writable ? 'schreibbar' : 'NICHT schreibbar (Android sperrt den Ordner)'}`, !best.writable, 7000);
-};
-$('sPilotLib').onchange = e => { setP('pilotLibOn', e.target.checked ? 1 : 0); pilotLibText(); };
-$('bPilotScan').onclick = () => {
-  const r = A.pilotScan ? A.pilotScan() : 'Nicht verfügbar (alte App-Version)';
-  openInfoPage('Pilot-2-Speicher', `<div class="zone"><div class="meta">Bitte ein Foto davon schicken – daraus lässt sich ablesen, ob Missionen direkt in die Pilot-2-Bibliothek gelegt werden können.</div><pre style="white-space:pre-wrap;font-size:12px;line-height:1.4">${esc(r)}</pre></div>`);
-};
 $('sPerf').onchange = e => { setP('perf', e.target.checked ? 1 : 0); draw(); };
 document.querySelectorAll('[data-wxmax]').forEach(b => b.onclick = () => { setP('wxMaxH', b.dataset.wxmax); fillSettings(); });
 $('sWxStart').onchange = e => { if (e.target.value) setP('wxStart', e.target.value); };
@@ -2696,6 +2707,22 @@ function dipulCall(lat, lon) {
 }
 const byHeight = (arr, h, idx) => { arr = arr || []; const v = arr.find(x => x && x.height && +x.height.value === h); return v || (idx != null && arr.length === 1 && h === idx ? arr[0] : null); };
 /** Kurzfassung (labels/w) für Einsatz-Tabellen, Ampel und Windanzeige */
+/** Taupunkt: Quellwert, sonst aus Temperatur und Feuchte (Magnus-Formel) */
+function dewAt(d, i) {
+  if (d.dew && d.dew[i] != null) return d.dew[i];
+  const t = (d.tempH && d.tempH[2] || [])[i], rh = (d.hum || [])[i];
+  if (t == null || rh == null || rh <= 0) return null;
+  const g = Math.log(rh / 100) + 17.62 * t / (243.12 + t);
+  return 243.12 * g / (17.62 - g);
+}
+/** Sichtweite (m) zur Zeit t: Quelle selbst, sonst ICON zur gleichen Stunde */
+function visAt(d, i, ico, t) {
+  if (d.vis && d.vis[i] != null) return d.vis[i];
+  if (ico && ico.vis) { const j = ico.time.indexOf(t); if (j >= 0 && ico.vis[j] != null) return ico.vis[j]; }
+  return null;
+}
+const VIS = [3000, 1000];   // Sicht unter 3 km Hinweis, unter 1 km kritisch (Sichtflug, Nebel, Wärmebild)
+const visTxt = v => v == null ? '—' : v >= 10000 ? '> 10 km' : v >= 1000 ? f1(v / 1000) + ' km' : Math.round(v / 50) * 50 + ' m';
 function wxLegacy(n) {
   const hs = Object.keys(n.wind).map(Number).sort((a, b) => a - b).filter(h => n.wind[h].some(v => v != null)).slice(0, 4);
   n.labels = hs.map(h => h + ' m'); n.w = hs.map(h => n.wind[h]);
@@ -2732,7 +2759,8 @@ function normIcon(j) {
     wind: { 10: h.wind_speed_10m, 80: h.wind_speed_80m, 120: h.wind_speed_120m, 180: h.wind_speed_180m || [] },
     tempH: { 2: h.temperature_2m, 80: h.temperature_80m || [], 120: h.temperature_120m || [], 180: h.temperature_180m || [] },
     gust: h.wind_gusts_10m, dir: h.wind_direction_10m, rain: h.precipitation, snow: h.snowfall || [], cloud: h.cloud_cover,
-    hum: h.relative_humidity_2m || [], humH: 2, pres: h.pressure_msl || [], presType: 'MSL' };
+    hum: h.relative_humidity_2m || [], humH: 2, pres: h.pressure_msl || [], presType: 'MSL',
+    dew: h.dew_point_2m || [], vis: h.visibility || [] };   // Sichtweite in m (DWD liefert sie laut Open-Meteo nur noch bis Ende Nov. 2026)
   return wxLegacy(n);
 }
 async function wxSource(kind, lat, lon, force) {
@@ -2748,7 +2776,7 @@ async function wxSource(kind, lat, lon, force) {
     let n;
     if (kind === 'dipul') n = normDipul(await dipulCall(lat, lon));
     else {
-      const url = `https://api.open-meteo.com/v1/dwd-icon?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&hourly=temperature_2m,temperature_80m,temperature_120m,temperature_180m,relative_humidity_2m,precipitation,snowfall,pressure_msl,wind_speed_10m,wind_speed_80m,wind_speed_120m,wind_speed_180m,wind_gusts_10m,wind_direction_10m,cloud_cover&wind_speed_unit=ms&timezone=Europe%2FBerlin&forecast_days=7&past_days=1`;
+      const url = `https://api.open-meteo.com/v1/dwd-icon?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&hourly=temperature_2m,temperature_80m,temperature_120m,temperature_180m,relative_humidity_2m,dew_point_2m,visibility,precipitation,snowfall,pressure_msl,wind_speed_10m,wind_speed_80m,wind_speed_120m,wind_speed_180m,wind_gusts_10m,wind_direction_10m,cloud_cover&wind_speed_unit=ms&timezone=Europe%2FBerlin&forecast_days=7&past_days=1`;
       const r = await fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status);
       n = normIcon(await r.json());
     }
@@ -2773,13 +2801,13 @@ async function wxHours(lat, lon, force) {
   let dip = null, ico = null;
   try { dip = await wxSource('dipul', lat, lon, force); } catch (e) { }
   const now = hourFloor(Date.now()), end = now + 47 * 3600000;
-  if (!dip || !dip.time.length || dip.time[dip.time.length - 1] < end) try { ico = await wxSource('icon', lat, lon, force); } catch (e) { }
+  try { ico = await wxSource('icon', lat, lon, force); } catch (e) { }   // immer: Sichtweite/Taupunkt und alles nach dipul
   const hours = [];
   for (let t = now; t <= end; t += 3600000) {
     let d = null, i = -1;
     if (dip) { i = dip.time.indexOf(t); if (i >= 0) d = dip; }
     if (!d && ico) { i = ico.time.indexOf(t); if (i >= 0) d = ico; }
-    if (d) hours.push({ t, d, i });
+    if (d) hours.push({ t, d, i, ico });
   }
   return { hours, dip, ico };
 }
@@ -2957,6 +2985,8 @@ function wxTable(hours, kpc) {
     return { t: v == null ? '—' : w != null && w < 0.5 ? 'still' : `<span class="arr" style="transform:rotate(${(v + 180) % 360}deg)">↑</span>${DIR8[Math.round(v / 45) % 8]} ${Math.round(v)}°` }; });
   add('Wolken', '%', x => { const v = x.d.cloud[x.i]; return { t: v == null ? '—' : Math.round(v) + ' %' }; });
   add('Regen', 'mm/h', x => { const v = x.d.rain[x.i], sn = x.d.snow[x.i]; return { t: f1(v) + (sn ? ' ❄' : ''), c: sn ? 'r' : evalCell('rain', v) }; });
+  add('Sicht', '', x => { const v = visAt(x.d, x.i, x.ico, x.t); return { t: visTxt(v), c: v == null ? '' : v < VIS[1] ? 'r' : v < VIS[0] ? 'o' : '' }; });
+  add('Taupunkt', '°C', x => { const v = dewAt(x.d, x.i), t = (x.d.tempH[2] || [])[x.i]; return { t: v == null ? '—' : f1(v) + '°', c: v != null && t != null && t - v <= 1 ? 'o' : '' }; });
   add('Feuchte', '%', x => { const v = x.d.hum[x.i], t = (x.d.tempH[2] || [])[x.i]; return { t: v == null ? '—' : Math.round(v) + ' %' + (x.d.humH === 50 ? '' : ''), c: evalCell('hum', v, t) }; });
   add('Luftdruck', 'hPa', x => { const v = x.d.pres[x.i]; return { t: v == null ? '—' : `${Math.round(v)}<small>${x.d.presType === 'QNH' ? ' QNH' : ' MSL'}</small>` }; });
   add('Kp-Index', '', x => { const k = kpc ? kpAt(kpc, x.t) : null; return { t: k ? f1(k.kp) : '—', c: k ? evalCell('kp', k.kp) : '' }; });
@@ -2984,7 +3014,9 @@ function wxNext4(hours, kpc, loc) {
     const g = d.gust[i], rain = d.rain[i] || 0, snow = d.snow[i] || 0;
     const shear = w10 != null ? Math.max(wH != null ? wH - w10 : 0, w100 != null ? w100 - w10 : 0) : null;
     const lRain = snow > 0 ? 2 : lv(rain, WX_THR.rain), lWind = Math.max(lv(g, WX_THR.gust), lv(wH, WX_THR.windH), lv(w10, WX_THR.wind10)), lShear = lv(shear, SHEAR);
-    return { x, w10, wH, w100, g, rain, snow, shear, dir: d.dir[i], lRain, lWind, lShear, lv: Math.max(lRain, lWind, lShear) };
+    const vis = visAt(d, i, x.ico, x.t), dew = dewAt(d, i), t2 = (d.tempH[2] || [])[i];
+    const lVis = vis == null ? 0 : vis < VIS[1] ? 2 : vis < VIS[0] ? 1 : 0;
+    return { x, w10, wH, w100, g, rain, snow, shear, dir: d.dir[i], vis, dew, t2, lRain, lWind, lShear, lVis, lv: Math.max(lRain, lWind, lShear, lVis) };
   });
   const mx = (k) => per.reduce((a, p) => p[k] != null && (a == null || p[k] > a) ? p[k] : a, null);
   const first = (k) => per.find(p => p[k] > 0);
@@ -3001,24 +3033,103 @@ function wxNext4(hours, kpc, loc) {
   const lS = Math.max(...per.map(p => p.lShear)), smax = mx('shear'), fs = first('lShear');
   const shearTxt = smax == null ? '—' : smax < 1 ? 'keiner' : '+' + f1(smax) + ' m/s';
   const shearD = smax == null ? 'keine Höhenwinde' : lS ? `Windzunahme 10 m → ${H}/100 m${fs ? ' ab ' + hm(fs.x.t) : ''} · ruppig, Drohne kann versetzt werden` : `Wind nimmt mit der Höhe kaum zu (10 m → ${H}/100 m)`;
-  const lvl = Math.max(lR, lW, lS);
-  const why = [lR && (per.some(p => p.snow > 0) ? 'Schnee' : 'Regen'), lW && (lW === 2 ? 'Sturm/Böen' : 'Böen'), lS && 'Scherwind'].filter(Boolean);
+  const lV = Math.max(...per.map(p => p.lVis)), vmin = per.reduce((a, p) => p.vis != null && (a == null || p.vis < a) ? p.vis : a, null);
+  const lvl = Math.max(lR, lW, lS, lV);
+  const why = [lR && (per.some(p => p.snow > 0) ? 'Schnee' : 'Regen'), lW && (lW === 2 ? 'Sturm/Böen' : 'Böen'), lV && (lV === 2 ? 'Nebel/Sicht' : 'Sicht'), lS && 'Scherwind'].filter(Boolean);
   const kp = kpc ? kpAt(kpc, now) : null;
-  const head = lvl === 0 ? 'Nächste 4 h: gutes Flugwetter' : lvl === 1 ? 'Nächste 4 h: Vorsicht – ' + why.join(', ') : 'Nächste 4 h: kritisch – ' + why.join(', ');
   const p0 = per[0];
-  const cols = per.map(p => `<div class="${C[p.lv]}"><b>${String(new Date(p.x.t).getHours()).padStart(2, '0')}:00</b><br>${p.dir != null && p.w10 >= 0.5 ? `<span class="arr" style="transform:rotate(${(p.dir + 180) % 360}deg)">↑</span>` : ''}${f1(p.w10)} / ${f1(p.wH)}<br><small>Böen ${f1(p.g)}</small><br>${p.snow > 0 ? '❄' : p.rain >= 0.1 ? '💧 ' + f1(p.rain) : '–'}</div>`).join('');
-  return `<div class="zone wxhero" style="display:block">
-    <div style="display:flex;gap:14px;align-items:center"><div class="amp big" style="background:${AMP[lvl]}"></div><div style="flex:1;min-width:0">
-      <div class="t1">${head}</div>
-      <div class="meta" style="margin:0">Jetzt: Wind 10 m ${f1(p0.w10)} m/s${p0.dir != null && p0.w10 >= 0.5 ? ' aus ' + dirTxt(p0.dir) : ''} · ${H} m: ${f1(p0.wH)} m/s${kp ? ` · Kp ${f1(kp.kp)}` : ''} · ${loc.what}</div></div></div>
-    <div class="wx4">
-      <div class="tile ${C[lR]}"><div class="k">💧 Regen</div><div class="v">${rainTxt}</div><div class="d">${rainD}</div></div>
-      <div class="tile ${C[lW]}"><div class="k">🌬 Sturm / Böen</div><div class="v">${windTxt}${gmax != null ? ' <small style="font-size:14px">m/s</small>' : ''}</div><div class="d">${windD}</div></div>
-      <div class="tile ${C[lS]}"><div class="k">↗ Scherwind</div><div class="v">${shearTxt}</div><div class="d">${shearD}</div></div>
+  // Banner: Ampel in einem Satz
+  const banIco = lvl === 0 ? '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>';
+  const ban = lvl === 0 ? 'Flugwetter OK' : lvl === 1 ? 'Vorsicht: ' + why.join(', ') : 'Kritisch: ' + why.join(', ');
+  // Regen-Karte: Ja/Nein auf einen Blick
+  const raining = p0.rain >= WX_THR.rain[0] || p0.snow > 0, anyRain = per.some(p => p.lRain > 0);
+  const lastR = [...per].reverse().find(p => p.lRain > 0);
+  const rainHead = per.some(p => p.snow > 0) ? 'Schnee' : raining ? 'Regnet' : anyRain ? 'Regen ab ' + hm(fr.x.t) : 'Trocken';
+  const rainSub = !anyRain ? 'kein Regen in den nächsten 4 h' : raining ? `jetzt ${f1(p0.rain)} mm/h${lastR && lastR !== p0 ? ' · bis ca. ' + hm(lastR.x.t + 3600000) : ''}` : `bis ${f1(mx('rain'))} mm/h · zusammen ${f1(sumR)} mm`;
+  const rainIco = anyRain
+    ? `<svg class="ic" viewBox="0 0 64 64"><path d="M18 36h28a10 10 0 0 0 1-19.9A15 15 0 0 0 18.5 14 11 11 0 0 0 18 36z" fill="#8a96a3"/><g stroke="${AMP[lR]}" stroke-width="4" stroke-linecap="round"><path d="M22 44l-3 8M33 44l-3 8M44 44l-3 8"/></g></svg>`
+    : `<svg class="ic" viewBox="0 0 64 64"><circle cx="32" cy="32" r="12" fill="#f5b400"/><g stroke="#f5b400" stroke-width="4" stroke-linecap="round"><path d="M32 6v7M32 51v7M6 32h7M51 32h7M13.6 13.6l5 5M45.4 45.4l5 5M13.6 50.4l5-5M45.4 18.6l5-5"/></g></svg>`;
+  // Wind-Karte: Pfeil zeigt wohin der Wind weht, Zahl = Wind in Einsatzhöhe
+  const wRot = p0.dir != null ? (p0.dir + 180) % 360 : 0, calm = p0.w10 == null || p0.w10 < 0.5;
+  const windIco = `<svg class="ic" viewBox="0 0 64 64"><circle cx="32" cy="32" r="29" fill="none" stroke="var(--line)" stroke-width="3"/>
+    <text x="32" y="12" text-anchor="middle" font-size="9" font-weight="800" fill="var(--muted)">N</text>
+    ${calm ? '<circle cx="32" cy="32" r="5" fill="#13a538"/>' : `<g transform="rotate(${wRot} 32 32)"><path d="M32 12l9 14h-6v24h-6V26h-6z" fill="${AMP[lW]}"/></g>`}</svg>`;
+  const windHead = whmax != null ? `${f1(p0.wH)} <small>m/s in ${H} m</small>` : '—';
+  const windSub = `Böen bis ${gmax != null ? f1(gmax) : '—'} m/s · max. ${whmax != null ? f1(whmax) : '—'} m/s in ${H} m${calm ? ' · windstill' : ' · aus ' + dirTxt(p0.dir)}`;
+  // Zeitleiste: je Stunde Regenbalken und Windbalken (Strich = Böe)
+  const rMax = Math.max(1, mx('rain') || 0), wMax = Math.max(WX_THR.gust[1] + 2, gmax || 0, whmax || 0);
+  const pct = (v, m) => Math.max(0, Math.min(100, (v || 0) / m * 100));
+  let tl = `<div class="lb"></div>` + per.map(p => `<div class="hh">${String(new Date(p.x.t).getHours()).padStart(2, '0')}</div>`).join('');
+  tl += `<div class="lb">Regen<br><small style="text-transform:none">mm/h</small></div>` + per.map(p => `<div class="bar rain ${C[p.lRain]}"><i style="height:${p.snow > 0 ? 100 : pct(p.rain, rMax)}%"></i><b>${p.snow > 0 ? '❄' : p.rain >= 0.05 ? f1(p.rain) : ''}</b></div>`).join('');
+  tl += `<div class="lb">Wind<br><small style="text-transform:none">${H} m</small></div>` + per.map(p => `<div class="bar wind ${C[Math.max(lv(p.wH, WX_THR.windH), lv(p.w10, WX_THR.wind10))]}"><i style="height:${pct(p.wH, wMax)}%"></i>${p.g != null ? `<span class="g" style="bottom:${pct(p.g, wMax)}%"></span>` : ''}<b>${f1(p.wH)}</b></div>`).join('');
+  tl += `<div class="lb">Böen</div>` + per.map(p => `<div class="gu ${C[lv(p.g, WX_THR.gust)]}">${f1(p.g)}</div>`).join('');
+  tl += `<div class="lb">Sicht</div>` + per.map(p => `<div class="gu ${C[p.lVis]}">${visTxt(p.vis)}</div>`).join('');
+  tl += `<div class="lb">Taupkt.</div>` + per.map(p => `<div class="gu ${p.dew != null && p.t2 != null && p.t2 - p.dew <= 1 ? 'o' : ''}" style="font-weight:600">${p.dew == null ? '—' : f1(p.dew) + '°'}</div>`).join('');
+  tl += `<div class="lb">aus</div>` + per.map(p => `<div class="wd">${p.dir != null && p.w10 >= 0.5 ? `<span class="arr" style="transform:rotate(${(p.dir + 180) % 360}deg)">↑</span> ${DIR8[Math.round(p.dir / 45) % 8]}` : 'still'}</div>`).join('');
+  return `<div class="zone" style="display:block">
+    <div class="wxban l${lvl}">${banIco}<div>${ban}<small>Nächste 4 h · ${loc.what}${kp ? ` · Kp ${f1(kp.kp)}` : ''}</small></div></div>
+    <div class="wxbig">
+      <div class="wxc ${C[lR]}">${rainIco}<div style="min-width:0"><div class="k">Regen</div><div class="v">${rainHead}</div><div class="d">${rainSub}</div></div></div>
+      <div class="wxc ${C[lW]}">${windIco}<div style="min-width:0"><div class="k">Wind</div><div class="v">${windHead}</div><div class="d">${windSub}</div></div></div>
     </div>
-    <div class="wx4h">${cols}</div>
-    <div class="meta" style="margin:8px 0 0">Stundenkacheln: Wind 10 m / ${H} m (m/s), Böen, Regen mm/h · Grenzen: Böen ab ${WX_THR.gust[0]}/${WX_THR.gust[1]} m/s, Wind in Höhe ab ${WX_THR.windH[0]}/${WX_THR.windH[1]} m/s, Regen ab ${f1(WX_THR.rain[0])}/${f1(WX_THR.rain[1])} mm/h, Scherwind ab +${SHEAR[0]}/+${SHEAR[1]} m/s · keine Flugfreigabe</div>
+    <div class="wxtl" style="--n:${per.length}">${tl}</div>
+    <div class="wxsh ${C[lV]}"><b>👁 Sicht: ${vmin == null ? 'keine Angabe' : 'min. ' + visTxt(vmin)}</b>${p0.dew != null ? ` · Taupunkt jetzt ${f1(p0.dew)}°${p0.t2 != null ? ` bei ${f1(p0.t2)}° Luft (Abstand ${f1(p0.t2 - p0.dew)} K${p0.t2 - p0.dew <= 1 ? ' – Nebel/Tau wahrscheinlich, Linse kann beschlagen' : p0.t2 - p0.dew <= 2.5 ? ' – Nebel möglich' : ''})` : ''}` : ''}</div>
+    <div class="wxsh ${C[lS]}"><b>↗ Scherwind: ${shearTxt}</b> · ${shearD}</div>
+    <div class="meta" style="margin:8px 0 0">Balken: Wind in ${H} m, gestrichelt = Böe · Grenzen: Böen ${WX_THR.gust[0]}/${WX_THR.gust[1]} m/s, Wind in Höhe ${WX_THR.windH[0]}/${WX_THR.windH[1]} m/s, Regen ${f1(WX_THR.rain[0])}/${f1(WX_THR.rain[1])} mm/h, Sicht unter 3/1 km · keine Flugfreigabe</div>
   </div>`;
+}
+/** Tage (DWD ICON): Gesamtbewertung – Regen über den ganzen Tag (Regen nachts oder nachmittags = Bauer mäht nicht), Wind/Sicht im Flugfenster Startzeit–10 Uhr */
+const WXD_END = 10;   // Uhr: bis dahin wird jeder Tag betrachtet
+function wxDays(ico, loc, detailEnd) {   // detailEnd: letzte Stunde der 48-h-Detailansicht – Tage bis dahin keine Kachel
+  if (!ico || !ico.time || !ico.time.length) return '';
+  const H = flightHeight() || 50, [sh, sm] = String(P.wxStart || '04:00').split(':').map(Number);
+  const lv = (v, t) => v == null ? 0 : v >= t[1] ? 2 : v >= t[0] ? 1 : 0, C = ['', 'o', 'r'];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const hh = (h, m) => String(h).padStart(2, '0') + ':' + String(m || 0).padStart(2, '0');
+  let out = '';
+  for (let k = new Date().getHours() < WXD_END ? 0 : 1; k <= 7; k++) {
+    const d0 = new Date(today); d0.setDate(d0.getDate() + k);
+    const ws = new Date(d0); ws.setHours(sh || 0, sm || 0);
+    const we = new Date(d0); we.setHours(WXD_END, 0, 0, 0);
+    const pick = (a, b) => ico.time.map((t, i) => t >= a && t < b ? i : -1).filter(i => i >= 0);
+    const de = new Date(d0); de.setDate(de.getDate() + 1);
+    const all = pick(d0.getTime(), de.getTime()), fly = pick(ws.getTime(), we.getTime());
+    if (!fly.length || (detailEnd && we.getTime() <= detailEnd)) continue;
+    // Regen ganzer Tag, nach Tageszeit
+    const PART = [['nachts', 0, 6], ['morgens', 6, 10], ['mittags', 10, 14], ['nachmittags', 14, 18], ['abends', 18, 24]];
+    const pr = PART.map(() => 0); let rain = 0, rmax = 0, snow = 0;
+    all.forEach(i => { const r = ico.rain[i] || 0, h = new Date(ico.time[i]).getHours(); rain += r; rmax = Math.max(rmax, r); snow += ico.snow[i] || 0;
+      pr[PART.findIndex(q => h >= q[1] && h < q[2])] += r; });
+    const when = PART.filter((q, j) => pr[j] >= 0.1).map(q => q[0]);
+    let g = null, wh = null, vmin = null;
+    fly.forEach(i => {
+      const gi = ico.gust[i], wi = windAtH(ico, i, H).v, vi = (ico.vis || [])[i];
+      if (gi != null) g = Math.max(g ?? 0, gi); if (wi != null) wh = Math.max(wh ?? 0, wi); if (vi != null) vmin = Math.min(vmin ?? 1e9, vi); });
+    const i0 = fly[0], dew = dewAt(ico, i0), t0 = (ico.tempH[2] || [])[i0], spread = dew != null && t0 != null ? t0 - dew : null;
+    const lR = snow > 0 || rain >= 1 ? 2 : rain >= 0.2 ? 1 : 0;   // nennenswerter Regen am Tag → keine Mahd
+    const lW = Math.max(lv(g, WX_THR.gust), lv(wh, WX_THR.windH));
+    const lV = vmin == null ? 0 : vmin < VIS[1] ? 2 : vmin < VIS[0] ? 1 : 0;
+    const l = Math.max(lR, lW, lV);
+    const verdict = lR === 2 ? 'Regen – Mahd unwahrscheinlich' : lR ? 'etwas Regen – Mahd fraglich' : l === 2 ? 'trocken, aber Flug kritisch' : l ? 'trocken · Flug mit Vorsicht' : 'trocken · gutes Flugwetter';
+    const ico3 = rain >= 0.1 || snow > 0
+      ? `<svg viewBox="0 0 64 64"><path d="M18 36h28a10 10 0 0 0 1-19.9A15 15 0 0 0 18.5 14 11 11 0 0 0 18 36z" fill="#8a96a3"/><g stroke="${lR ? AMP[lR] : '#2f7fe0'}" stroke-width="4" stroke-linecap="round"><path d="M22 44l-3 8M33 44l-3 8M44 44l-3 8"/></g></svg>`
+      : lV ? `<svg viewBox="0 0 64 64"><g stroke="#8a96a3" stroke-width="5" stroke-linecap="round"><path d="M10 22h44M6 32h52M10 42h44M16 52h32"/></g></svg>`
+      : `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="12" fill="#f5b400"/><g stroke="#f5b400" stroke-width="4" stroke-linecap="round"><path d="M32 8v6M32 50v6M8 32h6M50 32h6M15 15l4 4M45 45l4 4M15 49l4-4M45 19l4-4"/></g></svg>`;
+    const rainLn = snow > 0 ? 'Schnee' : rain < 0.05 ? 'trocken' : f1(rain) + ' mm';
+    const note = when.length ? 'Regen ' + when.join(', ') : '';
+    out += `<div class="wxday ${C[l]}"><div class="dd">${k === 0 ? 'Heute' : d0.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}${ico3}</div>
+      <div class="vd">${verdict}</div>
+      <div class="ln"><span>Regen Tag</span><b>${rainLn}</b></div>
+      <div class="ln"><span>Wind ${H} m</span><b>${f1(wh)}</b></div>
+      <div class="ln"><span>Böen</span><b>${f1(g)}</b></div>
+      <div class="ln"><span>Sicht min.</span><b>${visTxt(vmin)}</b></div>
+      <div class="ln"><span>Taupunkt ${hh(sh, sm)}</span><b>${dew == null ? '—' : f1(dew) + '°'}</b></div>
+      <div class="sub">${note || (spread != null ? `Luft ${f1(t0)}° · Abstand ${f1(spread)} K${spread <= 1 ? ' · Nebel/Tau' : spread <= 2.5 ? ' · Nebel möglich' : ''}` : '&nbsp;')}</div></div>`;
+  }
+  if (!out) return '';
+  return `<div class="zone" style="display:block"><h4>Weitere Tage · Gesamtbewertung</h4>
+    <div class="wxdays">${out}</div>
+    <div class="meta" style="margin:8px 0 0">Regen zählt über den ganzen Tag (nachts oder nachmittags nass = keine Mahd; ab 0,2 mm fraglich, ab 1 mm unwahrscheinlich), Wind/Böen/Sicht im Flugfenster ${hh(sh, sm)}–${WXD_END}:00 · Taupunkt zur Startzeit, Abstand zur Lufttemperatur ≤ 1 K = Nebel/Tau wahrscheinlich · DWD ICON (ICON-D2 → ICON-EU → ICON global, je weiter voraus desto gröber), Sichtweite liefert der DWD laut Open-Meteo nur noch bis Ende Nov. 2026 · ${ico.offline ? 'offline gespeichert' : 'Stand ' + fmtDate(ico.t)}</div></div>`;
 }
 async function showWeather(force) {
   const loc = wxLoc();
@@ -3036,7 +3147,8 @@ async function showWeather(force) {
     html += `
       <div class="zone"><h4>☀ Sonnenlauf</h4><div id="sunBox"></div><div class="meta" id="sunTxt" style="margin-top:6px"></div></div>
       <div class="zone" style="padding:8px"><h4 style="margin:4px 6px 8px">Tagesgang <span class="meta" style="font-weight:400;margin:0">· nach links/rechts wischen – Bezug: linke Spalte</span></h4>${wxTable(hours, kpc)}
-        <div class="meta" style="margin:8px 6px 0">~ = geschätzt (Temperatur über Standardgradient −0,65 °C/100 m bzw. zwischen Quellhöhen interpoliert) · — = nicht verfügbar · Luftdruck: QNH (dipul) bzw. MSL (ICON, auf Meereshöhe reduziert) · Farben: Hinweis/kritisch nach App-Schwellen, keine Flugfreigabe · Grenze Mavic 3T/Matrice 4T: 12 m/s</div></div>`;
+        <div class="meta" style="margin:8px 6px 0">~ = geschätzt (Temperatur über Standardgradient −0,65 °C/100 m bzw. zwischen Quellhöhen interpoliert) · — = nicht verfügbar · Luftdruck: QNH (dipul) bzw. MSL (ICON, auf Meereshöhe reduziert) · Farben: Hinweis/kritisch nach App-Schwellen, keine Flugfreigabe · Grenze Mavic 3T/Matrice 4T: 12 m/s</div></div>
+      ${await (async () => { try { return wxDays(r.ico || await wxSource('icon', loc.lat, loc.lon, force), loc, hours.length ? hours[hours.length - 1].t : 0); } catch (e) { return ''; } })()}`;
   } catch (e) {
     html += `<div class="zone"><h4>Keine Wetterdaten</h4><div class="meta">${esc(e.message)}. Mit Internet wird die Vorhersage für das Gebiet deiner Felder gespeichert und ist dann offline verfügbar.</div></div>`;
   }
@@ -3060,7 +3172,7 @@ async function showWeather(force) {
     }
   }
   if (kpc) html += `<div class="meta" style="margin-top:4px">Kp-Index: ${KP_HINT} Grün &lt; 3 · Gelb 3–5 · Orange 5–6 · Rot ≥ 6 · NOAA SWPC, Stand ${fmtDate(kpc.t)}${kpc.offline ? ' (offline)' : ''}</div>`;
-  html += '<div class="meta" style="margin-top:6px">Wetter: DFS dipul Weather Service (DWD ICON-D2) für 24 h, danach DWD ICON über Open-Meteo.com (CC BY 4.0) · für offline gespeichert, online stündlich aktualisiert · Sonnenstand lokal berechnet (Gelände/Gebäude nicht berücksichtigt)</div>';
+  html += '<div class="meta" style="margin-top:6px">Wetter: DFS dipul Weather Service (DWD ICON-D2) für 24 h, danach und für die nächsten Tage DWD ICON über Open-Meteo.com (CC BY 4.0) · für offline gespeichert, online stündlich aktualisiert · Sonnenstand lokal berechnet (Gelände/Gebäude nicht berücksichtigt)</div>';
   openInfoPage('Wetter', html, CLOUD_ICON);
   if ($('wxReload')) $('wxReload').onclick = () => showWeather(true);
   const sc = $('wxs');
