@@ -94,6 +94,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         prefs = getSharedPreferences("settings", Context.MODE_PRIVATE);
         dopCleanup();   // einmalig: Luftbilder mit grauem Fleck entfernen
+        if (!prefs.getBoolean("mig_vec1", false)) {   // einmalig: alte Bildkacheln der Grundkarte löschen – die Vektorkarte ersetzt sie (spart GB)
+            new Thread(() -> { for (String d : new String[]{"bmg", "bmf", "osm"}) deleteTree(new File(tileDir(), d)); prefs.edit().putBoolean("mig_vec1", true).apply(); }).start();
+        }
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         web = new WebView(this);
@@ -675,6 +678,22 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 try { prefs.edit().putString("uave_pw", encrypt(password)).apply(); }
                 catch (Exception e) { prefs.edit().remove("uave_pw").apply(); }
             }
+        }
+
+        /** Zugang sofort prüfen (Anmeldung beim UAV Editor). Ergebnis über window.onUaveTest({ok, error}) */
+        @JavascriptInterface
+        public void uaveTest() {
+            new Thread(() -> {
+                JSONObject r = new JSONObject();
+                try {
+                    if (!online()) throw new Exception("offline – Prüfung, sobald Internet da ist");
+                    uaveToken = null; uaveLogin();
+                    r.put("ok", true);
+                } catch (Exception e) {
+                    try { r.put("ok", false).put("offline", !online()).put("error", e.getMessage() != null ? e.getMessage() : "unbekannter Fehler"); } catch (Exception ignored) { }
+                }
+                js("window.onUaveTest && window.onUaveTest(" + JSONObject.quote(r.toString()) + ")");
+            }).start();
         }
 
         @JavascriptInterface
@@ -2044,6 +2063,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     // Karte/Grau: basemap.de (BKG, CC BY 4.0, keine Zugriffsbeschränkung) – Vorab-Download erlaubt.
     // Luftbild: amtliche Orthophotos DOP20 Hessen (frei nutzbar) und Rheinland-Pfalz (dl-de/by-2-0), als Kacheln zusammengesetzt.
     // Außerhalb HE/RP: Esri World Imagery nur beim Ansehen (kein Vorab-Download – Nutzungsbedingungen).
+    private static final String BMV_TILES = "/gdz_basemapde_vektor/tiles/v2/bm_web_de_3857/";
     private static final long TILE_FRESH = 365L * 24 * 3600 * 1000, TILE_MAX_BYTES = 12L * 1024 * 1024 * 1024;
     private File tileDir() { return new File(getFilesDir(), "tiles"); }
     private static final String BM = "https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/";
@@ -2059,6 +2079,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (host.equals("sgx.geodatenzentrum.de") && n >= 5 && u.getPath().contains("/wmts_basemapde/")) {   // .../{layer}/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png
             String lay = u.getPath().contains("_grau/") ? "bmg" : "bmf";
             return new String[]{lay + "/" + seg.get(n - 3) + "/" + seg.get(n - 1).replace(".png", "") + "/" + seg.get(n - 2) + ".png", "image/png"};
+        }
+        if (host.equals("sgx.geodatenzentrum.de") && u.getPath() != null && u.getPath().startsWith("/gdz_basemapde_vektor/")) {   // Vektorkarte: Kacheln, Stil, Symbole, Schriften
+            String pth = u.getPath(), mime = pth.endsWith(".pbf") ? "application/x-protobuf" : pth.endsWith(".json") ? "application/json" : pth.endsWith(".png") ? "image/png" : "application/octet-stream";
+            return new String[]{"bmv" + pth.replaceAll("[^A-Za-z0-9/._,+-]", "_"), mime};
         }
         if (host.equals("dipul.local") && n == 3) {   // Geozonen als Bild (dipul WMS), je Zonengruppe g
             String g = u.getQueryParameter("g");
@@ -2084,21 +2108,22 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (km == null) return null;
             File f = new File(tileDir(), km[0]);
             boolean have = f.isFile() && f.length() > 0;
+            if (!have) viewReqAt = System.currentTimeMillis();   // Ansicht braucht Netz: Vorab-Download kurz pausieren
             boolean on = online();
-            long fresh = km[0].startsWith("dipul/") ? Long.MAX_VALUE / 2 : TILE_FRESH;   // Geozonen: nur auf Knopfdruck neu (dipulClear)
+            long fresh = km[0].startsWith("dipul/") ? Long.MAX_VALUE / 2 : km[0].startsWith("bmv/") && km[0].endsWith(".json") ? 7L * 24 * 3600 * 1000 : TILE_FRESH;   // Geozonen: nur auf Knopfdruck neu (dipulClear)
             if (have && (!on || System.currentTimeMillis() - f.lastModified() < fresh)) return tileResp(f, km[1]);
             if (!on && km[0].startsWith("dipul/c/")) {   // offline: aus gespeicherten Einzelbildern zusammensetzen
                 List<String> sg = u.getPathSegments();
                 byte[] cb = dipulCombined(Integer.parseInt(sg.get(0)), Integer.parseInt(sg.get(1)), Integer.parseInt(sg.get(2)), u.getQueryParameter("g").split(","), false, f);
-                if (cb != null) return new WebResourceResponse(km[1], null, new ByteArrayInputStream(cb));
+                if (cb != null) return wr(km[1], new ByteArrayInputStream(cb));
             }
-            if (!on) return new WebResourceResponse(km[1], null, 404, "offline", null, new ByteArrayInputStream(new byte[0]));
+            if (!on) return new WebResourceResponse(km[1], null, 404, "offline", CORS, new ByteArrayInputStream(new byte[0]));
             byte[] b = null;
             try {
                 if (km[0].startsWith("dipul/c/")) {
                     List<String> seg = u.getPathSegments();
                     byte[] cb = dipulCombined(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("g").split(","), on, f);
-                    if (cb != null) return new WebResourceResponse(km[1], null, new ByteArrayInputStream(cb));
+                    if (cb != null) return wr(km[1], new ByteArrayInputStream(cb));
                 } else if (km[0].startsWith("dipul/")) {
                     List<String> seg = u.getPathSegments();
                     b = dipulTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("g"));
@@ -2106,14 +2131,15 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     List<String> seg = u.getPathSegments();
                     DOP_PARTIAL.set(false);
                     b = dopTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("s"));
-                    if (b != null && DOP_PARTIAL.get()) return new WebResourceResponse("image/jpeg", null, new ByteArrayInputStream(b));   // unvollständig: zeigen, nicht speichern
+                    if (b != null && DOP_PARTIAL.get()) return wr("image/jpeg", new ByteArrayInputStream(b));   // unvollständig: zeigen, nicht speichern
                     if (b == null) {   // außerhalb HE/RP: Esri nur zum Ansehen
                         byte[] e = httpBytes("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + seg.get(0) + "/" + seg.get(2) + "/" + seg.get(1));
-                        if (e != null) return new WebResourceResponse("image/jpeg", null, new ByteArrayInputStream(e));
+                        if (e != null) return wr("image/jpeg", new ByteArrayInputStream(e));
                     }
-                } else b = httpBytes(u.toString());
+                } else if (km[0].startsWith("bmv/")) b = httpRaw(u.toString());
+                else b = httpBytes(u.toString());
             } catch (Exception netErr) { /* Netz weg mitten im Laden */ }
-            if (b != null && b.length > 0) { saveTile(f, b); return new WebResourceResponse(km[1], null, new ByteArrayInputStream(b)); }
+            if (b != null && b.length > 0) { saveTile(f, b); return wr(km[1], new ByteArrayInputStream(b)); }
             return have ? tileResp(f, km[1]) : null;
         } catch (Exception e) {
             return null;
@@ -2183,6 +2209,18 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     private static byte[] httpBytes(String url) throws Exception { return httpBytes(url, 10000, 30000); }
+    /** Beliebige Datei (Vektorkachel, JSON) – ohne Bild-Prüfung */
+    private static byte[] httpRaw(String url) throws Exception {
+        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        try {
+            c.setConnectTimeout(10000); c.setReadTimeout(30000);
+            c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Android; Kitzrettung Limburg e.V., nicht-kommerziell)");
+            int code = c.getResponseCode();
+            if (code == 204) return new byte[0];
+            if (code != 200) return null;
+            try (InputStream in = c.getInputStream()) { return readBytes(in); }
+        } finally { c.disconnect(); }
+    }
     private static byte[] httpBytes(String url, int conn, int read) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         try {
@@ -2207,7 +2245,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         double R = 20037508.342789244, size = 2 * R / (1 << z);
         double x0 = -R + x * size, y1 = R - y * size, x1 = x0 + size, y0 = y1 - size;
         String bbox = String.format(Locale.ROOT, "%.3f,%.3f,%.3f,%.3f", x0, y0, x1, y1);
-        if (states == null || states.isEmpty()) states = "HE,RP";
+        if (states == null || states.isEmpty() || states.equals("auto")) states = "HE,RP";
         boolean he = states.contains("HE"), rp = states.contains("RP");
         boolean both = he && rp;
         java.util.concurrent.ExecutorService dp = DOP_PREFETCH.get() ? DOP_PF_POOL : DOP_POOL;
@@ -2278,7 +2316,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 }
             }
             prefs.edit().putBoolean("dop_clean1", true).apply();
-            if (del > 0) { prefs.edit().remove("esBox3").apply(); js("window.onDopCleaned && window.onDopCleaned(" + del + ")"); }
+            if (del > 0) { prefs.edit().remove("esBox4").apply(); js("window.onDopCleaned && window.onDopCleaned(" + del + ")"); }
         }).start();
     }
 
@@ -2295,6 +2333,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     // ---------- Vorab-Download ----------
     private volatile boolean prefetchStop = false, prefetchRun = false;
+    private volatile long viewReqAt = 0;
 
     private void prefetchImpl(String json) {
         if (prefetchRun) return;
@@ -2361,19 +2400,26 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         final String lay = (String) w[0]; final int[] t = (int[]) w[1];
                         ex.submit(() -> {
                             if (prefetchStop) return;
+                            // Vorrang für die Karte, die gerade angesehen wird: solange sie Kacheln lädt, wartet der Hintergrund-Download
+                            for (int wt = 0; wt < 50 && !prefetchStop && System.currentTimeMillis() - viewReqAt < 2500; wt++) try { Thread.sleep(200); } catch (InterruptedException ie) { return; }
                             try {
                                 boolean geo = lay.startsWith("geo:");
+                                boolean vec = lay.equals("bmv");   // Vektorkarte basemap.de (z = Kachelstufe 512 px, max. 15)
                                 String key = lay.equals("dop") ? "dop3/" + t[0] + "/" + t[1] + "/" + t[2] + ".jpg"
                                         : geo ? "dipul/" + lay.substring(4) + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png"
+                                        : vec ? "bmv" + BMV_TILES + t[0] + "/" + t[1] + "/" + t[2] + ".pbf"
                                         : lay + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png";
                                 File f = new File(tileDir(), key);
                                 if (f.isFile() && f.length() > 0) { synchronized (cnt) { cnt[1]++; } }
                                 else {
                                     if (lay.equals("dop") && t[0] < 12) { synchronized (cnt) { cnt[1]++; } return; }   // Luftbild-Übersicht kommt von Esri (nur beim Ansehen)
-                                    byte[] b = geo ? dipulTile(t[0], t[1], t[2], lay.substring(4))
+                                    if (vec && t[0] > 15) { synchronized (cnt) { cnt[1]++; } return; }
+                                    byte[] b = vec ? httpRaw("https://sgx.geodatenzentrum.de" + BMV_TILES + t[0] + "/" + t[1] + "/" + t[2] + ".pbf")
+                                            : geo ? dipulTile(t[0], t[1], t[2], lay.substring(4))
                                             : lay.equals("dop") ? dopFull(t[0], t[1], t[2])
                                             : httpBytes(BM + (lay.equals("bmg") ? "de_basemapde_web_raster_grau" : "de_basemapde_web_raster_farbe") + "/default/GLOBAL_WEBMERCATOR/" + t[0] + "/" + t[2] + "/" + t[1] + ".png");
-                                    if (b != null && b.length > 0) { saveTile(f, b); synchronized (cnt) { cnt[0]++; bytes[0] += b.length; } }
+                                    if (vec && b != null && b.length == 0) { synchronized (cnt) { cnt[1]++; } }   // leere Kachel (nichts da) – in Ordnung
+                                    else if (b != null && b.length > 0) { saveTile(f, b); synchronized (cnt) { cnt[0]++; bytes[0] += b.length; } }
                                     else synchronized (cnt) { cnt[2]++; }
                                 }
                             } catch (Exception e) { synchronized (cnt) { cnt[2]++; } }
@@ -2411,8 +2457,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     private static WebResourceResponse tileResp(File f, String mime) throws Exception {
-        return new WebResourceResponse(mime, null, new FileInputStream(f));
+        return wr(mime, new FileInputStream(f));
     }
+    /** Antwort mit CORS-Kopf – die Kartenbibliothek (MapLibre) lädt per fetch und braucht ihn */
+    private static final Map<String, String> CORS = new HashMap<>();
+    static { CORS.put("Access-Control-Allow-Origin", "*"); CORS.put("Cache-Control", "no-cache"); }
+    private static WebResourceResponse wr(String mime, InputStream in) { return new WebResourceResponse(mime, null, 200, "OK", CORS, in); }
 
     private static byte[] readBytes(InputStream in) throws Exception {
         ByteArrayOutputStream bo = new ByteArrayOutputStream();
@@ -3000,10 +3050,19 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             File dir = geoVecDir();
             if (!dir.isDirectory()) dir.mkdirs();
             int ok = 0, fail = 0, count = 0, k = 0;
+            boolean shrunk = false;
             for (String layer : GEO_LAYERS) {
                 geoEvent(new JSONObject().put("type", "progress").put("done", k++).put("total", GEO_LAYERS.length));
                 boolean small = vec != null && "wohngrundstuecke".equals(layer);
-                JSONArray feats = small ? wfsFetch(layer, sn, ss, se, sw) : wfsFetch(layer, n, s, e, w);
+                JSONArray feats = null;
+                for (int tr = 0; tr < 3 && feats == null; tr++) {   // dipul antwortet manchmal nicht sofort: bis zu 3 Versuche
+                    if (tr > 0) try { Thread.sleep(tr * 3000L); } catch (InterruptedException ie) { break; }
+                    feats = small ? wfsFetch(layer, sn, ss, se, sw) : wfsFetch(layer, n, s, e, w);
+                }
+                if (feats == null && vec != null && !small) {   // großes Gebiet klappt nicht: wenigstens das engere Wiesengebiet
+                    feats = wfsFetch(layer, sn, ss, se, sw);
+                    if (feats != null) shrunk = true;
+                }
                 if (feats == null) { fail++; continue; }
                 writeFileAtomic(geoVecFile(layer), feats.toString());
                 ok++;
@@ -3011,10 +3070,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             }
             if (ok > 0 && fail <= 2) {
                 prefs.edit().putLong("geo_vec_fetched", System.currentTimeMillis()).putInt("geo_vec_count", count)
-                        .putString("geo_vec_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
+                        .putString("geo_vec_bbox", shrunk ? new JSONObject().put("n", sn).put("s", ss).put("e", se).put("w", sw).toString()
+                                : new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             }
             if (ok == 0) {
-                String why = !online() || (geoLastError != null && geoLastError.contains("resolve host")) ? "keine Internetverbindung"
+                String why = !online() ? "keine Internetverbindung"
+                        : geoLastError != null && geoLastError.contains("resolve host") ? "dipul-Server nicht erreichbar"
                         : geoLastError != null && geoLastError.toLowerCase(Locale.ROOT).contains("timeout") ? "dipul antwortet nicht"
                         : geoLastError != null ? geoLastError : "keine Verbindung zu dipul";
                 geoEvent(new JSONObject().put("type", "error").put("message", "Geozonen nicht aktualisiert (" + why + ")."
