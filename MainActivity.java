@@ -562,6 +562,15 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             }
         }
 
+        /** Windenergieanlagen aus dem Marktstammdatenregister für das Einsatzgebiet: {states:[1405,…], box:[w,s,e,n]} */
+        @JavascriptInterface
+        public void mastrSync(String json) { new Thread(() -> mastrSyncImpl(json)).start(); }
+
+        @JavascriptInterface
+        public String mastrWind() {
+            try { File f = new File(getFilesDir(), "mastr_wind.json"); return f.isFile() ? readFile(f) : ""; } catch (Exception e) { return ""; }
+        }
+
         /** Gespeicherte Geozonen-Bilder (dipul) löschen – vor dem Aktualisieren auf Knopfdruck */
         @JavascriptInterface
         public void dipulClear() { deleteTree(new File(tileDir(), "dipul")); }
@@ -2557,6 +2566,58 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         } catch (Exception ex) {
             prefs.edit().putString("notam_err", "Abruf fehlgeschlagen: " + ex.getMessage()).apply();
         }
+    }
+
+    // ---------- Marktstammdatenregister (Bundesnetzagentur): Windenergieanlagen je Bundesland, gefiltert auf das Gebiet ----------
+    private void mastrSyncImpl(String json) {
+        JSONObject ev = new JSONObject();
+        try {
+            JSONObject p = new JSONObject(json);
+            JSONArray st = p.getJSONArray("states"), box = p.getJSONArray("box");
+            double w = box.getDouble(0), s = box.getDouble(1), e = box.getDouble(2), n = box.getDouble(3);
+            JSONArray out = new JSONArray();
+            for (int i = 0; i < st.length(); i++) {
+                int page = 1, total = Integer.MAX_VALUE, got = 0;
+                while (got < total && page < 30) {
+                    String filter = "Energieträger~eq~'2497'~and~Bundesland~eq~'" + st.getInt(i) + "'";
+                    String url = "https://www.marktstammdatenregister.de/MaStR/Einheit/EinheitJson/GetErweiterteOeffentlicheEinheitStromerzeugung?sort=&page=" + page
+                            + "&pageSize=2000&group=&filter=" + URLEncoder.encode(filter, "UTF-8");
+                    HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+                    c.setConnectTimeout(15000); c.setReadTimeout(90000);
+                    c.setRequestProperty("Accept", "application/json");
+                    c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Android; Kitzrettung, nicht-kommerziell)");
+                    if (c.getResponseCode() != 200) { c.disconnect(); throw new Exception("Marktstammdatenregister antwortet mit HTTP " + c.getResponseCode()); }
+                    String txt; try (InputStream in = c.getInputStream()) { txt = readAll(in); }
+                    c.disconnect();
+                    JSONObject j = new JSONObject(txt);
+                    total = j.optInt("Total", 0);
+                    JSONArray d = j.optJSONArray("Data");
+                    if (d == null || d.length() == 0) break;
+                    got += d.length(); page++;
+                    for (int k = 0; k < d.length(); k++) {
+                        JSONObject r = d.getJSONObject(k);
+                        double la = r.optDouble("Breitengrad", Double.NaN), lo = r.optDouble("Laengengrad", Double.NaN);
+                        if (Double.isNaN(la) || Double.isNaN(lo) || la < s || la > n || lo < w || lo > e) continue;
+                        String status = r.optString("BetriebsStatusName", "");
+                        boolean act = status.startsWith("In Betrieb");
+                        if (!act && !status.toLowerCase(Locale.ROOT).contains("vorübergehend")) continue;   // geplante/abgebaute weglassen
+                        double hub = r.optDouble("NabenhoeheWindenergieanlage", 0), rot = r.optDouble("RotordurchmesserWindenergieanlage", 0);
+                        // natürliche Personen nicht namentlich speichern
+                        String op = r.optInt("AnlagenbetreiberPersonenArt", 0) == 518 ? "Privatperson" : r.optString("AnlagenbetreiberName", r.optString("AnlagenbetreiberMaskedName", ""));
+                        String name = (r.optString("WindparkName", "").isEmpty() || r.isNull("WindparkName") ? "" : r.optString("WindparkName") + " · ") + r.optString("EinheitName", "");
+                        out.put(new JSONArray().put(la).put(lo).put(hub > 0 ? hub : JSONObject.NULL).put(rot > 0 ? rot : JSONObject.NULL)
+                                .put(hub > 0 ? Math.round((hub + rot / 2) * 10) / 10.0 : JSONObject.NULL).put(name).put(op)
+                                .put(r.isNull("Ort") ? "" : r.optString("Ort", "")).put(r.optString("MaStRNummer", "")).put(act ? 1 : 0)
+                                .put(r.optLong("Id", 0)).put(r.optDouble("Nettonennleistung", 0)));
+                    }
+                }
+            }
+            writeFileAtomic(new File(getFilesDir(), "mastr_wind.json"), new JSONObject().put("t", System.currentTimeMillis()).put("list", out).toString());
+            ev.put("ok", true).put("n", out.length());
+        } catch (Exception ex) {
+            try { ev.put("ok", false).put("error", ex.getMessage()); } catch (Exception ignored) { }
+        }
+        js("window.onMastr && window.onMastr(" + JSONObject.quote(ev.toString()) + ")");
     }
 
     // ---------- dipul: temporäre Beschränkungsgebiete über die offizielle Schnittstelle ----------
