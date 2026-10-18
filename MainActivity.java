@@ -192,7 +192,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     @Override
     public void onBackPressed() {
         if (pageBox != null && pageBox.getVisibility() == android.view.View.VISIBLE) {   // Webseite in der App: zurück bzw. schließen
-            if (pageWeb.canGoBack()) pageWeb.goBack(); else closeInApp();
+            if (pdfUrl == null && pageWeb.canGoBack()) pageWeb.goBack(); else closeInApp();
             return;
         }
         web.evaluateJavascript("(window.onBack && window.onBack()) ? 'yes' : 'no'", value -> {
@@ -866,6 +866,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public void powerInfo(double lat, double lon) {
             new Thread(() -> powerInfoImpl(lat, lon)).start();
         }
+
+        /** DULV-Flugplatzdatenbank (ganz Deutschland, Telefon/PPR, Zeiten, Funk) */
+        @JavascriptInterface
+        public String dulv() { try { File f = dulvFile(); return f.isFile() ? readFile(f) : ""; } catch (Exception e) { return ""; } }
+        @JavascriptInterface
+        public void dulvSync(boolean force) { dulvSyncImpl(force); }
 
         /** Flugplätze im gespeicherten Gebiet inkl. Frequenzen: {fetched, list:[...]} */
         @JavascriptInterface
@@ -2130,16 +2136,28 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             writeFileAtomic(osmFile(), els.toString());
             catSt("hindernisse", "ok");
             // Feld- und Wirtschaftswege eigene Abfrage: sehr viele Daten – schlägt sie fehl, bleiben die Hindernisse trotzdem gespeichert
+            // in Kacheln von ca. 10 km abfragen – kleine Anfragen kommen bei überlasteten Servern viel eher durch
             try {
-                JSONArray wys = new JSONObject(overpass("[out:json][timeout:150];(way[\"highway\"~\"^(track|path|service|unclassified|tertiary|bridleway|cycleway|footway)$\"](" + bb + "););out tags geom;", 200000)).getJSONArray("elements");
-                writeFileAtomic(osmWaysFile(), wys.toString());
-                catSt("feldwege", "ok");
-            } catch (Exception we) { catSt("feldwege", errTxt(we)); }
+                double km = Math.max((n - s) * 111.2, (e - w) * 111.2 * Math.cos(Math.toRadians((n + s) / 2)));
+                int k = Math.max(1, Math.min(6, (int) Math.ceil(km / 10)));
+                JSONArray wys = new JSONArray(); java.util.Set<Long> seenW = new java.util.HashSet<>(); int bad = 0; Exception wErr = null;
+                for (int iy = 0; iy < k; iy++) for (int ix = 0; ix < k; ix++) {
+                    double ts = s + (n - s) * iy / k, tn = s + (n - s) * (iy + 1) / k, tw = w + (e - w) * ix / k, te = w + (e - w) * (ix + 1) / k;
+                    String tb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", ts, tw, tn, te);
+                    catSt("feldwege", "load");
+                    try {
+                        JSONArray part = new JSONObject(overpass("[out:json][timeout:90];(way[\"highway\"~\"^(track|path|service|unclassified|tertiary|bridleway|cycleway|footway)$\"](" + tb + "););out tags geom;", 120000)).getJSONArray("elements");
+                        for (int q2 = 0; q2 < part.length(); q2++) { JSONObject el = part.getJSONObject(q2); if (seenW.add(el.optLong("id"))) wys.put(el); }
+                    } catch (Exception te2) { bad++; wErr = te2; }
+                }
+                if (bad == 0 || (wys.length() > 0 && !osmWaysFile().isFile())) writeFileAtomic(osmWaysFile(), wys.toString());
+                catSt("feldwege", bad == 0 ? "ok" : (osmWaysFile().isFile() ? "alt:" : "") + bad + " von " + (k * k) + " Teilen fehlen – " + errTxt(wErr));
+            } catch (Exception we) { catSt("feldwege", (osmWaysFile().isFile() ? "alt:" : "") + errTxt(we)); }
             prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 5)
                     .putString("osm_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             osmCache = els;
             osmCacheLoaded = System.currentTimeMillis();
-        } catch (Exception ex) { catSt("hindernisse", errTxt(ex)); if ("load".equals(catStatus.get("feldwege"))) catSt("feldwege", errTxt(ex)); }
+        } catch (Exception ex) { catSt("hindernisse", (osmFile().isFile() ? "alt:" : "") + errTxt(ex)); if ("load".equals(catStatus.get("feldwege"))) catSt("feldwege", (osmWaysFile().isFile() ? "alt:" : "") + errTxt(ex)); }
     }
 
     // ---------- Kartenkacheln dauerhaft auf der RC speichern + Einsatzgebiet vorab laden ----------
@@ -2174,18 +2192,21 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             pageTitle.setPadding((int) (12 * dp), 0, (int) (12 * dp), 0);
             android.widget.Button ext = new android.widget.Button(this);
             ext.setText("Im Browser"); ext.setAllCaps(false); ext.setTextSize(15);
-            ext.setOnClickListener(v -> { try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(pageWeb.getUrl()))); } catch (Exception ignored) { } });
+            ext.setOnClickListener(v -> { try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl != null ? pdfUrl : pageWeb.getUrl()))); } catch (Exception ignored) { } });
             bar.addView(back);
             bar.addView(pageTitle, new android.widget.LinearLayout.LayoutParams(0, -2, 1f));
             bar.addView(ext);
             pageWeb = new WebView(this);
             WebSettings ws = pageWeb.getSettings();
             ws.setJavaScriptEnabled(true); ws.setDomStorageEnabled(true); ws.setLoadWithOverviewMode(true); ws.setUseWideViewPort(true);
-            ws.setBuiltInZoomControls(true); ws.setDisplayZoomControls(false);
+            ws.setBuiltInZoomControls(true); ws.setDisplayZoomControls(false); ws.setAllowFileAccess(true);
+            // PDF-Links (auch ohne .pdf in der Adresse) kommen als Download – selbst anzeigen
+            pageWeb.setDownloadListener((u, ua, cd, mime, len) -> { if ((mime != null && mime.contains("pdf")) || isPdfUrl(u)) showPdf(u); });
             pageWeb.setWebViewClient(new WebViewClient() {
                 @Override
                 public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
                     String u = req.getUrl().toString();
+                    if (isPdfUrl(u)) { showPdf(u); return true; }
                     if (u.startsWith("http")) return false;   // Links bleiben in der App
                     try { startActivity(new Intent(Intent.ACTION_VIEW, req.getUrl())); } catch (Exception ignored) { }
                     return true;
@@ -2197,14 +2218,79 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             pageBox.addView(pageWeb, new android.widget.LinearLayout.LayoutParams(-1, 0, 1f));
             rootView.addView(pageBox, new android.widget.FrameLayout.LayoutParams(-1, -1));
         }
-        pageTitle.setText(url);
-        pageWeb.loadUrl(url);
         pageBox.setVisibility(android.view.View.VISIBLE);
         pageBox.bringToFront();
+        if (isPdfUrl(url)) { showPdf(url); return; }
+        pdfUrl = null;
+        pageTitle.setText(url);
+        pageWeb.loadUrl(url);
+    }
+    // ---------- PDFs in der App: WebView kann keine PDFs – Android-PdfRenderer macht Seitenbilder (bleiben offline gespeichert) ----------
+    private volatile String pdfUrl = null;
+    private static boolean isPdfUrl(String u) { if (u == null) return false; String l = u.toLowerCase(Locale.ROOT); int q = l.indexOf('?'); if (q > 0) l = l.substring(0, q); return l.endsWith(".pdf"); }
+    private static String sha1(String t) { try { java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-1"); StringBuilder b = new StringBuilder(); for (byte x : md.digest(t.getBytes(StandardCharsets.UTF_8))) b.append(String.format("%02x", x)); return b.toString(); } catch (Exception e) { return String.valueOf(t.hashCode()); } }
+    private void pdfMsg(String title, String html) {
+        runOnUiThread(() -> { if (pageTitle != null) pageTitle.setText(title);
+            pageWeb.loadDataWithBaseURL(null, "<html><head><meta name='viewport' content='width=device-width'></head><body style='font:18px sans-serif;padding:30px;color:#15202b'>" + html + "</body></html>", "text/html", "UTF-8", null); });
+    }
+    private void showPdf(String url) {
+        pdfUrl = url;
+        String name = Uri.parse(url).getLastPathSegment(); if (name == null) name = "Dokument.pdf";
+        final String nm = name;
+        pdfMsg(nm, "<b>PDF wird geladen…</b><br><span style='color:#667'>" + nm + "</span>");
+        new Thread(() -> {
+            try {
+                File dir = new File(dataDir(), "Dokumente/" + sha1(url)); dir.mkdirs();
+                File pdf = new File(dir, "dokument.pdf");
+                boolean fresh = pdf.isFile() && pdf.length() > 0 && System.currentTimeMillis() - pdf.lastModified() < 30L * 24 * 3600 * 1000;
+                if (!fresh && online()) {
+                    HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+                    c.setConnectTimeout(15000); c.setReadTimeout(60000); c.setInstanceFollowRedirects(true);
+                    c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Android; Kitzrettung, nicht-kommerziell)");
+                    if (c.getResponseCode() == 200) {
+                        byte[] b; try (InputStream in = c.getInputStream()) { b = readBytes(in); }
+                        if (b.length > 4 && b[0] == '%' && b[1] == 'P' && b[2] == 'D' && b[3] == 'F') {
+                            try (OutputStream o = new FileOutputStream(new File(dir, "dokument.tmp"))) { o.write(b); }
+                            File[] old = dir.listFiles(); if (old != null) for (File f : old) if (f.getName().endsWith(".png")) f.delete();   // neue Fassung: Seitenbilder neu machen
+                            new File(dir, "dokument.tmp").renameTo(pdf);
+                        }
+                    }
+                    c.disconnect();
+                }
+                if (!pdf.isFile() || pdf.length() == 0) { pdfMsg(nm, "<b>PDF nicht verfügbar</b><br>" + (online() ? "Der Server hat kein PDF geliefert." : "Offline und noch nicht gespeichert – einmal mit Internet öffnen, dann geht es auch offline.") + "<br><br>Oben „Im Browser“ versucht es mit einem anderen Programm."); return; }
+                // Seiten als Bilder (einmal erzeugt, danach sofort da)
+                android.os.ParcelFileDescriptor fd = android.os.ParcelFileDescriptor.open(pdf, android.os.ParcelFileDescriptor.MODE_READ_ONLY);
+                android.graphics.pdf.PdfRenderer r = new android.graphics.pdf.PdfRenderer(fd);
+                int n = Math.min(r.getPageCount(), 80);
+                StringBuilder h = new StringBuilder("<html><head><meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=6'><style>body{margin:0;background:#525659}img{display:block;width:100%;max-width:1100px;margin:10px auto;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.5)}p{color:#fff;font:15px sans-serif;text-align:center}</style></head><body>");
+                for (int i = 0; i < n; i++) {
+                    File png = new File(dir, "s" + (i + 1) + ".png");
+                    if (!png.isFile() || png.length() == 0) {
+                        if (i % 3 == 0) pdfMsg(nm, "<b>PDF wird aufbereitet…</b><br>Seite " + (i + 1) + " von " + n);
+                        android.graphics.pdf.PdfRenderer.Page pg = r.openPage(i);
+                        int w = 1400, hh = Math.max(1, Math.round(w * pg.getHeight() / (float) pg.getWidth()));
+                        android.graphics.Bitmap bm = android.graphics.Bitmap.createBitmap(w, hh, android.graphics.Bitmap.Config.ARGB_8888);
+                        bm.eraseColor(0xffffffff);
+                        pg.render(bm, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+                        pg.close();
+                        try (OutputStream o = new FileOutputStream(png)) { bm.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, o); }
+                        bm.recycle();
+                    }
+                    h.append("<img src='s").append(i + 1).append(".png'>");
+                }
+                if (r.getPageCount() > n) h.append("<p>… weitere ").append(r.getPageCount() - n).append(" Seiten – vollständig über „Im Browser“</p>");
+                r.close(); fd.close();
+                h.append("</body></html>");
+                final String html = h.toString(), base = "file://" + dir.getAbsolutePath() + "/";
+                runOnUiThread(() -> { if (pageTitle != null) pageTitle.setText(nm); pageWeb.loadDataWithBaseURL(base, html, "text/html", "UTF-8", null); });
+            } catch (Throwable t) {
+                pdfMsg(nm, "<b>PDF konnte nicht angezeigt werden</b><br>" + (t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage()) + "<br><br>Oben „Im Browser“ öffnet es mit einem anderen Programm.");
+            }
+        }).start();
     }
     private void closeInApp() {
         if (pageBox == null) return;
-        pageBox.setVisibility(android.view.View.GONE);
+        pageBox.setVisibility(android.view.View.GONE); pdfUrl = null;
         try { pageWeb.loadUrl("about:blank"); pageWeb.clearHistory(); } catch (Exception ignored) { }
     }
     // ---------- Ablage der heruntergeladenen Daten (Karten, Geozonen, Wetter …) ----------
@@ -2288,7 +2374,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             case "hindernisse": l.add(osmFile()); break;
             case "windraeder": l.add(dataFile("mastr_wind.json")); break;
             case "orte": l.add(placeFile()); l.add(regionFile()); break;
-            case "flugplaetze": l.add(afFile()); l.add(afFreqFile()); break;
+            case "flugplaetze": l.add(afFile()); l.add(afFreqFile()); l.add(dulvFile()); break;
             case "wiesen": l.add(outlineFile()); l.add(outlineFileByKmz()); break;
         }
         return l;
@@ -2300,7 +2386,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             case "zonendaten": e.remove("geo_vec_bbox").remove("geo_vec_fetched"); break;
             case "feldwege": case "hindernisse": e.remove("osm_fetched").remove("osm_bbox"); break;
             case "orte": e.remove("place_fetched").remove("place_bbox").remove("reg_fetched"); break;
-            case "flugplaetze": e.remove("af_fetched").remove("af_bbox"); break;
+            case "flugplaetze": e.remove("af_fetched").remove("af_bbox").remove("dulv_t"); break;
             case "wiesen": e.remove("uave_outlines_fetched"); break;
         }
         e.remove("esBox5").putString("cacheRefetch", "1").apply();   // App holt beim nächsten Mal mit Internet automatisch neu
@@ -2342,7 +2428,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private static final Map<String, String> DATA_CAT = new HashMap<>();
     static {
         String[][] m = {{"mastr_wind.json", "Windraeder"}, {"field_outlines.json", "Wiesen"}, {"field_outlines_kmz.json", "Wiesen"}, {"osm_power.json", "Hindernisse"},
-                {"osm_places.json", "Orte"}, {"osm_ways.json", "Feldwege"}, {"regions.json", "Orte"}, {"airfields.json", "Flugplaetze"}, {"airfield_freqs.json", "Flugplaetze"}, {"notams.json", "Geozonen"}};
+                {"osm_places.json", "Orte"}, {"osm_ways.json", "Feldwege"}, {"regions.json", "Orte"}, {"airfields.json", "Flugplaetze"}, {"airfield_freqs.json", "Flugplaetze"}, {"dulv_airfields.json", "Flugplaetze"}, {"notams.json", "Geozonen"}};
         for (String[] x : m) DATA_CAT.put(x[0], x[1]);
     }
     private boolean isExt() { return !dataDir().equals(super.getFilesDir()); }
@@ -2750,6 +2836,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private static String errTxt(Exception e) {
         String m = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
         if (m.contains("resolve host") || m.contains("UnknownHost")) return "Server nicht erreichbar";
+        if (m.contains("CertPath") || m.contains("Trust anchor") || e instanceof javax.net.ssl.SSLException) return "sichere Verbindung zum Server nicht möglich (Zertifikat)";
         if (m.toLowerCase(Locale.ROOT).contains("timeout") || m.contains("timed out")) return "Server antwortet nicht (Zeitüberschreitung)";
         return m.length() > 120 ? m.substring(0, 120) + "…" : m;
     }
@@ -2947,13 +3034,143 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         throw last;
     }
 
+    // Hauptserver zuerst (gleiches Zertifikat, drei Rechner), dann Ausweichserver
     private static final String[] OVERPASS = {
-            "https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"};
+            "https://overpass-api.de/api/interpreter", "https://lz4.overpass-api.de/api/interpreter", "https://z.overpass-api.de/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"};
+
+    // ---------- DULV-Flugplatzdatenbank: einmal alle Plätze in Deutschland (ca. 700 Seiten) im Hintergrund, alle 90 Tage ----------
+    // Der DULV ist mit der Nutzung für die ehrenamtliche Kitzrettung einverstanden. Angaben ohne Gewähr, nicht für die Navigation.
+    private File dulvFile() { return dataFile("dulv_airfields.json"); }
+    private volatile boolean dulvRunning = false;
+    private static final String DULV = "https://dulv.de/fmwebphp/Flugplatz/";
+    private static String httpText(String url, int readMs) throws Exception {
+        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        try {
+            c.setConnectTimeout(15000); c.setReadTimeout(readMs);
+            c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Android; Kitzrettung, ehrenamtlich, nicht-kommerziell)");
+            if (c.getResponseCode() != 200) throw new Exception("DULV antwortet mit HTTP " + c.getResponseCode());
+            byte[] b; try (InputStream in = c.getInputStream()) { b = readBytes(in); }
+            String ct = String.valueOf(c.getContentType()).toLowerCase(Locale.ROOT);
+            String head = new String(b, 0, Math.min(b.length, 2000), StandardCharsets.ISO_8859_1).toLowerCase(Locale.ROOT);
+            boolean latin = ct.contains("8859") || ct.contains("1252") || (!ct.contains("utf-8") && (head.contains("8859") || head.contains("1252")));
+            String t = new String(b, latin ? java.nio.charset.Charset.forName("windows-1252") : StandardCharsets.UTF_8);
+            if (!latin && t.indexOf('\uFFFD') >= 0) t = new String(b, java.nio.charset.Charset.forName("windows-1252"));
+            return t;
+        } finally { c.disconnect(); }
+    }
+    private static String htmlText(String h) {
+        String t = h.replaceAll("(?is)<script.*?</script>", "").replaceAll("(?i)<br\\s*/?>", "; ").replaceAll("<[^>]+>", " ");
+        t = t.replace("&nbsp;", " ").replace("&amp;", "&").replace("&quot;", "\"").replace("&lt;", "<").replace("&gt;", ">")
+                .replace("&auml;", "ä").replace("&ouml;", "ö").replace("&uuml;", "ü").replace("&Auml;", "Ä").replace("&Ouml;", "Ö").replace("&Uuml;", "Ü").replace("&szlig;", "ß").replace("&deg;", "°");
+        Matcher m = Pattern.compile("&#(\\d+);").matcher(t); StringBuffer sb = new StringBuffer();
+        while (m.find()) m.appendReplacement(sb, Matcher.quoteReplacement(String.valueOf((char) Integer.parseInt(m.group(1)))));
+        m.appendTail(sb);
+        return sb.toString().replaceAll("[ \\t\\u00a0]+", " ").replaceAll("(; )+", "; ").trim().replaceAll("^;\\s*|;\\s*$", "");
+    }
+    /** „50.39.39 N“ → 50.6608 */
+    private static double dms(String v) {
+        try {
+            Matcher m = Pattern.compile("(\\d+)[.° ]+(\\d+)[.' ]+(\\d+(?:[.,]\\d+)?)\\D*([NSEOW])?").matcher(v.trim());
+            if (!m.find()) return Double.NaN;
+            double d = Integer.parseInt(m.group(1)) + Integer.parseInt(m.group(2)) / 60.0 + Double.parseDouble(m.group(3).replace(',', '.')) / 3600.0;
+            String h = m.group(4); if ("S".equals(h) || "W".equals(h)) d = -d;
+            return d;
+        } catch (Exception e) { return Double.NaN; }
+    }
+    private JSONObject dulvDetail(int id) throws Exception {
+        String h = httpText(DULV + "details.php?id=" + id, 30000);
+        JSONObject o = new JSONObject().put("id", id);
+        Matcher rm = Pattern.compile("(?is)<tr[^>]*>(.*?)</tr>").matcher(h);
+        while (rm.find()) {
+            Matcher cm = Pattern.compile("(?is)<t[dh][^>]*>(.*?)</t[dh]>").matcher(rm.group(1));
+            List<String> cells = new ArrayList<>();
+            while (cm.find()) cells.add(htmlText(cm.group(1)));
+            if (cells.size() < 2) continue;
+            String lab = cells.get(0).replace(":", "").trim(), val = String.join("; ", cells.subList(1, cells.size())).replaceAll("^(;\\s*)+|(;\\s*)+$", "").trim();
+            if (val.isEmpty()) continue;
+            String k = null;
+            switch (lab) {
+                case "Ortskennung": k = "name"; break; case "ICAO": k = "icao"; break; case "Kurzname": k = "short"; break;
+                case "Nord": o.put("lat", dms(val)); break; case "Ost": o.put("lon", dms(val)); break;
+                case "Lage": k = "lage"; break; case "Höhe": k = "ele"; break; case "Funk": k = "funk"; break;
+                case "Platzrunde": k = "runde"; break; case "Besonderheiten Anflug": k = "anflug"; break; case "Danger": k = "danger"; break;
+                case "Betriebszeiten": k = "zeiten"; break; case "Betriebsarten": k = "arten"; break; case "Telefon": k = "tel"; break;
+                case "Webseite": k = "web"; break; case "Bemerkung": k = "bem"; break;
+            }
+            if (k != null && !o.has(k)) o.put(k, val.length() > 400 ? val.substring(0, 400) : val);
+        }
+        return o;
+    }
+    private void dulvSyncImpl(boolean force) {
+        if (dulvRunning || !online()) return;
+        File f = dulvFile();
+        JSONObject old = null;
+        try { if (f.isFile()) old = new JSONObject(readFile(f)); } catch (Exception ignored) { }
+        boolean fresh = old != null && old.optBoolean("complete") && System.currentTimeMillis() - old.optLong("t", 0) < 90L * 24 * 3600 * 1000;
+        if (!force && fresh) return;
+        dulvRunning = true;
+        final JSONObject prev = old;
+        new Thread(() -> {
+            try {
+                catSt("flugplaetze", "load");
+                String list = httpText(DULV + "show_all.php", 60000);
+                // Zeilen: Kennung | Ortskennung (Link details.php?id=) | Zulassung | PLZ – nur deutsche Plätze (PLZ fünfstellig)
+                List<int[]> ids = new ArrayList<>(); Map<Integer, String> kenn = new HashMap<>();
+                Matcher rm = Pattern.compile("(?is)<tr[^>]*>(.*?)</tr>").matcher(list);
+                while (rm.find()) {
+                    String row = rm.group(1);
+                    Matcher im = Pattern.compile("details\\.php\\?id=(\\d+)").matcher(row); if (!im.find()) continue;
+                    int id = Integer.parseInt(im.group(1));
+                    Matcher cm = Pattern.compile("(?is)<td[^>]*>(.*?)</td>").matcher(row); List<String> c = new ArrayList<>();
+                    while (cm.find()) c.add(htmlText(cm.group(1)));
+                    String plz = c.size() > 3 ? c.get(3).replaceAll("\\s", "") : "";
+                    if (!plz.matches("\\d{5}")) continue;
+                    ids.add(new int[]{id}); kenn.put(id, c.isEmpty() ? "" : c.get(0));
+                }
+                if (ids.isEmpty()) throw new Exception("DULV-Liste leer oder Format geändert");
+                // schon geladene (unter 90 Tage) behalten – Abbruch/Neustart setzt fort
+                Map<Integer, JSONObject> have = new java.util.concurrent.ConcurrentHashMap<>();
+                if (prev != null && System.currentTimeMillis() - prev.optLong("t0", prev.optLong("t", 0)) < 90L * 24 * 3600 * 1000) {
+                    JSONArray pl = prev.optJSONArray("list"); if (pl != null) for (int i = 0; i < pl.length(); i++) { JSONObject o = pl.getJSONObject(i); have.put(o.getInt("id"), o); }
+                }
+                final long t0 = prev != null && prev.has("t0") && !have.isEmpty() ? prev.optLong("t0") : System.currentTimeMillis();
+                java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(3);
+                final int[] done = {have.size()}, fail = {0};
+                for (int[] w : ids) {
+                    final int id = w[0];
+                    if (have.containsKey(id)) continue;
+                    ex.submit(() -> {
+                        for (int tr = 0; tr < 2; tr++) {
+                            try { JSONObject o = dulvDetail(id); if (!o.has("icao") && kenn.get(id) != null && kenn.get(id).matches("[A-Z]{4}")) o.put("icao", kenn.get(id)); have.put(id, o); break; }
+                            catch (Exception e) { if (tr == 1) synchronized (fail) { fail[0]++; } else try { Thread.sleep(2000); } catch (InterruptedException ie) { return; } }
+                        }
+                        synchronized (done) { done[0]++; if (done[0] % 60 == 0) { dulvSave(have, t0, false); catSt("flugplaetze", "load"); } }
+                        try { Thread.sleep(150); } catch (InterruptedException ie) { }   // schonend für den DULV-Server
+                    });
+                }
+                ex.shutdown(); ex.awaitTermination(30, java.util.concurrent.TimeUnit.MINUTES);
+                boolean complete = fail[0] <= ids.size() / 50;
+                dulvSave(have, t0, complete);
+                catSt("flugplaetze", complete ? "ok" : (f.isFile() ? "alt:" : "") + "DULV: " + fail[0] + " von " + ids.size() + " Plätzen nicht geladen – wird beim nächsten Mal ergänzt");
+                js("window.onDulv && window.onDulv()");
+            } catch (Exception e) {
+                catSt("flugplaetze", (f.isFile() ? "alt:" : "") + "DULV: " + errTxt(e));
+            } finally { dulvRunning = false; }
+        }).start();
+    }
+    private synchronized void dulvSave(Map<Integer, JSONObject> have, long t0, boolean complete) {
+        try {
+            JSONArray out = new JSONArray(); for (JSONObject o : have.values()) out.put(o);
+            writeFileAtomic(dulvFile(), new JSONObject().put("t", System.currentTimeMillis()).put("t0", t0).put("complete", complete).put("list", out).toString());
+        } catch (Exception ignored) { }
+    }
 
     /** Overpass-Abfrage; ist ein Server überlastet, wird der nächste versucht */
     private String overpass(String q, int readTimeoutMs) throws Exception {
-        Exception last = null;
+        Exception first = null;
         for (String ep : OVERPASS) {
+          for (int tr = 0; tr < 2; tr++) {   // überlastet (429/504): kurz warten, nochmal
             try {
                 HttpURLConnection c = (HttpURLConnection) new URL(ep).openConnection();
                 c.setRequestMethod("POST");
@@ -2962,11 +3179,23 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
                 c.setRequestProperty("User-Agent", "MissionKitzrettung/2.0 (Kitzrettung, nicht-kommerziell)");
                 try (OutputStream o = c.getOutputStream()) { o.write(("data=" + URLEncoder.encode(q, "UTF-8")).getBytes(StandardCharsets.UTF_8)); }
-                if (c.getResponseCode() != 200) { last = new Exception("Overpass " + c.getResponseCode()); c.disconnect(); continue; }
+                int code = c.getResponseCode();
+                if (code != 200) {
+                    c.disconnect();
+                    Exception e = new Exception(code == 429 ? "OpenStreetMap-Server überlastet (zu viele Anfragen)" : code == 504 || code == 503 ? "OpenStreetMap-Server ausgelastet (Zeitüberschreitung)" : "OpenStreetMap-Server antwortet mit Fehler " + code);
+                    if (first == null) first = e;
+                    if ((code == 429 || code == 504) && tr == 0) { Thread.sleep(6000); continue; }
+                    break;
+                }
                 try (InputStream in = c.getInputStream()) { return readAll(in); } finally { c.disconnect(); }
-            } catch (Exception e) { last = e; }
+            } catch (Exception e) {
+                // Zertifikatsfehler eines Ausweichservers (alte Android-Version kennt dessen Zertifikat nicht) nicht als Hauptgrund melden
+                if (first == null && !(e instanceof javax.net.ssl.SSLException) && !String.valueOf(e.getMessage()).contains("CertPath")) first = e;
+                break;
+            }
+          }
         }
-        throw last != null ? last : new Exception("Overpass nicht erreichbar");
+        throw first != null ? first : new Exception("Kein OpenStreetMap-Server erreichbar");
     }
 
 
@@ -3354,6 +3583,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 osmSync(fn, fs, fe, fw, force);
                 js("window.onOsmLines && window.onOsmLines()");
                 airfieldSync(fn, fs, fe, fw, force);
+                dulvSyncImpl(false);   // läuft selbst im Hintergrund, nur alle 90 Tage
                 notamSyncImpl(fn, fs, fe, fw, force);
                 js("window.onNotams && window.onNotams()");
                 js("window.onAirfields && window.onAirfields()");
