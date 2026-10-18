@@ -94,10 +94,23 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         prefs = getSharedPreferences("settings", Context.MODE_PRIVATE);
         dopCleanup();   // einmalig: Luftbilder mit grauem Fleck entfernen
+        cacheVersionCheck();   // geänderte Datenbereiche aufräumen
+        if (prefs.getInt("osm_ver", 1) == 4) new Thread(() -> {   // einmalig: Wege aus der OSM-Datei auslagern (sonst liest die App beim Start sehr lange)
+            try {
+                JSONArray all = new JSONArray(readFile(osmFile())), els = new JSONArray(), wys = new JSONArray();
+                for (int i = 0; i < all.length(); i++) { JSONObject el = all.getJSONObject(i), t = el.optJSONObject("tags");
+                    if (t != null && t.has("highway") && "way".equals(el.optString("type"))) wys.put(el); else els.put(el); }
+                writeFileAtomic(osmWaysFile(), wys.toString()); writeFileAtomic(osmFile(), els.toString());
+                prefs.edit().putInt("osm_ver", 5).apply();
+                js("window.onOsmLines && window.onOsmLines()");
+            } catch (Throwable ignored) { }
+        }).start();
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         web = new WebView(this);
-        setContentView(web);
+        rootView = new android.widget.FrameLayout(this);
+        rootView.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        setContentView(rootView);
         hideSystemBars();
 
         WebSettings s = web.getSettings();
@@ -160,6 +173,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     @Override
     protected void onResume() {
         super.onResume();
+        try { if (hasFileAccess()) dataMigrate(); } catch (Exception ignored) { }   // Daten in „Kitzrettung Cache“ umziehen (einmalig)
         try {
             if (sensorManager == null) sensorManager = (android.hardware.SensorManager) getSystemService(Context.SENSOR_SERVICE);
             android.hardware.Sensor rv = sensorManager != null ? sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_ROTATION_VECTOR) : null;
@@ -177,6 +191,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     @Override
     public void onBackPressed() {
+        if (pageBox != null && pageBox.getVisibility() == android.view.View.VISIBLE) {   // Webseite in der App: zurück bzw. schließen
+            if (pageWeb.canGoBack()) pageWeb.goBack(); else closeInApp();
+            return;
+        }
         web.evaluateJavascript("(window.onBack && window.onBack()) ? 'yes' : 'no'", value -> {
             if (value == null || !value.contains("yes")) MainActivity.super.onBackPressed();
         });
@@ -581,12 +599,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
         @JavascriptInterface
         public String mastrWind() {
-            try { File f = new File(getFilesDir(), "mastr_wind.json"); return f.isFile() ? readFile(f) : ""; } catch (Exception e) { return ""; }
+            try { File f = dataFile("mastr_wind.json"); return f.isFile() ? readFile(f) : ""; } catch (Exception e) { return ""; }
         }
 
         /** Gespeicherte Geozonen-Bilder (dipul) löschen – vor dem Aktualisieren auf Knopfdruck */
         @JavascriptInterface
-        public void dipulClear() { deleteTree(new File(tileDir(), "dipul")); }
+        public void dipulClear() { deleteTree(tileFile("dipul")); }
 
         /** Ordner anlegen (z. B. Zielordner beim Start, damit er in Pilot 2 beim Import schon da ist) */
         @JavascriptInterface
@@ -818,7 +836,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     for (int z = 16; z >= 7; z--) {
                         double N = (1 << z) * 256.0;
                         int px = (int) Math.floor(X * N), py = (int) Math.floor(Y * N);
-                        File f = new File(tileDir(), "dipul/" + g + "/" + z + "/" + (px >> 8) + "/" + (py >> 8) + ".png");
+                        File f = tileFile("dipul/" + g + "/" + z + "/" + (px >> 8) + "/" + (py >> 8) + ".png");
                         if (!f.isFile() || f.length() == 0) continue;
                         android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeFile(f.getPath());
                         if (bm == null) continue;
@@ -912,7 +930,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
         /** Temporäre Betriebseinschränkungen (NOTAM) im Gebiet: gespeicherte Daten */
         @JavascriptInterface
-        public String tileCacheInfo() { return String.valueOf(tileCacheBytes()); }
+        public String tileCacheInfo() { return String.valueOf(lastTileBytes); }   // zuletzt gezählter Wert – Zählen läuft im Hintergrund (cacheInfoAsync), sonst hängt die App
 
 
         /** Einsatzgebiet vorab laden: {layers:["bmg","bmf","dop"], area:[w,s,e,n], fields:[[w,s,e,n],…], zMin, zArea, zMax} */
@@ -925,12 +943,39 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public boolean prefetchRunning() { return prefetchRun; }
 
+        /** Größe je Datenbereich – im Hintergrund gezählt (bei vielen Kacheln dauert das), Ergebnis über window.onCacheInfo */
+        @JavascriptInterface
+        public void cacheInfoAsync() {
+            new Thread(() -> {
+                JSONArray out = new JSONArray(); long total = 0;
+                try {
+                    for (String[] c : CACHE_CATS) {
+                        long[] r = {0, 0}; for (File f : catFiles(c[0])) sizeOf(f, r);
+                        total += r[0];
+                        out.put(new JSONObject().put("id", c[0]).put("name", c[1]).put("bytes", r[0]).put("files", r[1]).put("ver", CACHE_VER.getOrDefault(c[0], 1)));
+                    }
+                    lastTileBytes = 0; for (String id : new String[]{"karte", "luftbild", "geokacheln"}) { long[] r = {0, 0}; for (File f : catFiles(id)) sizeOf(f, r); lastTileBytes += r[0]; }
+                    js("window.onCacheInfo && window.onCacheInfo(" + JSONObject.quote(new JSONObject().put("list", out).put("total", total).put("where", dataDir().getAbsolutePath()).toString()) + ")");
+                } catch (Exception ignored) { }
+            }).start();
+        }
+
+        /** Einen Datenbereich löschen (wird beim nächsten Speichern/Abgleich neu geholt). Ergebnis über window.onCacheCleared */
+        @JavascriptInterface
+        public void cacheClear(String id) {
+            new Thread(() -> {
+                for (File f : catFiles(id)) deleteTree(f);
+                catReset(id);
+                js("window.onCacheCleared && window.onCacheCleared(" + JSONObject.quote(id) + ")");
+            }).start();
+        }
+
         @JavascriptInterface
         public void tileCacheClear() {
             new Thread(() -> {
                 java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
                 List<File> dirs = new ArrayList<>();
-                st.push(tileDir());
+                for (File r0 : tileRoots()) st.push(r0);
                 while (!st.isEmpty()) {
                     File d = st.pop(); dirs.add(d);
                     File[] fs = d.listFiles();
@@ -985,13 +1030,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                                     .put("lat", el.optDouble("lat")).put("lon", el.optDouble("lon")));
                             continue;
                         }
-                        if (t.has("highway") && "way".equals(ty)) {   // Wege (für den gemeinsamen Standort im Einsatzplan)
-                            JSONArray g = el.optJSONArray("geometry"), ln = new JSONArray();
-                            if (g == null) continue;
-                            for (int k = 0; k < g.length(); k++) { JSONObject p = g.optJSONObject(k); if (p != null) ln.put(Math.round(p.optDouble("lon") * 1e5) / 1e5).put(Math.round(p.optDouble("lat") * 1e5) / 1e5); }
-                            ways.put(new JSONObject().put("k", t.optString("highway")).put("g", ln));
-                            continue;
-                        }
+                        if (t.has("highway")) continue;   // Wege nur auf Anfrage (osmWays) – sonst zu viel auf einmal
                         if (t.has("railway") && "way".equals(ty)) {
                             JSONArray g = el.optJSONArray("geometry"), ln = new JSONArray();
                             if (g == null) continue;
@@ -1024,7 +1063,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     }
                 }
             } catch (Exception ignored) { }
-            try { return new JSONObject().put("pts", pts).put("rails", rails).put("places", places).put("ways", ways).toString(); } catch (Exception e) { return "{}"; }
+            try { return new JSONObject().put("pts", pts).put("rails", rails).put("places", places).toString(); } catch (Exception e) { return "{}"; }
         }
 
         /** Gespeicherte Orts- und Flurnamen [{n,t,lat,lon}] */
@@ -1064,12 +1103,41 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public void openUrl(String url) {
             runOnUiThread(() -> {
-                try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
+                try { if (url != null && url.startsWith("http")) openInApp(url); else startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
                 catch (Exception e) { js("window.onGeoInfo && window.onGeoInfo(" + JSONObject.quote("{\"ok\":false,\"error\":\"Kein Browser zum Öffnen gefunden\"}") + ")"); }
             });
         }
 
         /** Gespeicherte Geozonen als {ebene:[features...]} */
+        @JavascriptInterface
+        public String geoVectorLayer(String layer) {   // eine Zonenart – die App liest Schicht für Schicht (kein langes Einfrieren)
+            try { File f = geoVecFile(layer); return f.isFile() ? readFile(f).replaceAll("(\\.\\d{5})\\d+", "$1") : ""; } catch (Exception e) { return ""; }
+        }
+
+        /** Wege (OSM) nur im angefragten Gebiet {n,s,e,w} – für den Standort im Einsatzplan */
+        @JavascriptInterface
+        public String osmWays(String boxJson) {
+            JSONArray out = new JSONArray();
+            try {
+                JSONObject b = new JSONObject(boxJson);
+                double n = b.getDouble("n"), so = b.getDouble("s"), e = b.getDouble("e"), w = b.getDouble("w");
+                if (!osmWaysFile().isFile()) return "[]";
+                JSONArray els = new JSONArray(readFile(osmWaysFile()));
+                for (int i = 0; i < els.length(); i++) {
+                    JSONObject el = els.getJSONObject(i), t = el.optJSONObject("tags");
+                    if (t == null || !t.has("highway") || !"way".equals(el.optString("type"))) continue;
+                    JSONArray g = el.optJSONArray("geometry"); if (g == null) continue;
+                    boolean in = false; JSONArray ln = new JSONArray();
+                    for (int k = 0; k < g.length(); k++) { JSONObject pt = g.optJSONObject(k); if (pt == null) continue;
+                        double la = pt.optDouble("lat"), lo = pt.optDouble("lon");
+                        if (la <= n && la >= so && lo <= e && lo >= w) in = true;
+                        ln.put(Math.round(lo * 1e5) / 1e5).put(Math.round(la * 1e5) / 1e5); }
+                    if (in) out.put(new JSONObject().put("k", t.optString("highway")).put("g", ln));
+                }
+            } catch (Exception ignored) { }
+            return out.toString();
+        }
+
         @JavascriptInterface
         public String geoVectors() {
             StringBuilder sb = new StringBuilder("{");
@@ -1259,9 +1327,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     // ---------- Feldgrenzen (Kontur) aus UAV Editor – Feature mit properties.type == 1 im geojson des Feldes ----------
-    private File outlineFile() { return new File(getFilesDir(), "field_outlines.json"); }
+    private File outlineFile() { return dataFile("field_outlines.json"); }
     /** Feldgrenzen aus den JSON-Beigaben des UAV-Editor-Exports, je KMZ-Datei: {datei.kmz: [lon,lat,…]} */
-    private File outlineFileByKmz() { return new File(getFilesDir(), "field_outlines_kmz.json"); }
+    private File outlineFileByKmz() { return dataFile("field_outlines_kmz.json"); }
 
     /** Aus der Export-JSON nur die Feldgrenze lesen (Feature mit properties.type == 1); persönliche Angaben werden nicht gespeichert */
     private static JSONArray outlineFromExportJson(byte[] json) {
@@ -1487,7 +1555,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 JSONObject m = man.optJSONObject(id);
                 if (m != null) {
                     File mf = new File(dir, m.optString("file"));
-                    if (mf.isFile()) { found = mf; status = mod > m.optLong("mod", 0) ? "changed" : "ok"; withMeta(m, f); }
+                    // geändert nur, wenn der UAV Editor einen neueren Stand hat als beim letzten Download (1 min Toleranz)
+                    long known = m.has("srv") ? m.optLong("srv", 0) : m.optLong("mod", 0);
+                    if (mf.isFile()) { found = mf; status = mod > known + 60000 ? "changed" : "ok"; withMeta(m, f); }
                 }
                 if (found == null && local != null) {
                     List<String> pre = namePrefixes(name);
@@ -1498,8 +1568,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         if (found != null) break;
                     }
                     if (found != null) {
-                        status = mod > found.lastModified() ? "changed" : "ok";
-                        man.put(id, withMeta(new JSONObject().put("file", found.getName()).put("mod", found.lastModified()), f));
+                        // Datei liegt schon da (z. B. von Hand kopiert): als aktuell übernehmen, nicht neu laden
+                        status = "ok";
+                        man.put(id, withMeta(new JSONObject().put("file", found.getName()).put("mod", Math.max(found.lastModified(), mod)).put("srv", mod), f));
                     }
                 }
                 if ("missing".equals(status)) missing++;
@@ -1761,7 +1832,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             File of = new File(dir, old.optString("file"));
             if (of.isFile()) of.delete();
         }
-        man.put(id, withMeta(new JSONObject().put("file", file).put("mod", System.currentTimeMillis()), uaveFields.get(id)));
+        // Stand merken: Änderungszeit laut UAV Editor (nicht nur die Uhr der RC – die kann falsch gehen, dann wäre jedes Feld immer „geändert“)
+        JSONObject uf = uaveFields.get(id);
+        long srv = uf != null ? Math.max(parseIso(uf.optString("lastModified", null)), parseIso(uf.optString("createdAt", null))) : 0;
+        man.put(id, withMeta(new JSONObject().put("file", file).put("mod", Math.max(System.currentTimeMillis(), srv)).put("srv", srv), uf));
         prefs.edit().putString("uave_manifest", man.toString()).apply();
     }
 
@@ -1830,7 +1904,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private volatile boolean geoQueuedForce = false;
     private volatile String geoLastError = null;
 
-    private File geoVecDir() { return new File(getFilesDir(), "dipul_vec"); }
+    private File geoVecDir() { return isExt() ? new File(dataDir(), "Geozonen/Zonendaten") : new File(dataDir(), "dipul_vec"); }
     private File geoVecFile(String layer) { return new File(geoVecDir(), layer + ".json"); }
 
     /** Lädt eine Ebene als GeoJSON im Gebiet. null bei Fehler. */
@@ -1979,8 +2053,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private JSONArray osmCache = null;
     private long osmCacheLoaded = 0;
 
-    private File osmFile() { return new File(getFilesDir(), "osm_power.json"); }
-    private File placeFile() { return new File(getFilesDir(), "osm_places.json"); }
+    private File osmFile() { return dataFile("osm_power.json"); }
+    private File placeFile() { return dataFile("osm_places.json"); }
+    private File osmWaysFile() { return dataFile("osm_ways.json"); }
 
     /** Orts- und Flurnamen für die Suche: Gebiet der Felder + 25 km, alle 60 Tage oder wenn das Gebiet größer wird */
     private void placeSync(double n, double s, double e, double w, boolean force) {
@@ -2030,7 +2105,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         } catch (Exception ignored) { }
         long fetched = prefs.getLong("osm_fetched", 0);
         boolean fresh = System.currentTimeMillis() - fetched < 7 * DAY;   // Leitungen ändern sich selten
-        boolean oldFormat = prefs.getInt("osm_ver", 1) < 4;   // ältere Daten ohne Hindernisse/Ortsnamen: einmal neu laden
+        boolean oldFormat = prefs.getInt("osm_ver", 1) < 5;   // ältere Daten ohne Hindernisse/Ortsnamen: einmal neu laden
         if (!force && fresh && !oldFormat && osmCovers(n, s, e, w) && osmFile().isFile()) return;
         try {
             String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
@@ -2047,9 +2122,14 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     // Orts- und Flurnamen für die Suche (offline)
                     + "node[\"place\"~\"^(city|town|village|hamlet|suburb|quarter|neighbourhood|isolated_dwelling|farm|locality)$\"][\"name\"](" + bb + ");"
                     + ");out tags geom;";
-            JSONArray els = new JSONObject(overpass(q, 180000)).getJSONArray("elements");   // mit Ausweichservern
+            JSONArray all = new JSONObject(overpass(q, 180000)).getJSONArray("elements");   // mit Ausweichservern
+            // Wege getrennt speichern: sie sind viele und werden nur für den Einsatzplan gebraucht – so bleibt das Lesen der Leitungen/Hindernisse schnell
+            JSONArray els = new JSONArray(), wys = new JSONArray();
+            for (int i = 0; i < all.length(); i++) { JSONObject el = all.getJSONObject(i), t = el.optJSONObject("tags");
+                if (t != null && t.has("highway") && "way".equals(el.optString("type"))) wys.put(el); else els.put(el); }
+            writeFileAtomic(osmWaysFile(), wys.toString());
             writeFileAtomic(osmFile(), els.toString());
-            prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 4)
+            prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 5)
                     .putString("osm_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             osmCache = els;
             osmCacheLoaded = System.currentTimeMillis();
@@ -2062,7 +2142,199 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     // Außerhalb HE/RP: Esri World Imagery nur beim Ansehen (kein Vorab-Download – Nutzungsbedingungen).
     private static final String BMV_TILES = "/gdz_basemapde_vektor/tiles/v2/bm_web_de_3857/";
     private static final long TILE_FRESH = 365L * 24 * 3600 * 1000, TILE_MAX_BYTES = 12L * 1024 * 1024 * 1024;
-    private File tileDir() { return new File(getFilesDir(), "tiles"); }
+    // ---------- Webseiten (dipul, Infos …) in der App statt im Browser ----------
+    private android.widget.FrameLayout rootView;
+    private android.widget.LinearLayout pageBox;
+    private WebView pageWeb;
+    private android.widget.TextView pageTitle;
+    @SuppressLint("SetJavaScriptEnabled")
+    private void openInApp(String url) {
+        if (pageBox == null) {
+            float dp = getResources().getDisplayMetrics().density;
+            pageBox = new android.widget.LinearLayout(this);
+            pageBox.setOrientation(android.widget.LinearLayout.VERTICAL);
+            pageBox.setBackgroundColor(0xffffffff);
+            android.widget.LinearLayout bar = new android.widget.LinearLayout(this);
+            bar.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            bar.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            bar.setBackgroundColor(0xff15202b);
+            bar.setPadding((int) (8 * dp), (int) (6 * dp), (int) (8 * dp), (int) (6 * dp));
+            android.widget.Button back = new android.widget.Button(this);
+            back.setText("‹  Zurück zur App"); back.setAllCaps(false); back.setTextSize(17);
+            back.setOnClickListener(v -> closeInApp());
+            pageTitle = new android.widget.TextView(this);
+            pageTitle.setTextColor(0xffe6edf3); pageTitle.setTextSize(15); pageTitle.setSingleLine(true);
+            pageTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            pageTitle.setPadding((int) (12 * dp), 0, (int) (12 * dp), 0);
+            android.widget.Button ext = new android.widget.Button(this);
+            ext.setText("Im Browser"); ext.setAllCaps(false); ext.setTextSize(15);
+            ext.setOnClickListener(v -> { try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(pageWeb.getUrl()))); } catch (Exception ignored) { } });
+            bar.addView(back);
+            bar.addView(pageTitle, new android.widget.LinearLayout.LayoutParams(0, -2, 1f));
+            bar.addView(ext);
+            pageWeb = new WebView(this);
+            WebSettings ws = pageWeb.getSettings();
+            ws.setJavaScriptEnabled(true); ws.setDomStorageEnabled(true); ws.setLoadWithOverviewMode(true); ws.setUseWideViewPort(true);
+            ws.setBuiltInZoomControls(true); ws.setDisplayZoomControls(false);
+            pageWeb.setWebViewClient(new WebViewClient() {
+                @Override
+                public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
+                    String u = req.getUrl().toString();
+                    if (u.startsWith("http")) return false;   // Links bleiben in der App
+                    try { startActivity(new Intent(Intent.ACTION_VIEW, req.getUrl())); } catch (Exception ignored) { }
+                    return true;
+                }
+                @Override
+                public void onPageFinished(WebView v, String u) { if (pageTitle != null) pageTitle.setText(v.getTitle() != null && !v.getTitle().isEmpty() ? v.getTitle() : u); }
+            });
+            pageBox.addView(bar, new android.widget.LinearLayout.LayoutParams(-1, -2));
+            pageBox.addView(pageWeb, new android.widget.LinearLayout.LayoutParams(-1, 0, 1f));
+            rootView.addView(pageBox, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        }
+        pageTitle.setText(url);
+        pageWeb.loadUrl(url);
+        pageBox.setVisibility(android.view.View.VISIBLE);
+        pageBox.bringToFront();
+    }
+    private void closeInApp() {
+        if (pageBox == null) return;
+        pageBox.setVisibility(android.view.View.GONE);
+        try { pageWeb.loadUrl("about:blank"); pageWeb.clearHistory(); } catch (Exception ignored) { }
+    }
+    // ---------- Ablage der heruntergeladenen Daten (Karten, Geozonen, Wetter …) ----------
+    // Sobald die Speicher-Freigabe da ist, liegen sie im Ordner „Kitzrettung Cache“ im internen Speicher (neben „KMZ Mission“) –
+    // so bleiben sie auch bei Neuinstallation der App erhalten. Vorher (und bis zum Umzug) im App-eigenen Speicher.
+    private volatile File dataDirCache = null;
+    private File extDataDir() { return new File(Environment.getExternalStorageDirectory(), "Kitzrettung Cache"); }
+    private File dataDir() {
+        File c = dataDirCache; if (c != null) return c;
+        if (prefs != null && prefs.getBoolean("data_ext_done", false) && hasFileAccess()) {
+            File e = extDataDir();
+            if (e.isDirectory() || e.mkdirs()) return dataDirCache = e;
+        }
+        return super.getFilesDir();
+    }
+    /** Wohin eine Datei aus dem App-Speicher im Ordner „Kitzrettung Cache“ kommt */
+    private static String migTarget(String rel) {
+        rel = rel.replace('\\', '/');
+        if (rel.startsWith("tiles/")) { String k = rel.substring(6); return tileCat(k) + "/" + k; }
+        if (rel.startsWith("dipul_vec/")) return "Geozonen/Zonendaten/" + rel.substring(10);
+        if (DATA_CAT.containsKey(rel)) return DATA_CAT.get(rel) + "/" + rel;
+        return "Sonstiges/" + rel;
+    }
+    private volatile boolean dataMoving = false;
+    /** Einmaliger Umzug der Daten in „Kitzrettung Cache“ (im Hintergrund, Datei für Datei, setzt nach Abbruch fort) */
+    private void dataMigrate() {
+        if (dataMoving || prefs.getBoolean("data_ext_done", false) || !hasFileAccess()) return;
+        dataMoving = true;
+        new Thread(() -> {
+            try {
+                File src = super.getFilesDir(), dst = extDataDir();
+                if (!dst.isDirectory() && !dst.mkdirs()) return;
+                try { new File(dst, ".nomedia").createNewFile(); } catch (Exception ignored) { }   // Kartenkacheln nicht in der Galerie zeigen
+                int moved = 0;
+                java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>(); st.push(src);
+                String base = src.getAbsolutePath();
+                while (!st.isEmpty()) {
+                    File d = st.pop(); File[] fs = d.listFiles(); if (fs == null) continue;
+                    for (File f : fs) {
+                        if (f.isDirectory()) { st.push(f); continue; }
+                        File t = new File(dst, migTarget(f.getAbsolutePath().substring(base.length() + 1)));
+                        try {
+                            if (!(t.isFile() && t.length() == f.length())) {
+                                t.getParentFile().mkdirs();
+                                File tmp = new File(t.getPath() + ".mv");
+                                try (InputStream in = new FileInputStream(f); OutputStream o = new FileOutputStream(tmp)) { byte[] b = new byte[65536]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r); }
+                                if (!tmp.renameTo(t)) { t.delete(); tmp.renameTo(t); }
+                            }
+                            f.delete(); moved++;
+                        } catch (Exception ignored) { }
+                    }
+                }
+                prefs.edit().putBoolean("data_ext_done", true).apply();
+                dataDirCache = null;
+                final int m = moved;
+                if (m > 0) js("window.onDataMoved && window.onDataMoved(" + m + ")");
+            } finally { dataMoving = false; }
+        }).start();
+    }
+    // ---------- Datenbereiche im Cache: einzeln löschen/neu holen; bei App-Änderungen per Versionsnummer automatisch aufräumen ----------
+    private volatile long lastTileBytes = 0;
+    private static final String[][] CACHE_CATS = {
+            {"karte", "Karte (Grau/Farbe)"}, {"luftbild", "Luftbild"}, {"geokacheln", "Geozonen-Bilder (dipul)"}, {"zonendaten", "Geozonen-Daten (zum Antippen)"},
+            {"feldwege", "Feldwege"}, {"hindernisse", "Hindernisse & Leitungen"}, {"windraeder", "Windräder"}, {"orte", "Orte & Landesgrenzen"},
+            {"flugplaetze", "Flugplätze"}, {"wiesen", "Feldgrenzen der Wiesen"}};
+    /** Version je Bereich: erhöhen, wenn sich das gespeicherte Format/der Umfang ändert – dann räumt die App diesen Bereich beim Start auf und holt ihn neu */
+    private static final Map<String, Integer> CACHE_VER = new HashMap<>();
+    static {
+        CACHE_VER.put("karte", 1); CACHE_VER.put("luftbild", 1); CACHE_VER.put("geokacheln", 1); CACHE_VER.put("zonendaten", 2);
+        CACHE_VER.put("feldwege", 1); CACHE_VER.put("hindernisse", 1); CACHE_VER.put("windraeder", 1); CACHE_VER.put("orte", 1);
+        CACHE_VER.put("flugplaetze", 1); CACHE_VER.put("wiesen", 1);
+    }
+    private List<File> catFiles(String id) {
+        List<File> l = new ArrayList<>();
+        switch (id) {
+            case "karte": l.add(tileFile("bmg")); l.add(tileFile("bmf")); l.add(tileFile("osm")); l.add(tileFile("bmv")); break;
+            case "luftbild": l.add(tileFile("dop3")); l.add(tileFile("sat")); break;
+            case "geokacheln": l.add(tileFile("dipul")); break;
+            case "zonendaten": l.add(geoVecDir()); break;
+            case "feldwege": l.add(osmWaysFile()); break;
+            case "hindernisse": l.add(osmFile()); break;
+            case "windraeder": l.add(dataFile("mastr_wind.json")); break;
+            case "orte": l.add(placeFile()); l.add(regionFile()); break;
+            case "flugplaetze": l.add(afFile()); l.add(afFreqFile()); break;
+            case "wiesen": l.add(outlineFile()); l.add(outlineFileByKmz()); break;
+        }
+        return l;
+    }
+    /** Merker zurücksetzen, damit der Bereich beim nächsten Speichern/Abgleich wirklich neu geholt wird */
+    private void catReset(String id) {
+        SharedPreferences.Editor e = prefs.edit();
+        switch (id) {
+            case "zonendaten": e.remove("geo_vec_bbox").remove("geo_vec_fetched"); break;
+            case "feldwege": case "hindernisse": e.remove("osm_fetched").remove("osm_bbox"); break;
+            case "orte": e.remove("place_fetched").remove("place_bbox").remove("reg_fetched"); break;
+            case "flugplaetze": e.remove("af_fetched").remove("af_bbox"); break;
+            case "wiesen": e.remove("uave_outlines_fetched"); break;
+        }
+        e.remove("esBox5").putString("cacheRefetch", "1").apply();   // App holt beim nächsten Mal mit Internet automatisch neu
+    }
+    private static void sizeOf(File f, long[] r) {
+        if (f == null || !f.exists()) return;
+        if (f.isFile()) { r[0] += f.length(); r[1]++; return; }
+        java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>(); st.push(f);
+        while (!st.isEmpty()) { File[] fs = st.pop().listFiles(); if (fs == null) continue;
+            for (File x : fs) { if (x.isDirectory()) st.push(x); else { r[0] += x.length(); r[1]++; } } }
+    }
+    /** Beim Start: Bereiche mit neuer Version aufräumen (z. B. nach Umbau der Kartenspeicherung) */
+    private void cacheVersionCheck() {
+        new Thread(() -> {
+            for (String[] c : CACHE_CATS) {
+                String id = c[0]; int want = CACHE_VER.getOrDefault(id, 1), have = prefs.getInt("cv_" + id, -1);
+                if (have >= 0 && have < want) { for (File f : catFiles(id)) deleteTree(f); catReset(id); }
+                if (have != want) prefs.edit().putInt("cv_" + id, want).apply();
+            }
+        }).start();
+    }
+    private File tileDir() { return new File(dataDir(), "tiles"); }   // nur App-Speicher (alte Ablage)
+    // Ordnung im Ordner „Kitzrettung Cache“: je Art ein eigener Unterordner
+    private static final Map<String, String> DATA_CAT = new HashMap<>();
+    static {
+        String[][] m = {{"mastr_wind.json", "Windraeder"}, {"field_outlines.json", "Wiesen"}, {"field_outlines_kmz.json", "Wiesen"}, {"osm_power.json", "Hindernisse"},
+                {"osm_places.json", "Orte"}, {"osm_ways.json", "Feldwege"}, {"regions.json", "Orte"}, {"airfields.json", "Flugplaetze"}, {"airfield_freqs.json", "Flugplaetze"}, {"notams.json", "Geozonen"}};
+        for (String[] x : m) DATA_CAT.put(x[0], x[1]);
+    }
+    private boolean isExt() { return !dataDir().equals(super.getFilesDir()); }
+    private File dataFile(String name) { return isExt() ? new File(dataDir(), (DATA_CAT.containsKey(name) ? DATA_CAT.get(name) : "Sonstiges") + "/" + name) : new File(dataDir(), name); }
+    private static String tileCat(String key) {
+        if (key.startsWith("dipul/")) return "Geozonen/Kacheln";
+        if (key.startsWith("dop3/") || key.startsWith("sat/")) return "Luftbild";
+        return "Karte";
+    }
+    /** Kachel-Datei zu einem Schlüssel wie „bmg/14/8600/5500.png“ */
+    private File tileFile(String key) { return isExt() ? new File(dataDir(), tileCat(key) + "/" + key) : new File(tileDir(), key); }
+    /** Alle Ordner mit Kacheln (für Größe, Aufräumen, Leeren) */
+    private File[] tileRoots() { return isExt() ? new File[]{new File(dataDir(), "Karte"), new File(dataDir(), "Luftbild"), new File(dataDir(), "Geozonen/Kacheln")} : new File[]{tileDir()}; }
     private static final String BM = "https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/";
     private static final String DOP_HE = "https://www.gds-srv.hessen.de/cgi-bin/lika-services/ogc-free-images.ows?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=he_dop20_rgb&STYLES=&CRS=EPSG:3857&FORMAT=image/png&TRANSPARENT=TRUE&WIDTH=256&HEIGHT=256&BBOX=";
     private static final String DOP_RP = "https://geo4.service24.rlp.de/wms/rp_dop20.fcgi?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rp_dop20&STYLES=&CRS=EPSG:3857&FORMAT=image/png&TRANSPARENT=TRUE&WIDTH=256&HEIGHT=256&BBOX=";
@@ -2103,7 +2375,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         try {
             String[] km = tileKey(u);
             if (km == null) return null;
-            File f = new File(tileDir(), km[0]);
+            File f = tileFile(km[0]);
             boolean have = f.isFile() && f.length() > 0;
             if (!have) viewReqAt = System.currentTimeMillis();   // Ansicht braucht Netz: Vorab-Download kurz pausieren
             boolean on = online();
@@ -2175,11 +2447,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             // fehlende Gruppen gleichzeitig bei dipul holen (nicht nacheinander) – sonst dauert jede Kachel sehr lange
             java.util.Map<String, java.util.concurrent.Future<byte[]>> fut = new HashMap<>();
             for (String g : groups) {
-                File gf = new File(tileDir(), "dipul/" + g + "/" + z + "/" + x + "/" + y + ".png");
+                File gf = tileFile("dipul/" + g + "/" + z + "/" + x + "/" + y + ".png");
                 if (online && !(gf.isFile() && gf.length() > 0)) fut.put(g, GEO_POOL.submit(() -> { byte[] b = dipulTile(z, x, y, g); if (b != null && b.length > 0) saveTile(gf, b); return b; }));
             }
             for (String g : groups) {
-                File gf = new File(tileDir(), "dipul/" + g + "/" + z + "/" + x + "/" + y + ".png");
+                File gf = tileFile("dipul/" + g + "/" + z + "/" + x + "/" + y + ".png");
                 byte[] b = null;
                 java.util.concurrent.Future<byte[]> fu = fut.get(g);
                 if (fu != null) { try { b = fu.get(12, java.util.concurrent.TimeUnit.SECONDS); } catch (Throwable t) { b = null; } }   // nicht ewig blockieren – sonst kommt auch die Grundkarte nicht mehr durch
@@ -2293,7 +2565,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         new Thread(() -> {
             int del = 0;
             java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
-            File root = new File(tileDir(), "dop3"); if (root.isDirectory()) st.push(root);
+            File root = tileFile("dop3"); if (root.isDirectory()) st.push(root);
             android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options(); o.inSampleSize = 4;
             while (!st.isEmpty()) {
                 File d = st.pop(); File[] fs = d.listFiles(); if (fs == null) continue;
@@ -2406,7 +2678,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                                         : geo ? "dipul/" + lay.substring(4) + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png"
                                         : vec ? "bmv" + BMV_TILES + t[0] + "/" + t[1] + "/" + t[2] + ".pbf"
                                         : lay + "/" + t[0] + "/" + t[1] + "/" + t[2] + ".png";
-                                File f = new File(tileDir(), key);
+                                File f = tileFile(key);
                                 if (f.isFile() && f.length() > 0) { synchronized (cnt) { cnt[1]++; } }
                                 else {
                                     if (lay.equals("dop") && t[0] < 12) { synchronized (cnt) { cnt[1]++; } return; }   // Luftbild-Übersicht kommt von Esri (nur beim Ansehen)
@@ -2473,7 +2745,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         try {
             List<File> all = new ArrayList<>();
             java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
-            st.push(tileDir());
+            for (File r0 : tileRoots()) st.push(r0);
             long total = 0;
             while (!st.isEmpty()) {
                 File[] fs = st.pop().listFiles();
@@ -2490,7 +2762,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private long tileCacheBytes() {
         long total = 0;
         java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
-        st.push(tileDir());
+        for (File r0 : tileRoots()) st.push(r0);
         while (!st.isEmpty()) {
             File[] fs = st.pop().listFiles();
             if (fs == null) continue;
@@ -2500,7 +2772,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     // ---------- Bundesländer + Regierungsbezirk Gießen (OSM-Grenzen, vereinfacht, offline) ----------
-    private File regionFile() { return new File(getFilesDir(), "regions.json"); }
+    private File regionFile() { return dataFile("regions.json"); }
 
     private void regionSync(double n, double s, double e, double w, boolean force) {
         try {
@@ -2600,8 +2872,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     // ---------- Flugplätze (OSM) + Frequenzen (OurAirports, CC-BY) ----------
-    private File afFile() { return new File(getFilesDir(), "airfields.json"); }
-    private File afFreqFile() { return new File(getFilesDir(), "airfield_freqs.json"); }
+    private File afFile() { return dataFile("airfields.json"); }
+    private File afFreqFile() { return dataFile("airfield_freqs.json"); }
 
     private static String readFile(File f) throws Exception {
         try (InputStream in = new FileInputStream(f)) { return readAll(in); }
@@ -2762,7 +3034,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     // ---------- NOTAM / temporäre Betriebseinschränkungen (dipul WFS, CC BY-ND 4.0) ----------
-    private File notamFile() { return new File(getFilesDir(), "notams.json"); }
+    private File notamFile() { return dataFile("notams.json"); }
 
     private void notamSyncImpl(double n, double s, double e, double w, boolean force) {
         try {
@@ -2851,7 +3123,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     }
                 }
             }
-            writeFileAtomic(new File(getFilesDir(), "mastr_wind.json"), new JSONObject().put("t", System.currentTimeMillis()).put("list", out).toString());
+            writeFileAtomic(dataFile("mastr_wind.json"), new JSONObject().put("t", System.currentTimeMillis()).put("list", out).toString());
             ev.put("ok", true).put("n", out.length());
         } catch (Exception ex) {
             try { ev.put("ok", false).put("error", ex.getMessage()); } catch (Exception ignored) { }
@@ -3061,7 +3333,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     if (feats != null) shrunk = true;
                 }
                 if (feats == null) { fail++; continue; }
-                writeFileAtomic(geoVecFile(layer), feats.toString());
+                writeFileAtomic(geoVecFile(layer), feats.toString().replaceAll("(\\.\\d{5})\\d+", "$1"));   // 5 Nachkommastellen (≈1 m) reichen – Datei viel kleiner
                 ok++;
                 count += feats.length();
             }

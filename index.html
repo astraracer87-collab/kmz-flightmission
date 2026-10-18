@@ -26,6 +26,7 @@
   #mapG .tl,#mapT .tl{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
   #mapG img,#mapT img{position:absolute;width:256px;height:256px;max-width:none;opacity:0;transition:opacity .18s linear;-webkit-user-drag:none}
   #mapG img.ok,#mapT img.ok{opacity:1}
+  body.pgopen #mapWrap,body.pgopen #ctrl,body.pgopen #wind,body.pgopen #notam{visibility:hidden}   /* Karte ruht, solange eine Seite offen ist – spart Speicher/Grafik */
   #mapO{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform;z-index:2}
   button{font:inherit;border:0;border-radius:10px;font-weight:700;cursor:pointer}
   button:disabled{opacity:.4}
@@ -230,6 +231,7 @@
   #tour .tbox{position:absolute;background:var(--card);color:var(--txt);border-radius:16px;padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.45)}
   #tour .tbox h3{margin:2px 0 6px;font-size:19px}#tour .tbox p{margin:0 0 12px;font-size:15px;line-height:1.4;color:var(--muted)}
   #tour .tn{font-size:12px;color:var(--muted);font-weight:700}#tour .tbt{display:flex;gap:8px;align-items:center}#tour .tbt button{height:42px;padding:0 14px}
+  .cacherow{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line2)}.cacherow .l{flex:1;min-width:0}.cacherow b{display:block;font-size:15px}.cacherow em{display:block;font-style:normal;font-size:13px;color:var(--muted)}.cacherow button{height:40px;padding:0 12px}
   .wxban{display:flex;align-items:center;gap:12px;border-radius:14px;padding:12px 14px;color:#fff;font-weight:800;font-size:20px;line-height:1.2}
   .wxban.l0{background:#13a538}.wxban.l1{background:#d98a00}.wxban.l2{background:#b3131b}
   .wxban svg{width:34px;height:34px;flex:none;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
@@ -417,6 +419,9 @@
     <div class="set"><div class="l"><div class="t">Dateizugriff</div><div class="v" id="vAcc"></div></div><button class="b-sec" id="bAcc">Berechtigung</button></div>
     <h3 class="setcat" id="sc-karte">Karte</h3>
     <div class="set"><div class="l"><div class="t">Kartentyp</div><div class="v" id="vTiles">Angesehene Kacheln werden auf der RC gespeichert und sind danach offline verfügbar.</div></div><button class="b-sec" id="bTilesClear">Leeren</button><div class="seg"><button data-layer="grey">Grau</button><button data-layer="osm">Karte</button><button data-layer="sat">Luftbild</button></div></div>
+    <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Offline-Daten</div>
+      <div class="v" id="vCache" style="margin-bottom:6px">Wird gezählt…</div>
+      <div id="cacheList"></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzgebiet speichern</div><div class="v" id="vPrefetch">Holt Karte, Luftbild, dipul-Geozonen, Zonendaten, Hindernisse und Wetter für das Gebiet eurer Wiesen auf die RC – danach läuft alles ohne Internet, online nur noch für „Abgleichen“.</div></div><button class="b-ok" id="bPrefetch">Speichern</button></div>
     <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
     <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div><div class="v">Auch über ⓘ → „Felder“ schaltbar</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
@@ -524,7 +529,46 @@ if (A.getPref('zgMigrated', '') !== '1') { if (P.georesi === '1' && !zgOn('wohn'
 // Zielordner: eigener Ordner direkt im internen Speicher – in Pilot 2 beim „Route importieren“ sofort zu finden.
 // Wer noch den alten Standard (DJI/Mission/Download) hat, wird einmal umgestellt; selbst gewählte Ordner bleiben.
 if (P.dst === ROOT + '/DJI/Mission/Download' && A.getPref('dstMigrated', '') !== '1') { setP('dst', DEF.dst); setP('dstMigrated', 1); }
-try { if (A.ensureDir) A.ensureDir(P.dst); } catch (e) { }   // Ordner gleich anlegen, damit er in Pilot 2 schon sichtbar ist
+/** Quell- und Zielordner anlegen, falls sie fehlen – geht erst, wenn die Speicher-Freigabe erteilt ist */
+// Ist eine ganze Seite offen, ruht die Karte darunter (weniger Grafikspeicher → kein Absturz beim Scrollen)
+const pgObs = new MutationObserver(() => {
+  const open = !!document.querySelector('.page.open');
+  if (open !== document.body.classList.contains('pgopen')) { document.body.classList.toggle('pgopen', open); if (!open) { tilesDirty = true; draw(); } }
+});
+document.querySelectorAll('.page').forEach(pg => pgObs.observe(pg, { attributes: true, attributeFilter: ['class'] }));
+window.onDataMoved = n => { toast(`Kartendaten liegen jetzt im Ordner „Kitzrettung Cache“ – sie bleiben auch bei Neuinstallation erhalten.`, false, 6000);
+  setTimeout(() => location.reload(), 1500); };
+// ---------- Offline-Daten: Bereiche einzeln löschen / neu holen ----------
+const fmtBytes = b => { const mb = b / 1048576; return mb < 1 ? (b > 0 ? '< 1 MB' : 'leer') : mb < 1024 ? Math.round(mb) + ' MB' : (mb / 1024).toFixed(1).replace('.', ',') + ' GB'; };
+window.onCacheInfo = raw => {
+  let r = {}; try { r = JSON.parse(raw); } catch (e) { return; }
+  if (!$('cacheList')) return;
+  $('vCache').textContent = `Zusammen ${fmtBytes(r.total || 0)} · Ordner: ${r.where || ''} · Löschen ist ungefährlich – „Neu holen“ lädt den Bereich mit Internet wieder (am besten im WLAN).`;
+  $('cacheList').innerHTML = (r.list || []).map(c => `<div class="cacherow"><div class="l"><b>${esc(c.name)}</b><em>${fmtBytes(c.bytes)}${c.files > 1 ? ' · ' + c.files.toLocaleString('de-DE') + ' Dateien' : ''}</em></div>
+    <button class="b-sec" data-cdel="${c.id}"${c.bytes ? '' : ' disabled'}>Löschen</button><button class="b-sec" data-cnew="${c.id}">Neu holen</button></div>`).join('');
+  $('cacheList').querySelectorAll('[data-cdel]').forEach(b => b.onclick = () => {
+    const c = r.list.find(x => x.id === b.dataset.cdel);
+    confirmDlg(c.name + ' löschen?', 'Die gespeicherten Daten dieses Bereichs werden von der Fernsteuerung gelöscht. Mit Internet holt die App sie beim nächsten Speichern des Einsatzgebiets wieder.', [], 'Löschen', () => { cacheBusy = null; A.cacheClear(c.id); toast('Wird gelöscht…'); });
+  });
+  $('cacheList').querySelectorAll('[data-cnew]').forEach(b => b.onclick = () => {
+    if (!isOnline()) return toast('Dafür wird Internet gebraucht (am besten WLAN).', true);
+    cacheBusy = b.dataset.cnew; A.cacheClear(b.dataset.cnew); toast('Wird neu geholt…');
+  });
+};
+let cacheBusy = null;
+window.onCacheCleared = id => {
+  const tilesCat = ['karte', 'luftbild', 'geokacheln'].includes(id);
+  if (tilesCat) { tiles.clear(); tlReset(); draw(); }
+  if (id === 'zonendaten') { S.geo = []; loadGeoVectors(); }
+  if (cacheBusy === id) { cacheBusy = null; if (S.files.length && A.prefetchStart) einsatzRun(false, false, true); else geoSyncNow(true, true); }
+  else toast('Gelöscht.');
+  if ($('pgSet').classList.contains('open') && A.cacheInfoAsync) A.cacheInfoAsync();
+};
+function ensureFolders() {
+  if (!A.ensureDir || !A.hasAccess || !A.hasAccess()) return;
+  [P.src, P.dst].forEach(d => { try { if (d) A.ensureDir(d); } catch (e) { } });
+}
+ensureFolders();   // Zielordner gleich anlegen, damit er in Pilot 2 schon sichtbar ist
 
 // ---------- Meldungen ----------
 let tt;
@@ -789,6 +833,7 @@ const placeEl = (el, B, hideOut) => { const [x, y, k] = bufPlace(B); el.style.vi
 let lastMove = 0;
 function paint() {
   pend = false;
+  if (document.body.classList.contains('pgopen')) { dirty = true; return; }   // Seite (Einstellungen, Wetter …) liegt über der Karte: nichts zeichnen
   const gest = (ptr.size > 0 || fling) && Date.now() - lastMove < 180;   // Finger (oder Schwung) bewegt die Karte gerade
   let cover = false;
   cover = covers(BV, .55, 1.8);
@@ -907,20 +952,34 @@ function paintLive() {
 }
 
 // ---------- Geozonen als Vektordaten (dipul WFS, offline gespeichert) ----------
-function loadGeoVectors() {
+let geoLoadRun = 0;
+/** Zonendaten Schicht für Schicht laden, mit Pausen dazwischen – sonst friert die App bei großen Gebieten ein („reagiert nicht“) */
+async function loadGeoVectors() {
   if (!A.geoVectors) return;
-  try {
-    const d = JSON.parse(A.geoVectors() || '{}');
-    const out = [];
-    Object.keys(d).forEach(layer => (d[layer] || []).forEach(f => {
+  const run = ++geoLoadRun, out = [];
+  const pause = () => new Promise(r => setTimeout(r, 0));
+  const addLayer = (layer, arr) => {
+    for (const f of arr || []) {
+      if (!f.geometry) continue;
       const rings = geomRings(f.geometry);
-      if (!rings.length) return;
+      if (!rings.length) continue;
       let n = -90, s = 90, e = -180, w = 180;
-      rings.forEach(r => r.forEach(c => { if (c[1] > n) n = c[1]; if (c[1] < s) s = c[1]; if (c[0] > e) e = c[0]; if (c[0] < w) w = c[0]; }));
+      for (const r of rings) for (const c of r) { if (c[1] > n) n = c[1]; if (c[1] < s) s = c[1]; if (c[0] > e) e = c[0]; if (c[0] < w) w = c[0]; }
       out.push({ layer, props: f.properties || {}, type: f.geometry.type, rings, bb: { n, s, e, w } });
-    }));
+    }
+  };
+  try {
+    if (A.geoVectorLayer) {
+      for (const layer of GEO_ALL) {
+        if (run !== geoLoadRun) return;   // neuer Ladevorgang hat übernommen
+        const t = A.geoVectorLayer(layer);
+        if (t) { try { addLayer(layer, JSON.parse(t)); } catch (e) { } }
+        await pause();
+      }
+    } else { const d = JSON.parse(A.geoVectors() || '{}'); Object.keys(d).forEach(l => addLayer(l, d[l])); }
     // große Flächen zuerst zeichnen, kleine obendrauf
     out.sort((a, b) => (b.bb.n - b.bb.s) * (b.bb.e - b.bb.w) - (a.bb.n - a.bb.s) * (a.bb.e - a.bb.w));
+    if (run !== geoLoadRun) return;
     S.geo = out;
     const nb = geoVecBox(); if (JSON.stringify(nb) !== JSON.stringify(S.geoBox)) { S.geoBox = nb; GEOR.reset(); }
   } catch (e) { S.geo = []; }
@@ -1644,6 +1703,7 @@ async function load(keepView) {
   if (loading) return;
   if (!A.hasAccess()) { $('perm').classList.add('open'); return; }
   $('perm').classList.remove('open');
+  ensureFolders();   // nach der Freigabe: fehlende Standardordner anlegen
   loading = true;
   const keep = new Set(S.files.filter(f => f.selected).map(f => f.path));
   const r = JSON.parse(A.listKmz(P.src));
@@ -2129,6 +2189,7 @@ function fillSettings() {
   $('vSrc').textContent = P.src; $('vDst').textContent = P.dst;
   $('sMove').checked = P.move === '1'; $('sClear').checked = P.clear === '1'; $('sLabels').checked = P.labels === '1';
   document.querySelectorAll('[data-layer]').forEach(b => b.classList.toggle('on', b.dataset.layer === P.layer));
+  if (A.cacheInfoAsync) A.cacheInfoAsync();   // Größen im Hintergrund zählen (sonst hängt die App bei vielen Kacheln)
   if (A.tileCacheInfo) { const mb = +A.tileCacheInfo() / 1048576; $('vTiles').textContent = `Grau/Karte: basemap.de (amtliche Karte) · Luftbild: Orthophotos Hessen/Rheinland-Pfalz · alle angesehenen und vorab geladenen Kacheln bleiben auf der RC (erst nach 1 Jahr neu geladen) · belegt ${mb < 1 ? '< 1 MB' : mb < 1024 ? Math.round(mb) + ' MB' : (mb / 1024).toFixed(1).replace('.', ',') + ' GB'}`; }
   document.querySelectorAll('[data-rcdrone]').forEach(b => b.classList.toggle('on', b.dataset.rcdrone === P.drone));
   $('sGeo').checked = P.geo === '1'; $('sGeoRes').checked = zgOn('wohn');
@@ -2215,6 +2276,7 @@ function einsatzRun(de, fresh, auto, full) {
   try { metarLoad(null, true).then(metarApply).catch(() => { }); wxPrefetch(); } catch (e) { }
   A.prefetchStart(JSON.stringify({ jobs: j.jobs }));
   esPending = einsatzBox(25);
+  try { A.setPref('cacheRefetch', ''); } catch (e) { }
   if (auto) setTimeout(tourAsk, 2500);   // Wartezeit sinnvoll nutzen
   toast(auto ? 'Einsatzgebiet wird automatisch für offline gespeichert (Karte, Geozonen, Windräder, Wetter) – Fortschritt in den Einstellungen.' : 'Einsatzgebiet wird gespeichert – Fortschritt in den Einstellungen.', false, auto ? 6000 : 4000);
 }
@@ -2774,9 +2836,7 @@ function loadObstacles() {
       pts.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); });
       return { e: r.e, n: r.n, pts, bb: { n, s, e, w } }; });
     S.osmPlaces = (d.places || []).filter(p => p.n);
-    S.ways = (d.ways || []).map(r => { const pts = toLatLon(r.g); let n = -90, s2 = 90, e = -180, w = 180;
-      pts.forEach(([la, lo]) => { n = Math.max(n, la); s2 = Math.min(s2, la); e = Math.max(e, lo); w = Math.min(w, lo); });
-      return { k: r.k, pts, bb: { n, s: s2, e, w } }; });
+    S.waysCache = null;   // Wege werden erst beim Einsatzplan für das Gebiet geholt
   } catch (e) { S.obs = []; S.rails = []; }
   mergeMastrWind();
   loadPlaces();
@@ -3157,7 +3217,8 @@ function showAirfieldList() {
   $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => showAirfield(S.airfields.find(a => a.id === el.dataset.af)));
 }
 document.querySelectorAll('[data-rose]').forEach(b => b.onclick = () => { const v = b.dataset.rose; setP('rose', v === 'off' ? 0 : 1); if (v !== 'off') setP('compass', v === 'dev' ? 1 : 0); fillSettings(); windWidget(); draw(); });
-document.querySelectorAll('[data-wxmax]').forEach(b => b.onclick = () => { setP('wxMaxH', b.dataset.wxmax); fillSettings(); });
+document.querySelectorAll('[data-wxmax]').forEach(b => b.onclick = () => { setP('wxMaxH', b.dataset.wxmax);   // nur die Knöpfe umschalten – kein Neuaufbau der ganzen Einstellungen (das hakte)
+  document.querySelectorAll('[data-wxmax]').forEach(x => x.classList.toggle('on', x === b)); });
 $('sWxStart').onchange = e => { if (e.target.value) setP('wxStart', e.target.value); };
 $('sAf').onchange = e => { setP('airf', e.target.checked ? 1 : 0); draw(); };
 document.querySelectorAll('.setnav [data-sc]').forEach(b => b.onclick = () => { const h = $('sc-' + b.dataset.sc); if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
@@ -4427,11 +4488,16 @@ function notamMapView(cv, items, nNear, onPick) {
     let n = -90, s2 = 90, e = -180, w = 180;
     pts.forEach(([lo, la]) => { n = Math.max(n, la); s2 = Math.min(s2, la); e = Math.max(e, lo); w = Math.min(w, lo); });
     const bx = Math.max(1e-6, lon2x(e) - lon2x(w)), by = Math.max(1e-6, lat2y(s2) - lat2y(n));
-    z = Math.max(6, Math.min(16, Math.log2(Math.min(Wm * .8 / (bx * 256), Hm * .8 / (by * 256)))));
+    z = Math.max(4.5, Math.min(16, Math.log2(Math.min(Wm * .8 / (bx * 256), Hm * .8 / (by * 256)))));
     cx = (lon2x(e) + lon2x(w)) / 2; cy = (lat2y(s2) + lat2y(n)) / 2;
   };
   const fieldPts = S.files.filter(f => !f.dup).flatMap(f => (f.outline || (f.shapes[0] || {}).pts || []).map(p => [p[1], p[0]]));
-  const allPts = () => { const np = items.slice(0, nNear).flatMap(n => geomRings(n.geom).flat()); return np.length ? np.concat(fieldPts) : fieldPts.length ? fieldPts : items.flatMap(n => geomRings(n.geom).flat()); };
+  // Start und „Alles zeigen“: immer ganz Deutschland mit allen Einschränkungen
+  const allPts = () => [[DE_BOX[0], DE_BOX[1]], [DE_BOX[2], DE_BOX[3]]].concat(items.flatMap(n => geomRings(n.geom).flat()));
+  // 50-km-Bereich um eure Felder als Kreis (Mitte der Felder, Radius 50 km + halbe Ausdehnung)
+  const fb = S.files.length ? bounds(S.files.filter(f => !f.dup)) : null;
+  const ring50 = fb ? (() => { const la = (fb.n + fb.s) / 2, lo = (fb.e + fb.w) / 2, half = Math.hypot((fb.n - fb.s) * 111.2, (fb.e - fb.w) * 111.2 * Math.cos(la * Math.PI / 180)) / 2, rk = NOTAM_NEAR / 1000 + half;
+    return Array.from({ length: 73 }, (_, i) => { const a = i / 72 * 2 * Math.PI; return [la + Math.cos(a) * rk / 111.2, lo + Math.sin(a) * rk / (111.2 * Math.cos(la * Math.PI / 180))]; }); })() : null;
   const P2 = (la, lo) => { const k = 256 * Math.pow(2, z); return [(lon2x(lo) - cx) * k + Wm / 2, (lat2y(la) - cy) * k + Hm / 2]; };
   function paint() {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -4444,6 +4510,11 @@ function notamMapView(cv, items, nNear, onPick) {
       let im = tiles.get(key);
       if (!im) { im = new Image(); im.onload = () => req(); im.src = LAYERS[P.layer](lz, ((tx % nT) + nT) % nT, ty); tiles.set(key, im); }
       if (im.complete && im.naturalWidth) g.drawImage(im, tx * ts - px, ty * ts - py, ts + .5, ts + .5);
+    }
+    if (ring50) {   // Umkreis 50 km um die Felder
+      g.save(); g.beginPath(); ring50.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath();
+      g.fillStyle = nNear ? 'rgba(255,170,0,.08)' : 'rgba(19,165,56,.10)'; g.fill(); g.setLineDash([8, 6]); g.lineWidth = 2; g.strokeStyle = nNear ? '#e8a200' : '#13a538'; g.stroke(); g.restore();
+      const [tx, ty] = P2(ring50[0][0], ring50[0][1]); g.font = '700 12px Roboto,system-ui,sans-serif'; g.textAlign = 'center'; g.fillStyle = nNear ? '#9a6b00' : '#0e7a2c'; g.fillText('50 km um eure Felder', tx, ty - 6);
     }
     S.files.filter(f => !f.dup).forEach(f => (f.outline ? [f.outline] : f.shapes.map(sh => sh.pts)).forEach(r => {
       g.beginPath(); r.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath();
@@ -4484,7 +4555,7 @@ function notamMapView(cv, items, nNear, onPick) {
   cv.onpointerup = cv.onpointercancel = e => { ptr.delete(e.pointerId); last = null; };
   cv.onwheel = e => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, e.deltaY < 0 ? .5 : -.5); req(); };
   function zoomAt(x, y, dz) {
-    const nz = Math.max(5, Math.min(18, z + dz)); if (nz === z) return;
+    const nz = Math.max(4.5, Math.min(18, z + dz)); if (nz === z) return;
     const k0 = 256 * Math.pow(2, z), k1 = 256 * Math.pow(2, nz);
     const wx = cx + (x - Wm / 2) / k0, wy = cy + (y - Hm / 2) / k0;
     z = nz; cx = wx - (x - Wm / 2) / k1; cy = wy - (y - Hm / 2) / k1;
@@ -4929,6 +5000,17 @@ function fieldRingLL(f) {
   const h = lo.slice(0, -1).concat(up.slice(0, -1));
   return (f._ringLL = f.outline && f.outline.length > 2 ? f.outline.map(p => [p[1], p[0]]) : h);
 }
+/** Wege aus OSM nur für das gefragte Gebiet (klein halten) – zwischengespeichert */
+function waysIn(n, s2, e, w) {
+  const key = [n, s2, e, w].map(v => v.toFixed(3)).join(',');
+  S.waysCache = S.waysCache || new Map();
+  if (S.waysCache.has(key)) return S.waysCache.get(key);
+  let list = [];
+  try { list = (JSON.parse(A.osmWays ? A.osmWays(JSON.stringify({ n, s: s2, e, w })) || '[]' : '[]')).map(r => { const pts = toLatLon(r.g); let a = -90, b = 90, c = -180, d = 180;
+    pts.forEach(([la, lo]) => { a = Math.max(a, la); b = Math.min(b, la); c = Math.max(c, lo); d = Math.min(d, lo); }); return { k: r.k, pts, bb: { n: a, s: b, e: c, w: d } }; }); } catch (e) { }
+  if (S.waysCache.size > 30) S.waysCache.clear();
+  S.waysCache.set(key, list); return list;
+}
 /** Gemeinsamer Standort für mehrere Wiesen: Punkt mit kleinster größter Entfernung zu allen Ecken (Näherung) */
 function standFor(fs, max) {
   const pts = fs.flatMap(fieldPts); if (!pts.length) return null;
@@ -4945,7 +5027,7 @@ function standFor(fs, max) {
   const pl = pad / Math.cos(c[0] * Math.PI / 180), be = Math.max(...pts.map(p => p[1])) + pl, bw = Math.min(...pts.map(p => p[1])) - pl;
   const PEN = { tertiary: 25, unclassified: 10, service: 5 };   // lieber Feldweg als Straße
   let best = null;
-  (S.ways || []).forEach(w => {
+  waysIn(bn, bs, be, bw).forEach(w => {
     if (w.bb.s > bn || w.bb.n < bs || w.bb.w > be || w.bb.e < bw) return;
     for (let i = 0; i + 1 < w.pts.length; i++) {
       const a = w.pts[i], b = w.pts[i + 1], L = distM(a[0], a[1], b[0], b[1]), n = Math.max(1, Math.ceil(L / 12));
