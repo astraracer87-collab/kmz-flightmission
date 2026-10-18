@@ -58,6 +58,7 @@
   #q{flex:1;min-width:0;height:52px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:18px;background:var(--card2);color:var(--txt);outline:none}
   #q:focus{border-color:var(--acc)}
   #q::-webkit-search-cancel-button{display:none}
+  #qGo{height:52px;padding:0 16px;border-radius:12px;flex:none;font-size:17px}
   #qX{height:52px;width:52px;border-radius:12px;background:var(--sec);color:var(--acc);display:flex;align-items:center;justify-content:center;flex:none}
   #qHits{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:132px;overflow-y:auto}
   #qHits:empty{display:none}
@@ -384,6 +385,7 @@
   <div class="row">
     <svg class="ic" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
     <input id="q" type="search" placeholder="Feld oder Ort suchen…" autocomplete="off" enterkeyhint="search">
+    <button id="qGo" class="b-ok" title="Zum Ort / Treffer anzeigen">Los</button>
     <button id="qX" title="Suche löschen und schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div id="qHits"></div>
@@ -869,6 +871,14 @@ function paintLive() {
     const ax = W - 80;   // links neben den Kartenknöpfen
     ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(ax - tw - 4, H - 92, tw + 8, 15);
     ctx.fillStyle = '#334'; ctx.fillText(at2, ax, H - 78);
+  }
+  if (S.placePin) {   // gesuchter Ort: rote Nadel mit Namen
+    const [x, y] = toScreen(S.placePin.lat, S.placePin.lon);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y - 26, 11, Math.PI * 0.75, Math.PI * 2.25); ctx.closePath();
+    ctx.fillStyle = '#d42020'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y - 26, 4, 0, 7); ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.font = '800 14px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.strokeText(S.placePin.n, x, y - 42); ctx.fillStyle = '#15202b'; ctx.fillText(S.placePin.n, x, y - 42);
   }
   if (infoPin) {
     const [x, y] = toScreen(infoPin[0], infoPin[1]);
@@ -1767,6 +1777,7 @@ function placeHits(q) {
 }
 function goPlace(p) {
   V.lat = p.lat; V.lon = p.lon; V.z = PLACE_Z[p.t] || 14.5;
+  S.placePin = { lat: p.lat, lon: p.lon, n: p.n };   // Ort bleibt markiert, bis neu gesucht wird
   $('q').value = '';   // Feldfilter aufheben, damit die Felder rund um den Ort sichtbar sind
   closeSearch(false);
   const near = S.files.filter(f => !f.dup && Math.hypot((f.center[0] - p.lat) * 111.2, (f.center[1] - p.lon) * 71) < 3).length;
@@ -1817,6 +1828,7 @@ async function geocodeOnline(q) {
 }
 function openSearch() {
   $('searchBox').classList.add('open');
+  if (S.placePin) { S.placePin = null; draw(); }
   searchHits();
   setTimeout(() => { $('q').focus(); }, 50);
 }
@@ -1829,16 +1841,23 @@ function closeSearch(clear) {
 $('bSearch').onclick = () => $('searchBox').classList.contains('open') ? closeSearch(false) : openSearch();
 $('qX').onclick = () => closeSearch(true);
 $('q').oninput = () => { update(); photonSearch($('q').value.trim()); };
+/** „Los“ / Enter: zum besten Treffer – Ort hat Vorrang, wenn der Name passt; Suchfenster zu, Ort in die Mitte mit Markierung */
+function searchGo() {
+  const q = $('q').value.trim(); if (!q) return closeSearch(false);
+  $('q').blur();
+  const k = foldTxt(q), ph = placeHits(q), on = photon.q === q ? photon.list : [];
+  const exact = [...ph, ...on].find(p => foldTxt(p.n) === k) || [...ph, ...on].find(p => foldTxt(p.n).startsWith(k));
+  const fh = S.files.filter(f => !f.dup && ftitle(f).includes(k));
+  if (exact) return goPlace(exact);
+  if (fh.length) { const v = fh.filter(f => visible(f)); closeSearch(false); fitBounds(bounds(v.length ? v : fh)); return; }
+  if (ph.length) return goPlace(ph[0]);
+  if (on.length) return goPlace(on[0]);
+  if (q.length >= 2 && isOnline()) geocodeOnline(q);
+  else toast('Kein Ort gefunden' + (isOnline() ? '' : ' – offline nur Orte aus dem gespeicherten Einsatzgebiet'), true);
+}
+$('qGo').onclick = searchGo;
 $('q').onkeydown = e => {
-  if (e.key === 'Enter') {
-    $('q').blur();
-    const q = $('q').value.trim();
-    if (S.files.some(f => !f.dup && ftitle(f).includes(foldTxt(q)))) return fitAll();
-    const ph = placeHits(q);
-    if (ph.length) return goPlace(ph[0]);
-    if (photon.q === q && photon.list.length) return goPlace(photon.list[0]);
-    if (q.length >= 2 && isOnline()) geocodeOnline(q);
-  }
+  if (e.key === 'Enter') searchGo();
   else if (e.key === 'Escape') closeSearch(false);
 };
 
