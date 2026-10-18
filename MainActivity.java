@@ -95,6 +95,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         prefs = getSharedPreferences("settings", Context.MODE_PRIVATE);
         dopCleanup();   // einmalig: Luftbilder mit grauem Fleck entfernen
         cacheVersionCheck();   // geänderte Datenbereiche aufräumen
+        new Thread(this::uaveBackupRestore).start();   // UAV-Editor-Zugang aus „Kitzrettung Cache“ zurückholen (nach Neuinstallation)
         if (prefs.getInt("osm_ver", 1) == 4) new Thread(() -> {   // einmalig: Wege aus der OSM-Datei auslagern (sonst liest die App beim Start sehr lange)
             try {
                 JSONArray all = new JSONArray(readFile(osmFile())), els = new JSONArray(), wys = new JSONArray();
@@ -174,6 +175,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     protected void onResume() {
         super.onResume();
         try { if (hasFileAccess()) dataMigrate(); } catch (Exception ignored) { }   // Daten in „Kitzrettung Cache“ umziehen (einmalig)
+        try { if (hasFileAccess() && !prefs.contains("uave_pw")) new Thread(() -> { uaveBackupRestore(); if (prefs.contains("uave_pw")) js("window.onUaveRestored && window.onUaveRestored()"); }).start(); } catch (Exception ignored) { }
         try {
             if (sensorManager == null) sensorManager = (android.hardware.SensorManager) getSystemService(Context.SENSOR_SERVICE);
             android.hardware.Sensor rv = sensorManager != null ? sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_ROTATION_VECTOR) : null;
@@ -724,6 +726,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 try { prefs.edit().putString("uave_pw", encrypt(password)).apply(); }
                 catch (Exception e) { prefs.edit().remove("uave_pw").apply(); }
             }
+            uaveBackupSave(user, password);
         }
 
         /** Zugang sofort prüfen (Anmeldung beim UAV Editor). Ergebnis über window.onUaveTest({ok, error}) */
@@ -751,6 +754,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public void uaveForget() {
             prefs.edit().remove("uave_user").remove("uave_pw").remove("uave_manifest").apply();
+            try { uaveBackupFile().delete(); } catch (Exception ignored) { }
         }
 
         /** Holt die Feldliste und vergleicht sie mit dem Quellordner. Ergebnis über window.onUave */
@@ -1245,6 +1249,39 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             kg.generateKey();
         }
         return ((KeyStore.SecretKeyEntry) ks.getEntry("uave", null)).getSecretKey();
+    }
+
+    // ---------- Zugang UAV Editor zusätzlich im Ordner „Kitzrettung Cache“ sichern – übersteht Neuinstallation/App-Wechsel ----------
+    // Verschlüsselt (AES-GCM) mit einem festen App-Schlüssel: schützt vor Mitlesen im Dateimanager, ist aber kein Tresor –
+    // wer die App zerlegt, könnte ihn ermitteln. Der eigentliche Speicher bleibt der Android-Keystore.
+    private File uaveBackupFile() { return new File(hasFileAccess() ? extDataDir() : dataDir(), "Sonstiges/.uave-zugang"); }
+    private static javax.crypto.spec.SecretKeySpec backupKey() throws Exception {
+        byte[] k = java.security.MessageDigest.getInstance("SHA-256").digest("MissionKitzrettung|UAV-Editor-Zugang|v1|Kitzrettung-Limburg".getBytes(StandardCharsets.UTF_8));
+        return new javax.crypto.spec.SecretKeySpec(k, "AES");
+    }
+    private void uaveBackupSave(String user, String password) {
+        try {
+            String pw = password;
+            if (pw == null || pw.isEmpty()) { String st = prefs.getString("uave_pw", null); if (st != null) pw = decrypt(st); }
+            if (user == null || user.trim().isEmpty() || pw == null || pw.isEmpty()) return;
+            byte[] iv = new byte[12]; new java.security.SecureRandom().nextBytes(iv);
+            Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
+            c.init(Cipher.ENCRYPT_MODE, backupKey(), new GCMParameterSpec(128, iv));
+            byte[] ct = c.doFinal(new JSONObject().put("u", user.trim()).put("p", pw).toString().getBytes(StandardCharsets.UTF_8));
+            writeFileAtomic(uaveBackupFile(), Base64.encodeToString(iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(ct, Base64.NO_WRAP));
+        } catch (Exception ignored) { }
+    }
+    /** Beim Start: kein Zugang in der App, aber Sicherung im Cache-Ordner → übernehmen */
+    private void uaveBackupRestore() {
+        try {
+            if (prefs.contains("uave_pw") && !prefs.getString("uave_user", "").isEmpty()) { if (!uaveBackupFile().isFile()) uaveBackupSave(prefs.getString("uave_user", ""), null); return; }
+            File f = uaveBackupFile(); if (!f.isFile()) return;
+            String[] p = readFile(f).trim().split(":");
+            Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
+            c.init(Cipher.DECRYPT_MODE, backupKey(), new GCMParameterSpec(128, Base64.decode(p[0], Base64.NO_WRAP)));
+            JSONObject o = new JSONObject(new String(c.doFinal(Base64.decode(p[1], Base64.NO_WRAP)), StandardCharsets.UTF_8));
+            prefs.edit().putString("uave_user", o.getString("u")).putString("uave_pw", encrypt(o.getString("p"))).putString("uave_restored", "1").commit();
+        } catch (Exception ignored) { }
     }
 
     private String encrypt(String plain) throws Exception {

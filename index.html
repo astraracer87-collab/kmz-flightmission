@@ -5350,6 +5350,7 @@ function uaveTestNow() {
   if (!A.uaveTest) { toast('UAV-Editor-Zugang gespeichert.'); return; }
   setP('uaveTest', ''); toast('UAV-Editor-Zugang gespeichert – prüfe Anmeldung…', false, 8000); A.uaveTest();
 }
+window.onUaveRestored = () => { toast('✓ UAV-Editor-Zugang aus dem Cache-Ordner übernommen', 'ok', 4000); try { if ($('pgSet').classList.contains('open')) fillSettings(); } catch (e) { } };
 window.onUaveTest = raw => { let r = {}; try { r = JSON.parse(raw); } catch (e) { }
   if (r.ok) toast('✓ UAV Editor: Login erfolgreich', 'ok', 4000);
   else if (r.offline) toast('⚠ Gespeichert – Test nicht möglich (' + (r.error || 'offline') + ')', 'warn', 6000);
