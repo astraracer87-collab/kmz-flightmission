@@ -50,6 +50,10 @@
   #bar{overflow:hidden}
   #bar button{min-width:0}
   #bar .sp{flex:1;min-width:0}
+  /* Platz sparen: Plan und Abwählen nur als Symbol, damit „In Pilot 2/Briefing“ und Einstellungen immer sichtbar bleiben */
+  #bar #bPlan,#bar #bNone{font-size:0;gap:0;padding:0 13px}
+  #bar #bPlan svg,#bar #bNone svg{width:26px;height:26px}
+  #bar .srcseg button{height:44px;padding:0 9px}
   #bSearch{width:56px;padding:0;justify-content:center;position:relative}
   #bSearch svg{width:26px;height:26px}
   #bSearch.on{background:var(--acc);color:#fff}
@@ -354,6 +358,9 @@
   #xpl li span{flex:none;width:10px;height:10px;border-radius:50%}#xpl li.on{background:var(--card2);color:var(--txt);font-weight:700}
   .cbadge{font-style:normal;display:inline-flex;align-items:center;gap:2px;padding:1px 7px;border-radius:9px;font-size:12px;font-weight:800;color:#fff;margin-left:5px;vertical-align:middle;white-space:nowrap}
   .cbadge.a2{background:#1565c0}.cbadge.av{background:#13a538}
+  .licbox{margin-top:6px;border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--card2)}
+  .licbox summary{font-weight:700;cursor:pointer;padding:4px 0}
+  .licbox ul{margin:4px 0 4px 18px;padding:0}
   .cbadge.lic.y{background:#0e7a2c}.cbadge.lic.n{background:#8a2a2a}
   .cbadge.lic.mine{box-shadow:0 0 0 2px #fff,0 0 0 4px #1e7bff}
   #geoBub{position:fixed;z-index:19;display:none;width:min(380px,calc(100vw - 110px));background:var(--card);color:var(--txt);border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:10px 12px;font-size:14px}
@@ -431,9 +438,9 @@
 <div id="bar">
   <img class="logo" data-logo alt="Kitzrettung Limburg">
   <div id="count">0 markiert<small>0 Felder</small></div>
-  <div class="srcseg" title="Datenquelle der Felder: UAV Editor oder Missionen auf der Fernsteuerung (DJI Pilot 2)"><button data-fsrc="uave">Editor</button><button data-fsrc="rc">Auf RC</button></div>
-  <button id="bPlan" class="b-sec" style="display:none"><svg viewBox="0 0 24 24"><path d="M5 19l5-6 4 3 5-9"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="7" r="1.8"/></svg>Plan</button>
-  <button id="bNone" class="b-sec" style="display:none"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Abwählen</button>
+  <div class="srcseg" title="Datenquelle der Felder: UAV Editor oder Missionen auf der Fernsteuerung (DJI Pilot 2)"><button data-fsrc="uave">Editor</button><button data-fsrc="rc">RC</button></div>
+  <button id="bPlan" class="b-sec" style="display:none" title="Einsatzplan"><svg viewBox="0 0 24 24"><path d="M5 19l5-6 4 3 5-9"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="7" r="1.8"/></svg>Plan</button>
+  <button id="bNone" class="b-sec" style="display:none" title="Alle abwählen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Abwählen</button>
   <div class="sp"></div>
   <button id="bSearch" class="b-sec" title="Feld suchen"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button>
   <button id="bSync" class="b-sec" title="Wiesen aus dem UAV Editor holen"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-14.3-4.9M4 12a8 8 0 0 0 14.3 4.9"/><path d="M5.5 3v4.5H10M18.5 21v-4.5H14"/></svg>UAV Editor</button>
@@ -2533,9 +2540,12 @@ const STATES = [['BW','Baden-Württemberg'],['BY','Bayern'],['BE','Berlin'],['BB
 
 // ---------- Allgemeinverfügungen (Naturschutz-/FFH-/Vogelschutzgebiete): frei eintragbar, je mit Bundesländern, Zeitraum und Zonenarten ----------
 const AV_ZONES = [['naturschutzgebiete', 'Naturschutzgebiete'], ['ffh-gebiete', 'FFH-Gebiete'], ['vogelschutzgebiete', 'Vogelschutzgebiete'], ['nationalparks', 'Nationalparks']];
-function avDefault() { return [{ id: 'rpgi', name: 'Allgemeinverfügung RP Gießen – Wildtierrettung', states: ['HE'], rbGi: true, from: '04-15', to: '06-30', until: '2029-06-30',
+// Die AV Wildtierrettung setzt KEIN A2-Fernpilotenzeugnis voraus (anders als die Allgemeinerlaubnis der Länder) – a2: false
+function avDefault() { return [{ id: 'rpgi', name: 'Allgemeinverfügung RP Gießen – Wildtierrettung', states: ['HE'], rbGi: true, from: '04-15', to: '06-30', until: '2029-06-30', a2: false,
   layers: AVGI_LAYERS.slice(), rules: AVGI_RULES.slice(), link: LINK_AVGI, note: 'Az. RPGI-53.3-21a0500/2-2017/4 vom 26.04.2024 · nur Regierungsbezirk Gießen', on: P.avgi !== '0' }]; }
-function avList() { try { const a = JSON.parse(P.avs || 'null'); if (Array.isArray(a)) return a; } catch (e) { } return avDefault(); }
+function avList() { try { const a = JSON.parse(P.avs || 'null'); if (Array.isArray(a)) { a.forEach(av => { if (av.a2 === undefined) av.a2 = false; }); return a; } } catch (e) { } return avDefault(); }   // ohne Angabe: kein A2 nötig
+// einmalig: AV Wildtierrettung RP Gießen war versehentlich als „nur mit A2“ gespeichert – korrigieren
+if (A.getPref('avA2fix', '') !== '1') { try { const l = JSON.parse(P.avs || 'null'); if (Array.isArray(l)) { l.forEach(av => { if (av.id === 'rpgi' || /wildtier/i.test(av.name || '')) av.a2 = false; }); setP('avs', JSON.stringify(l)); } } catch (e) { } setP('avA2fix', 1); }
 function avSave(list) { setP('avs', JSON.stringify(list)); applyGeoConfig(); fillRules(); }
 const avUntil = av => av.until ? new Date(av.until + 'T23:59:59') : null;
 function avSeasonOn(av, d) {
@@ -2546,11 +2556,11 @@ function avSeasonOn(av, d) {
   return f <= t ? md >= f && md <= t : md >= f || md <= t;
 }
 function avInForce(av) { const u = avUntil(av); return avSeasonOn(av) || (P.season === '1' && (!u || new Date() <= u)); }
-const avLicOk = av => av.a2 === false || P.lic === 'A2';   // unsere AV gilt nur für Piloten mit A2-Zeugnis
+const avLicOk = av => av.a2 !== true || P.lic === 'A2';   // nur wenn beim Eintrag ausdrücklich „nur mit A2“ angehakt ist
 function avFor(layer, reg) { return reg && reg.st ? avList().find(av => av.on && avLicOk(av) && (av.layers || []).includes(layer) && (av.states || []).includes(reg.st) && (!av.rbGi || reg.rbGi) && avInForce(av)) : null; }
 const avLayersAll = () => [...new Set(avList().filter(a => a.on).flatMap(a => a.layers || []))];
 const mmdd = v => v ? v.slice(3, 5) + '.' + v.slice(0, 2) + '.' : '';
-const avText = av => `${(av.states || []).map(stateName).join(', ') || 'kein Bundesland'}${av.rbGi ? ' (nur RB Gießen)' : ''}${av.a2 === false ? '' : ' · nur mit A2'}${av.from && av.to ? ' · jährlich ' + mmdd(av.from) + '–' + mmdd(av.to) : ''}${av.until ? ' · gültig bis ' + av.until.split('-').reverse().join('.') : ''}`;
+const avText = av => `${(av.states || []).map(stateName).join(', ') || 'kein Bundesland'}${av.rbGi ? ' (nur RB Gießen)' : ''}${av.a2 === true ? ' · nur mit A2' : ''}${av.from && av.to ? ' · jährlich ' + mmdd(av.from) + '–' + mmdd(av.to) : ''}${av.until ? ' · gültig bis ' + av.until.split('-').reverse().join('.') : ''}`;
 function avgiActive(d) { return avList().some(av => av.on && avSeasonOn(av, d)); }
 // Saison-Vorschau: außerhalb 15.04.–30.06. so anzeigen, als wäre Mähsaison (zur Planung)
 function avgiInForce() { return avList().some(av => av.on && avInForce(av)); }
@@ -2631,11 +2641,17 @@ function covFor(layer, reg, lic) {
 /** Plaketten je Führerschein: „A1/A3 ✗ · A2 ✓“ + wodurch („Allgemeinerlaubnis“ bzw. „AV Wildtierrettung“); das eigene Zeugnis ist umrandet */
 function covBadges(layer, reg) {
   reg = reg || regionAt(V.lat, V.lon);
+  // Stromleitung mit Überfluggenehmigung des Netzbetreibers: gilt unabhängig vom Fernpilotenzeugnis (Auflagen laut Genehmigung)
+  if (P.power === '1' && layer === 'stromleitungen') {
+    const mine0 = P.lic === 'A2' ? 'A2' : 'A1A3';
+    const lb0 = (k, t) => `<i class="cbadge lic y${mine0 === k ? ' mine' : ''}">${t} ✓</i>`;
+    return lb0('A1A3', 'A1/A3') + lb0('A2', 'A2') + '<i class="cbadge a2" style="background:#6a1b9a" title="Überfluggenehmigung des Netzbetreibers – deren Auflagen gelten">über Genehmigung Netzbetreiber</i>';
+  }
   const c1 = covFor(layer, reg, 'A1A3'), c2 = covFor(layer, reg, 'A2');
   const ok1 = !!(c1.ae || c1.av), ok2 = !!(c2.ae || c2.av);
   if (!ok1 && !ok2) return '';
   const mine = P.lic === 'A2' ? 'A2' : 'A1A3';
-  const lb = (k, t, ok) => `<i class="cbadge lic ${ok ? 'y' : 'n'}${mine === k ? ' mine' : ''}" title="${mine === k ? 'Euer Fernpilotenzeugnis (Einstellungen)' : ''}">${t} ${ok ? '✓' : '✗'}</i>`;
+  const lb = (k, t, ok) => `<i class="cbadge lic ${ok ? 'y' : 'n'}${mine === k ? ' mine' : ''}" title="${mine === k ? 'In den Einstellungen gewählt' : ''}">${t} ${ok ? '✓' : '✗'}</i>`;
   let h = lb('A1A3', 'A1/A3', ok1) + lb('A2', 'A2', ok2);
   const av = c2.av || c1.av;
   if (c2.ae) h += '<i class="cbadge a2" title="Allgemeinerlaubnis der Landesluftfahrtbehörde – nur mit A2-Fernpilotenzeugnis">über Allgemeinerlaubnis</i>';
@@ -2703,7 +2719,7 @@ function avEdit(i) {
   x.innerHTML = `<label>Bezeichnung<input class="inp" id="avN" value="${esc(av.name)}" placeholder="z. B. Allgemeinverfügung Kreis XY – Wildtierrettung"></label>
     <div class="avt">Gilt in diesen Bundesländern</div><div class="roots" id="avSt">${STATES.map(([k, n]) => `<button data-st="${k}" class="${av.states.includes(k) ? 'on' : ''}">${n}</button>`).join('')}</div>
     ${av.id === 'rpgi' || av.rbGi ? `<label class="pick"><input type="checkbox" id="avRb"${av.rbGi ? ' checked' : ''}><span>Nur Regierungsbezirk Gießen (Hessen)</span></label>` : ''}
-    <label class="pick"><input type="checkbox" id="avA2"${av.a2 === false ? '' : ' checked'}><span>Gilt nur für Piloten mit A2-Fernpilotenzeugnis</span></label>
+    <label class="pick"><input type="checkbox" id="avA2"${av.a2 === true ? ' checked' : ''}><span>Gilt nur für Piloten mit A2-Fernpilotenzeugnis</span></label>
     <div class="avt">Zonenarten</div><div class="roots" id="avLy">${AV_ZONES.map(([k, n]) => `<button data-ly="${k}" class="${av.layers.includes(k) ? 'on' : ''}">${n}</button>`).join('')}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><label>Jährlich von<input class="inp" id="avF" value="${dd(av.from)}" placeholder="15.04."></label><label>bis<input class="inp" id="avT" value="${dd(av.to)}" placeholder="30.06."></label>
       <label>Gültig bis (Datum)<input class="inp" id="avU" type="date" value="${esc(av.until || '')}"></label></div>
@@ -2820,29 +2836,54 @@ function lawHtml(layer) {
   if (layer === 'windkraftanlagen') li.push('Gilt auch für Anlagen, die dipul nicht verzeichnet – maßgeblich ist § 21h LuftVO, nicht die Karte');
   return `<div style="margin-top:8px"><b>Bundesweit (${typeof n === 'number' ? `§ 21h Abs. 3 Nr. ${n} LuftVO` : n === 'ED-R' ? 'Flugbeschränkungsgebiet' : 'NOTAM'}, gilt mit jedem Führerschein):</b><ul>${li.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
 }
-/** Was das eigene Fernpilotenzeugnis zusätzlich bedeutet (offene Kategorie, EU 2019/947) */
+/** Je Fernpilotenzeugnis ein aufklappbarer Block: Regeln der offenen Kategorie + ob Allgemeinerlaubnis/Allgemeinverfügung hier greifen.
+ *  Das eigene Zeugnis (Einstellungen) ist aufgeklappt, das andere zugeklappt. Quelle Kategorie-Regeln: LuBB-Merkblatt „UAS Betriebskategorie offen“ (2024) */
 function licHtml(layer, reg) {
-  const ae = AE_LAYERS.includes(layer), a2 = P.lic === 'A2';
-  const li = a2
-    ? ['A2 (Drohne mit C2-Kennzeichnung): Unterkategorie A2 – mindestens 30 m Abstand zu unbeteiligten Personen (5 m im Langsamflugmodus), max. 120 m Höhe',
-       ae ? (reg && reg.st ? (aeFor(reg) ? `Allgemeinerlaubnis ${esc(stateName(reg.st))} eingetragen – deren Auflagen gelten zusätzlich bzw. ersetzen die Zustimmung` : `Für ${esc(stateName(reg.st))} ist keine Allgemeinerlaubnis eingetragen – dann gilt nur § 21h`) : 'Ob eine Allgemeinerlaubnis greift, hängt vom Bundesland ab – es wird ermittelt, sobald die Landesgrenzen geladen sind. Bis dahin: Regeln oben einhalten') : 'Diese Zonenart ist nicht von der Allgemeinerlaubnis erfasst']
-    : ['A1/A3: Drohne über 900 g bzw. mit C2-Kennzeichnung nur in Unterkategorie A3 – mindestens 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten, keine unbeteiligten Personen in der Nähe, max. 120 m',
-       ae ? 'Allgemeinerlaubnisse setzen ein A2-Fernpilotenzeugnis voraus – mit A1/A3 nicht nutzbar' : 'Für diese Zone gilt dasselbe wie mit A2'];
-  return `<div style="margin-top:6px"><b>Mit eurem Fernpilotenzeugnis (${a2 ? 'A2' : 'A1/A3'}):</b><ul>${li.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
+  const mine = P.lic === 'A2' ? 'A2' : 'A1A3';
+  const block = lic => {
+    const c = covFor(layer, reg || {}, lic), isAE = AE_LAYERS.includes(layer), isAV = AV_ZONES.some(z => z[0] === layer);
+    const power = P.power === '1' && layer === 'stromleitungen';
+    const ok = power || c.ae || c.av;
+    const cat = lic === 'A2'
+      ? ['Unterkategorie A2 – Drohne mit C2-Kennzeichnung und EU-Fernpilotenzeugnis A2',
+         'Mindestens 30 m horizontal zu unbeteiligten Personen, im Langsamflugmodus (max. 3 m/s) 5 m',
+         'Kein fester Mindestabstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten – Geozonen nach § 21h LuftVO beachten',
+         'Keine Menschenansammlungen überfliegen · max. 120 m über Grund']
+      : ['Unterkategorie A3 – nur EU-Kompetenznachweis A1/A3 (Drohnen über 900 g wie M3T/M4T fallen nicht unter A1)',
+         'Mindestens 150 m horizontal zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten',
+         'Keine unbeteiligten Personen im Flugbereich gefährden – empfohlen 30 m bzw. 1:1-Regel (Abstand ≥ Flughöhe)',
+         'Keine Menschenansammlungen überfliegen · max. 120 m über Grund'];
+    const ex = [];
+    if (power) ex.push('✓ <b>Überfluggenehmigung des Netzbetreibers</b> liegt vor – gilt unabhängig vom Zeugnis, deren Auflagen gehen vor');
+    if (isAE) ex.push(c.ae ? `✓ <b>Allgemeinerlaubnis ${esc(stateName(reg.st))}</b> greift hier (Auflagen siehe oben)`
+      : lic !== 'A2' ? '✗ Allgemeinerlaubnis: nicht nutzbar – setzt das Fernpilotenzeugnis A2 voraus'
+      : !(reg && reg.st) ? '? Allgemeinerlaubnis: Bundesland noch unbekannt – wird geprüft, sobald die Landesgrenzen geladen sind'
+      : `✗ Allgemeinerlaubnis: für ${esc(stateName(reg.st))} keine eingetragen (Einstellungen → Luftraum & Regeln)`);
+    if (isAV) { const any = avList().filter(a => a.on && (a.layers || []).includes(layer));
+      ex.push(c.av ? `✓ <b>${esc(c.av.name || 'Allgemeinverfügung')}</b> greift hier (Auflagen siehe oben)`
+        : any.length && any.every(a => a.a2 === true) && lic !== 'A2' ? '✗ Allgemeinverfügung: laut Eintrag nur mit Fernpilotenzeugnis A2'
+        : '✗ Allgemeinverfügung: greift hier nicht (Bundesland, Bezirk oder Saison passen nicht bzw. keine eingetragen)'); }
+    const res = ok ? '<b style="color:#13a538">Ergebnis: Flug hier erlaubt – mit den genannten Auflagen</b>'
+      : '<b style="color:#d42020">Ergebnis: ohne Ausnahme – nur nach den bundesweiten Regeln oben (Zustimmung bzw. Abstand)</b>';
+    const head = `${lic === 'A2' ? 'A2' : 'A1/A3'} ${ok ? '<span class="chip cov">erlaubt</span>' : '<span class="chip">nur mit Zustimmung/Abstand</span>'}`;
+    return `<details class="licbox"${mine === lic ? ' open' : ''}><summary>${head}</summary>${res}<ul>${ex.map(x => `<li>${x}</li>`).join('')}</ul><div class="meta">Offene Kategorie:</div><ul class="meta">${cat.map(x => `<li>${x}</li>`).join('')}</ul></details>`;
+  };
+  const order = mine === 'A2' ? ['A2', 'A1A3'] : ['A1A3', 'A2'];
+  return `<div style="margin-top:8px"><b>Nach Fernpilotenzeugnis:</b>${order.map(block).join('')}</div>`;
 }
 function rulesHtml(layer, reg) {
   reg = reg || regionAt(V.lat, V.lon);
   const cov = coverageOf(layer, reg);
-  if (cov === 'ae') return `<div><b>Allgemeinerlaubnis ${esc(stateName(reg.st))} – Auflagen:</b><ul>${AE_RULES[layer].map(r => `<li>${esc(r)}</li>`).join('')}</ul><div class="meta" style="margin-top:6px">${esc(AE_COMMON)}</div></div>`;
+  if (cov === 'ae') return `<div><b>Allgemeinerlaubnis ${esc(stateName(reg.st))} – Auflagen:</b><ul>${AE_RULES[layer].map(r => `<li>${esc(r)}</li>`).join('')}</ul><div class="meta" style="margin-top:6px">${esc(AE_COMMON)}</div></div>${licHtml(layer, reg)}`;
   if (cov === 'power') return `<div><b>Überfluggenehmigung des Netzbetreibers liegt vor – Überflug erlaubt mit Auflagen:</b><ul>
     <li>Genehmigung des jeweiligen Netzbetreibers mitführen; deren Auflagen gehen vor</li>
     <li>Nur <b>über</b> die Leitung fliegen, mit sicherem Abstand über Mastspitzen und Leiterseilen – nie darunter durch</li>
     <li>Masthöhe vor dem Queren prüfen: Höchstspannung (220/380 kV) in der Regel 70–80 m</li>
     <li>Leiterseile sind aus der Luft und im Wärmebild schlecht zu sehen – Abstand großzügig wählen</li>
     <li>Max. 120 m Flughöhe. Ausnahme Masten über 105 m (EU 2019/947, offene Kategorie): nur auf Anfrage/im Auftrag des Betreibers bis 50 m horizontal an den Mast heran und bis 15 m über die Mastspitze – auch über 120 m</li></ul>
-    <div id="powerBox" class="meta" style="margin-top:8px">Lade Leitungsdaten aus OpenStreetMap…</div></div>`;
+    <div id="powerBox" class="meta" style="margin-top:8px">Lade Leitungsdaten aus OpenStreetMap…</div></div>${licHtml(layer, reg)}`;
   if (cov === 'avgi') { const av = avFor(layer, reg);
-    return `<div><b>${esc(av.name)} – erlaubt mit Auflagen${avSeasonOn(av) ? '' : ' <span class="chip grey">Saison-Vorschau – heute NICHT gültig</span>'}:</b><ul>${(av.rules || []).map(r => `<li>${esc(r)}</li>`).join('') || '<li>Auflagen laut Bescheid</li>'}</ul>${av.link ? `<span class="lnk" data-url="${esc(av.link)}">Dokument öffnen</span>` : ''}</div>`; }
+    return `<div><b>${esc(av.name)} – erlaubt mit Auflagen${avSeasonOn(av) ? '' : ' <span class="chip grey">Saison-Vorschau – heute NICHT gültig</span>'}:</b><ul>${(av.rules || []).map(r => `<li>${esc(r)}</li>`).join('') || '<li>Auflagen laut Bescheid</li>'}</ul>${av.link ? `<span class="lnk" data-url="${esc(av.link)}">Dokument öffnen</span>` : ''}</div>${licHtml(layer, reg)}`; }
   let why = BLOCKED_RULES[layer] || 'Betrieb nur mit Zustimmung bzw. Erlaubnis der zuständigen Stelle (§ 21h/§ 21i LuftVO).';
   if (AE_LAYERS.includes(layer))
     why = !reg.st && P.lic === 'A2' ? 'Bundesland an diesem Ort noch unbekannt – ob eine Allgemeinerlaubnis greift, prüft die App, sobald die Landesgrenzen geladen sind (mit Internet automatisch). Bis dahin gelten die bundesweiten Regeln unten.'
