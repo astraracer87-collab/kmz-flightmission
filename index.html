@@ -207,6 +207,23 @@
   .pick .pv svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
   .pick .pv.on{background:var(--acc);color:#fff}
   .pvbox{padding:4px 0 10px 40px}
+  .picktabs{display:flex;width:100%;background:var(--line);border-radius:12px;padding:3px;gap:3px}
+  .pickbar .picktabs button{flex:1;height:42px;border:0;border-radius:10px;background:transparent;color:var(--txt);font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:7px}
+  .picktabs button svg{width:20px;height:20px}
+  .pickbar .picktabs button.on{background:var(--card);box-shadow:0 1px 4px rgba(0,0,0,.25);color:#1e7bff}
+  .pickmap{display:none;position:relative}
+  .lst.pmon{display:flex;flex-direction:column;overflow:hidden;margin-bottom:8px}
+  .lst.pmon .pickbar{position:static}
+  .lst.pmon .pickmap{display:flex;flex:1;min-height:150px}
+  .dlg .box.wide #dText{display:none}
+  .lst.pmon label.pick,.lst.pmon .pvbox{display:none!important}
+  .pickmap canvas{width:100%;height:100%;flex:1;min-height:0;display:block;border-radius:12px;border:1px solid var(--line)}
+  .pmbtn{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px}
+  .pmbtn button{width:44px;height:44px;border-radius:10px;border:0;background:rgba(21,32,43,.88);color:#fff;font-size:24px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0}
+  .pmbtn svg{width:22px;height:22px;stroke:#fff}
+  .pmleg{position:absolute;left:8px;bottom:8px;font-size:13px;color:#fff;background:rgba(21,32,43,.85);border-radius:8px;padding:4px 10px 4px 4px;display:flex;pointer-events:none;align-items:center;gap:5px;flex-wrap:wrap}
+  .pmleg i{width:12px;height:12px;border-radius:3px;display:inline-block;margin-left:6px}
+  .dlg .box.wide{width:min(1100px,96%);height:92%}
   .pvbox canvas{width:100%;height:200px;border-radius:12px;display:block;border:1px solid var(--line)}
   .pickfacets{display:flex;gap:14px;width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
   .pickfacet{display:flex;gap:6px;align-items:center;flex:none;font-size:14px;color:var(--muted)}
@@ -224,13 +241,20 @@
   .pwwrap{position:relative;display:inline-flex;align-items:center;flex:1;min-width:0}.pwwrap>input{flex:1;width:100%;padding-right:46px}
   .pweye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:10px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center}
   .pweye svg{width:22px;height:22px}
-  #pfChip{position:fixed;left:12px;bottom:96px;z-index:14;display:none;align-items:center;gap:6px;height:36px;padding:0 12px 0 9px;border-radius:18px;background:rgba(21,32,43,.88);color:#fff;font-size:14px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  #pfChip{position:fixed;right:220px;top:12px;z-index:14;display:none;align-items:center;gap:6px;height:34px;padding:0 12px 0 9px;border-radius:17px;border:0;background:rgba(21,32,43,.88);color:#fff;font-size:14px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.35)}
   #pfChip svg{width:18px;height:18px;stroke:#7fd18b}
   #tour{position:fixed;inset:0;z-index:70;display:none}
   #tour .thole{position:absolute;box-shadow:0 0 0 9999px rgba(0,0,0,.7);border:3px solid #7fb2ff;transition:all .25s ease;pointer-events:none}
   #tour .tbox{position:absolute;background:var(--card);color:var(--txt);border-radius:16px;padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.45)}
   #tour .tbox h3{margin:2px 0 6px;font-size:19px}#tour .tbox p{margin:0 0 12px;font-size:15px;line-height:1.4;color:var(--muted)}
   #tour .tn{font-size:12px;color:var(--muted);font-weight:700}#tour .tbt{display:flex;gap:8px;align-items:center}#tour .tbt button{height:42px;padding:0 14px}
+  .cprog{position:relative;margin-top:5px;height:22px;border-radius:6px;background:var(--line2);overflow:hidden;display:none}
+  .cprog:not(:empty){display:block}
+  .cprog i{position:absolute;left:0;top:0;bottom:0;background:rgba(30,123,255,.35);transition:width .5s}
+  .cprog span{position:relative;z-index:1;font-size:12.5px;line-height:22px;padding:0 8px;color:var(--txt);white-space:nowrap}
+  .cacherow.loading .cprog i{background:rgba(26,163,74,.45)}
+  .cacherow.loading b::after{content:' · lädt';color:#1aa34a;font-weight:700}
+  .cacherow.pfrow{border-top:0;background:var(--line2);border-radius:10px;padding:8px 10px;margin-bottom:4px}
   .cacherow{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line2)}.cacherow .l{flex:1;min-width:0}.cacherow b{display:block;font-size:15px}.cacherow em{display:block;font-style:normal;font-size:13px;color:var(--muted)}.cacherow button{height:40px;padding:0 12px}
   .wxban{display:flex;align-items:center;gap:12px;border-radius:14px;padding:12px 14px;color:#fff;font-weight:800;font-size:20px;line-height:1.2}
   .wxban.l0{background:#13a538}.wxban.l1{background:#d98a00}.wxban.l2{background:#b3131b}
@@ -375,10 +399,10 @@
   <img class="logo" data-logo alt="Kitzrettung Limburg">
   <div id="count">0 markiert<small>0 Felder</small></div>
   <button id="bPlan" class="b-sec" style="display:none"><svg viewBox="0 0 24 24"><path d="M5 19l5-6 4 3 5-9"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="7" r="1.8"/></svg>Plan</button>
-  <button id="bNone" class="b-sec" disabled><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Abwählen</button>
+  <button id="bNone" class="b-sec" style="display:none"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Abwählen</button>
   <div class="sp"></div>
   <button id="bSearch" class="b-sec" title="Feld suchen"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button>
-  <button id="bSync" class="b-sec" title="Mit UAV Editor abgleichen"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-14.3-4.9M4 12a8 8 0 0 0 14.3 4.9"/><path d="M5.5 3v4.5H10M18.5 21v-4.5H14"/></svg>Abgleichen</button>
+  <button id="bSync" class="b-sec" title="Wiesen aus dem UAV Editor holen"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-14.3-4.9M4 12a8 8 0 0 0 14.3 4.9"/><path d="M5.5 3v4.5H10M18.5 21v-4.5H14"/></svg>UAV Editor</button>
   <button id="bDl" class="b-ok" disabled title="Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen"><svg viewBox="0 0 24 24" style="width:32px;height:32px"><path d="M1.5 4.5h7M15.5 4.5h7"/><path d="M5 4.5l3.5 5M19 4.5l-3.5 5"/><rect x="8" y="8" width="8" height="5" rx="2" fill="currentColor"/><path d="M12 14.5v7M9 18.5l3 3 3-3"/></svg>In Pilot 2</button>
   <button id="bSet" class="b-sec" title="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </div>
@@ -406,7 +430,7 @@
     <div class="set"><div class="l"><div class="t">Verschieben statt kopieren</div><div class="v">Aus = Original bleibt im Quellordner</div></div><label class="sw"><input type="checkbox" id="sMove"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Zielordner vor Download leeren</div><div class="v">Löscht vorher alle .kmz im Zielordner</div></div><label class="sw"><input type="checkbox" id="sClear"><span></span></label></div>
     <div class="set" style="flex-direction:column;align-items:stretch">
-      <div class="t">UAV Editor – Zugang für „Abgleichen“</div>
+      <div class="t">UAV Editor – Zugang für „UAV Editor“</div>
       <div class="v" id="vUave" style="margin-bottom:8px"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <input id="uUser" class="inp" type="email" placeholder="E-Mail / Login" autocomplete="off">
@@ -421,8 +445,8 @@
     <div class="set"><div class="l"><div class="t">Kartentyp</div><div class="v" id="vTiles">Angesehene Kacheln werden auf der RC gespeichert und sind danach offline verfügbar.</div></div><button class="b-sec" id="bTilesClear">Leeren</button><div class="seg"><button data-layer="grey">Grau</button><button data-layer="osm">Karte</button><button data-layer="sat">Luftbild</button></div></div>
     <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Offline-Daten</div>
       <div class="v" id="vCache" style="margin-bottom:6px">Wird gezählt…</div>
+      <div class="cacherow pfrow"><div class="l"><b>Einsatzgebiet speichern</b><em id="vPrefetch">Holt Karte, Luftbild, dipul-Geozonen, Zonendaten, Hindernisse und Wetter für das Gebiet eurer Wiesen auf die RC – danach läuft alles ohne Internet, online nur noch für „UAV Editor“.</em></div><button class="b-ok" id="bPrefetch">Speichern</button></div>
       <div id="cacheList"></div></div>
-    <div class="set"><div class="l"><div class="t">Einsatzgebiet speichern</div><div class="v" id="vPrefetch">Holt Karte, Luftbild, dipul-Geozonen, Zonendaten, Hindernisse und Wetter für das Gebiet eurer Wiesen auf die RC – danach läuft alles ohne Internet, online nur noch für „Abgleichen“.</div></div><button class="b-ok" id="bPrefetch">Speichern</button></div>
     <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
     <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div><div class="v">Auch über ⓘ → „Felder“ schaltbar</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Die Rose steht mit Norden oben wie die Karte, der Windsack zeigt die Windrichtung (schwarze Marke = woher der Wind kommt). Mit Kompassnadel: die rote Nadelspitze zeigt, wohin die RC schaut · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt ebenfalls die Blickrichtung.</div></div><div class="seg"><button data-rose="dev">Mit Kompassnadel</button><button data-rose="north">Ohne Nadel</button><button data-rose="off">Aus</button></div></div>
@@ -544,7 +568,7 @@ window.onCacheInfo = raw => {
   let r = {}; try { r = JSON.parse(raw); } catch (e) { return; }
   if (!$('cacheList')) return;
   $('vCache').textContent = `Zusammen ${fmtBytes(r.total || 0)} · Ordner: ${r.where || ''} · Löschen ist ungefährlich – „Neu holen“ lädt den Bereich mit Internet wieder (am besten im WLAN).`;
-  $('cacheList').innerHTML = (r.list || []).map(c => `<div class="cacherow"><div class="l"><b>${esc(c.name)}</b><em>${fmtBytes(c.bytes)}${c.files > 1 ? ' · ' + c.files.toLocaleString('de-DE') + ' Dateien' : ''}</em></div>
+  $('cacheList').innerHTML = (r.list || []).map(c => `<div class="cacherow" data-cid="${c.id}"><div class="l"><b>${esc(c.name)}</b><em>${fmtBytes(c.bytes)}${c.files > 1 ? ' · ' + c.files.toLocaleString('de-DE') + ' Dateien' : ''}</em><div class="cprog"></div></div>
     <button class="b-sec" data-cdel="${c.id}"${c.bytes ? '' : ' disabled'}>Löschen</button><button class="b-sec" data-cnew="${c.id}">Neu holen</button></div>`).join('');
   $('cacheList').querySelectorAll('[data-cdel]').forEach(b => b.onclick = () => {
     const c = r.list.find(x => x.id === b.dataset.cdel);
@@ -554,7 +578,23 @@ window.onCacheInfo = raw => {
     if (!isOnline()) return toast('Dafür wird Internet gebraucht (am besten WLAN).', true);
     cacheBusy = b.dataset.cnew; A.cacheClear(b.dataset.cnew); toast('Wird neu geholt…');
   });
+  cacheProg();
 };
+// Laufendes „Einsatzgebiet speichern“ direkt beim jeweiligen Bereich zeigen
+let pfLast = null;
+function cacheProg() {
+  const box = $('cacheList'); if (!box) return;
+  const r = pfLast, run = r && !r.finished && r.cats;
+  box.querySelectorAll('.cacherow[data-cid]').forEach(row => {
+    const el = row.querySelector('.cprog'); if (!el) return;
+    const c = run && r.cats[row.dataset.cid];
+    if (!c || !c[1]) { el.innerHTML = ''; row.classList.remove('loading'); return; }
+    const pct = Math.min(100, Math.floor(c[0] / c[1] * 100)), cur = r.cur === row.dataset.cid && c[0] < c[1];
+    row.classList.toggle('loading', cur);
+    el.innerHTML = `<span>${c[0] >= c[1] ? '✓ für das Einsatzgebiet gespeichert' : cur ? `wird gespeichert… ${pct} % · ${c[0].toLocaleString('de-DE')} von ${c[1].toLocaleString('de-DE')}` : c[0] ? `${pct} % · wartet` : 'kommt gleich dran'}</span><i style="width:${pct}%"></i>`;
+  });
+}
+let cacheInfoT = 0;
 let cacheBusy = null;
 window.onCacheCleared = id => {
   const tilesCat = ['karte', 'luftbild', 'geokacheln'].includes(id);
@@ -1759,7 +1799,7 @@ function update() {
   const n = S.files.filter(f => f.selected).length;
   const dups = S.files.filter(f => f.dup).length;
   $('count').innerHTML = `${n} markiert<small>${S.files.length - dups} Felder</small>`;
-  $('bDl').disabled = $('bNone').disabled = !n;
+  $('bDl').disabled = !n; $('bNone').style.display = n ? '' : 'none';
   $('bPlan').style.display = P.plan === '1' && n >= 1 ? '' : 'none';
   if (S.plan && !n) S.plan = null;
   searchHits();
@@ -2108,7 +2148,10 @@ function pickDlg(title, text, items, okWord, cb) {
     const n = items.filter(x => x.on).length;
     $('dYes').textContent = n ? `${n} ${okWord}` : 'Nichts gewählt'; $('dYes').disabled = !n;
     box.querySelectorAll('label.pick input').forEach((c, i) => c.checked = items[i].on);
+    if (pm) pm.paint();
   };
+  let pm = null;   // Kartenansicht (nur wenn Felder Koordinaten haben)
+  const dbox = $('dlg').querySelector('.box'); dbox.classList.remove('wide'); box.classList.remove('pmon');
   const tags = [...new Set(items.map(x => x.tag).filter(Boolean))];
   const bar = document.createElement('div'); bar.className = 'pickbar';
   // Suche: Umlaute/Groß-Klein egal; „Alle“/„Keine“/„Nur …“ wirken bei aktiver Suche nur auf die Treffer
@@ -2135,6 +2178,7 @@ function pickDlg(title, text, items, okWord, cb) {
     let n = 0;
     box.querySelectorAll('label.pick').forEach((l, i) => { const v = shown(items[i]); l.style.display = v ? '' : 'none'; if (v) n++; });
     if (cntEl) cntEl.textContent = filtering() ? `${n} Treffer · Laden gilt für alle angehakten` : '';
+    if (pm && box.classList.contains('pmon')) pm.fit();
   }
   // Filter-Chips je Merkmal (nur wenn es mehr als einen Wert gibt)
   const fkeys = [...new Set(items.flatMap(x => Object.keys(x.facets || {})))];
@@ -2157,9 +2201,27 @@ function pickDlg(title, text, items, okWord, cb) {
     frow.appendChild(row);
   });
   if (frow.children.length) bar.appendChild(frow);
+  // Tabs Liste / Karte
+  if (items.some(x => x.geo)) {
+    const tabs = document.createElement('div'); tabs.className = 'picktabs';
+    tabs.innerHTML = '<button class="on" data-pt="list"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Liste</button><button data-pt="map"><svg viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>Karte</button>';
+    bar.prepend(tabs);
+    const mw = document.createElement('div'); mw.className = 'pickmap';
+    mw.innerHTML = '<div class="pmbtn"><button data-pz="1">+</button><button data-pz="-1">−</button><button data-pz="0" title="Alle zeigen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div><div class="pmleg"><i style="background:#ff7a00"></i>nicht gewählt <i style="background:#1aa34a"></i>gewählt <i style="background:#1e7bff"></i>schon auf der RC · Feld antippen = an/aus</div>';
+    pm = pickMap(mw, items, shown, i => { items[i].on = !items[i].on; upd(); });
+    mw.querySelectorAll('[data-pz]').forEach(b => b.onclick = () => +b.dataset.pz ? pm.zoom(+b.dataset.pz) : pm.fit());
+    tabs.querySelectorAll('[data-pt]').forEach(b => b.onclick = () => {
+      const m = b.dataset.pt === 'map';
+      tabs.querySelectorAll('button').forEach(o => o.classList.toggle('on', o === b));
+      box.classList.toggle('pmon', m); dbox.classList.toggle('wide', m);
+      if (m) requestAnimationFrame(() => pm.fit());
+    });
+    var pickMapEl = mw;
+  }
   // Vorfilter wirkt auch auf die Auswahl: was ausgeblendet ist, ist nicht angehakt
   if (Object.values(fsel).some(st => st.size)) items.forEach(x => { if (!shown(x)) x.on = false; });
   box.appendChild(bar);
+  if (pickMapEl) box.appendChild(pickMapEl);
   items.forEach((x, i) => {
     const l = document.createElement('label'); l.className = 'pick';
     l.innerHTML = `<input type="checkbox"><span>${esc(x.label)}${x.info ? `<em>${esc(x.info).replace(/\n/g, '<br>')}</em>` : ''}</span>${x.tag ? `<small class="${x.tag === 'geändert' ? 'chg' : 'new'}">${esc(x.tag)}</small>` : ''}${x.preview ? '<button class="pv" title="Kartenvorschau"><svg viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg></button>' : ''}`;
@@ -2263,8 +2325,15 @@ function pfChip(pct) {
   let c = $('pfChip');
   if (pct == null) { if (c) c.style.display = 'none'; return; }
   if (!c) { c = document.createElement('button'); c.id = 'pfChip'; document.body.appendChild(c); c.onclick = () => startPrefetch(); }
-  c.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 20h14"/></svg>Offline speichern ${pct} %`; c.style.display = 'flex';
+  c.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 20h14"/></svg>Offline speichern ${pct} %`; c.style.display = 'flex'; pfChipPos();
 }
+// Chip sitzt oben direkt links neben dem Online-Badge
+function pfChipPos() {
+  const c = $('pfChip'), n = $('net'); if (!c || !n || c.style.display === 'none') return;
+  const r = n.getBoundingClientRect(); if (!r.width) return;
+  c.style.right = Math.round(innerWidth - r.left + 8) + 'px'; c.style.top = Math.round(r.top + (r.height - 34) / 2) + 'px';
+}
+addEventListener('resize', () => pfChipPos());
 function einsatzRun(de, fresh, auto, full) {
   const j = einsatzJobs(de, full); if (!j) return;
   if (fresh && A.dipulClear) { A.dipulClear(); GEOR.reset(); }
@@ -2296,14 +2365,14 @@ function einsatzAuto() {
 const startPrefetch = () => {
   if (A.prefetchRunning && A.prefetchRunning()) { confirmDlg('Einsatzgebiet wird gespeichert', 'Läuft im Hintergrund weiter – die App kann normal benutzt werden. Fortschritt unten links auf der Karte.', [], 'Speichern stoppen', () => { A.prefetchCancel(); toast('Wird gestoppt…'); }); $('dNo').textContent = 'Weiterlaufen lassen'; return; }
   if (!isOnline()) return toast('Dafür wird Internet gebraucht (am besten WLAN).', true);
-  if (!einsatzJobs(false)) return toast('Erst Wiesen laden (Abgleichen) – das Einsatzgebiet ergibt sich aus den Wiesen.', true);
+  if (!einsatzJobs(false)) return toast('Erst Wiesen laden (UAV Editor) – das Einsatzgebiet ergibt sich aus den Wiesen.', true);
   const x = document.createElement('div');
   x.innerHTML = `<label class="pick"><input type="checkbox" id="esDe"><span>Zusätzlich ganz Deutschland (Geozonen-Übersicht bis Zoom 10)</span></label>
     <label class="pick"><input type="checkbox" id="esFull"><span>Luftbild fürs ganze Gebiet (nicht nur um die Wiesen) – deutlich größer, nur im WLAN</span></label>
     <label class="pick"><input type="checkbox" id="esNew"><span>Geozonen neu holen – gespeicherte ersetzen (wenn sich bei dipul etwas geändert hat)</span></label><div class="meta" id="esInfo" style="margin-top:6px"></div>`;
   const info = () => { const j = einsatzJobs(x.querySelector('#esDe').checked, x.querySelector('#esFull').checked); x.querySelector('#esInfo').textContent = `ca. ${j.tiles.toLocaleString('de-DE')} Kacheln · ca. ${j.mb.toLocaleString('de-DE')} MB · bereits gespeicherte werden übersprungen`; };
   confirmDlg('Einsatzgebiet speichern',
-    'Holt alles, was im Einsatz gebraucht wird, auf die Fernsteuerung:\n• Karte (die gerade gewählte Art, Grau oder Farbe): Übersicht Deutschland, Gebiet der Wiesen + 3 km bis Zoom 16, um jede Wiese bis Zoom 18\n• Luftbild um jede Wiese bis ganz nah\n• dipul-Geozonen im Umkreis von 25 km bis Zoom 14, im Wiesengebiet + 3 km jede Stufe bis 16 (mehr hat dipul nicht)\n• Zonendaten zum Antippen (Name, Höhen, Auflagen) ebenfalls 25 km – Wohngrundstücke 3 km um die Wiesen\n• NOTAMs deutschlandweit, Hindernisse, Flugplätze, Orte\n• Windräder mit Betreiber und Höhe aus dem Marktstammdatenregister (30 km)\n• Wetter und Flughafen-Wetter (letzter Stand)\n\nDanach funktioniert alles ohne Internet – online nur noch für „Abgleichen“ (Wiesen holen). Am besten im WLAN, die App kann dabei normal benutzt werden.',
+    'Holt alles, was im Einsatz gebraucht wird, auf die Fernsteuerung:\n• Karte (die gerade gewählte Art, Grau oder Farbe): Übersicht Deutschland, Gebiet der Wiesen + 3 km bis Zoom 16, um jede Wiese bis Zoom 18\n• Luftbild um jede Wiese bis ganz nah\n• dipul-Geozonen im Umkreis von 25 km bis Zoom 14, im Wiesengebiet + 3 km jede Stufe bis 16 (mehr hat dipul nicht)\n• Zonendaten zum Antippen (Name, Höhen, Auflagen) ebenfalls 25 km – Wohngrundstücke 3 km um die Wiesen\n• NOTAMs deutschlandweit, Hindernisse, Flugplätze, Orte\n• Windräder mit Betreiber und Höhe aus dem Marktstammdatenregister (30 km)\n• Wetter und Flughafen-Wetter (letzter Stand)\n\nDanach funktioniert alles ohne Internet – online nur noch für „UAV Editor“ (Wiesen holen). Am besten im WLAN, die App kann dabei normal benutzt werden.',
     [], 'Speichern', () => einsatzRun(x.querySelector('#esDe').checked, x.querySelector('#esNew').checked, false, x.querySelector('#esFull').checked), x);
   x.querySelectorAll('input').forEach(c => c.onchange = info); info();
 };
@@ -2320,6 +2389,9 @@ window.onPrefetch = raw => {
   if ($('bPrefetch')) $('bPrefetch').textContent = r.finished ? 'Speichern' : 'Abbrechen';
   if ($('bPrefetch')) $('bPrefetch').onclick = r.finished ? startPrefetch : () => { A.prefetchCancel(); };
   pfChip(r.finished ? null : pct);
+  pfLast = r; cacheProg();
+  // Größen in der Liste ab und zu nachziehen, solange die Einstellungen offen sind
+  if ($('pgSet').classList.contains('open') && A.cacheInfoAsync && (r.finished || Date.now() - cacheInfoT > 20000)) { cacheInfoT = Date.now(); A.cacheInfoAsync(); }
   if (r.finished) { toast(t, !!r.fail && !r.done, 7000); draw();
     if (esPending && !r.cancelled) { setP('esBox5', JSON.stringify(esPending)); setP('esFields3', JSON.stringify(esPendingNames || S.files.filter(f => !f.dup && f.bounds).map(f => f.name))); }   // erledigt – nicht nochmal automatisch
     esPendingNames = null;
@@ -2603,6 +2675,47 @@ const LINK_AE = 'https://rp-darmstadt.hessen.de/sites/rp-darmstadt.hessen.de/fil
 const LINK_DIPUL = 'https://maptool-dipul.dfs.de/';
 const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// Bundesweit gültig, unabhängig vom Bundesland und ohne Allgemeinerlaubnis: § 21h Abs. 3 LuftVO (Kurzfassung)
+const LUFTVO_NR = {};
+[[1, ['flugplaetze', 'modellflugplaetze'], 'Flugplätze (1,5 km): nur in der Kategorie „speziell“ oder mit Zustimmung der Luftaufsicht, Flugleitung oder des Flugplatzbetreibers.'],
+ [2, ['flughaefen'], 'Flughäfen (1 km, An-/Abflug 5 km): nur in der Kategorie „speziell“.'],
+ [3, ['industrieanlagen', 'kraftwerke', 'umspannwerke', 'stromleitungen', 'windkraftanlagen', 'labore', 'justizvollzugsanstalten', 'militaerische_anlagen'], 'Industrie-, Energie-, Militär- und JVA-Anlagen (100 m): nur mit ausdrücklicher Zustimmung der zuständigen Stelle oder des Betreibers.'],
+ [4, ['behoerden', 'diplomatische_vertretungen', 'internationale_organisationen', 'polizei', 'sicherheitsbehoerden'], 'Behörden, Polizei, Vertretungen (100 m): nur mit ausdrücklicher Zustimmung der Stelle.'],
+ [5, ['bundesautobahnen', 'bundesstrassen', 'bahnanlagen', 'binnenwasserstrassen', 'seewasserstrassen', 'schifffahrtsanlagen'], null],
+ [6, ['nationalparks', 'naturschutzgebiete', 'ffh-gebiete', 'vogelschutzgebiete'], null],
+ [7, ['wohngrundstuecke'], null],
+ [8, ['freibaeder'], 'Freibäder/Badestrände: nur außerhalb der Betriebs- bzw. Badezeiten.'],
+ [9, ['kontrollzonen'], 'Kontrollzone: nur mit Flugverkehrskontrollfreigabe der DFS.'],
+ [10, ['krankenhaeuser'], 'Krankenhäuser (100 m): nur mit ausdrücklicher Zustimmung des Betreibers.'],
+ [11, ['unfallorte', 'einsatzorte'], 'Unfall-/Einsatzorte (100 m): nur mit Zustimmung der Einsatzleitung.'],
+ ['ED-R', ['flugbeschraenkungsgebiete'], 'Flugbeschränkungsgebiet (ED-R, festgelegt nach § 17 LuftVO): Einflug nur mit Erlaubnis der in dipul genannten zuständigen Stelle – gilt mit jedem Führerschein, eine Allgemeinerlaubnis hilft hier nicht.'],
+ ['TBE', ['temporaere_betriebseinschraenkungen'], 'Temporäre Betriebseinschränkung (NOTAM): in der angegebenen Zeit und Höhe nur mit Zustimmung der in dipul genannten Stelle – gilt mit jedem Führerschein. Zeiten und Höhen auf der NOTAM-Seite prüfen.']].forEach(([n, ls, t]) => ls.forEach(l => LUFTVO_NR[l] = [n, t]));
+function lawHtml(layer) {
+  const e = LUFTVO_NR[layer]; if (!e) return '';
+  const [n, t] = e, mh = [...new Set(S.files.filter(f => f.selected && f.height).map(f => Math.round(f.height)))].sort((a, b) => a - b), hTxt = mh.length ? mh.join('/') + ' m' : '50–70 m';
+  let li = [];
+  if (n === 5) li = layer.includes('wasser') || layer === 'schifffahrtsanlagen'
+    ? ['Erlaubt mit ausdrücklicher Zustimmung der zuständigen Stelle', '<b>1:1-Regel:</b> Flughöhe stets kleiner als der seitliche Abstand zur Wasserstraße, Abstand immer mehr als 10 m', 'Queren nur auf kürzestem Weg, mindestens 100 m über Grund/Wasser, keine Schiffe oder Schifffahrtsanlagen überfliegen']
+    : ['Erlaubt mit ausdrücklicher Zustimmung (Straßenbaulastträger bzw. Bahn)', `<b>1:1-Regel:</b> Flughöhe stets kleiner als der seitliche Abstand zur ${layer === 'bahnanlagen' ? 'Bahnanlage' : 'Straße'}, Abstand immer mehr als 10 m – bei ${hTxt} Flughöhe also mehr als ${mh.length ? mh[mh.length - 1] : 70} m seitlich bleiben`, 'Direkter Überflug ohne Zustimmung nur in der Kategorie „speziell“ mit Risikobewertung'];
+  else if (n === 6) li = ['Erlaubt mit ausdrücklicher Zustimmung der Naturschutzbehörde oder per Allgemeinverfügung / Landesrecht',
+    `Ohne Zustimmung nur, wenn: kein Freizeitzweck, Flughöhe über 100 m, Schutzzweck bekannt und berücksichtigt, Überflug unumgänglich${layer === 'nationalparks' ? ' – gilt nicht für Nationalparks' : ''}`,
+    `Kitzrettung mit ${hTxt} liegt unter 100 m – ohne Zustimmung/Allgemeinverfügung also nicht erlaubt`];
+  else if (n === 7) li = ['Erlaubt mit ausdrücklicher Zustimmung des Eigentümers bzw. Nutzungsberechtigten',
+    'Ohne Zustimmung nur ab 100 m Flughöhe und wenn: berechtigter Zweck, Zustimmung nicht zumutbar einholbar, Betroffene vorher informiert, nicht 22–6 Uhr, Lärmrichtwerte eingehalten',
+    `M3T/M4T wiegen über 250 g und haben Kameras – die 250-g-Ausnahme greift nicht; bei ${hTxt} also Zustimmung einholen`];
+  else li = [t];
+  return `<div style="margin-top:8px"><b>Bundesweit (${typeof n === 'number' ? `§ 21h Abs. 3 Nr. ${n} LuftVO` : n === 'ED-R' ? 'Flugbeschränkungsgebiet' : 'NOTAM'}, gilt mit jedem Führerschein):</b><ul>${li.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
+}
+/** Was das eigene Fernpilotenzeugnis zusätzlich bedeutet (offene Kategorie, EU 2019/947) */
+function licHtml(layer, reg) {
+  const ae = AE_LAYERS.includes(layer), a2 = P.lic === 'A2';
+  const li = a2
+    ? ['A2 (Drohne mit C2-Kennzeichnung): Unterkategorie A2 – mindestens 30 m Abstand zu unbeteiligten Personen (5 m im Langsamflugmodus), max. 120 m Höhe',
+       ae ? (reg && reg.st ? (aeFor(reg) ? `Allgemeinerlaubnis ${esc(stateName(reg.st))} eingetragen – deren Auflagen gelten zusätzlich bzw. ersetzen die Zustimmung` : `Für ${esc(stateName(reg.st))} ist keine Allgemeinerlaubnis eingetragen – dann gilt nur § 21h`) : 'Ob eine Allgemeinerlaubnis greift, hängt vom Bundesland ab – es wird ermittelt, sobald die Landesgrenzen geladen sind. Bis dahin: Regeln oben einhalten') : 'Diese Zonenart ist nicht von der Allgemeinerlaubnis erfasst']
+    : ['A1/A3: Drohne über 900 g bzw. mit C2-Kennzeichnung nur in Unterkategorie A3 – mindestens 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten, keine unbeteiligten Personen in der Nähe, max. 120 m',
+       ae ? 'Allgemeinerlaubnisse setzen ein A2-Fernpilotenzeugnis voraus – mit A1/A3 nicht nutzbar' : 'Für diese Zone gilt dasselbe wie mit A2'];
+  return `<div style="margin-top:6px"><b>Mit eurem Fernpilotenzeugnis (${a2 ? 'A2' : 'A1/A3'}):</b><ul>${li.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
+}
 function rulesHtml(layer, reg) {
   reg = reg || regionAt(V.lat, V.lon);
   const cov = coverageOf(layer, reg);
@@ -2618,7 +2731,7 @@ function rulesHtml(layer, reg) {
     return `<div><b>${esc(av.name)} – erlaubt mit Auflagen${avSeasonOn(av) ? '' : ' <span class="chip grey">Saison-Vorschau – heute NICHT gültig</span>'}:</b><ul>${(av.rules || []).map(r => `<li>${esc(r)}</li>`).join('') || '<li>Auflagen laut Bescheid</li>'}</ul>${av.link ? `<span class="lnk" data-url="${esc(av.link)}">Dokument öffnen</span>` : ''}</div>`; }
   let why = BLOCKED_RULES[layer] || 'Betrieb nur mit Zustimmung bzw. Erlaubnis der zuständigen Stelle (§ 21h/§ 21i LuftVO).';
   if (AE_LAYERS.includes(layer))
-    why = !reg.st && P.lic === 'A2' ? 'Bundesland an diesem Ort noch unbekannt – die Allgemeinerlaubnis wird angewendet, sobald die Landesgrenzen geladen sind (mit Internet automatisch).'
+    why = !reg.st && P.lic === 'A2' ? 'Bundesland an diesem Ort noch unbekannt – ob eine Allgemeinerlaubnis greift, prüft die App, sobald die Landesgrenzen geladen sind (mit Internet automatisch). Bis dahin gelten die bundesweiten Regeln unten.'
       : P.lic !== 'A2'
       ? 'Mit A1/A3 gilt keine Allgemeinerlaubnis – es gelten die normalen Regeln: Zustimmung des Betreibers/der zuständigen Stelle bzw. Abstand nach § 21h LuftVO.'
       : `Abdeckbar durch eine Allgemeinerlaubnis – für ${esc(stateName(reg.st))} ist in den Einstellungen aber keine eingetragen.`;
@@ -2634,7 +2747,7 @@ function rulesHtml(layer, reg) {
       : `heute ist keine Saison (${esc(inSt.map(a => mmdd(a.from) + '–' + mmdd(a.to)).join(', '))}) – zur Planung: Einstellungen → „Saison-Vorschau“`;
     why = `Nur mit Zustimmung der Naturschutzbehörde. Eine Allgemeinverfügung greift hier nicht: ${why2}. Die Allgemeinerlaubnis deckt Naturschutz-, FFH- und Vogelschutzgebiete grundsätzlich nicht ab.`;
   }
-  return `<div><b>Warum rot:</b> ${why}</div>`;
+  return `<div><b>Warum rot:</b> ${why}</div>${lawHtml(layer)}${licHtml(layer, reg)}`;
 }
 const PROP_LABEL = { name: 'Name', type_code: 'Typ', lower_limit_altitude: 'Untergrenze', upper_limit_altitude: 'Obergrenze',
   lower_limit_unit: 'Einheit unten', upper_limit_unit: 'Einheit oben', lower_limit_alt_ref: 'Bezug unten', upper_limit_alt_ref: 'Bezug oben',
@@ -4482,9 +4595,10 @@ function notamMapView(cv, items, nNear, onPick) {
   const dpr = window.devicePixelRatio || 1, g = cv.getContext('2d');
   let Wm = 0, Hm = 0, cx = 0, cy = 0, z = 10, sel = -1;
   const tiles = new Map();
-  const size = () => { Wm = cv.clientWidth || 320; Hm = cv.clientHeight || 260; cv.width = Math.round(Wm * dpr); cv.height = Math.round(Hm * dpr); };
+  const size = () => { const r = cv.getBoundingClientRect(); Wm = r.width || cv.clientWidth || 320; Hm = r.height || cv.clientHeight || 260; cv.width = Math.round(Wm * dpr); cv.height = Math.round(Hm * dpr); };
+  let target = null, moved = false;   // zuletzt eingepasster Bereich – bei Größenänderung neu einpassen
   const fit = pts => {
-    if (!pts.length) return;
+    if (!pts.length) return; target = pts; moved = false;
     let n = -90, s2 = 90, e = -180, w = 180;
     pts.forEach(([lo, la]) => { n = Math.max(n, la); s2 = Math.min(s2, la); e = Math.max(e, lo); w = Math.min(w, lo); });
     const bx = Math.max(1e-6, lon2x(e) - lon2x(w)), by = Math.max(1e-6, lat2y(s2) - lat2y(n));
@@ -4546,7 +4660,7 @@ function notamMapView(cv, items, nNear, onPick) {
     const ps = [...ptr.values()], mx = ps.reduce((a, p) => a + p[0], 0) / ps.length, my = ps.reduce((a, p) => a + p[1], 0) / ps.length;
     const dist = ps.length > 1 ? Math.hypot(ps[0][0] - ps[1][0], ps[0][1] - ps[1][1]) : 0;
     if (last && last.n === ps.length) {
-      const k = 256 * Math.pow(2, z); cx -= (mx - last.mx) / k; cy -= (my - last.my) / k;
+      const k = 256 * Math.pow(2, z); cx -= (mx - last.mx) / k; cy -= (my - last.my) / k; moved = true;
       if (dist && last.dist) zoomAt(mx, my, Math.log2(dist / last.dist));
       req();
     }
@@ -4567,10 +4681,15 @@ function notamMapView(cv, items, nNear, onPick) {
     if (hit >= 0 && onPick) onPick(hit);
   };
   size(); fit(allPts()); paint();
+  // Seite wird erst nach dem Öffnen fertig aufgebaut: echte Größe abwarten und dann einpassen
+  let lastW = Wm, lastH = Hm;
+  const onSize = () => { if (!cv.isConnected) return; size(); if (!Wm || !Hm) return; if (Math.abs(Wm - lastW) > 2 || Math.abs(Hm - lastH) > 2) { lastW = Wm; lastH = Hm; if (target && !moved) fit(target); } req(); };
+  if (window.ResizeObserver) new ResizeObserver(onSize).observe(cv);
+  requestAnimationFrame(() => requestAnimationFrame(onSize)); setTimeout(onSize, 350);
   return {
     zoomIn() { zoomAt(Wm / 2, Hm / 2, 1); req(); }, zoomOut() { zoomAt(Wm / 2, Hm / 2, -1); req(); },
     all() { sel = -1; fit(allPts()); req(); },
-    focus(i) { sel = i; const pts = geomRings(items[i].geom).flat(); fit(pts); z = Math.min(z, 15); req(); },
+    focus(i) { sel = i; size(); const pts = geomRings(items[i].geom).flat(); fit(pts); z = Math.min(z, 15); req(); },
     resize() { size(); req(); }
   };
 }
@@ -4595,7 +4714,7 @@ function showNotams() {
       ${n.end ? `<div class="meta">Gültig ${n.start ? 'vom ' + esc(fmtDate(n.start)) + ' ' : ''}bis ${esc(fmtDate(n.end))} (Ortszeit)${n.recur ? ' · <b>nur in den Aktivierungszeiten</b>' : ''}</div>` : ''}
       ${nf && nf.d < 1e8 ? `<div class="meta">Nächstes Feld: ${esc(nf.f.title)} – ${nf.d < 1000 ? Math.round(nf.d) + ' m' : (nf.d / 1000).toFixed(1).replace('.', ',') + ' km'}</div>` : ''}
       <div style="margin-top:6px">${rows || '<span class="meta">Keine Details</span>'}</div>
-      <div style="margin-top:8px;display:flex;gap:18px;flex-wrap:wrap"><span class="lnk" data-focus="${i}">Hier oben zeigen</span><span class="lnk" data-zoom="${i}">Auf der Hauptkarte zeigen</span>
+      <div style="margin-top:8px;display:flex;gap:18px;flex-wrap:wrap"><span class="lnk" data-focus="${i}">Auf der Karte zeigen</span>
         ${(() => { const dl = notamLink(n);
         let h = dl ? `<span class="lnk" data-url="${esc(dl)}">Details auf dipul</span>` : `<span class="lnk" data-url="${LINK_TBE}">Alle Einschränkungen auf dipul</span>`;
         const pts = geomRings(n.geom).flat();
@@ -4608,13 +4727,11 @@ function showNotams() {
   if ($('nReload')) $('nReload').onclick = () => { if (A.notamSync) { A.notamSync(true); toast('Wird aktualisiert…'); } };
   const mv = notamMapView($('nMap'), sorted, nNear, i => { mv.focus(i); const z2 = $('iBody').querySelector(`[data-ni="${i}"]`); if (z2) { z2.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); z2.classList.add('flash'); setTimeout(() => z2.classList.remove('flash'), 1200); } });
   $('nmIn').onclick = () => mv.zoomIn(); $('nmOut').onclick = () => mv.zoomOut(); $('nmAll').onclick = () => mv.all();
-  $('iBody').querySelectorAll('[data-focus]').forEach(el => el.onclick = () => { mv.focus(+el.dataset.focus); $('nMap').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
-  $('iBody').querySelectorAll('[data-zoom]').forEach(el => el.onclick = () => {
-    const n = sorted[+el.dataset.zoom];
-    const pts = geomRings(n.geom).flat();
-    if (!pts.length) return;
-    fitBounds({ n: Math.max(...pts.map(c => c[1])), s: Math.min(...pts.map(c => c[1])), e: Math.max(...pts.map(c => c[0])), w: Math.min(...pts.map(c => c[0])) });
-    $('iBack').onclick();
+  // „Auf der Karte zeigen“: hoch zur Karte dieser Seite springen und das ganze Polygon einpassen
+  $('iBody').querySelectorAll('[data-focus]').forEach(el => el.onclick = () => {
+    const i = +el.dataset.focus, wrap = $('nMap').closest('.nmapwrap') || $('nMap');
+    wrap.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    mv.focus(i); setTimeout(() => mv.focus(i), 450);
   });
 }
 $('notam').onclick = showNotams;
@@ -4692,7 +4809,7 @@ function netBadge() {
   try { on = A.isOnline ? A.isOnline() : navigator.onLine; } catch (e) { }
   const wifi = '<path d="M2 8.5a15 15 0 0 1 20 0"/><path d="M5 12a10 10 0 0 1 14 0"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/>';
   $('net').innerHTML = `<svg viewBox="0 0 24 24">${wifi}${on ? '' : '<path d="M3 3l18 18"/>'}</svg>${on ? 'Online' : 'Offline'}`;
-  $('net').classList.toggle('off', !on);
+  $('net').classList.toggle('off', !on); pfChipPos();
   if (on && wasOffline) { tileFail.clear(); draw(); setTimeout(() => { geoSyncNow(false); wxPrefetch().then(windWidget); }, 1500); }   // wieder online: Fehlendes nachladen
   wasOffline = !on;
 }
@@ -4780,6 +4897,106 @@ function miniMap(cv, ring, route, center) {
   }
   paintMini();
 }
+/** Große Auswahlkarte im Abgleich-Dialog: verschieben, zoomen, Feld antippen = an-/abwählen */
+function pickMap(el, items, shown, toggle) {
+  const cv = document.createElement('canvas'); el.appendChild(cv);
+  const g = cv.getContext('2d'), imgs = new Map();
+  let z = 12, cx = 0, cy = 0, Wm = 0, Hm = 0, raf = 0;
+  const wsz = () => 256 * Math.pow(2, z);
+  const pxOf = (la, lo) => [lon2x(lo) * wsz() - cx + Wm / 2, lat2y(la) * wsz() - cy + Hm / 2];
+  const ptsOf = x => { const q = x.geo || {}; const a = [...(q.ring || []), ...(q.route || [])]; if (!a.length && q.c) a.push(q.c); return a; };
+  function size() { const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; Wm = r.width || 300; Hm = r.height || 240; cv.width = Math.round(Wm * dpr); cv.height = Math.round(Hm * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0); }
+  function fit() {
+    size();
+    let pts = items.filter(shown).flatMap(ptsOf); if (!pts.length) pts = items.flatMap(ptsOf); if (!pts.length) return;
+    let n = -90, s2 = 90, e = -180, w = 180;
+    pts.forEach(([la, lo]) => { n = Math.max(n, la); s2 = Math.min(s2, la); e = Math.max(e, lo); w = Math.min(w, lo); });
+    const bx = Math.max(1e-7, lon2x(e) - lon2x(w)), by = Math.max(1e-7, lat2y(s2) - lat2y(n));
+    z = Math.max(6, Math.min(17, Math.log2(Math.min((Wm * .85) / (bx * 256), (Hm * .85) / (by * 256)))));
+    cx = (lon2x(e) + lon2x(w)) / 2 * wsz(); cy = (lat2y(s2) + lat2y(n)) / 2 * wsz();
+    paint();
+  }
+  const paint = () => { if (!raf) raf = requestAnimationFrame(draw); };
+  function draw() {
+    raf = 0; if (!cv.isConnected || !cv.offsetParent) return;
+    g.fillStyle = '#cfd6dc'; g.fillRect(0, 0, Wm, Hm);
+    const lz = Math.max(5, Math.min(Math.round(z), LAYER_MAXZ[P.layer] || 18)), ts = 256 * Math.pow(2, z - lz), nT = 1 << lz;
+    g.filter = LAYER_FILTER[P.layer] || 'none';
+    for (let ty = Math.floor((cy - Hm / 2) / ts); ty <= Math.floor((cy + Hm / 2) / ts); ty++) for (let tx = Math.floor((cx - Wm / 2) / ts); tx <= Math.floor((cx + Wm / 2) / ts); tx++) {
+      if (ty < 0 || ty >= nT) continue;
+      const k = lz + '/' + (((tx % nT) + nT) % nT) + '/' + ty;
+      let im = imgs.get(k);
+      if (!im) { im = new Image(); im.onload = paint; im.src = LAYERS[P.layer](lz, ((tx % nT) + nT) % nT, ty); imgs.set(k, im); if (imgs.size > 400) imgs.delete(imgs.keys().next().value); }
+      if (im.complete && im.naturalWidth) g.drawImage(im, tx * ts - cx + Wm / 2, ty * ts - cy + Hm / 2, ts + 1, ts + 1);
+    }
+    g.filter = 'none';
+    const path = (r, close) => { g.beginPath(); r.forEach((p, i) => { const [x, y] = pxOf(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); if (close) g.closePath(); };
+    // Felder, die schon auf der RC sind (blau)
+    S.files.filter(f => !f.dup && (f.outline || f.shapes)).forEach(f => (f.outline ? [f.outline] : f.shapes.map(sh => sh.pts)).forEach(r => { path(r, true); g.strokeStyle = '#1e7bff'; g.lineWidth = 1.5; g.stroke(); }));
+    const lbl = [];
+    items.forEach((x, i) => {
+      if (!shown(x) || !x.geo) return;
+      const q = x.geo, col = x.on ? '#1aa34a' : '#ff7a00';
+      if (q.ring) { path(q.ring, true); g.fillStyle = x.on ? 'rgba(26,163,74,.38)' : 'rgba(255,122,0,.3)'; g.fill(); g.strokeStyle = col; g.lineWidth = 2.5; g.stroke(); }
+      if (q.route) { path(q.route); g.strokeStyle = x.on ? '#0e6b30' : '#c75a00'; g.lineWidth = 1.5; g.stroke(); }
+      const pts = ptsOf(x); if (!pts.length) return;
+      let sx = 0, sy = 0; pts.forEach(p => { const [a, b] = pxOf(p[0], p[1]); sx += a; sy += b; }); sx /= pts.length; sy /= pts.length;
+      if (!q.ring) { g.beginPath(); g.arc(sx, sy, 9, 0, 7); g.fillStyle = col; g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke(); }
+      lbl.push([sx, sy, x]);
+    });
+    // Namen ab mittlerem Zoom, Überlappungen auslassen
+    if (z >= 13 || lbl.length <= 12) {
+      g.font = '600 13px Roboto,system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      const used = [];
+      lbl.forEach(([sx, sy, x]) => {
+        const t = x.label.replace(/_[\d.,]+ha.*$/i, ''), w = g.measureText(t).width + 12, y = sy - 20;
+        if (used.some(u => Math.abs(u[0] - sx) < (u[2] + w) / 2 && Math.abs(u[1] - y) < 20)) return;
+        used.push([sx, y, w]);
+        g.fillStyle = 'rgba(255,255,255,.92)'; g.fillRect(sx - w / 2, y - 10, w, 20); g.strokeStyle = x.on ? '#1aa34a' : '#ff7a00'; g.lineWidth = 1.5; g.strokeRect(sx - w / 2, y - 10, w, 20);
+        g.fillStyle = '#15202b'; g.fillText(t, sx, y + 1);
+      });
+    }
+    g.font = '11px Roboto,system-ui,sans-serif'; g.textAlign = 'right'; g.textBaseline = 'alphabetic';
+    const at = P.layer === 'sat' ? '© Luftbild GeoBasis-DE / Esri' : '© GeoBasis-DE / BKG';
+    g.fillStyle = 'rgba(255,255,255,.75)'; g.fillRect(Wm - g.measureText(at).width - 8, Hm - 15, 400, 15); g.fillStyle = '#334'; g.fillText(at, Wm - 4, Hm - 4);
+  }
+  function hit(px, py) {
+    let best = -1, ba = Infinity;
+    items.forEach((x, i) => {
+      if (!shown(x) || !x.geo) return;
+      const q = x.geo;
+      if (q.ring) {
+        const r = q.ring.map(p => pxOf(p[0], p[1]));
+        if (inPoly(px, py, r)) { let a = 0; r.forEach((p, j) => { const o = r[(j + 1) % r.length]; a += p[0] * o[1] - o[0] * p[1]; }); a = Math.abs(a); if (a < ba) { ba = a; best = i; } return; }
+      }
+      const pts = ptsOf(x); if (!pts.length) return;
+      let sx = 0, sy = 0; pts.forEach(p => { const [a, b] = pxOf(p[0], p[1]); sx += a; sy += b; }); sx /= pts.length; sy /= pts.length;
+      const d = Math.hypot(sx - px, sy - py); if (d < 22 && 1e9 + d < ba) { ba = 1e9 + d; best = i; }
+    });
+    return best;
+  }
+  const zoomAt = (px, py, dz) => { const nz = Math.max(5, Math.min(19, z + dz)), f = Math.pow(2, nz - z), ox = px - Wm / 2, oy = py - Hm / 2; cx = (cx + ox) * f - ox; cy = (cy + oy) * f - oy; z = nz; paint(); };
+  const ptr = new Map(); let tap = null, pinch = 0;
+  cv.style.touchAction = 'none';
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); ptr.set(e.pointerId, [e.offsetX, e.offsetY]); tap = ptr.size === 1 ? { x: e.offsetX, y: e.offsetY, t: Date.now() } : null; pinch = 0; });
+  cv.addEventListener('pointermove', e => {
+    const o = ptr.get(e.pointerId); if (!o) return;
+    const nx = e.offsetX, ny = e.offsetY;
+    if (ptr.size === 1) { cx -= nx - o[0]; cy -= ny - o[1]; if (tap && Math.hypot(nx - tap.x, ny - tap.y) > 8) tap = null; ptr.set(e.pointerId, [nx, ny]); paint(); return; }
+    ptr.set(e.pointerId, [nx, ny]);
+    const [a, b] = [...ptr.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    if (pinch) zoomAt((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, Math.log2(d / pinch));
+    pinch = d; tap = null;
+  });
+  const up = e => {
+    ptr.delete(e.pointerId); pinch = 0;
+    if (tap && e.type === 'pointerup' && Date.now() - tap.t < 600) { const i = hit(tap.x, tap.y); if (i >= 0) { toggle(i); paint(); } }
+    tap = null;
+  };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, e.deltaY < 0 ? .5 : -.5); }, { passive: false });
+  return { fit, paint, zoom: d => zoomAt(Wm / 2, Hm / 2, d) };
+}
 function syncEnd() { syncing = false; $('bSync').disabled = false; busy(''); }
 window.onUave = raw => {
   const ev = JSON.parse(raw);
@@ -4798,7 +5015,7 @@ window.onUave = raw => {
     pickDlg(`Felder aus UAV Editor laden`,
       `${parts.join(', ')} · ${ev.total} Felder im UAV Editor · Ziel: ${P.src}`,
       todo.map(f => { const x = uaveInfo(f); return { label: f.name, tag: f.status === 'changed' ? 'geändert' : 'neu', on: !otherVariant(f, ev.fields),
-        info: x.info, facets: { Jahr: x.years, Drohne: [x.drone || '?'], Stand: [f.arch ? 'Archiv' : 'aktiv'] },
+        info: x.info, geo: x.ring || x.route || x.c ? { ring: x.ring, route: x.route, c: x.c } : null, facets: { Jahr: x.years, Drohne: [x.drone || '?'], Stand: [f.arch ? 'Archiv' : 'aktiv'] },
         preview: x.ring || x.route || x.c ? cv => miniMap(cv, x.ring, x.route, x.c) : null }; }),
       'Felder laden', idx => {
         const ids = idx.map(i => todo[i].id);
@@ -4843,13 +5060,13 @@ const SU_STEPS = [
   () => `<h3>Allgemeinverfügungen für Naturschutzgebiete</h3><p>Viele Behörden erlauben Kitzrettung über Naturschutz-, FFH- und Vogelschutzgebieten per Allgemeinverfügung – jeweils nur in bestimmten Bundesländern/Bezirken und Zeiträumen. Tragt eure ein, dann färbt die App diese Zonen genau dort grün.</p>
     <div id="suAv">${avList().map((av, i) => `<label class="pick"><input type="checkbox" data-suav="${i}"${av.on ? ' checked' : ''}><span><b>${esc(av.name)}</b><em>${esc(avText(av))}</em></span></label>`).join('')}</div>
     <button class="b-sec" id="suAvAdd" style="height:46px;margin-top:8px">+ Allgemeinverfügung hinzufügen</button>`,
-  () => `<h3>UAV Editor</h3><p>Mit eurem UAV-Editor-Zugang holt „Abgleichen“ die Wiesen automatisch auf die Fernsteuerung. Das Passwort bleibt verschlüsselt nur auf diesem Gerät.</p>
+  () => `<h3>UAV Editor</h3><p>Mit eurem UAV-Editor-Zugang holt „UAV Editor“ die Wiesen automatisch auf die Fernsteuerung. Das Passwort bleibt verschlüsselt nur auf diesem Gerät.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="suU" class="inp" type="email" placeholder="E-Mail / Login" autocomplete="off" value="${esc(A.uaveUser ? A.uaveUser() || '' : '')}"><input id="suP" class="inp" type="password" placeholder="Passwort" autocomplete="off"></div>
     <p class="meta">Ohne Zugang: KMZ-Dateien selbst in den Quellordner „${esc(P.src)}“ legen.</p>`,
   () => `<h3>Ordner</h3><div class="set"><div class="l"><div class="t">Quellordner (KMZ aus UAV Editor)</div><div class="v">${esc(P.src)}</div></div><button class="b-sec" data-supick="src">Ändern</button></div>
     <div class="set"><div class="l"><div class="t">Zielordner für Pilot 2</div><div class="v">${esc(P.dst)}</div></div><button class="b-sec" data-supick="dst">Ändern</button></div>
     <p class="meta">In Pilot 2 unter „Route importieren“ diesen Zielordner wählen.</p>`,
-  () => `<h3>Fast fertig</h3><p><b>1.</b> Wiesen holen – „Abgleichen“ lädt eure Wiesen aus dem UAV Editor.</p><button class="b-ok" id="suSync" style="height:50px">Wiesen jetzt abgleichen</button>
+  () => `<h3>Fast fertig</h3><p><b>1.</b> Wiesen holen – „UAV Editor“ lädt eure Wiesen aus dem UAV Editor.</p><button class="b-ok" id="suSync" style="height:50px">Wiesen jetzt abgleichen</button>
     <p style="margin-top:16px"><b>2.</b> Danach speichert die App das Einsatzgebiet automatisch für offline (Karten, Geozonen, Windräder, Wetter) – am besten im WLAN. Mit dem Knopf geht es jederzeit auch von Hand.</p>
     <button class="b-sec" id="suSave" style="height:50px"${S.files.length ? '' : ' disabled'}>Einsatzgebiet speichern${S.files.length ? '' : ' (erst Wiesen holen)'}</button>`
 ];
@@ -4911,7 +5128,7 @@ addPwEyes();
 // ================= Einführung (Rundgang über die Bedienelemente) =================
 const TOUR = [
   [null, 'Willkommen bei Mission Kitzrettung', 'Ein kurzer Rundgang zeigt dir, wo was ist. Du kannst jederzeit abbrechen – in den Einstellungen unter „Einführung“ startest du ihn wieder.'],
-  ['#bSync', 'Abgleichen', 'Holt eure Wiesen aus dem UAV Editor – neue, geänderte und gelöschte. Danach speichert die App das Einsatzgebiet automatisch für offline.'],
+  ['#bSync', 'UAV Editor', 'Holt eure Wiesen aus dem UAV Editor – neue, geänderte und gelöschte. Danach speichert die App das Einsatzgebiet automatisch für offline.'],
   ['#map', 'Wiesen markieren', 'Tippe Wiesen auf der Karte an, um sie zu markieren. Markierte Wiesen kannst du dann an Pilot 2 übergeben.'],
   ['#bDl', 'In Pilot 2', 'Kopiert die markierten Wiesen in den Importordner – in Pilot 2 unter „Route importieren“. Vorher siehst du Geozonen, Hindernisse und Wetter der Wiesen.'],
   ['#bSearch', 'Suchen', 'Wiese oder Ort per Namen finden – funktioniert auch offline.'],
@@ -4919,7 +5136,7 @@ const TOUR = [
   ['#bLayer', 'Kartenart & Zonen', 'Grau, Karte oder Luftbild – und welche Geozonen-Gruppen eingeblendet sind (Luftfahrt, Natur, Verkehr …).'],
   ['#bLoc', 'Mein Standort', 'Springt zu deinem GPS-Standort.'],
   ['#wind', 'Wind & Wetter', 'Wind in 10/50/100 m und Kompass. Antippen öffnet das Wetter: Bewertung des Einsatzfensters am Morgen, Tageslauf, 8-Tage-Vorschau.'],
-  ['#net', 'Online / Offline', 'Zeigt, ob Internet da ist. Ohne Internet läuft alles aus dem Speicher – nur „Abgleichen“ braucht Netz.'],
+  ['#net', 'Online / Offline', 'Zeigt, ob Internet da ist. Ohne Internet läuft alles aus dem Speicher – nur „UAV Editor“ braucht Netz.'],
   ['#notam', 'NOTAMs', 'Erscheint, wenn im Gebiet eine aktuelle Flugbeschränkung gilt – antippen für Details und Karte.'],
   ['#bPlan', 'Einsatzplan', 'Reihenfolge der markierten Wiesen, Fahrt, Akkus, gemeinsamer Standort für Pilot + Spotter (in den Einstellungen einschaltbar).'],
   ['#bSet', 'Einstellungen', 'Drohne, Fernpilotenzeugnis, Allgemeinerlaubnis/-verfügungen, UAV-Editor-Zugang, Ordner, Offline-Speicher – und diese Einführung.']

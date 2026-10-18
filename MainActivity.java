@@ -2662,6 +2662,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     }
                 } else for (int li = 0; li < layers.length(); li++) for (int[] t : list) work.add(new Object[]{layers.getString(li), t});
                 cnt[3] = work.size();
+                // Fortschritt je Datenbereich (für die Liste „Offline-Daten“ in den Einstellungen)
+                java.util.LinkedHashMap<String, int[]> pc = new java.util.LinkedHashMap<>();
+                for (Object[] w : work) { String c = pfCat((String) w[0]); int[] a = pc.get(c); if (a == null) pc.put(c, a = new int[2]); a[0]++; }
+                pfCats = pc; pfCur = null;
                 java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(4);
                 final long[] lastEv = {0};
                 {
@@ -2669,6 +2673,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         final String lay = (String) w[0]; final int[] t = (int[]) w[1];
                         ex.submit(() -> {
                             if (prefetchStop) return;
+                            final String pcat = pfCat(lay);
                             // Vorrang für die Karte, die gerade angesehen wird: solange sie Kacheln lädt, wartet der Hintergrund-Download
                             for (int wt = 0; wt < 50 && !prefetchStop && System.currentTimeMillis() - viewReqAt < 2500; wt++) try { Thread.sleep(200); } catch (InterruptedException ie) { return; }
                             try {
@@ -2692,6 +2697,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                                     else synchronized (cnt) { cnt[2]++; }
                                 }
                             } catch (Exception e) { synchronized (cnt) { cnt[2]++; } }
+                            synchronized (cnt) { int[] a = pfCats.get(pcat); if (a != null) a[1]++; pfCur = pcat; }
                             long now = System.currentTimeMillis();
                             if (now - lastEv[0] > 700) { lastEv[0] = now; prefetchEvent(cnt, bytes[0], false); }
                         });
@@ -2708,12 +2714,18 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }).start();
     }
 
+    private volatile Map<String, int[]> pfCats = new HashMap<>();
+    private volatile String pfCur = null;
+    private static String pfCat(String lay) { return lay.equals("dop") ? "luftbild" : lay.startsWith("geo:") ? "geokacheln" : "karte"; }
     private void prefetchEvent(int[] cnt, long bytes, boolean fin) {
         try {
             JSONObject o;
             synchronized (cnt) {
                 o = new JSONObject().put("done", cnt[0]).put("have", cnt[1]).put("fail", cnt[2]).put("total", cnt[3])
                         .put("bytes", bytes).put("finished", fin).put("cancelled", prefetchStop);
+                JSONObject cs = new JSONObject();
+                for (Map.Entry<String, int[]> e : pfCats.entrySet()) cs.put(e.getKey(), new JSONArray().put(e.getValue()[1]).put(e.getValue()[0]));
+                o.put("cats", cs); if (pfCur != null) o.put("cur", pfCur);
             }
             js("window.onPrefetch && window.onPrefetch(" + JSONObject.quote(o.toString()) + ")");
         } catch (Exception ignored) { }
@@ -2879,10 +2891,21 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         try (InputStream in = new FileInputStream(f)) { return readAll(in); }
     }
 
+    /** Sicher schreiben: Ordner anlegen (falls Cache-Bereich gelöscht/verschoben wurde), eigene Temp-Datei je Thread, dann umbenennen */
     private static void writeFileAtomic(File f, String text) throws Exception {
-        File tmp = new File(f.getPath() + ".tmp");
-        try (OutputStream o = new FileOutputStream(tmp)) { o.write(text.getBytes(StandardCharsets.UTF_8)); }
-        if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
+        byte[] data = text.getBytes(StandardCharsets.UTF_8);
+        Exception last = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            File dir = f.getParentFile();
+            if (dir != null && !dir.isDirectory() && !dir.mkdirs() && !dir.isDirectory()) { last = new java.io.IOException("Ordner nicht anlegbar: " + dir); Thread.sleep(150); continue; }
+            File tmp = new File(f.getPath() + "." + Thread.currentThread().getId() + ".tmp");
+            try {
+                try (OutputStream o = new FileOutputStream(tmp)) { o.write(data); }
+                if (!tmp.renameTo(f)) { f.delete(); if (!tmp.renameTo(f)) throw new java.io.IOException("Umbenennen fehlgeschlagen: " + f.getName()); }
+                return;
+            } catch (Exception e) { last = e; tmp.delete(); Thread.sleep(150); }
+        }
+        throw last;
     }
 
     private static final String[] OVERPASS = {
