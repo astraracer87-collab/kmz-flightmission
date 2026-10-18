@@ -568,6 +568,37 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             }
         }
 
+        /** Missionen von DJI Pilot 2 auf der Fernsteuerung (DJI/Mission/KML/<ID>/<Name>.kmz) – je Unterordner eine Mission */
+        @JavascriptInterface
+        public String listKmzDeep(String path) {
+            try {
+                File dir = new File(path);
+                if (!dir.isDirectory()) return err("Ordner nicht gefunden: " + path).toString();
+                File[] subs = dir.listFiles();
+                if (subs == null) return err("Kein Zugriff auf " + path).toString();
+                JSONArray arr = new JSONArray();
+                for (File d : subs) {
+                    if (d.isFile() && isKmz(d.getName())) {   // Datei direkt im Ordner
+                        arr.put(new JSONObject().put("name", d.getName()).put("path", d.getAbsolutePath()).put("size", d.length()).put("mtime", d.lastModified()));
+                        continue;
+                    }
+                    if (!d.isDirectory() || d.getName().startsWith(".")) continue;
+                    File[] fs = d.listFiles(); File best = null;
+                    if (fs != null) for (File f : fs) if (f.isFile() && isKmz(f.getName()) && (best == null || f.lastModified() > best.lastModified())) best = f;
+                    if (best == null) { File t = new File(d, "wpmz/template.kml"); if (t.isFile()) best = t; }
+                    if (best == null) continue;
+                    String nm = best.getName().equalsIgnoreCase("template.kml") ? d.getName() + ".kml" : best.getName();
+                    arr.put(new JSONObject().put("name", nm).put("path", best.getAbsolutePath()).put("size", best.length())
+                            .put("mtime", best.lastModified()).put("rcId", d.getName()));
+                }
+                List<JSONObject> l = new ArrayList<>(); for (int i = 0; i < arr.length(); i++) l.add(arr.getJSONObject(i));
+                Collections.sort(l, (x, y) -> x.optString("name").compareToIgnoreCase(y.optString("name")));
+                return new JSONObject().put("ok", true).put("files", new JSONArray(l)).toString();
+            } catch (Exception e) {
+                return err(e.getMessage()).toString();
+            }
+        }
+
         /** Liefert den KML-Text einer KMZ/KML (bei KMZ bevorzugt wpmz/template.kml) */
         @JavascriptInterface
         public String readKml(String path) {

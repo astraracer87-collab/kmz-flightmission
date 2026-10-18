@@ -43,6 +43,9 @@
   .b-sec{background:var(--sec);color:var(--acc)}
   .b-ok{background:linear-gradient(180deg,#27b057,#1a8f40);color:#fff;box-shadow:0 2px 6px rgba(26,143,64,.35)}
   #count{min-width:96px;max-width:200px;flex:0 1 auto;font-weight:700;font-size:17px;overflow:hidden;white-space:nowrap}
+  .srcseg{display:flex;flex:none;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;align-self:center}
+  .srcseg button{height:38px;padding:0 10px;border-radius:9px;border:0;background:transparent;color:var(--muted);font-size:14px;font-weight:700;white-space:nowrap}
+  .srcseg button.on{background:#1e7bff;color:#fff}
   #count small{display:block;font-weight:400;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #bar{overflow:hidden}
   #bar button{min-width:0}
@@ -81,8 +84,14 @@
   #wind .card{width:100%;box-sizing:border-box;background:var(--ctrl);color:var(--txt);border-radius:10px;border-left:5px solid #13a538;box-shadow:0 1px 5px rgba(0,0,0,.3);padding:5px 9px;font-size:12px;line-height:1.35;text-align:left;white-space:normal}
   #wind .big{font-size:15px;font-weight:700;white-space:nowrap}
   #wind .sub{color:var(--muted)}
-  #notam{position:fixed;left:200px;top:12px;background:#b3131b;color:#fff;font-weight:700;padding:10px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none;cursor:pointer;z-index:5}
-  #notam.inact{background:#5d6975}
+  #notam{position:fixed;left:200px;top:12px;background:#b3131b;color:#fff;font-weight:700;padding:0 14px 0 10px;height:40px;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none;align-items:center;gap:7px;cursor:pointer;z-index:5;font-size:15px;white-space:nowrap}
+  #notam svg{width:20px;height:20px;stroke:#fff;stroke-width:2.4;fill:none}
+  #notam small{font-weight:400;opacity:.85}
+  #notam .nchev{font-size:22px;line-height:1;margin-left:2px;opacity:.9}
+  #notam:active{filter:brightness(.85)}
+  #notam.inact{background:#c77800}
+  #notam.ok{background:#0e7a2c}
+  #notam.none{background:#5d6975}
   #net{position:fixed;right:80px;top:12px;padding:6px 12px 6px 9px;border-radius:20px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;background:#0e7a2c;color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.35);pointer-events:none;z-index:4}
   #net.off{background:#b3131b;color:#fff}
   #net svg{width:22px;height:22px;stroke-width:2.4}
@@ -422,6 +431,7 @@
 <div id="bar">
   <img class="logo" data-logo alt="Kitzrettung Limburg">
   <div id="count">0 markiert<small>0 Felder</small></div>
+  <div class="srcseg" title="Datenquelle der Felder: UAV Editor oder Missionen auf der Fernsteuerung (DJI Pilot 2)"><button data-fsrc="uave">Editor</button><button data-fsrc="rc">Auf RC</button></div>
   <button id="bPlan" class="b-sec" style="display:none"><svg viewBox="0 0 24 24"><path d="M5 19l5-6 4 3 5-9"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="7" r="1.8"/></svg>Plan</button>
   <button id="bNone" class="b-sec" style="display:none"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Abwählen</button>
   <div class="sp"></div>
@@ -450,6 +460,8 @@
     <div class="set"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Gibt es ein Feld als M3T und M4T, zeigt die Karte nur die passende Version; Felder, die es nur einmal gibt, immer (sie werden beim Download bei Bedarf umgerechnet).</div></div><div class="seg"><button data-rcdrone="">Keine</button><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzplan</div><div class="v">Zeigt für die markierten Wiesen eine sinnvolle Reihenfolge (kürzeste Wege), Flugzeit, Akku-Bedarf und das voraussichtliche Ende – im Vergleich dazu, ab wann es wärmer wird und das Wärmebild nachlässt. Knopf „Plan“ unten, sobald Wiesen markiert sind.</div></div><input id="sPlanBatt" class="inp" style="width:90px" type="number" min="10" max="60" placeholder="Min/Akku"><label class="sw"><input type="checkbox" id="sPlan"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Quellordner (KMZ aus UAV Editor)</div><div class="v" id="vSrc"></div></div><button class="b-sec" data-pick="src">Ordner wählen</button></div>
+    <div class="set"><div class="l"><div class="t">Datenquelle der Felder</div><div class="v">UAV Editor = heruntergeladene Planungen (Quellordner) · Fernsteuerung = Missionen, die schon in DJI Pilot 2 gespeichert sind</div></div><div class="seg"><button data-fsrc="uave">UAV Editor</button><button data-fsrc="rc">Fernsteuerung</button></div></div>
+    <div class="set"><div class="l"><div class="t">Missionsordner der Fernsteuerung (DJI Pilot 2)</div><div class="v" id="vRcDir"></div></div><button class="b-sec" data-pick="rcDir">Ordner wählen</button></div>
     <div class="set"><div class="l"><div class="t">Zielordner für Pilot 2</div><div class="v" id="vDst"></div></div><button class="b-sec" data-pick="dst">Ordner wählen</button></div>
     <div class="set"><div class="l"><div class="t">Verschieben statt kopieren</div><div class="v">Aus = Original bleibt im Quellordner</div></div><label class="sw"><input type="checkbox" id="sMove"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Zielordner vor Download leeren</div><div class="v">Löscht vorher alle .kmz im Zielordner</div></div><label class="sw"><input type="checkbox" id="sClear"><span></span></label></div>
@@ -568,7 +580,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/KMZ Mission', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/KMZ Mission', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -1504,7 +1516,7 @@ function drawField(f) {
 const byAreaDesc = (a, b) => (b.areaM2 || 0) - (a.areaM2 || 0);
 
 let labelBoxes = [];
-const shortTitle = t => { const s2 = String(t || '').replace(/[_\s]+[\d.,]+\s*ha([_\s]+\d+\s*WP)?\s*$/i, '').replace(/[-_\s]+(M3T|M4T|M30T|M3E)\s*$/i, '').replace(/[-_\s]+$/, ''); return s2 || t; };
+const shortTitle = t => { const s2 = String(t || '').replace(/(?:[-_\s]*(?:M3T|M4T|M30T|M3E))?[-_\s]*[\d.,]+\s*ha(?:[-_\s]*\d+\s*WP)?\s*$/i, '').replace(/[-_\s]+(M3T|M4T|M30T|M3E)\s*$/i, '').replace(/[-_\s]+$/, ''); return s2 || t; };
 const LABEL_Z = 15;   // Feldnamen erst bei naher Zoomstufe (markierte Felder immer)
 function drawLabel(f) {
   if (V.z < LABEL_Z && !f.selected) return;
@@ -1794,6 +1806,21 @@ function applyOutlines() {
   S.outlineCount = n;
   return n;
 }
+// Datenquelle: Felder aus dem UAV Editor (Download-Ordner) oder die Missionen, die schon in DJI Pilot 2 auf der Fernsteuerung liegen
+const rcDir = () => P.rcDir || (ROOT + '/DJI/Mission/KML');
+function setSource(v) {
+  if (v === P.fsrc) return;
+  setP('fsrc', v); S.files = []; update();
+  toast(v === 'rc' ? 'Zeige Missionen auf der Fernsteuerung (DJI Pilot 2)' : 'Zeige Felder aus dem UAV Editor', false, 2500);
+  srcUi(); load(true);
+}
+function srcUi() {
+  const rc = P.fsrc === 'rc';
+  document.querySelectorAll('[data-fsrc]').forEach(b => b.classList.toggle('on', b.dataset.fsrc === P.fsrc));
+  document.body.classList.toggle('src-rc', rc);
+  const b = $('bDl'); if (b && b.lastChild && b.lastChild.nodeType === 3) b.lastChild.textContent = rc ? 'Briefing' : 'In Pilot 2';
+  if (b) b.title = rc ? 'Flughinweise zu den markierten Missionen (sie liegen schon in DJI Pilot 2)' : 'Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen';
+}
 async function load(keepView) {
   if (loading) return;
   if (!A.hasAccess()) { $('perm').classList.add('open'); return; }
@@ -1801,8 +1828,9 @@ async function load(keepView) {
   ensureFolders();   // nach der Freigabe: fehlende Standardordner anlegen
   loading = true;
   const keep = new Set(S.files.filter(f => f.selected).map(f => f.path));
-  const r = JSON.parse(A.listKmz(P.src));
-  if (!r.ok) { loading = false; S.files = []; update(); return toast(r.error + ' – Quellordner in den Einstellungen prüfen.', true); }
+  const rc = P.fsrc === 'rc';
+  const r = JSON.parse(rc ? (A.listKmzDeep ? A.listKmzDeep(rcDir()) : '{"ok":false,"error":"App-Version zu alt"}') : A.listKmz(P.src));
+  if (!r.ok) { loading = false; S.files = []; update(); return toast(r.error + (rc ? ' – Ordner der Fernsteuerung (DJI Pilot 2) in den Einstellungen prüfen.' : ' – Quellordner in den Einstellungen prüfen.'), true); }
   const out = []; let bad = 0, stop = false;
   for (let i = 0; i < r.files.length; i++) {
     const f = r.files[i];
@@ -1888,6 +1916,8 @@ window.onLocation = (lat, lon, acc, last, ageMin) => {
 };
 window.onLocationStatus = m => toast(m, false, 4000);
 window.onLocationError = m => toast(m, true);
+document.querySelectorAll('[data-fsrc]').forEach(b => b.onclick = () => setSource(b.dataset.fsrc));
+setTimeout(srcUi, 0);
 $('bNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); toast('Alle Felder abgewählt.'); };
 // Suche: Lupe in der Leiste öffnet ein Suchfeld unten mittig über der Karte
 // Orte (Dörfer, Ortsteile, Flurnamen) aus OpenStreetMap – offline gespeichert
@@ -2142,11 +2172,12 @@ $('bDl').onclick = () => {
   const sel = S.files.filter(f => f.selected);
   const b = flightBriefing(sel);
   const afNear = S.airfields.some(a => sel.some(f => f.center && distM(f.center[0], f.center[1], a.lat, a.lon) < 5000));
-  if (!b.zones.length && !b.obs.length && !b.rails.length && !b.lines.length && !b.vh.length && !afNear) return openCopyDialog(sel, true);
+  const rcMode = P.fsrc === 'rc';
+  if (!b.zones.length && !b.obs.length && !b.rails.length && !b.lines.length && !b.vh.length && !afNear) return rcMode ? toast('Keine Geozonen oder Hindernisse – die Missionen liegen schon in DJI Pilot 2.', 'ok', 4000) : openCopyDialog(sel, true);
   const box = document.createElement('div');
   box.innerHTML = briefingHtml(b, sel);
   box.querySelectorAll('[data-url]').forEach(a => a.onclick = () => A.openUrl ? A.openUrl(a.dataset.url) : window.open(a.dataset.url));
-  confirmDlg('Flughinweise – betroffene Geozonen', `${sel.length} Feld${sel.length > 1 ? 'er' : ''} · so darf hier geflogen werden:`, [], 'Gelesen – weiter', () => openCopyDialog(sel, false), box);
+  confirmDlg('Flughinweise – betroffene Geozonen', `${sel.length} Feld${sel.length > 1 ? 'er' : ''} · so darf hier geflogen werden:`, [], rcMode ? 'Gelesen' : 'Gelesen – weiter', rcMode ? null : () => openCopyDialog(sel, false), box);
   $('dlg').querySelector('.box').scrollTop = 0;
 };
 function openCopyDialog(sel, clean) {
@@ -2317,7 +2348,7 @@ $('permGo').onclick = () => A.requestAccess();
 // ================= Einstellungen =================
 function fillSettings() {
   try { applyTheme(); } catch (e) { }
-  $('vSrc').textContent = P.src; $('vDst').textContent = P.dst;
+  $('vSrc').textContent = P.src; $('vDst').textContent = P.dst; $('vRcDir').textContent = rcDir(); srcUi();
   $('sMove').checked = P.move === '1'; $('sClear').checked = P.clear === '1'; $('sLabels').checked = P.labels === '1';
   document.querySelectorAll('[data-layer]').forEach(b => b.classList.toggle('on', b.dataset.layer === P.layer));
   if (A.cacheInfoAsync) A.cacheInfoAsync();   // Größen im Hintergrund zählen (sonst hängt die App bei vielen Kacheln)
@@ -4777,11 +4808,17 @@ function notamDists() {
 function notamChip() {
   notamDists();
   const el = $('notam');
+  // immer sichtbar: rot = aktiv in der Nähe, orange = geplant, grün = nichts in 50 km, grau = noch nicht geladen
   const near = S.notams.filter(n => n.dist <= NOTAM_NEAR), act = near.filter(n => n.active).length, inact = near.length - act;
-  if (!near.length) { el.style.display = 'none'; return; }
-  el.className = act ? '' : 'inact';
-  el.textContent = act ? `⚠ ${act} aktive Einschränkung${act > 1 ? 'en' : ''} (NOTAM)` : `${inact} geplante Einschränkung${inact > 1 ? 'en' : ''}`;
-  el.style.display = 'block';
+  const old = S.notamFetched && Date.now() - S.notamFetched > 24 * 3600000;
+  const ic = '<svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>';
+  if (!S.notamFetched && !S.notams.length) { el.className = 'none'; el.innerHTML = ic + 'NOTAM: noch nicht geladen'; }
+  else if (act) { el.className = ''; el.innerHTML = ic + `${act} aktive NOTAM${act > 1 ? 's' : ''} · 50 km${inact ? ` · +${inact} geplant` : ''}`; }
+  else if (inact) { el.className = 'inact'; el.innerHTML = ic + `${inact} geplante NOTAM${inact > 1 ? 's' : ''} · 50 km`; }
+  else { el.className = 'ok'; el.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Keine NOTAMs · 50 km'; }
+  if (old) el.innerHTML += ' <small>· älter als 24 h</small>';
+  el.innerHTML += '<b class="nchev">›</b>';   // antippen öffnet die NOTAM-Ansicht
+  el.style.display = 'flex';
 }
 // Detailseite auf dipul.de aus dem Namen ableiten, z. B. „ED-R Eickhofer Heide (NOTAM D1659/26)“ -> /ed-r-eickhofer-heide/
 function notamSlug(name) {   // nur für ED-R-Gebiete gibt es bei dipul eine Detailseite mit diesem Namen
@@ -4943,6 +4980,7 @@ function showNotams() {
 }
 $('notam').onclick = showNotams;
 $('bNotamList').onclick = showNotams;
+setTimeout(() => { try { notamChip(); } catch (e) { } }, 1200);
 setInterval(() => { if (A.notamSync) A.notamSync(false); }, 3600 * 1000);
 
 // ================= Geozonen: Abgleich & Hinweis =================
@@ -5344,7 +5382,7 @@ const TOUR = [
   ['#bLoc', 'Mein Standort', 'Springt zu deinem GPS-Standort.'],
   ['#wind', 'Wind & Wetter', 'Wind in 10/50/100 m und Kompass. Antippen öffnet das Wetter: Bewertung des Einsatzfensters am Morgen, Tageslauf, 8-Tage-Vorschau.'],
   ['#net', 'Online / Offline', 'Zeigt, ob Internet da ist. Ohne Internet läuft alles aus dem Speicher – nur „UAV Editor“ braucht Netz.'],
-  ['#notam', 'NOTAMs', 'Erscheint, wenn im Gebiet eine aktuelle Flugbeschränkung gilt – antippen für Details und Karte.'],
+  ['#notam', 'NOTAMs', 'Immer oben sichtbar: rot = aktive Flugbeschränkung im Umkreis von 50 km, orange = geplant, grün = keine. Antippen zeigt die Karte mit allen NOTAMs in Deutschland.'],
   ['#bPlan', 'Einsatzplan', 'Reihenfolge der markierten Wiesen, Fahrt, Akkus, gemeinsamer Standort für Pilot + Spotter (in den Einstellungen einschaltbar).'],
   ['#bSet', 'Einstellungen', 'Drohne, Fernpilotenzeugnis, Allgemeinerlaubnis/-verfügungen, UAV-Editor-Zugang, Ordner, Offline-Speicher – und diese Einführung.']
 ];
@@ -5542,13 +5580,13 @@ function paintPlan() {
 let pick = null;
 document.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
   const key = b.dataset.pick;
-  pick = { key, path: P[key] };
-  $('pTitle').textContent = key === 'src' ? 'Quellordner wählen' : 'Zielordner wählen';
+  pick = { key, path: key === 'rcDir' ? rcDir() : P[key] };
+  $('pTitle').textContent = key === 'src' ? 'Quellordner wählen' : key === 'rcDir' ? 'Missionsordner von DJI Pilot 2 wählen (DJI/Mission/KML)' : 'Zielordner wählen';
   const roots = JSON.parse(A.roots());
   $('pRoots').innerHTML = '';
   roots.forEach(r => { const x = document.createElement('button'); x.className = 'b-sec'; x.textContent = r.name; x.onclick = () => openDir(r.path); $('pRoots').appendChild(x); });
   $('pgPick').classList.add('open');
-  openDir(P[key]);
+  openDir(pick.path);
 });
 function openDir(path) {
   let r = JSON.parse(A.listDirs(path));
@@ -5567,7 +5605,7 @@ function openDir(path) {
   if (!(r.dirs || []).length) { const d = document.createElement('div'); d.style.cssText = 'color:var(--muted);padding:8px'; d.textContent = 'Keine Unterordner.'; L.appendChild(d); }
 }
 $('pCancel').onclick = () => { $('pgPick').classList.remove('open'); suReturn = false; };
-$('pOk').onclick = () => { setP(pick.key, pick.path); $('pgPick').classList.remove('open'); fillSettings(); if (suReturn) { suReturn = false; showSetup(suStep); } };
+$('pOk').onclick = () => { setP(pick.key, pick.path); $('pgPick').classList.remove('open'); fillSettings(); if (pick.key === 'rcDir' && P.fsrc === 'rc') load(true); if (suReturn) { suReturn = false; showSetup(suStep); } };
 
 // Zurück-Taste der RC
 window.onBack = () => {
