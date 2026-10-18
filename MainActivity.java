@@ -144,6 +144,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         });
         new Thread(this::tileCacheTrim).start();
         web.addJavascriptInterface(new Bridge(), "Android");
+        try { prefsRestore(); } catch (Exception ignored) { }   // Einstellungen nach Neuinstallation zurückholen
         web.loadUrl("file:///android_asset/index.html");
 
         List<String> perms = new ArrayList<>();
@@ -174,6 +175,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     @Override
     protected void onResume() {
         super.onResume();
+        try { if (hasFileAccess() && !prefs.getBoolean("prefs_restored", false) && prefsRestore() && web != null) { web.reload(); } } catch (Exception ignored) { }
         try { if (hasFileAccess()) dataMigrate(); } catch (Exception ignored) { }   // Daten in „Kitzrettung Cache“ umziehen (einmalig)
         try { if (hasFileAccess() && !prefs.contains("uave_pw")) new Thread(() -> { uaveBackupRestore(); if (prefs.contains("uave_pw")) js("window.onUaveRestored && window.onUaveRestored()"); }).start(); } catch (Exception ignored) { }
         try {
@@ -207,6 +209,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         super.onPause();
         try { if (sensorManager != null) sensorManager.unregisterListener(this); } catch (Exception ignored) { }
         stopLocation();
+        try { new Thread(this::prefsBackupNow).start(); } catch (Exception ignored) { }   // Einstellungen sichern
     }
 
     private void js(String code) {
@@ -497,7 +500,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public String getPref(String key, String def) { return prefs.getString(key, def); }
 
         @JavascriptInterface
-        public void setPref(String key, String value) { prefs.edit().putString(key, value).apply(); }
+        public void setPref(String key, String value) { prefs.edit().putString(key, value).apply(); prefsBackupLater(); }
 
         @JavascriptInterface
         public String internalRoot() { return Environment.getExternalStorageDirectory().getAbsolutePath(); }
@@ -568,6 +571,22 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             } catch (Exception e) {
                 return err(e.getMessage()).toString();
             }
+        }
+
+        /** Heruntergeladene Felder (KMZ) löschen – nur Dateien direkt im angegebenen Quellordner. Ergebnis: Anzahl gelöscht */
+        @JavascriptInterface
+        public String deleteKmz(String pathsJson, String srcDir) {
+            int ok = 0; JSONArray err = new JSONArray();
+            try {
+                File base = new File(srcDir).getCanonicalFile();
+                JSONArray a = new JSONArray(pathsJson);
+                for (int i = 0; i < a.length(); i++) {
+                    File f = new File(a.getString(i)).getCanonicalFile();
+                    if (!f.isFile() || !isKmz(f.getName()) || !base.equals(f.getParentFile())) { err.put(f.getName() + ": nicht im Quellordner"); continue; }
+                    if (f.delete()) ok++; else err.put(f.getName() + ": lässt sich nicht löschen");
+                }
+                return new JSONObject().put("ok", ok).put("errors", err).toString();
+            } catch (Exception e) { return err(e.getMessage()).toString(); }
         }
 
         /** Missionen von DJI Pilot 2 auf der Fernsteuerung (DJI/Mission/KML/<ID>/<Name>.kmz) – je Unterordner eine Mission */
@@ -1254,6 +1273,48 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     // ---------- Zugang UAV Editor zusätzlich im Ordner „Kitzrettung Cache“ sichern – übersteht Neuinstallation/App-Wechsel ----------
     // Verschlüsselt (AES-GCM) mit einem festen App-Schlüssel: schützt vor Mitlesen im Dateimanager, ist aber kein Tresor –
     // wer die App zerlegt, könnte ihn ermitteln. Der eigentliche Speicher bleibt der Android-Keystore.
+    // ---------- Einstellungen zusätzlich als Datei in „Kitzrettung Cache“ – übersteht Neuinstallation ----------
+    private File prefsBackupFile() { return new File(hasFileAccess() ? extDataDir() : dataDir(), "Sonstiges/einstellungen.json"); }
+    private static final java.util.Set<String> PREFS_SKIP = new java.util.HashSet<>(Arrays.asList("uave_pw", "uave_restored", "prefs_restored", "geoTapCache"));
+    private final android.os.Handler prefsH = new android.os.Handler(Looper.getMainLooper());
+    private final Runnable prefsSaveR = () -> new Thread(this::prefsBackupNow).start();
+    private void prefsBackupLater() { prefsH.removeCallbacks(prefsSaveR); prefsH.postDelayed(prefsSaveR, 2500); }
+    private synchronized void prefsBackupNow() {
+        try {
+            if (!hasFileAccess()) return;
+            JSONObject o = new JSONObject();
+            for (Map.Entry<String, ?> e : prefs.getAll().entrySet()) {
+                Object v = e.getValue(); if (PREFS_SKIP.contains(e.getKey()) || v == null) continue;
+                if (v instanceof String && ((String) v).length() > 20000) continue;   // große Zwischenspeicher nicht mitnehmen
+                JSONObject t = new JSONObject();
+                if (v instanceof Boolean) t.put("b", v); else if (v instanceof Long) t.put("l", v); else if (v instanceof Integer) t.put("i", v);
+                else if (v instanceof Float) t.put("f", ((Float) v).doubleValue()); else if (v instanceof String) t.put("s", v); else continue;
+                o.put(e.getKey(), t);
+            }
+            writeFileAtomic(prefsBackupFile(), new JSONObject().put("t", System.currentTimeMillis()).put("app", appVer()).put("prefs", o).toString());
+        } catch (Exception ignored) { }
+    }
+    /** Nach Neuinstallation: Einstellungen aus der Datei zurückholen (nur fehlende Werte). true = etwas übernommen */
+    private boolean prefsRestore() {
+        try {
+            if (!hasFileAccess() || prefs.getBoolean("prefs_restored", false)) return false;
+            File f = prefsBackupFile();
+            if (!f.isFile()) { prefs.edit().putBoolean("prefs_restored", true).apply(); return false; }
+            JSONObject o = new JSONObject(readFile(f)).getJSONObject("prefs");
+            SharedPreferences.Editor ed = prefs.edit(); int n = 0;
+            for (Iterator<String> it = o.keys(); it.hasNext(); ) {
+                String k = it.next(); if (prefs.contains(k) || PREFS_SKIP.contains(k)) continue;
+                JSONObject t = o.getJSONObject(k);
+                if (t.has("b")) ed.putBoolean(k, t.getBoolean("b")); else if (t.has("l")) ed.putLong(k, t.getLong("l"));
+                else if (t.has("i")) ed.putInt(k, t.getInt("i")); else if (t.has("f")) ed.putFloat(k, (float) t.getDouble("f")); else if (t.has("s")) ed.putString(k, t.getString("s"));
+                n++;
+            }
+            ed.putBoolean("prefs_restored", true).commit();
+            dataDirCache = null;
+            return n > 0;
+        } catch (Exception e) { return false; }
+    }
+
     private File uaveBackupFile() { return new File(hasFileAccess() ? extDataDir() : dataDir(), "Sonstiges/.uave-zugang"); }
     private static javax.crypto.spec.SecretKeySpec backupKey() throws Exception {
         byte[] k = java.security.MessageDigest.getInstance("SHA-256").digest("MissionKitzrettung|UAV-Editor-Zugang|v1|Kitzrettung-Limburg".getBytes(StandardCharsets.UTF_8));
@@ -3397,6 +3458,22 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     // ---------- NOTAM / temporäre Betriebseinschränkungen (dipul WFS, CC BY-ND 4.0) ----------
     private File notamFile() { return dataFile("notams.json"); }
 
+    /** Eine dipul-WFS-Ebene für ganz Deutschland (GeoJSON-Features) */
+    private JSONArray notamWfs(String layer) throws Exception {
+        String url = "https://uas-betrieb.de/geoservices/dipul/wfs?service=WFS&version=1.1.0&request=GetFeature"
+                + "&typeName=dipul:" + layer + "&outputFormat=application/json&srsName=EPSG:4326"
+                + "&bbox=5.8,47.2,15.1,55.1,EPSG:4326";
+        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        try {
+            c.setConnectTimeout(15000); c.setReadTimeout(60000);
+            c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Android; Kitzrettung, nicht-kommerziell)");
+            if (c.getResponseCode() != 200) return null;
+            String txt; try (InputStream in = c.getInputStream()) { txt = readAll(in); }
+            if (!txt.trim().startsWith("{")) return null;
+            return new JSONObject(txt).optJSONArray("features");
+        } finally { c.disconnect(); }
+    }
+
     private void notamSyncImpl(double n, double s, double e, double w, boolean force) {
         try {
             if (!force && System.currentTimeMillis() - prefs.getLong("notam_fetched", 0) < 3600000L && notamFile().isFile()) return;
@@ -3405,6 +3482,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 JSONArray areas = dipulAffectedAreas();
                 if (areas != null) {
                     JSONObject data = new JSONObject().put("areas", areas).put("src", "api");
+                    // dipul-Ebene „temporäre Betriebseinschränkungen“ (ganz Deutschland) dazu – die App ordnet die Flächen den Einträgen zu
+                    JSONObject wfs = new JSONObject();
+                    for (String layer : new String[]{"temporaere_betriebseinschraenkungen", "inaktive_temporaere_betriebseinschraenkungen"}) {
+                        try { JSONArray fs = notamWfs(layer); if (fs != null) wfs.put(layer, fs); } catch (Exception ignored) { }
+                    }
+                    data.put("wfs", wfs);
                     writeFileAtomic(notamFile(), data.toString());
                     prefs.edit().putLong("notam_fetched", System.currentTimeMillis()).remove("notam_err").apply();
                     return;

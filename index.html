@@ -44,7 +44,7 @@
   .b-ok{background:linear-gradient(180deg,#27b057,#1a8f40);color:#fff;box-shadow:0 2px 6px rgba(26,143,64,.35)}
   #count{min-width:96px;max-width:200px;flex:0 1 auto;font-weight:700;font-size:17px;overflow:hidden;white-space:nowrap}
   .srcseg{display:flex;flex:none;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;align-self:center}
-  .srcseg button{height:38px;padding:0 10px;border-radius:9px;border:0;background:transparent;color:var(--muted);font-size:14px;font-weight:700;white-space:nowrap}
+  .srcseg button{flex:1 1 0;min-width:64px;text-align:center;height:38px;padding:0 10px;border-radius:9px;border:0;background:transparent;color:var(--muted);font-size:14px;font-weight:700;white-space:nowrap}
   .srcseg button.on{background:#1e7bff;color:#fff}
   #count small{display:block;font-weight:400;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #bar{overflow:hidden}
@@ -105,6 +105,10 @@
   #busy .bar{height:8px;border-radius:4px;background:var(--line);margin:12px 0 4px;overflow:hidden}
   #busy .bar i{display:block;height:100%;background:linear-gradient(90deg,#27b057,#1a8f40);border-radius:4px;transition:width .2s}
   #busy .bar.ind i{width:35% !important;animation:ind 1.1s ease-in-out infinite}
+  #bLoc .gpsb{display:none;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:800;line-height:1}
+  #bLoc .gpsb i{width:16px;height:16px;border:2.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:gspin .8s linear infinite}
+  #bLoc.busy svg{display:none} #bLoc.busy .gpsb{display:flex}
+  @keyframes gspin{to{transform:rotate(360deg)}}
   @keyframes ind{0%{transform:translateX(-100%)}100%{transform:translateX(290%)}}
   #busy button{margin-top:12px;height:46px;padding:0 22px}
 
@@ -358,6 +362,11 @@
   #xpl li span{flex:none;width:10px;height:10px;border-radius:50%}#xpl li.on{background:var(--card2);color:var(--txt);font-weight:700}
   .cbadge{font-style:normal;display:inline-flex;align-items:center;gap:2px;padding:1px 7px;border-radius:9px;font-size:12px;font-weight:800;color:#fff;margin-left:5px;vertical-align:middle;white-space:nowrap}
   .cbadge.a2{background:#1565c0}.cbadge.av{background:#13a538}
+  .holdbtn{position:relative;overflow:hidden}
+  .holdbtn .holdfill{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(255,255,255,.35);pointer-events:none}
+  .holdbtn span{position:relative;pointer-events:none}
+  .holdbtn small{font-weight:400;opacity:.85}
+  button.danger,.b-ok.danger{background:#b3131b!important;color:#fff!important}
   .licbox{margin-top:6px;border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--card2)}
   .licbox summary{font-weight:700;cursor:pointer;padding:4px 0}
   .licbox ul{margin:4px 0 4px 18px;padding:0}
@@ -432,19 +441,19 @@
   <button id="bFit" title="Alle Felder anzeigen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
   <button id="bLayer" title="Kartenart wechseln: Grau → Karte → Satellit"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/><path d="M3 17.5l9 5 9-5" opacity=".55"/></svg></button>
   <button id="bInfo" title="Infos: Geozonen und/oder Feldnamen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
-  <button id="bLoc" title="Mein Standort"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+  <button id="bLoc" title="Mein Standort"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span class="gpsb"><i></i>GPS</span></button>
 </div>
 
 <div id="bar">
   <img class="logo" data-logo alt="Kitzrettung Limburg">
   <div id="count">0 markiert<small>0 Felder</small></div>
-  <div class="srcseg" title="Datenquelle der Felder: UAV Editor oder Missionen auf der Fernsteuerung (DJI Pilot 2)"><button data-fsrc="uave">Editor</button><button data-fsrc="rc">RC</button></div>
+  <div class="srcseg" title="Datenquelle der Felder: UAV Editor oder Missionen auf der Fernsteuerung (DJI Pilot 2)"><button data-fsrc="uave">UAV-E</button><button data-fsrc="rc">RC</button></div>
   <button id="bPlan" class="b-sec" style="display:none" title="Einsatzplan"><svg viewBox="0 0 24 24"><path d="M5 19l5-6 4 3 5-9"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="7" r="1.8"/></svg>Plan</button>
   <button id="bNone" class="b-sec" style="display:none" title="Alle abwählen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Abwählen</button>
   <div class="sp"></div>
   <button id="bSearch" class="b-sec" title="Feld suchen"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button>
-  <button id="bSync" class="b-sec" title="Wiesen aus dem UAV Editor holen"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-14.3-4.9M4 12a8 8 0 0 0 14.3 4.9"/><path d="M5.5 3v4.5H10M18.5 21v-4.5H14"/></svg>UAV Editor</button>
-  <button id="bDl" class="b-ok" disabled title="Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen"><svg viewBox="0 0 24 24" style="width:32px;height:32px"><path d="M1.5 4.5h7M15.5 4.5h7"/><path d="M5 4.5l3.5 5M19 4.5l-3.5 5"/><rect x="8" y="8" width="8" height="5" rx="2" fill="currentColor"/><path d="M12 14.5v7M9 18.5l3 3 3-3"/></svg>In Pilot 2</button>
+  <button id="bSync" class="b-sec" title="Wiesen aus dem UAV Editor holen">UAV Editor</button>
+  <button id="bDl" class="b-ok" disabled title="Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen"><svg viewBox="0 0 24 24" style="width:32px;height:32px"><path d="M1.5 4.5h7M15.5 4.5h7"/><path d="M5 4.5l3.5 5M19 4.5l-3.5 5"/><rect x="8" y="8" width="8" height="5" rx="2" fill="currentColor"/><path d="M12 14.5v7M9 18.5l3 3 3-3"/></svg>Pre-Check</button>
   <button id="bSet" class="b-sec" title="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </div>
 
@@ -467,6 +476,7 @@
     <div class="set"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Gibt es ein Feld als M3T und M4T, zeigt die Karte nur die passende Version; Felder, die es nur einmal gibt, immer (sie werden beim Download bei Bedarf umgerechnet).</div></div><div class="seg"><button data-rcdrone="">Keine</button><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzplan</div><div class="v">Zeigt für die markierten Wiesen eine sinnvolle Reihenfolge (kürzeste Wege), Flugzeit, Akku-Bedarf und das voraussichtliche Ende – im Vergleich dazu, ab wann es wärmer wird und das Wärmebild nachlässt. Knopf „Plan“ unten, sobald Wiesen markiert sind.</div></div><input id="sPlanBatt" class="inp" style="width:90px" type="number" min="10" max="60" placeholder="Min/Akku"><label class="sw"><input type="checkbox" id="sPlan"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Quellordner (KMZ aus UAV Editor)</div><div class="v" id="vSrc"></div></div><button class="b-sec" data-pick="src">Ordner wählen</button></div>
+    <div class="set"><div class="l"><div class="t">Heruntergeladene Felder löschen</div><div class="v" id="vKmzDel">Löscht KMZ-Dateien aus dem Quellordner (UAV Editor) – Felder in DJI Pilot 2 bleiben unberührt.</div></div><button class="b-sec" id="bKmzDelSel">Markierte</button><button class="b-sec" id="bKmzDelAll">Alle</button></div>
     <div class="set"><div class="l"><div class="t">Datenquelle der Felder</div><div class="v">UAV Editor = heruntergeladene Planungen (Quellordner) · Fernsteuerung = Missionen, die schon in DJI Pilot 2 gespeichert sind</div></div><div class="seg"><button data-fsrc="uave">UAV Editor</button><button data-fsrc="rc">Fernsteuerung</button></div></div>
     <div class="set"><div class="l"><div class="t">Missionsordner der Fernsteuerung (DJI Pilot 2)</div><div class="v" id="vRcDir"></div></div><button class="b-sec" data-pick="rcDir">Ordner wählen</button></div>
     <div class="set"><div class="l"><div class="t">Zielordner für Pilot 2</div><div class="v" id="vDst"></div></div><button class="b-sec" data-pick="dst">Ordner wählen</button></div>
@@ -622,8 +632,9 @@ window.onCacheInfo = raw => {
     <button class="b-sec" data-cdel="${c.id}"${c.bytes ? '' : ' disabled'}>Löschen</button><button class="b-sec" data-cnew="${c.id}">Neu holen</button></div>`).join('');
   $('cacheList').querySelectorAll('[data-cdel]').forEach(b => b.onclick = () => {
     const c = r.list.find(x => x.id === b.dataset.cdel);
-    confirmDlg(c.name + ' löschen?', 'Die gespeicherten Daten dieses Bereichs werden von der Fernsteuerung gelöscht. Mit Internet holt die App sie beim nächsten Speichern des Einsatzgebiets wieder.', [], 'Löschen', () => { cacheBusy = null; A.cacheClear(c.id); toast('Wird gelöscht…'); });
+    deleteDlg(c.name + ' löschen?', 'Die gespeicherten Daten dieses Bereichs werden von der Fernsteuerung gelöscht. Mit Internet holt die App sie beim nächsten Speichern des Einsatzgebiets wieder.', 'Löschen', () => { cacheBusy = null; A.cacheClear(c.id); toast('Wird gelöscht…'); });
   });
+
   $('cacheList').querySelectorAll('[data-cnew]').forEach(b => b.onclick = () => {
     if (!isOnline()) return toast('Dafür wird Internet gebraucht (am besten WLAN).', true);
     cacheBusy = b.dataset.cnew; A.cacheClear(b.dataset.cnew); toast('Wird neu geholt…');
@@ -1825,7 +1836,7 @@ function srcUi() {
   const rc = P.fsrc === 'rc';
   document.querySelectorAll('[data-fsrc]').forEach(b => b.classList.toggle('on', b.dataset.fsrc === P.fsrc));
   document.body.classList.toggle('src-rc', rc);
-  const b = $('bDl'); if (b && b.lastChild && b.lastChild.nodeType === 3) b.lastChild.textContent = rc ? 'Briefing' : 'In Pilot 2';
+  const b = $('bDl'); if (b && b.lastChild && b.lastChild.nodeType === 3) b.lastChild.textContent = 'Pre-Check';
   if (b) b.title = rc ? 'Flughinweise zu den markierten Missionen (sie liegen schon in DJI Pilot 2)' : 'Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen';
 }
 async function load(keepView) {
@@ -1908,8 +1919,11 @@ $('bFit').onclick = fitAll;
 $('bLoc').onclick = () => {
   if (S.me) { V.lat = S.me[0]; V.lon = S.me[1]; V.z = Math.max(V.z, 15); draw(); }
   locCentered = !!S.me;
-  toast('Suche Standort…'); A.locate();
+  gpsBusy(true); A.locate();
 };
+// Ortung läuft: Taste zeigt „GPS“ + Ladekringel statt Meldung
+let gpsT = 0;
+function gpsBusy(on) { $('bLoc').classList.toggle('busy', on); clearTimeout(gpsT); if (on) gpsT = setTimeout(() => gpsBusy(false), 95000); }
 let locCentered = false;
 let geoForMe = false;
 window.onLocation = (lat, lon, acc, last, ageMin) => {
@@ -1917,12 +1931,12 @@ window.onLocation = (lat, lon, acc, last, ageMin) => {
   if (!geoForMe && !last) { geoForMe = true; setTimeout(() => geoSyncNow(false), 500); }
   if (!locCentered) { V.lat = lat; V.lon = lon; V.z = Math.max(V.z, 15); locCentered = true; }
   draw();
-  if (last) toast(`Letzte bekannte Position (vor ${ageMin} min) – suche aktuelles GPS…`);
-  else toast(`Standort gefunden${acc > 0 ? ' · Genauigkeit ±' + Math.round(acc) + ' m' : ''}`, false, 2500);
+  if (last) gpsBusy(true);   // grobe letzte Position – Kringel läuft weiter, bis echtes GPS da ist
+  else gpsBusy(false);
   windWidget();
 };
-window.onLocationStatus = m => toast(m, false, 4000);
-window.onLocationError = m => toast(m, true);
+window.onLocationStatus = m => { gpsBusy(true); if (/GPS aus/.test(m)) toast('GPS ist aus – nur ungenaue Netzwerkortung.', 'warn', 4000); };
+window.onLocationError = m => { gpsBusy(false); toast(m, true); };
 document.querySelectorAll('[data-fsrc]').forEach(b => b.onclick = () => setSource(b.dataset.fsrc));
 setTimeout(srcUi, 0);
 $('bNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); toast('Alle Felder abgewählt.'); };
@@ -2127,12 +2141,32 @@ function flightBriefing(sel) {
   return { zones: [...zones.values()], obs: [...obs.values()].sort((a, b) => a.d - b.d), rails: [...rails.values()], lines: [...lines.values()], vh: vincenzHits(sel) };
 }
 const KIND_ORDER = { off: 0, dist: 1, on: 2 };
+/** NOTAM-Hinweis oben im Briefing: Einschränkungen bis 50 km um die markierten Wiesen */
+function notamBriefHtml(sel) {
+  const cs = sel.filter(f => f.center).map(f => f.center);
+  if (!cs.length) return '';
+  const old = S.notamFetched && Date.now() - S.notamFetched > 24 * 3600000;
+  const stand = !S.notamFetched ? '' : old ? ' · <b style="color:#e07800">Stand älter als 24 h</b>' : '';
+  if (!S.notamFetched && !S.notams.length) return `<div class="zone" style="border-left:5px solid #8a8f98"><h4>NOTAM: noch nicht geladen</h4><div class="meta">Bitte online gehen und die NOTAMs laden – sonst vor dem Flug in dipul prüfen.</div></div>`;
+  const near = S.notams.map(n => { const pts = geomRings(n.geom).flat();
+      const step = Math.max(1, Math.ceil(pts.length / 80));
+      const d = pts.length ? Math.min(...cs.map(c => Math.min(...pts.filter((p, i) => i % step === 0).map(p => distM(c[0], c[1], p[1], p[0]))))) : 1e9;
+      const inside = pts.length && cs.some(c => geomRings(n.geom).some(r => r.length > 2 && inRing(c[0], c[1], r)));
+      return { n, d: inside ? 0 : d }; })
+    .filter(x => x.d <= NOTAM_NEAR).sort((a, b) => (b.n.active - a.n.active) || a.d - b.d);
+  if (!near.length) return `<div class="zone" style="border-left:5px solid #13a538"><h4 style="color:#13a538">✓ Keine NOTAMs im Umkreis von 50 km</h4><div class="meta">Temporäre Betriebseinschränkungen laut dipul${stand}</div></div>`;
+  const act = near.filter(x => x.n.active).length;
+  return `<div class="zone" style="border-left:5px solid ${act ? '#d42020' : '#e07800'}"><h4 style="color:${act ? '#d42020' : '#e07800'}">⚠ ${near.length} NOTAM${near.length > 1 ? 's' : ''} im Umkreis von 50 km${act ? ` · ${act} aktiv` : ' · geplant'}</h4><ul>
+    ${near.slice(0, 8).map(x => `<li><b>${esc(notamTitle(x.n))}</b> – ${x.d === 0 ? '<b style="color:#d42020">Wiese liegt drin</b>' : (x.d / 1000).toFixed(x.d < 10000 ? 1 : 0).replace('.', ',') + ' km'}${x.n.active ? '' : ' (geplant)'}${x.n.props.upper ? ' · bis ' + esc(x.n.props.upper) : ''}</li>`).join('')}
+    ${near.length > 8 ? `<li>… und ${near.length - 8} weitere</li>` : ''}</ul><div class="meta">Details auf der NOTAM-Seite (Chip oben)${stand}</div></div>`;
+}
 function briefingHtml(b, sel) {
   const fh = flightHeight(), multi = sel.length > 1;
   const fl = set => multi ? `<div class="meta">Betrifft: ${[...set].map(esc).join(', ')}</div>` : '';
   const zs = b.zones.map(z => Object.assign(z, { k: covKind(z.f.layer, z.reg) })).sort((a, c) => KIND_ORDER[a.k] - KIND_ORDER[c.k]);
   const cnt = k => zs.filter(z => z.k === k).length;
   let h = `<div class="meta" style="margin-bottom:8px">${zs.length ? `<b style="color:#d42020">${cnt('off')} gesperrt</b> · <b style="color:#e07800">${cnt('dist')} nur mit Abstand</b> · <b style="color:#13a538">${cnt('on')} erlaubt mit Auflagen</b>` : '<b style="color:#13a538">Keine Geozone im Flugbereich.</b>'}${fh ? ` · Missionshöhe ${fh} m` : ''} · Daten offline (dipul/OSM), maßgeblich ist dipul.de</div>`;
+  h += notamBriefHtml(sel);
   if (b.vh.length) h += `<div class="zone" style="border:2px solid #b3131b"><h4 style="color:#b3131b">⚠ Hubschrauberlandeplatz St. Vincenz</h4>
     <div class="meta">${b.vh.map(x => esc(x.f.title) + ' – ' + Math.round(x.d) + ' m').join(' · ')}</div>${vincenzHtml(b.vh[0].a, true)}</div>`;
   zs.forEach(z => {
@@ -2237,7 +2271,32 @@ function openCopyDialog(sel, clean) {
 
 // ================= Dialoge =================
 let dlgCb = null, dlgOnCancel = null;
+/** Sicherheits-Löschen: Knopf 3 Sekunden gedrückt halten (Balken läuft durch), Loslassen bricht ab */
+const HOLD_MS = 3000;
+function holdToConfirm(btn, action, label) {
+  if (btn._hold) btn._hold();   // alte Bindung lösen
+  const txt0 = label || btn.textContent;
+  btn.classList.add('holdbtn'); btn.textContent = ''; 
+  btn.innerHTML = `<i class="holdfill"></i><span>${esc(txt0)} <small>(3 s halten)</small></span>`;
+  let t = null, st = 0, raf = 0;
+  const fill = btn.querySelector('.holdfill');
+  const stop = () => { clearTimeout(t); cancelAnimationFrame(raf); t = null; fill.style.width = '0'; };
+  const tick = () => { const k = Math.min(1, (Date.now() - st) / HOLD_MS); fill.style.width = (k * 100) + '%'; if (t) raf = requestAnimationFrame(tick); };
+  const down = e => { if (btn.disabled) return; e.preventDefault(); st = Date.now(); t = setTimeout(() => { stop(); try { navigator.vibrate && navigator.vibrate(60); } catch (x) { } action(); }, HOLD_MS); tick(); };
+  const up = () => { if (t) { stop(); toast('Zum Löschen 3 Sekunden gedrückt halten', 'warn', 1800); } };
+  btn.addEventListener('pointerdown', down); btn.addEventListener('pointerup', up); btn.addEventListener('pointerleave', up); btn.addEventListener('pointercancel', up);
+  const oldClick = btn.onclick; btn.onclick = e => e.preventDefault();
+  btn._hold = () => { btn.onclick = oldClick; btn.removeEventListener('pointerdown', down); btn.removeEventListener('pointerup', up); btn.removeEventListener('pointerleave', up); btn.removeEventListener('pointercancel', up); btn.classList.remove('holdbtn'); btn.textContent = txt0; btn._hold = null; };
+}
+/** Lösch-Dialog: Hinweis + roter Knopf, der 3 Sekunden gehalten werden muss */
+function deleteDlg(title, text, okLabel, cb) {
+  confirmDlg(title, text, [], okLabel, null);
+  const y = $('dYes'); y.classList.add('danger');
+  holdToConfirm(y, () => { $('dlg').classList.remove('open'); dlgDanger(); cb(); }, okLabel);
+}
+function dlgDanger() { const y = $('dYes'); if (y._hold) y._hold(); y.classList.remove('danger'); }
 function confirmDlg(title, text, list, okLabel, cb, extra) {
+  dlgDanger();
   $('dNo').textContent = 'Abbrechen';
   $('dExtra').innerHTML = ''; if (extra) $('dExtra').appendChild(extra);
   $('dTitle').textContent = title;
@@ -2348,7 +2407,7 @@ function pickDlg(title, text, items, okWord, cb) {
   refilter(); upd();
   dlgCb = () => cb(items.map((x, i) => x.on ? i : -1).filter(i => i >= 0));
 }
-$('dNo').onclick = () => { $('dlg').classList.remove('open'); if (dlgOnCancel) { const c = dlgOnCancel; dlgOnCancel = null; c(); } };
+$('dNo').onclick = () => { dlgDanger(); $('dlg').classList.remove('open'); if (dlgOnCancel) { const c = dlgOnCancel; dlgOnCancel = null; c(); } };
 $('dYes').onclick = () => { $('dlg').classList.remove('open'); dlgOnCancel = null; dlgCb && dlgCb(); };
 $('permGo').onclick = () => A.requestAccess();
 
@@ -2369,8 +2428,10 @@ function fillSettings() {
   if (A.uaveUser) {
     $('uUser').value = A.uaveUser();
     $('uPw').value = '';
-    $('uPw').placeholder = A.uaveHasPassword() ? 'Passwort gespeichert (zum Ändern neu eingeben)' : 'Passwort';
-    $('vUave').innerHTML = A.uaveUser() && A.uaveHasPassword() ? 'Eingerichtet für ' + esc(A.uaveUser()) + (P.uaveTest === 'ok' ? ' <b style="color:#fff;background:#13a538;border-radius:6px;padding:1px 7px;white-space:nowrap">✓ Login erfolgreich</b>' : P.uaveTest === 'fail' ? ' <b style="color:#fff;background:#b3131b;border-radius:6px;padding:1px 7px;white-space:nowrap">✗ Login fehlgeschlagen</b>' : '') : 'Noch nicht eingerichtet';
+    $('uPw').placeholder = A.uaveHasPassword() ? '●●●●●●●●  gespeichert – zum Ändern neu eingeben' : 'Passwort';
+    // Zugang gespeichert, aber noch nie geprüft (z. B. nach Update/Wiederherstellung): einmal automatisch prüfen
+    if (A.uaveUser() && A.uaveHasPassword() && !P.uaveTest && isOnline() && !uaveAutoTested) { uaveAutoTested = true; setTimeout(uaveTestNow, 300); }
+    $('vUave').innerHTML = A.uaveUser() && A.uaveHasPassword() ? 'Eingerichtet für ' + esc(A.uaveUser()) + (P.uaveTest === 'ok' ? ' <b style="color:#fff;background:#13a538;border-radius:6px;padding:1px 7px;white-space:nowrap">✓ Login erfolgreich</b>' : !P.uaveTest ? ' <b style="color:#fff;background:#1e7bff;border-radius:6px;padding:1px 7px;white-space:nowrap">✓ Zugang gespeichert</b>' : P.uaveTest === 'fail' ? ' <b style="color:#fff;background:#b3131b;border-radius:6px;padding:1px 7px;white-space:nowrap">✗ Login fehlgeschlagen</b>' : '') : 'Noch nicht eingerichtet';
   }
 }
 let srcAtOpen = '';
@@ -2506,7 +2567,22 @@ window.onPrefetch = raw => {
     esPendingNames = null;
     esPending = null; }
 };
-$('bTilesClear').onclick = () => { if (A.tileCacheClear) { A.tileCacheClear(); toast('Kartenspeicher wird geleert…'); } };
+function kmzDelete(files, what) {
+  if (P.fsrc === 'rc') return toast('Nur in der Ansicht „Editor“ – Missionen auf der RC bitte in DJI Pilot 2 löschen.', true, 5000);
+  if (!files.length) return toast(what === 'sel' ? 'Keine Felder markiert – erst auf der Karte markieren.' : 'Keine heruntergeladenen Felder vorhanden.', true);
+  if (!A.deleteKmz) return toast('Diese App-Version kann noch nicht löschen.', true);
+  deleteDlg(what === 'sel' ? `${files.length} markierte${files.length > 1 ? '' : 's'} Feld${files.length > 1 ? 'er' : ''} löschen?` : `Alle ${files.length} heruntergeladenen Felder löschen?`,
+    (files.length <= 8 ? files.map(f => '• ' + f.title).join('\n') + '\n\n' : '') + 'Die KMZ-Dateien werden aus dem Quellordner gelöscht. Über „UAV Editor“ lassen sie sich jederzeit wieder herunterladen.',
+    'Löschen', () => {
+      const r = JSON.parse(A.deleteKmz(JSON.stringify(files.map(f => f.path)), P.src) || '{}');
+      if (r.error) return toast('Löschen fehlgeschlagen: ' + r.error, true, 6000);
+      toast(`${r.ok} Feld${r.ok === 1 ? '' : 'er'} gelöscht${(r.errors || []).length ? ' · ' + r.errors.length + ' Fehler' : ''}.`, (r.errors || []).length ? true : 'ok', 5000);
+      load(true);
+    });
+}
+$('bKmzDelSel').onclick = () => kmzDelete(S.files.filter(f => f.selected), 'sel');
+$('bKmzDelAll').onclick = () => kmzDelete(S.files.slice(), 'all');
+$('bTilesClear').onclick = () => deleteDlg('Kartenspeicher leeren?', 'Alle gespeicherten Kartenkacheln werden gelöscht. Offline ist die Karte danach leer, bis sie mit Internet neu geladen ist.', 'Leeren', () => { if (A.tileCacheClear) { A.tileCacheClear(); toast('Kartenspeicher wird geleert…'); } });
 window.onTileCache = () => { tiles.clear(); tlReset(); fillSettings(); toast('Kartenspeicher geleert.'); };
 document.querySelectorAll('[data-layer]').forEach(b => b.onclick = () => { setP('layer', b.dataset.layer); fillSettings(); draw(); });
 document.querySelectorAll('[data-rcdrone]').forEach(b => b.onclick = () => { setP('drone', b.dataset.rcdrone); setP('droneSet', 1); droneNag(); markDups(); update(); fillSettings(); });
@@ -2741,7 +2817,7 @@ function avEdit(i) {
     avSave(list);
   }, x);
   const del = x.querySelector('#avDel');
-  if (del) del.onclick = () => { list.splice(i, 1); avSave(list); $('dlg').classList.remove('open'); toast('Gelöscht.'); };
+  if (del) holdToConfirm(del, () => { list.splice(i, 1); avSave(list); dlgDanger(); $('dlg').classList.remove('open'); toast('Allgemeinverfügung gelöscht.', 'ok'); }, 'Diese Allgemeinverfügung löschen');
 }
 $('avAdd').onclick = () => avEdit(null);
 $('sSeason').onchange = e => { setP('season', e.target.checked ? 1 : 0); fillRules(); applyGeoConfig(); if (e.target.checked && !avgiActive()) toast('Saison-Vorschau: nur zur Planung. Heute gilt die Allgemeinverfügung nicht.', true, 5000); };
@@ -4780,15 +4856,42 @@ function wktGeom(t) {
 function anyGeom(v, depth) {
   if (v == null || (depth || 0) > 5) return null;
   if (typeof v === 'string') { const t = v.trim(); if (t[0] === '{' || t[0] === '[') { try { return anyGeom(JSON.parse(t), (depth || 0) + 1); } catch (e) { return null; } } return wktGeom(t); }
+  if (Array.isArray(v) && v.length > 2 && (Array.isArray(v[0]) && typeof v[0][0] === 'number' || v[0] && (v[0].lat ?? v[0].latitude) != null)) return coordGeom(v);
   if (Array.isArray(v)) { const gs = v.map(x => anyGeom(x, (depth || 0) + 1)).filter(Boolean); if (!gs.length) return null; if (gs.length === 1) return gs[0];
     return { type: 'MultiPolygon', coordinates: gs.flatMap(g => g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : []) }; }
   if (typeof v !== 'object') return null;
   if (v.type === 'Feature') return anyGeom(v.geometry, (depth || 0) + 1);
   if (v.type === 'FeatureCollection') return anyGeom(v.features, (depth || 0) + 1);
   if (v.type === 'GeometryCollection') return anyGeom(v.geometries, (depth || 0) + 1);
-  if (GEO_T.includes(v.type) && v.coordinates) return v;
+  if (v.type && /^(multi)?polygon$|^point$|^(multi)?linestring$/i.test(v.type) && v.coordinates != null) {
+    let c = v.coordinates; if (typeof c === 'string') { try { c = JSON.parse(c); } catch (e) { return null; } }
+    const t = GEO_T.find(x => x.toLowerCase() === String(v.type).toLowerCase()) || v.type;
+    return Object.assign({}, v, { type: t, coordinates: c });
+  }
   for (const k of ['geometry', 'geom', 'geoJson', 'geojson', 'geoJSON', 'shape', 'area', 'polygon', 'horizontalProjection', 'wkt']) if (v[k] != null) { const g = anyGeom(v[k], (depth || 0) + 1); if (g) return g; }
+  if (v.coordinates != null) { const g = coordGeom(v.coordinates); if (g) return g; }
+  // sonst: alle übrigen Felder durchsuchen (egal wie dipul es verschachtelt)
+  for (const k in v) { const x = v[k]; if (x && typeof x === 'object' && k !== 'properties') { const g = anyGeom(x, (depth || 0) + 1); if (g) return g; } }
   return null;
+}
+/** Nackte Koordinatenliste ohne Typangabe -> Polygon/MultiPolygon; auch [{lat,lon}]-Listen */
+function coordGeom(c) {
+  if (typeof c === 'string') { try { c = JSON.parse(c); } catch (e) { return null; } }
+  if (!Array.isArray(c) || !c.length) return null;
+  if (typeof c[0] === 'object' && !Array.isArray(c[0]) && c[0] && (c[0].lat ?? c[0].latitude) != null) c = [c.map(p => [+(p.lon ?? p.lng ?? p.longitude), +(p.lat ?? p.latitude)])];
+  const d = x => Array.isArray(x) ? 1 + d(x[0]) : 0, dep = d(c);
+  if (dep === 2) return { type: 'Polygon', coordinates: [c] };
+  if (dep === 3) return { type: 'Polygon', coordinates: c };
+  if (dep === 4) return { type: 'MultiPolygon', coordinates: c };
+  return null;
+}
+/** Web-Mercator (Meter, EPSG:3857) -> Grad */
+function fixMerc(g) {
+  if (!g) return g;
+  const first = geomRings(g).flat()[0];
+  if (!first || Math.abs(first[0]) < 400 || Math.abs(first[1]) < 400) return g;
+  const cv = c => Array.isArray(c[0]) ? c.map(cv) : [c[0] / 6378137 * 180 / Math.PI, (2 * Math.atan(Math.exp(c[1] / 6378137)) - Math.PI / 2) * 180 / Math.PI];
+  return Object.assign({}, g, { coordinates: cv(g.coordinates) });
 }
 /** Koordinaten [Breite, Länge] statt [Länge, Breite]? In Deutschland ist die Breite 47–55, die Länge 5–16 */
 function fixLonLat(g) {
@@ -4803,7 +4906,7 @@ function fixLonLat(g) {
 function notamFromArea(a) {
   const now = Date.now(), st = nTime(a.startTs), en = nTime(a.endTs);
   if (en && en < now) return null;   // abgelaufen
-  let geom = fixLonLat(anyGeom(a));
+  let geom = fixLonLat(fixMerc(anyGeom(a)));
   const pr = a.properties || {};
   let rad = +(a.radius || pr.radius || 0);
   const ru = String(a.radiusUnit || pr.radiusUnit || pr.unit || '').toLowerCase();
@@ -4815,11 +4918,24 @@ function notamFromArea(a) {
   const started = !st || st <= now;
   const alt = (v, ref, u) => v == null || v === '' ? '' : `${v} ${nStr(u) || 'm'}${ref ? ' ' + nStr(ref) : ''}`;
   // Rohdaten zur Fehlersuche (nur die Feldnamen + Anfang der Geometrie), falls keine Fläche erkannt wurde
-  const rawGeo = geom ? '' : Object.keys(a).join(', ') + ' | ' + JSON.stringify(a.geometry ?? a.geom ?? a.area ?? '').slice(0, 300);
+  const rawGeo = geom && geomRings(geom).flat().length ? '' : JSON.stringify(a).slice(0, 1500);
   return { src: 'api', active: started, soon: !started, recur, start: st, end: en, geom, rawGeo,
     props: { name: nStr(a.names) || nStr(a.genNames) || nStr(a.extRef), ext_ref: nStr(a.extRef), type_code: nStr(a.typeCode), legal_ref: nStr(a.legalRef),
       valid_from: st ? new Date(st).toISOString() : '', valid_to: en ? new Date(en).toISOString() : '', recur_rules: recur,
       lower: alt(a.lowerAlt, a.lowerAltRef, a.lowerAltUnit), upper: alt(a.upperAlt, a.upperAltRef, a.upperAltUnit) } };
+}
+/** Vergleichsschlüssel eines Eintrags: Kennung + Name, klein und ohne Sonderzeichen („ED-R 18 Ahaus“ -> „edr18ahaus“) */
+function notamKeys(p) {
+  const ks = new Set();
+  for (const k in p) { if (!/name|ref|kenn|ident|notam|bezeich|title/i.test(k) || /legal|recht|type|typ|url|link/i.test(k)) continue;
+    const v = nStr(p[k]); if (!v) continue;
+    const t = String(v).toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]/g, '');
+    if (t.length >= 4) ks.add(t); }
+  return ks;
+}
+function notamKeyMatch(a, b) {
+  for (const x of a) for (const y of b) { if (x === y) return true; if (Math.min(x.length, y.length) >= 7 && (x.includes(y) || y.includes(x))) return true; }
+  return false;
 }
 function loadNotams() {
   if (!A.notams) return;
@@ -4830,8 +4946,19 @@ function loadNotams() {
     const d = r.data || {};
     const list = [];
     if (Array.isArray(d.areas)) d.areas.forEach(a => { const n = notamFromArea(a); if (n) list.push(n); });   // dipul-Dienst (mit Zeiten)
-    (d.temporaere_betriebseinschraenkungen || []).forEach(f => list.push({ active: true, props: f.properties || {}, geom: f.geometry }));
-    (d.inaktive_temporaere_betriebseinschraenkungen || []).forEach(f => list.push({ active: false, props: f.properties || {}, geom: f.geometry }));
+    // Ebene „temporäre Betriebseinschränkungen“ (ganz Deutschland): Flächen den Dienst-Einträgen zuordnen, Rest als eigene Einträge
+    const wfs = d.wfs || d;
+    const feats = [...(wfs.temporaere_betriebseinschraenkungen || []).map(f => [f, true]), ...(wfs.inaktive_temporaere_betriebseinschraenkungen || []).map(f => [f, false])]
+      .map(([f, act]) => ({ f, act, geom: fixLonLat(fixMerc(anyGeom(f.geometry || f))), keys: notamKeys(f.properties || {}) })).filter(x => x.geom && geomRings(x.geom).flat().length);
+    const used = new Set();
+    list.forEach(n => {
+      const ks = notamKeys(n.props);
+      const hit = feats.find(x => notamKeyMatch(ks, x.keys));
+      if (!hit) return;
+      used.add(hit);
+      if (!geomRings(n.geom).flat().length) { n.geom = hit.geom; n.rawGeo = ''; n.geoSrc = 'Ebene'; }
+    });
+    feats.filter(x => !used.has(x)).forEach(x => list.push({ active: x.act, props: x.f.properties || {}, geom: x.geom }));
     S.notams = list;
   } catch (e) { S.notams = []; }
   notamChip(); draw();
@@ -4859,7 +4986,8 @@ function notamChip() {
   else { el.className = 'ok'; el.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Keine NOTAMs · 50 km'; }
   if (old) el.innerHTML += ' <small>· älter als 24 h</small>';
   el.innerHTML += '<b class="nchev">›</b>';   // antippen öffnet die NOTAM-Ansicht
-  el.style.display = 'flex';
+  // nur zeigen, wenn es etwas zu beachten gibt: NOTAMs in 50 km, veralteter Stand oder noch nicht geladen – „alles frei“ spart den Platz
+  el.style.display = el.className === 'ok' && !old ? 'none' : 'flex';
 }
 // Detailseite auf dipul.de aus dem Namen ableiten, z. B. „ED-R Eickhofer Heide (NOTAM D1659/26)“ -> /ed-r-eickhofer-heide/
 function notamSlug(name) {   // nur für ED-R-Gebiete gibt es bei dipul eine Detailseite mit diesem Namen
@@ -5086,7 +5214,7 @@ $('uSave').onclick = () => {
   if (!pw && !A.uaveHasPassword()) return toast('Bitte Passwort eintragen.', true);
   A.uaveSetCredentials(u, pw); $('uPw').value = ''; fillSettings(); uaveTestNow();
 };
-$('uForget').onclick = () => { A.uaveForget(); fillSettings(); toast('Zugang gelöscht.'); };
+$('uForget').onclick = () => deleteDlg('UAV-Editor-Zugang löschen?', 'Login und Passwort werden von der Fernsteuerung gelöscht – auch die Sicherung im Cache-Ordner. Danach müssen sie neu eingegeben werden.', 'Zugang löschen', () => { A.uaveForget(); setP('uaveTest', ''); fillSettings(); toast('Zugang gelöscht.', 'ok'); });
 
 // ================= Abgleich mit UAV Editor =================
 let syncing = false;
@@ -5391,7 +5519,8 @@ function uaveTestNow() {
   if (!A.uaveTest) { toast('UAV-Editor-Zugang gespeichert.'); return; }
   setP('uaveTest', ''); toast('UAV-Editor-Zugang gespeichert – prüfe Anmeldung…', false, 8000); A.uaveTest();
 }
-window.onUaveRestored = () => { toast('✓ UAV-Editor-Zugang aus dem Cache-Ordner übernommen', 'ok', 4000); try { if ($('pgSet').classList.contains('open')) fillSettings(); } catch (e) { } };
+var uaveAutoTested = false;
+window.onUaveRestored = () => { toast('✓ UAV-Editor-Zugang aus dem Cache-Ordner übernommen', 'ok', 4000); if (isOnline()) setTimeout(uaveTestNow, 1500); try { if ($('pgSet').classList.contains('open')) fillSettings(); } catch (e) { } };
 window.onUaveTest = raw => { let r = {}; try { r = JSON.parse(raw); } catch (e) { }
   if (r.ok) toast('✓ UAV Editor: Login erfolgreich', 'ok', 4000);
   else if (r.offline) toast('⚠ Gespeichert – Test nicht möglich (' + (r.error || 'offline') + ')', 'warn', 6000);
@@ -5417,7 +5546,7 @@ const TOUR = [
   [null, 'Willkommen bei Mission Kitzrettung', 'Ein kurzer Rundgang zeigt dir, wo was ist. Du kannst jederzeit abbrechen – in den Einstellungen unter „Einführung“ startest du ihn wieder.'],
   ['#bSync', 'UAV Editor', 'Holt eure Wiesen aus dem UAV Editor – neue, geänderte und gelöschte. Danach speichert die App das Einsatzgebiet automatisch für offline.'],
   ['#map', 'Wiesen markieren', 'Tippe Wiesen auf der Karte an, um sie zu markieren. Markierte Wiesen kannst du dann an Pilot 2 übergeben.'],
-  ['#bDl', 'In Pilot 2', 'Kopiert die markierten Wiesen in den Importordner – in Pilot 2 unter „Route importieren“. Vorher siehst du Geozonen, Hindernisse und Wetter der Wiesen.'],
+  ['#bDl', 'Pre-Check', 'Flugvorbereitung: zeigt NOTAMs, Geozonen, Hindernisse und Wetter der markierten Wiesen und kopiert sie danach in den Importordner von Pilot 2. Kopiert die markierten Wiesen in den Importordner – in Pilot 2 unter „Route importieren“. Vorher siehst du Geozonen, Hindernisse und Wetter der Wiesen.'],
   ['#bSearch', 'Suchen', 'Wiese oder Ort per Namen finden – funktioniert auch offline.'],
   ['#bInfo', 'Infos auf der Karte', 'Hier schaltest du den Info-Modus ein: dann zeigt ein Tipp auf die Karte Geozonen, Regeln, Hindernisse und Windräder an dieser Stelle.'],
   ['#bLayer', 'Kartenart & Zonen', 'Grau, Karte oder Luftbild – und welche Geozonen-Gruppen eingeblendet sind (Luftfahrt, Natur, Verkehr …).'],
