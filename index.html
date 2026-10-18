@@ -2064,9 +2064,11 @@ function briefingHtml(b, sel) {
   });
   b.obs.forEach(x => {
     const o = x.o, warn = fh && o.top && o.top >= fh - 20;
-    h += `<div class="zone" style="border-left:5px solid ${warn ? '#b3131b' : '#5d4037'}"><h4>${esc(OBS_NAME[o.t] || 'Hindernis')}${o.n ? ' ' + esc(o.n) : ''} · ${o.top ? (o.est ? 'ca. ' : '') + Math.round(o.top) + ' m hoch' + (o.est ? ' (geschätzt)' : '') : 'Höhe unbekannt'}</h4>
+    const wInZone = o.t === 'wind' && x.d <= WIND_ZONE, wReg = regionAt(o.lat, o.lon), wDip = zs.some(z => z.f.layer === 'windkraftanlagen');
+    h += `<div class="zone" style="border-left:5px solid ${warn || (wInZone && covKind('windkraftanlagen', wReg) === 'off') ? '#b3131b' : wInZone ? '#e07800' : '#5d4037'}"><h4>${esc(OBS_NAME[o.t] || 'Hindernis')}${o.n ? ' ' + esc(o.n) : ''} · ${o.top ? (o.est ? 'ca. ' : '') + Math.round(o.top) + ' m hoch' + (o.est ? ' (geschätzt)' : '') : 'Höhe unbekannt'}</h4>
       ${fl(x.fields)}<div>${Math.round(x.d)} m vom Flugweg${o.t === 'wind' && o.rot ? ` · Rotor ${Math.round(o.rot)} m (Nabe ${Math.round(o.hub || 0)} m)` : ''}${o.op ? ` · Betreiber: ${esc(o.op)}` : ''}</div>
-      ${warn ? `<div style="color:#b3131b;font-weight:700">Höher als bzw. nah an der Missionshöhe (${fh} m) – seitlich ausreichend Abstand halten${o.t === 'wind' ? ', 1:1-Regel zur Anlage' : ''}</div>` : ''}</div>`;
+      ${warn ? `<div style="color:#b3131b;font-weight:700">Höher als bzw. nah an der Missionshöhe (${fh} m) – seitlich ausreichend Abstand halten${o.t === 'wind' ? ', 1:1-Regel zur Anlage' : ''}</div>` : ''}
+      ${wInZone ? `<div style="margin-top:6px"><b>Flugweg innerhalb von 100 m – Schutzabstand nach § 21h Abs. 3 Nr. 3 LuftVO</b></div>${windLawHtml(o, x.d, wReg, wDip)}` : ''}</div>`;
   });
   return h;
 }
@@ -2704,6 +2706,7 @@ function lawHtml(layer) {
     'Ohne Zustimmung nur ab 100 m Flughöhe und wenn: berechtigter Zweck, Zustimmung nicht zumutbar einholbar, Betroffene vorher informiert, nicht 22–6 Uhr, Lärmrichtwerte eingehalten',
     `M3T/M4T wiegen über 250 g und haben Kameras – die 250-g-Ausnahme greift nicht; bei ${hTxt} also Zustimmung einholen`];
   else li = [t];
+  if (layer === 'windkraftanlagen') li.push('Gilt auch für Anlagen, die dipul nicht verzeichnet – maßgeblich ist § 21h LuftVO, nicht die Karte');
   return `<div style="margin-top:8px"><b>Bundesweit (${typeof n === 'number' ? `§ 21h Abs. 3 Nr. ${n} LuftVO` : n === 'ED-R' ? 'Flugbeschränkungsgebiet' : 'NOTAM'}, gilt mit jedem Führerschein):</b><ul>${li.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
 }
 /** Was das eigene Fernpilotenzeugnis zusätzlich bedeutet (offene Kategorie, EU 2019/947) */
@@ -2835,8 +2838,11 @@ window.onGeoInfo = raw => {
     return `<div class="gbr"><span style="background:${COL[k] || COL.off}"></span><div><b>${esc(p.name || label)}${covBadges(f.layer, reg)}</b><em>${esc(label)} · ${k === 'on' ? 'Überflug erlaubt' : k === 'dist' ? 'nur mit Abstand' : 'gesperrt'}${altText(p) ? ' · ' + esc(altText(p)) : ''}</em></div></div>`;
   }).join('');
   if ((r.mapGroups || []).length) rows += mapGroupRows(r.mapGroups);
+  const wz = (r.features || []).some(f => f.layer === 'windkraftanlagen') ? [] : windZonesAt(r.lat, r.lon);
+  if (wz.length) { const k = covKind('windkraftanlagen', reg);
+    rows += `<div class="gbr"><span style="background:${COL[k] || COL.off}"></span><div><b>Windrad-Schutzabstand 100 m</b><em>§ 21h Abs. 3 Nr. 3 LuftVO · nicht in dipul verzeichnet, gilt trotzdem · ${k === 'off' ? 'nur mit Zustimmung des Betreibers' : '1:1-Regel – Abstand ≥ Flughöhe'}</em></div></div>`; }
   const obl = obstaclesNear(r.lat, r.lon);
-  if (!rows) rows = `<div class="gbr"><span style="background:#8a93a6"></span><div><b>Keine Geozone</b><em>${obl.length ? 'Keine Flugbeschränkung – aber Hindernis in der Nähe (siehe unten)' : 'Allgemeine Regeln gelten (Abstände, max. 120 m)'}</em></div></div>`;
+  if (!rows) rows = `<div class="gbr"><span style="background:#8a93a6"></span><div><b>Keine Geozone in dipul</b><em>${obl.length ? 'Keine Geozone verzeichnet – aber Hindernis in der Nähe (siehe unten)' : 'Allgemeine Regeln gelten (Abstände, max. 120 m)'}</em></div></div>`;
   const ob = obstaclesNear(r.lat, r.lon).slice(0, 1).map(({ o, d }) => `<div class="gbr"><span style="background:#00695c"></span><div><b>${esc(OBS_NAME[o.t] || 'Hindernis')}${o.top ? ' · ' + (o.est ? 'ca. ' : '') + Math.round(o.top) + ' m hoch' : ''}</b><em>${Math.round(d)} m entfernt${o.op ? ' · ' + esc(o.op) : ''}</em></div></div>`).join('');
   let el = $('geoBub');
   if (!el) { el = document.createElement('div'); el.id = 'geoBub'; document.body.appendChild(el); }   // ganz vorne – über Wind, Kompass, Knöpfen
@@ -2862,7 +2868,10 @@ function geoInfoPage(raw) {
   let html = `<div class="meta" style="margin-bottom:10px">Position ${pos} · <b>${esc(regionText(reg))}</b> · Daten: dipul (DFS, BKG) · nur zur Orientierung, maßgeblich ist <span class="lnk" data-url="${LINK_DIPUL}">dipul.de</span> · <span class="lnk" data-rules="1">Alle Regeln &amp; Auflagen</span></div>`;
   const feats = r.features || [];
   if ((r.mapGroups || []).length) html += `<div class="zone"><h4>${feats.length ? 'Außerdem im Kartenbild' : 'Geozone laut Karte'}: ${esc(r.mapGroups.map(g => (ZG.find(z => z[0] === g) || [, g])[1]).join(', '))}</h4><div class="meta">Das gespeicherte dipul-Kartenbild zeigt hier eine Zone, die genauen Zonendaten dazu sind aber nicht gespeichert bzw. kamen von dipul nicht zurück. Was einmal live gefunden wurde, bleibt gespeichert. Im Zweifel: nicht fliegen, auf <span class="lnk" data-url="${LINK_DIPUL}">dipul.de</span> prüfen.</div></div>`;
-  if (!feats.length && !(r.mapGroups || []).length && !r.text) html += `<div class="zone"><h4>Keine Geozone an diesem Punkt</h4><div class="meta">Laut dipul liegt hier keine der eingeblendeten Geozonen. Allgemeine Regeln (Kategorie, Abstände, Höhe max. 120 m) gelten trotzdem.</div></div>`;
+  const wzP = feats.some(f => f.layer === 'windkraftanlagen') ? [] : windZonesAt(r.lat, r.lon);
+  wzP.slice(0, 2).forEach(({ o, d }) => { const k = covKind('windkraftanlagen', reg);
+    html += `<div class="zone" style="border-left:5px solid ${k === 'off' ? '#d42020' : '#e07800'}"><h4>Windrad-Schutzabstand 100 m <span class="chip ${k === 'off' ? '' : 'dist'}">${k === 'off' ? 'Gesperrt (rot)' : 'Nur mit Abstand (orange)'}</span> <span class="chip grey">nicht in dipul</span></h4>${windLawHtml(o, d, reg, false)}</div>`; });
+  if (!feats.length && !(r.mapGroups || []).length && !r.text && !wzP.length) html += `<div class="zone"><h4>Keine Geozone an diesem Punkt</h4><div class="meta">Laut dipul liegt hier keine der eingeblendeten Geozonen. Allgemeine Regeln (Kategorie, Abstände, Höhe max. 120 m) gelten trotzdem.</div></div>`;
   feats.forEach(f => {
     const p = f.props || {};
     const cov = coverageOf(f.layer, reg);
@@ -2904,7 +2913,7 @@ function geoInfoPage(raw) {
   if (rn.length) html += `<div class="zone" style="border-left:5px solid #2b2f36"><h4>Bahnstrecke${rn[0].n ? ' · ' + esc(rn[0].n) : ''} ${rn.some(x => x.e) ? '<span class="chip">mit Oberleitung</span>' : '<span class="chip grey">ohne Oberleitung (laut OSM)</span>'}</h4>
     <div>${rn.some(x => x.e) ? 'Oberleitung ca. 5,5–6 m über Gleis, Masten ca. 8–10 m. Mindestens 5 m über Oberleitungen (Allgemeinerlaubnis), nie darunter durch.' : 'Gleise ohne Oberleitung – Bahnanlage bleibt trotzdem Geozone.'} Bahnanlagen sind dipul-Geozonen (§ 21h LuftVO).</div>
     <div class="meta" style="margin-top:4px">Daten © OpenStreetMap-Mitwirkende</div></div>`;
-  openInfoPage(!feats.length && (r.mapGroups || []).length ? 'Geozonen-Info · Zone laut Karte' : `Geozonen-Info · ${feats.length === 1 ? '1 Zone' : feats.length + ' Zonen'} an diesem Punkt`, html);
+  openInfoPage(!feats.length && (r.mapGroups || []).length ? 'Geozonen-Info · Zone laut Karte' : (n => `Geozonen-Info · ${n === 1 ? '1 Zone' : n + ' Zonen'} an diesem Punkt`)(feats.length + Math.min(2, wzP.length)), html);
   // Leitungsdaten sofort zeigen (gespeichert), Masthöhen kommen gleich danach dazu
   if ($('powerBox')) {
     const dz = feats.find(f => f.layer === 'stromleitungen'), nm = ((dz && dz.props && dz.props.name) || '');
@@ -3005,6 +3014,12 @@ function paintObstacles() {
     if (o.t !== 'wind' && !o.top && V.z < 14) continue;
     if (o.t === 'pmast' && V.z < 14) continue;   // Strommasten (mit OSM-Höhe) erst nah, sonst zu voll   // Bauwerke ohne Höhenangabe erst nah
     const [x, y] = toScreen(o.lat, o.lon);
+    if (o.t === 'wind' && V.z >= 13 && P.geo === '1') {   // 100-m-Schutzabstand (§ 21h Abs. 3 Nr. 3) als Zone
+      const [, yz] = toScreen(o.lat + WIND_ZONE / 111200, o.lon), rz = Math.abs(y - yz), kz = covKind('windkraftanlagen', regionAt(o.lat, o.lon));
+      ctx.beginPath(); ctx.arc(x, y, rz, 0, 7); ctx.fillStyle = kz === 'off' ? 'rgba(212,32,32,.12)' : 'rgba(224,120,0,.12)'; ctx.fill();
+      ctx.setLineDash([7, 5]); ctx.lineWidth = 2; ctx.strokeStyle = kz === 'off' ? 'rgba(212,32,32,.85)' : 'rgba(224,120,0,.9)'; ctx.stroke(); ctx.setLineDash([]);
+      if (rz > 60) { ctx.font = '700 11px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = kz === 'off' ? '#b3131b' : '#a85d00'; ctx.fillText('100 m', x, y - rz + 13); }
+    }
     if (o.t === 'wind') {   // Windrad: Kreis mit drei Rotorblättern; Rotorkreis maßstäblich ab nahem Zoom
       if (o.rot && V.z >= 15) { const [, y2] = toScreen(o.lat + o.rot / 2 / 111200, o.lon); ctx.beginPath(); ctx.arc(x, y, Math.abs(y - y2), 0, 7); ctx.strokeStyle = 'rgba(0,105,92,.7)'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); }
       ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.fillStyle = '#00695c'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
@@ -3028,6 +3043,21 @@ function knownMasts(l, sel) {
   const cs = sel.filter(f => f.center).map(f => f.center);
   return S.obs.filter(o => o.t === 'pmast' && o.top > 0 && cs.some(c => distM(c[0], c[1], o.lat, o.lon) < 900)
     && l.pts.some((p, i) => i + 1 < l.pts.length && segDistM(o.lat, o.lon, [p[1], p[0]], [l.pts[i + 1][1], l.pts[i + 1][0]]) < 40)).map(o => o.top).sort((a, b) => a - b);
+}
+// Windrad: Schutzabstand 100 m nach § 21h Abs. 3 Nr. 3 LuftVO (Energieerzeugung) – gilt auch, wenn dipul die Anlage nicht verzeichnet
+const WIND_ZONE = 100;
+function windZonesAt(lat, lon) {
+  return S.obs.filter(o => o.t === 'wind').map(o => ({ o, d: Math.hypot((o.lat - lat) * 111200, (o.lon - lon) * 111200 * Math.cos(lat * Math.PI / 180)) }))
+    .filter(x => x.d <= WIND_ZONE).sort((a, b) => a.d - b.d);
+}
+/** Text zur Windrad-Zone (Antippen, Details, Briefing) */
+function windLawHtml(o, d, reg, inDipul) {
+  const k = covKind('windkraftanlagen', reg), fh = flightHeight();
+  const ae = k !== 'off' && coverageOf('windkraftanlagen', reg) === 'ae';
+  return `<div class="meta" style="margin-bottom:4px">${inDipul ? 'In dipul als Geozone verzeichnet' : '<b>In dipul nicht verzeichnet – der Abstand gilt nach § 21h LuftVO trotzdem.</b>'} Mast ${Math.round(d)} m entfernt${o.rot ? ` · Rotorradius ${Math.round(o.rot / 2)} m` : ''}.</div>
+    ${ae ? `<div><b>Allgemeinerlaubnis ${esc(stateName(reg.st))}:</b> 1:1-Regel – seitlicher Abstand zur Anlage mindestens so groß wie die Flughöhe${fh ? ` (bei ${fh} m also mindestens ${fh} m${o.rot ? `, zur Blattspitze gerechnet ${fh + Math.round(o.rot / 2)} m vom Mast` : ''})` : ''}; Überflug nur mit Zustimmung des Betreibers.</div>` : ''}
+    ${lawHtml('windkraftanlagen')}${licHtml('windkraftanlagen', reg)}
+    <div class="meta">Ob eine einzelne Anlage als „zentrale Energieerzeugung“ zählt, ist rechtlich nicht abschließend geklärt – die App rechnet vorsichtig mit 100 m. Im Zweifel Zustimmung des Betreibers einholen${o.op ? ` (${esc(o.op)})` : ''}.</div>`;
 }
 function obstaclesNear(lat, lon) {
   return S.obs.map(o => ({ o, d: Math.hypot((o.lat - lat) * 111200, (o.lon - lon) * 111200 * Math.cos(lat * Math.PI / 180)) }))
