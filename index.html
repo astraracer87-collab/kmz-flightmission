@@ -74,6 +74,8 @@
   /* Meldungen */
   #toast{white-space:pre-line;position:fixed;left:50%;top:14px;transform:translateX(-50%);max-width:70%;background:#15202b;color:#fff;padding:12px 18px;border-radius:10px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none;z-index:50}
   #toast.err{background:#b3131b}
+  #toast.ok{background:#13a538;font-weight:700;font-size:18px}
+  #toast.warn{background:#c77800;font-weight:700}
   #wind{position:fixed;left:10px;top:8px;display:none;flex-direction:column;align-items:flex-start;gap:6px;cursor:pointer;z-index:5;width:190px}
   #wind svg{width:132px;height:132px;flex:none;stroke:none;margin-left:14px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))}
   #wind .card{width:100%;box-sizing:border-box;background:var(--ctrl);color:var(--txt);border-radius:10px;border-left:5px solid #13a538;box-shadow:0 1px 5px rgba(0,0,0,.3);padding:5px 9px;font-size:12px;line-height:1.35;text-align:left;white-space:normal}
@@ -223,7 +225,19 @@
   .pmbtn svg{width:22px;height:22px;stroke:#fff}
   .pmleg{position:absolute;left:8px;bottom:8px;font-size:13px;color:#fff;background:rgba(21,32,43,.85);border-radius:8px;padding:4px 10px 4px 4px;display:flex;pointer-events:none;align-items:center;gap:5px;flex-wrap:wrap}
   .pmleg i{width:12px;height:12px;border-radius:3px;display:inline-block;margin-left:6px}
-  .dlg .box.wide{width:min(1100px,96%);height:92%}
+  /* Kartenmodus: Fenster fast bildschirmfüllend, Filter als Spalte links, Karte rechts groß */
+  .dlg .box.wide{width:calc(100% - 16px);max-width:none;height:calc(100% - 16px);max-height:none;padding:10px 12px}
+  .dlg .box.wide h3{font-size:16px;margin:0 0 4px}
+  .dlg .box.wide .act button{height:46px}
+  .lst.pmon{flex-direction:row;gap:10px;margin:2px 0 8px}
+  .lst.pmon .pickbar{width:290px;flex:none;flex-wrap:wrap;align-content:flex-start;overflow-y:auto;margin:0;padding:0 4px 0 0}
+  .lst.pmon .pickbar>button{flex:1 1 auto;height:40px;padding:0 10px}
+  .lst.pmon .picksearch{flex:1 1 100%;min-width:0;height:42px}
+  .lst.pmon .pickcnt{flex:1 1 100%;white-space:normal}
+  .lst.pmon .pickfacets{flex-direction:column;overflow:visible;gap:8px}
+  .lst.pmon .pickfacet{flex-wrap:wrap}
+  .lst.pmon .pickfacet span{width:100%}
+  .lst.pmon .picktabs{flex:1 1 100%}
   .pvbox canvas{width:100%;height:200px;border-radius:12px;display:block;border:1px solid var(--line)}
   .pickfacets{display:flex;gap:14px;width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
   .pickfacet{display:flex;gap:6px;align-items:center;flex:none;font-size:14px;color:var(--muted)}
@@ -253,7 +267,10 @@
   .cprog i{position:absolute;left:0;top:0;bottom:0;background:rgba(30,123,255,.35);transition:width .5s}
   .cprog span{position:relative;z-index:1;font-size:12.5px;line-height:22px;padding:0 8px;color:var(--txt);white-space:nowrap}
   .cacherow.loading .cprog i{background:rgba(26,163,74,.45)}
-  .cacherow.loading b::after{content:' · lädt';color:#1aa34a;font-weight:700}
+  .cacherow.err .cprog i{background:rgba(212,32,32,.35)}
+  .cprog i.indet{width:30%!important;animation:cpind 1.3s ease-in-out infinite}
+  @keyframes cpind{0%{left:-30%}100%{left:100%}}
+  .cacherow.loading>.l>b::after{content:' · lädt';color:#1aa34a;font-weight:700}
   .cacherow.pfrow{border-top:0;background:var(--line2);border-radius:10px;padding:8px 10px;margin-bottom:4px}
   .cacherow{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line2)}.cacherow .l{flex:1;min-width:0}.cacherow b{display:block;font-size:15px}.cacherow em{display:block;font-style:normal;font-size:13px;color:var(--muted)}.cacherow button{height:40px;padding:0 12px}
   .wxban{display:flex;align-items:center;gap:12px;border-radius:14px;padding:12px 14px;color:#fff;font-weight:800;font-size:20px;line-height:1.2}
@@ -568,7 +585,7 @@ window.onCacheInfo = raw => {
   let r = {}; try { r = JSON.parse(raw); } catch (e) { return; }
   if (!$('cacheList')) return;
   $('vCache').textContent = `Zusammen ${fmtBytes(r.total || 0)} · Ordner: ${r.where || ''} · Löschen ist ungefährlich – „Neu holen“ lädt den Bereich mit Internet wieder (am besten im WLAN).`;
-  $('cacheList').innerHTML = (r.list || []).map(c => `<div class="cacherow" data-cid="${c.id}"><div class="l"><b>${esc(c.name)}</b><em>${fmtBytes(c.bytes)}${c.files > 1 ? ' · ' + c.files.toLocaleString('de-DE') + ' Dateien' : ''}</em><div class="cprog"></div></div>
+  $('cacheList').innerHTML = (r.list || []).map(c => `<div class="cacherow" data-cid="${c.id}"><div class="l"><b>${esc(c.name)}</b><em>${fmtBytes(c.bytes)}${c.files > 1 ? ' · ' + c.files.toLocaleString('de-DE') + ' Dateien' : ''}${c.t && c.bytes ? ' · Stand ' + new Date(c.t).toLocaleDateString('de-DE') : ''}${c.ver == null ? '' : c.have && c.have < c.ver ? ' · <b style="color:#e07800">Version veraltet – wird neu geholt</b>' : ' · <span title="Gespeicherte Datenversion passt zu dieser App">Version ' + c.ver + ' ✓</span>'}</em><div class="cprog"></div></div>
     <button class="b-sec" data-cdel="${c.id}"${c.bytes ? '' : ' disabled'}>Löschen</button><button class="b-sec" data-cnew="${c.id}">Neu holen</button></div>`).join('');
   $('cacheList').querySelectorAll('[data-cdel]').forEach(b => b.onclick = () => {
     const c = r.list.find(x => x.id === b.dataset.cdel);
@@ -582,16 +599,28 @@ window.onCacheInfo = raw => {
 };
 // Laufendes „Einsatzgebiet speichern“ direkt beim jeweiligen Bereich zeigen
 let pfLast = null;
+let cacheSt = {};
+window.onCacheStatus = raw => { try { cacheSt = JSON.parse(raw) || {}; } catch (e) { } cacheProg();
+  if (Object.values(cacheSt).every(v => v !== 'load') && $('pgSet').classList.contains('open') && A.cacheInfoAsync) A.cacheInfoAsync(); };
 function cacheProg() {
   const box = $('cacheList'); if (!box) return;
-  const r = pfLast, run = r && !r.finished && r.cats;
+  const r = pfLast, has = r && r.cats;
+  const de = n => n.toLocaleString('de-DE');
   box.querySelectorAll('.cacherow[data-cid]').forEach(row => {
-    const el = row.querySelector('.cprog'); if (!el) return;
-    const c = run && r.cats[row.dataset.cid];
-    if (!c || !c[1]) { el.innerHTML = ''; row.classList.remove('loading'); return; }
-    const pct = Math.min(100, Math.floor(c[0] / c[1] * 100)), cur = r.cur === row.dataset.cid && c[0] < c[1];
-    row.classList.toggle('loading', cur);
-    el.innerHTML = `<span>${c[0] >= c[1] ? '✓ für das Einsatzgebiet gespeichert' : cur ? `wird gespeichert… ${pct} % · ${c[0].toLocaleString('de-DE')} von ${c[1].toLocaleString('de-DE')}` : c[0] ? `${pct} % · wartet` : 'kommt gleich dran'}</span><i style="width:${pct}%"></i>`;
+    const el = row.querySelector('.cprog'), id = row.dataset.cid; if (!el) return;
+    const c = has && r.cats[id], st = cacheSt[id];
+    row.classList.remove('loading', 'err');
+    if (c && c[1]) {   // Kacheln: Balken mit „x von y“ – bleibt nach dem Ende als Ergebnis stehen
+      const pct = Math.min(100, Math.floor(c[0] / c[1] * 100)), fin = r.finished || c[0] >= c[1], cur = !r.finished && r.cur === id && c[0] < c[1];
+      row.classList.toggle('loading', cur);
+      el.innerHTML = `<span>${fin ? `✓ ${r.cancelled && c[0] < c[1] ? 'abgebrochen bei ' + pct + ' %' : '100 %'} · ${de(c[0] - (c[2] || 0))} von ${de(c[1])} Kacheln gespeichert${c[2] ? ` · ${de(c[2])} ohne Bild` : ''}` : cur ? `wird gespeichert… ${pct} % · ${de(c[0])} von ${de(c[1])}` : c[0] ? `${pct} % · wartet` : 'kommt gleich dran'}</span><i style="width:${pct}%"></i>`;
+      return;
+    }
+    if (st === 'load') { row.classList.add('loading'); el.innerHTML = '<span>wird geladen…</span><i class="indet"></i>'; return; }
+    if (st && st !== 'ok' && !/^ok/.test(st)) { row.classList.add('err'); el.innerHTML = `<span>⚠ Nicht geladen: ${esc(st)} – „Neu holen“ versucht es nochmal</span><i style="width:100%"></i>`; return; }
+    if (st && /^ok,/.test(st)) { el.innerHTML = `<span>✓ geladen (${esc(st.slice(4))})</span><i style="width:100%"></i>`; return; }
+    if (st === 'ok') { el.innerHTML = '<span>✓ gerade geladen</span><i style="width:100%"></i>'; return; }
+    el.innerHTML = '';
   });
 }
 let cacheInfoT = 0;
@@ -612,8 +641,8 @@ ensureFolders();   // Zielordner gleich anlegen, damit er in Pilot 2 schon sicht
 
 // ---------- Meldungen ----------
 let tt;
-function toast(t, err, ms) {
-  const e = $('toast'); e.textContent = t; e.className = err ? 'err' : ''; e.style.display = 'block';
+function toast(t, err, ms) {   // err: true = rot, 'ok' = grün, 'warn' = orange
+  const e = $('toast'); e.textContent = t; e.className = err === 'ok' ? 'ok' : err === 'warn' ? 'warn' : err ? 'err' : ''; e.style.display = 'block';
   clearTimeout(tt); tt = setTimeout(() => e.style.display = 'none', ms || (err ? 6000 : 3000));
 }
 /** Fortschritt mittig: busy(titel, {sub, done, total, cancel}) – busy('') blendet aus */
@@ -1455,20 +1484,23 @@ function drawField(f) {
 const byAreaDesc = (a, b) => (b.areaM2 || 0) - (a.areaM2 || 0);
 
 let labelBoxes = [];
+const shortTitle = t => { const s2 = String(t || '').replace(/[_\s]+[\d.,]+\s*ha([_\s]+\d+\s*WP)?\s*$/i, '').replace(/[-_\s]+(M3T|M4T|M30T|M3E)\s*$/i, '').replace(/[-_\s]+$/, ''); return s2 || t; };
 const LABEL_Z = 15;   // Feldnamen erst bei naher Zoomstufe (markierte Felder immer)
 function drawLabel(f) {
   if (V.z < LABEL_Z && !f.selected) return;
   const [x, y] = toScreen(f.center[0], f.center[1]);
   if (x < -150 || y < -30 || x > W + 150 || y > H + 30) return;
-  ctx.font = '700 15px Roboto,system-ui,sans-serif';
-  const t = f.selected && f.height ? `${f.title} · ${f.height} m${f.drone ? ' · ' + f.drone : ''}` : f.title;   // markiert: Flughöhe anzeigen
-  const w = ctx.measureText(t).width + 14;
-  const box = { x: x - w / 2, y: y - 12, w, h: 24 };
+  // Kurzname auf der Karte (ohne „_0.443ha_8WP“ und Drohnen-Kürzel) – der volle Name steht in Liste und Details
+  const sn = shortTitle(f.title), fs = f.selected ? 15 : 13, hh = f.selected ? 24 : 20;
+  ctx.font = `700 ${fs}px Roboto,system-ui,sans-serif`;
+  const t = f.selected && f.height ? `${sn} · ${f.height} m${f.drone ? ' · ' + f.drone : ''}` : sn;   // markiert: Flughöhe anzeigen
+  const w = ctx.measureText(t).width + 12;
+  const box = { x: x - w / 2, y: y - hh / 2, w, h: hh };
   if (!f.selected && labelBoxes.some(b => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y)) return;   // kein Platz – Name weglassen
   box.f = f; labelBoxes.push(box);
   ctx.fillStyle = f.selected ? FC.routeSel : 'rgba(255,255,255,.9)';
-  ctx.fillRect(x - w / 2, y - 12, w, 24);
-  ctx.strokeStyle = f.selected ? '#fff' : FC.route; ctx.lineWidth = 2; ctx.strokeRect(x - w / 2, y - 12, w, 24);
+  ctx.fillRect(box.x, box.y, w, hh);
+  ctx.strokeStyle = f.selected ? '#fff' : FC.route; ctx.lineWidth = 2; ctx.strokeRect(box.x, box.y, w, hh);
   ctx.fillStyle = f.selected ? '#fff' : '#15202b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(t, x, y + 1);
 }
@@ -1601,18 +1633,21 @@ function hit(x, y) {
 /** Feld an der Stelle markieren/abwählen; true wenn getroffen */
 function hitField(x, y) {
   const vis = S.files.filter(visible);
-  // Labels zuerst (liegen oben)
+  // 1. Die Wiesenfläche unter dem Finger gewinnt immer – auch wenn das Namensschild der Nachbarwiese darüber liegt
+  const small = [...vis].sort(byAreaDesc).reverse();   // oben liegende (kleine) Felder zuerst
+  for (const f of small) if (f.outline && inPoly(x, y, f.outline.map(p => toScreen(p[0], p[1])))) return toggle(f);
+  for (const f of small) if (!f.outline) for (const s of f.shapes) if (s.type === 'poly' && inPoly(x, y, s.pts.map(p => toScreen(p[0], p[1])))) return toggle(f);
+  // 2. Daneben (außerhalb jeder Wiese): Namensschild antippen
   if (P.labels === '1') for (const b of [...labelBoxes].reverse()) {   // nur sichtbare Etiketten
     if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return toggle(b.f);
   }
-  const small = [...vis].sort(byAreaDesc).reverse();   // oben liegende (kleine) Felder zuerst
-  for (const f of small) if (f.outline && inPoly(x, y, f.outline.map(p => toScreen(p[0], p[1])))) return toggle(f);
+  // 3. Felder ohne Umriss: nah an der Flugroute
   for (let i = vis.length - 1; i >= 0; i--) {
     const f = vis[i];
     for (const s of f.shapes) {
+      if (s.type === 'poly') continue;
       const sp = s.pts.map(p => toScreen(p[0], p[1]));
-      if (s.type === 'poly' && inPoly(x, y, sp)) return toggle(f);
-      if (s.type !== 'poly') for (let k = 0; k < sp.length - 1; k++) if (segD(x, y, sp[k], sp[k + 1]) < 16) return toggle(f);
+      for (let k = 0; k < sp.length - 1; k++) if (segD(x, y, sp[k], sp[k + 1]) < 16) return toggle(f);
     }
   }
   return false;
@@ -2264,7 +2299,7 @@ function fillSettings() {
     $('uUser').value = A.uaveUser();
     $('uPw').value = '';
     $('uPw').placeholder = A.uaveHasPassword() ? 'Passwort gespeichert (zum Ändern neu eingeben)' : 'Passwort';
-    $('vUave').textContent = A.uaveUser() && A.uaveHasPassword() ? 'Eingerichtet für ' + A.uaveUser() + (P.uaveTest === 'ok' ? ' · ✓ Anmeldung geprüft' : P.uaveTest === 'fail' ? ' · ✗ Anmeldung fehlgeschlagen' : '') : 'Noch nicht eingerichtet';
+    $('vUave').innerHTML = A.uaveUser() && A.uaveHasPassword() ? 'Eingerichtet für ' + esc(A.uaveUser()) + (P.uaveTest === 'ok' ? ' <b style="color:#fff;background:#13a538;border-radius:6px;padding:1px 7px;white-space:nowrap">✓ Login erfolgreich</b>' : P.uaveTest === 'fail' ? ' <b style="color:#fff;background:#b3131b;border-radius:6px;padding:1px 7px;white-space:nowrap">✗ Login fehlgeschlagen</b>' : '') : 'Noch nicht eingerichtet';
   }
 }
 let srcAtOpen = '';
@@ -2385,7 +2420,8 @@ window.onPrefetch = raw => {
   if (r.total == null) return;
   const pct = r.total ? Math.round((r.done + r.have + r.fail) / r.total * 100) : 100;
   const t = r.finished
-    ? `${r.cancelled ? 'Abgebrochen' : 'Fertig'}: ${r.done.toLocaleString('de-DE')} neu geladen (${Math.round(r.bytes / 1048576)} MB), ${r.have.toLocaleString('de-DE')} waren schon da${r.fail ? `, ${r.fail.toLocaleString('de-DE')} ohne Bild (z. B. außerhalb HE/RP beim Luftbild)` : ''}.`
+    ? !r.cancelled && !r.done && r.have ? `Alles da: ${r.have.toLocaleString('de-DE')} Kacheln waren schon gespeichert${r.fail ? ` (${r.fail.toLocaleString('de-DE')} ohne Bild, z. B. Luftbild außerhalb HE/RP – normal)` : ''}.`
+    : `${r.cancelled ? 'Abgebrochen' : 'Fertig'}: ${r.done.toLocaleString('de-DE')} neu geladen (${Math.round(r.bytes / 1048576)} MB), ${r.have.toLocaleString('de-DE')} waren schon da${r.fail ? `, ${r.fail.toLocaleString('de-DE')} ohne Bild (z. B. außerhalb HE/RP beim Luftbild)` : ''}.`
     : `Lädt… ${pct} % · ${(r.done + r.have).toLocaleString('de-DE')} von ${r.total.toLocaleString('de-DE')} Kacheln · ${Math.round(r.bytes / 1048576)} MB`;
   if ($('vPrefetch')) $('vPrefetch').textContent = t;
   if ($('bPrefetch')) $('bPrefetch').textContent = r.finished ? 'Speichern' : 'Abbrechen';
@@ -2394,7 +2430,7 @@ window.onPrefetch = raw => {
   pfLast = r; cacheProg();
   // Größen in der Liste ab und zu nachziehen, solange die Einstellungen offen sind
   if ($('pgSet').classList.contains('open') && A.cacheInfoAsync && (r.finished || Date.now() - cacheInfoT > 20000)) { cacheInfoT = Date.now(); A.cacheInfoAsync(); }
-  if (r.finished) { toast(t, !!r.fail && !r.done, 7000); draw();
+  if (r.finished) { toast(t, !r.cancelled && r.fail > Math.max(50, r.total * .05), 7000); draw();
     if (esPending && !r.cancelled) { setP('esBox5', JSON.stringify(esPending)); setP('esFields3', JSON.stringify(esPendingNames || S.files.filter(f => !f.dup && f.bounds).map(f => f.name))); }   // erledigt – nicht nochmal automatisch
     esPendingNames = null;
     esPending = null; }
@@ -3018,7 +3054,7 @@ function paintObstacles() {
       const [, yz] = toScreen(o.lat + WIND_ZONE / 111200, o.lon), rz = Math.abs(y - yz), kz = covKind('windkraftanlagen', regionAt(o.lat, o.lon));
       ctx.beginPath(); ctx.arc(x, y, rz, 0, 7); ctx.fillStyle = kz === 'off' ? 'rgba(212,32,32,.12)' : 'rgba(224,120,0,.12)'; ctx.fill();
       ctx.setLineDash([7, 5]); ctx.lineWidth = 2; ctx.strokeStyle = kz === 'off' ? 'rgba(212,32,32,.85)' : 'rgba(224,120,0,.9)'; ctx.stroke(); ctx.setLineDash([]);
-      if (rz > 60) { ctx.font = '700 11px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = kz === 'off' ? '#b3131b' : '#a85d00'; ctx.fillText('100 m', x, y - rz + 13); }
+      if (rz > 60) { ctx.font = '700 11px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = kz === 'off' ? '#b3131b' : '#a85d00'; ctx.fillText('Abstand 100 m', x, y - rz + 13); }
     }
     if (o.t === 'wind') {   // Windrad: Kreis mit drei Rotorblättern; Rotorkreis maßstäblich ab nahem Zoom
       if (o.rot && V.z >= 15) { const [, y2] = toScreen(o.lat + o.rot / 2 / 111200, o.lon); ctx.beginPath(); ctx.arc(x, y, Math.abs(y - y2), 0, 7); ctx.strokeStyle = 'rgba(0,105,92,.7)'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); }
@@ -3030,7 +3066,7 @@ function paintObstacles() {
       ctx.fillStyle = o.t === 'pmast' ? '#8e24aa' : '#5d4037'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
     }
     if (o.top && V.z >= 13) {
-      const fh = flightHeight(), t = Math.round(o.top) + ' m', warn = fh && o.top >= fh - 20;
+      const fh = flightHeight(), t = '↑ ' + Math.round(o.top) + ' m hoch', warn = fh && o.top >= fh - 20;
       ctx.font = '700 11px Roboto,system-ui,sans-serif'; const tw = ctx.measureText(t).width + 8;
       ctx.fillStyle = warn ? '#b3131b' : 'rgba(255,255,255,.92)'; ctx.fillRect(x - tw / 2, y + 13, tw, 15);
       ctx.fillStyle = warn ? '#fff' : '#222'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y + 21);
@@ -4979,7 +5015,7 @@ function pickMap(el, items, shown, toggle) {
       g.font = '600 13px Roboto,system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
       const used = [];
       lbl.forEach(([sx, sy, x]) => {
-        const t = x.label.replace(/_[\d.,]+ha.*$/i, ''), w = g.measureText(t).width + 12, y = sy - 20;
+        const t = shortTitle(x.label), w = g.measureText(t).width + 12, y = sy - 20;
         if (used.some(u => Math.abs(u[0] - sx) < (u[2] + w) / 2 && Math.abs(u[1] - y) < 20)) return;
         used.push([sx, y, w]);
         g.fillStyle = 'rgba(255,255,255,.92)'; g.fillRect(sx - w / 2, y - 10, w, 20); g.strokeStyle = x.on ? '#1aa34a' : '#ff7a00'; g.lineWidth = 1.5; g.strokeRect(sx - w / 2, y - 10, w, 20);
@@ -5136,10 +5172,10 @@ function uaveTestNow() {
   setP('uaveTest', ''); toast('UAV-Editor-Zugang gespeichert – prüfe Anmeldung…', false, 8000); A.uaveTest();
 }
 window.onUaveTest = raw => { let r = {}; try { r = JSON.parse(raw); } catch (e) { }
-  if (r.ok) toast('✓ Anmeldung beim UAV Editor klappt – Zugang ist gespeichert.', false, 5000);
-  else if (r.offline) toast('Zugang gespeichert. Prüfen ging nicht: ' + (r.error || 'offline') + '.', true, 6000);
+  if (r.ok) toast('✓ UAV Editor: Login erfolgreich', 'ok', 4000);
+  else if (r.offline) toast('⚠ Gespeichert – Test nicht möglich (' + (r.error || 'offline') + ')', 'warn', 6000);
   else { const why = String(r.error || '').replace(/^Anmeldung bei UAV Editor fehlgeschlagen:?\s*/, '');
-    toast('✗ Anmeldung beim UAV Editor fehlgeschlagen' + (why ? ': ' + why : '') + ' – E-Mail/Login und Passwort prüfen.', true, 9000); }
+    toast('✗ UAV Editor: Login fehlgeschlagen' + (why ? '\n' + why : '') + '\nLogin und Passwort prüfen', true, 9000); }
   if (!r.offline) setP('uaveTest', r.ok ? 'ok' : 'fail');
   try { if ($('pgSet').classList.contains('open')) fillSettings(); } catch (e) { } };
 function addPwEyes(root) {

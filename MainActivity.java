@@ -949,10 +949,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             new Thread(() -> {
                 JSONArray out = new JSONArray(); long total = 0;
                 try {
+                    JSONObject marks = cacheMarks();
                     for (String[] c : CACHE_CATS) {
                         long[] r = {0, 0}; for (File f : catFiles(c[0])) sizeOf(f, r);
                         total += r[0];
-                        out.put(new JSONObject().put("id", c[0]).put("name", c[1]).put("bytes", r[0]).put("files", r[1]).put("ver", CACHE_VER.getOrDefault(c[0], 1)));
+                        JSONObject m = marks.optJSONObject(c[0]);
+                        out.put(new JSONObject().put("id", c[0]).put("name", c[1]).put("bytes", r[0]).put("files", r[1]).put("ver", CACHE_VER.getOrDefault(c[0], 1))
+                                .put("have", m != null ? m.optInt("ver", 0) : 0).put("t", m != null ? m.optLong("t", 0) : 0).put("st", catStatus.containsKey(c[0]) ? catStatus.get(c[0]) : ""));
                     }
                     lastTileBytes = 0; for (String id : new String[]{"karte", "luftbild", "geokacheln"}) { long[] r = {0, 0}; for (File f : catFiles(id)) sizeOf(f, r); lastTileBytes += r[0]; }
                     js("window.onCacheInfo && window.onCacheInfo(" + JSONObject.quote(new JSONObject().put("list", out).put("total", total).put("where", dataDir().getAbsolutePath()).toString()) + ")");
@@ -965,7 +968,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public void cacheClear(String id) {
             new Thread(() -> {
                 for (File f : catFiles(id)) deleteTree(f);
-                catReset(id);
+                catReset(id); cacheMarkTouch(id);
                 js("window.onCacheCleared && window.onCacheCleared(" + JSONObject.quote(id) + ")");
             }).start();
         }
@@ -2067,6 +2070,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (!force && covers && placeFile().isFile() && System.currentTimeMillis() - prefs.getLong("place_fetched", 0) < 60 * DAY) return;
         } catch (Exception ignored) { }
         try {
+            catSt("orte", "load");
             String bb = String.format(Locale.ROOT, "%.5f,%.5f,%.5f,%.5f", s, w, n, e);
             String q = "[out:json][timeout:90];(node[\"place\"~\"^(city|town|village|hamlet|suburb|quarter|neighbourhood|isolated_dwelling|farm|locality)$\"][\"name\"](" + bb + "););out body;";
             JSONArray els = new JSONObject(overpass(q, 120000)).getJSONArray("elements");
@@ -2082,7 +2086,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 prefs.edit().putLong("place_fetched", System.currentTimeMillis())
                         .putString("place_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             }
-        } catch (Exception ignored) { }
+            catSt("orte", out.length() > 0 ? "ok" : "keine Orte in der Antwort");
+        } catch (Exception ex) { catSt("orte", errTxt(ex)); }
     }
 
     private boolean osmCovers(double n, double s, double e, double w) {
@@ -2106,7 +2111,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         long fetched = prefs.getLong("osm_fetched", 0);
         boolean fresh = System.currentTimeMillis() - fetched < 7 * DAY;   // Leitungen ändern sich selten
         boolean oldFormat = prefs.getInt("osm_ver", 1) < 5;   // ältere Daten ohne Hindernisse/Ortsnamen: einmal neu laden
-        if (!force && fresh && !oldFormat && osmCovers(n, s, e, w) && osmFile().isFile()) return;
+        if (!force && fresh && !oldFormat && osmCovers(n, s, e, w) && osmFile().isFile() && osmWaysFile().isFile()) return;
+        catSt("hindernisse", "load"); catSt("feldwege", "load");
         try {
             String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
             String q = "[out:json][timeout:120];("
@@ -2117,23 +2123,23 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     + "nwr[\"power\"=\"generator\"][\"generator:source\"=\"wind\"](" + bb + ");"
                     + "node[\"man_made\"~\"^(mast|tower|chimney|communications_tower)$\"](" + bb + ");"
                     + "way[\"railway\"~\"^(rail|light_rail)$\"](" + bb + ");"
-                    // Feld- und Wirtschaftswege: Standort für Pilot + Spotter (nie mitten auf der Wiese)
-                    + "way[\"highway\"~\"^(track|path|service|unclassified|tertiary|bridleway|cycleway|footway)$\"](" + bb + ");"
                     // Orts- und Flurnamen für die Suche (offline)
                     + "node[\"place\"~\"^(city|town|village|hamlet|suburb|quarter|neighbourhood|isolated_dwelling|farm|locality)$\"][\"name\"](" + bb + ");"
                     + ");out tags geom;";
-            JSONArray all = new JSONObject(overpass(q, 180000)).getJSONArray("elements");   // mit Ausweichservern
-            // Wege getrennt speichern: sie sind viele und werden nur für den Einsatzplan gebraucht – so bleibt das Lesen der Leitungen/Hindernisse schnell
-            JSONArray els = new JSONArray(), wys = new JSONArray();
-            for (int i = 0; i < all.length(); i++) { JSONObject el = all.getJSONObject(i), t = el.optJSONObject("tags");
-                if (t != null && t.has("highway") && "way".equals(el.optString("type"))) wys.put(el); else els.put(el); }
-            writeFileAtomic(osmWaysFile(), wys.toString());
+            JSONArray els = new JSONObject(overpass(q, 180000)).getJSONArray("elements");   // mit Ausweichservern
             writeFileAtomic(osmFile(), els.toString());
+            catSt("hindernisse", "ok");
+            // Feld- und Wirtschaftswege eigene Abfrage: sehr viele Daten – schlägt sie fehl, bleiben die Hindernisse trotzdem gespeichert
+            try {
+                JSONArray wys = new JSONObject(overpass("[out:json][timeout:150];(way[\"highway\"~\"^(track|path|service|unclassified|tertiary|bridleway|cycleway|footway)$\"](" + bb + "););out tags geom;", 200000)).getJSONArray("elements");
+                writeFileAtomic(osmWaysFile(), wys.toString());
+                catSt("feldwege", "ok");
+            } catch (Exception we) { catSt("feldwege", errTxt(we)); }
             prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 5)
                     .putString("osm_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             osmCache = els;
             osmCacheLoaded = System.currentTimeMillis();
-        } catch (Exception ignored) { }
+        } catch (Exception ex) { catSt("hindernisse", errTxt(ex)); if ("load".equals(catStatus.get("feldwege"))) catSt("feldwege", errTxt(ex)); }
     }
 
     // ---------- Kartenkacheln dauerhaft auf der RC speichern + Einsatzgebiet vorab laden ----------
@@ -2306,15 +2312,30 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         while (!st.isEmpty()) { File[] fs = st.pop().listFiles(); if (fs == null) continue;
             for (File x : fs) { if (x.isDirectory()) st.push(x); else { r[0] += x.length(); r[1]++; } } }
     }
-    /** Beim Start: Bereiche mit neuer Version aufräumen (z. B. nach Umbau der Kartenspeicherung) */
+    // Versions-Merker liegt IM Cache-Ordner („Versionen.json“) – bleibt bei Neuinstallation erhalten und wird bei jedem Start schnell verglichen
+    private File cacheMarkFile() { return new File(dataDir(), "Versionen.json"); }
+    private JSONObject cacheMarks() { try { File f = cacheMarkFile(); return f.isFile() ? new JSONObject(readFile(f)) : new JSONObject(); } catch (Exception e) { return new JSONObject(); } }
+    private String appVer() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return ""; } }
+    /** Beim Start: Bereiche, deren gespeicherte Version nicht zur App passt, aufräumen (danach automatisch neu holen) */
     private void cacheVersionCheck() {
         new Thread(() -> {
-            for (String[] c : CACHE_CATS) {
-                String id = c[0]; int want = CACHE_VER.getOrDefault(id, 1), have = prefs.getInt("cv_" + id, -1);
-                if (have >= 0 && have < want) { for (File f : catFiles(id)) deleteTree(f); catReset(id); }
-                if (have != want) prefs.edit().putInt("cv_" + id, want).apply();
-            }
+            try {
+                JSONObject m = cacheMarks(); boolean ch = false;
+                for (String[] c : CACHE_CATS) {
+                    String id = c[0]; int want = CACHE_VER.getOrDefault(id, 1);
+                    JSONObject e = m.optJSONObject(id);
+                    int have = e != null ? e.optInt("ver", 0) : prefs.getInt("cv_" + id, want);   // ohne Merker: bisherige Daten gelten als passend
+                    if (have < want) { for (File f : catFiles(id)) deleteTree(f); catReset(id); }
+                    if (e == null || have != want) { m.put(id, new JSONObject().put("ver", want).put("t", System.currentTimeMillis()).put("app", appVer())); ch = true; }
+                    prefs.edit().putInt("cv_" + id, want).apply();
+                }
+                if (ch) writeFileAtomic(cacheMarkFile(), m.toString(1));
+            } catch (Exception ignored) { }
         }).start();
+    }
+    /** Merker eines Bereichs nach Löschen/Neu-Laden auffrischen */
+    private synchronized void cacheMarkTouch(String id) {
+        try { JSONObject m = cacheMarks(); m.put(id, new JSONObject().put("ver", CACHE_VER.getOrDefault(id, 1)).put("t", System.currentTimeMillis()).put("app", appVer())); writeFileAtomic(cacheMarkFile(), m.toString(1)); } catch (Exception ignored) { }
     }
     private File tileDir() { return new File(dataDir(), "tiles"); }   // nur App-Speicher (alte Ablage)
     // Ordnung im Ordner „Kitzrettung Cache“: je Art ein eigener Unterordner
@@ -2327,8 +2348,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private boolean isExt() { return !dataDir().equals(super.getFilesDir()); }
     private File dataFile(String name) { return isExt() ? new File(dataDir(), (DATA_CAT.containsKey(name) ? DATA_CAT.get(name) : "Sonstiges") + "/" + name) : new File(dataDir(), name); }
     private static String tileCat(String key) {
-        if (key.startsWith("dipul/")) return "Geozonen/Kacheln";
-        if (key.startsWith("dop3/") || key.startsWith("sat/")) return "Luftbild";
+        if (key.equals("dipul") || key.startsWith("dipul/")) return "Geozonen/Kacheln";
+        if (key.equals("dop3") || key.equals("sat") || key.startsWith("dop3/") || key.startsWith("sat/")) return "Luftbild";
         return "Karte";
     }
     /** Kachel-Datei zu einem Schlüssel wie „bmg/14/8600/5500.png“ */
@@ -2664,7 +2685,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 cnt[3] = work.size();
                 // Fortschritt je Datenbereich (für die Liste „Offline-Daten“ in den Einstellungen)
                 java.util.LinkedHashMap<String, int[]> pc = new java.util.LinkedHashMap<>();
-                for (Object[] w : work) { String c = pfCat((String) w[0]); int[] a = pc.get(c); if (a == null) pc.put(c, a = new int[2]); a[0]++; }
+                for (Object[] w : work) { String c = pfCat((String) w[0]); int[] a = pc.get(c); if (a == null) pc.put(c, a = new int[3]); a[0]++; }
                 pfCats = pc; pfCur = null;
                 java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(4);
                 final long[] lastEv = {0};
@@ -2694,9 +2715,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                                             : httpBytes(BM + (lay.equals("bmg") ? "de_basemapde_web_raster_grau" : "de_basemapde_web_raster_farbe") + "/default/GLOBAL_WEBMERCATOR/" + t[0] + "/" + t[2] + "/" + t[1] + ".png");
                                     if (vec && b != null && b.length == 0) { synchronized (cnt) { cnt[1]++; } }   // leere Kachel (nichts da) – in Ordnung
                                     else if (b != null && b.length > 0) { saveTile(f, b); synchronized (cnt) { cnt[0]++; bytes[0] += b.length; } }
-                                    else synchronized (cnt) { cnt[2]++; }
+                                    else synchronized (cnt) { cnt[2]++; int[] a = pfCats.get(pcat); if (a != null) a[2]++; }
                                 }
-                            } catch (Exception e) { synchronized (cnt) { cnt[2]++; } }
+                            } catch (Exception e) { synchronized (cnt) { cnt[2]++; int[] a = pfCats.get(pcat); if (a != null) a[2]++; } }
                             synchronized (cnt) { int[] a = pfCats.get(pcat); if (a != null) a[1]++; pfCur = pcat; }
                             long now = System.currentTimeMillis();
                             if (now - lastEv[0] > 700) { lastEv[0] = now; prefetchEvent(cnt, bytes[0], false); }
@@ -2709,12 +2730,29 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 js("window.onPrefetch && window.onPrefetch(" + JSONObject.quote(new JSONObject().toString()) + ")");
             } finally {
                 prefetchRun = false;
+                if (!prefetchStop) for (String c : pfCats.keySet()) cacheMarkTouch(c);
                 prefetchEvent(cnt, bytes[0], true);
             }
         }).start();
     }
 
     private volatile Map<String, int[]> pfCats = new HashMap<>();
+    /** Lade-Status der Datenbereiche (Feldwege, Hindernisse, Orte …): „load“, „ok“ oder Fehlertext – für die Liste „Offline-Daten“ */
+    private final Map<String, String> catStatus = new java.util.concurrent.ConcurrentHashMap<>();
+    private void catSt(String id, String st) {
+        catStatus.put(id, st == null ? "Fehler" : st);
+        if ("ok".equals(st)) cacheMarkTouch(id);
+        try {
+            JSONObject o = new JSONObject(); for (Map.Entry<String, String> e : catStatus.entrySet()) o.put(e.getKey(), e.getValue());
+            js("window.onCacheStatus && window.onCacheStatus(" + JSONObject.quote(o.toString()) + ")");
+        } catch (Exception ignored) { }
+    }
+    private static String errTxt(Exception e) {
+        String m = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+        if (m.contains("resolve host") || m.contains("UnknownHost")) return "Server nicht erreichbar";
+        if (m.toLowerCase(Locale.ROOT).contains("timeout") || m.contains("timed out")) return "Server antwortet nicht (Zeitüberschreitung)";
+        return m.length() > 120 ? m.substring(0, 120) + "…" : m;
+    }
     private volatile String pfCur = null;
     private static String pfCat(String lay) { return lay.equals("dop") ? "luftbild" : lay.startsWith("geo:") ? "geokacheln" : "karte"; }
     private void prefetchEvent(int[] cnt, long bytes, boolean fin) {
@@ -2724,7 +2762,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 o = new JSONObject().put("done", cnt[0]).put("have", cnt[1]).put("fail", cnt[2]).put("total", cnt[3])
                         .put("bytes", bytes).put("finished", fin).put("cancelled", prefetchStop);
                 JSONObject cs = new JSONObject();
-                for (Map.Entry<String, int[]> e : pfCats.entrySet()) cs.put(e.getKey(), new JSONArray().put(e.getValue()[1]).put(e.getValue()[0]));
+                for (Map.Entry<String, int[]> e : pfCats.entrySet()) cs.put(e.getKey(), new JSONArray().put(e.getValue()[1]).put(e.getValue()[0]).put(e.getValue()[2]));
                 o.put("cats", cs); if (pfCur != null) o.put("cur", pfCur);
             }
             js("window.onPrefetch && window.onPrefetch(" + JSONObject.quote(o.toString()) + ")");
@@ -2795,6 +2833,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             } catch (Exception ignored) { }
             boolean fresh = System.currentTimeMillis() - prefs.getLong("reg_fetched", 0) < 60 * DAY;   // Grenzen ändern sich kaum
             if (!force && fresh && covers && regionFile().isFile()) return;
+            catSt("orte", "load");
             // Schnell: nur Grenzstücke im Gebiet + Zugehörigkeit der Gebietsmitte (statt kompletter Landesgrenzen)
             String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
             double clat = (n + s) / 2, clon = (e + w) / 2;
@@ -2851,7 +2890,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             writeFileAtomic(regionFile(), out.toString());
             prefs.edit().putLong("reg_fetched", System.currentTimeMillis())
                     .putString("reg_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
-        } catch (Exception ignored) { }
+        } catch (Exception ex) { catSt("orte", "Landesgrenzen: " + errTxt(ex)); }
     }
 
     /** "142 m" / "142,5" -> 142.5, sonst 0 */
@@ -2958,10 +2997,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 covers = b.has("n") && b.getDouble("n") >= n && b.getDouble("s") <= s && b.getDouble("e") >= e && b.getDouble("w") <= w;
             } catch (Exception ignored) { }
             if (!force && fresh && covers && afFile().isFile()) return;
+            catSt("flugplaetze", "load");
             String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
             String txt = overpass("[out:json][timeout:60];(nwr[\"aeroway\"~\"^(aerodrome|heliport|airstrip)$\"](" + bb + "););out tags center;", 90000);
             JSONArray els = new JSONObject(txt).getJSONArray("elements");
             writeFileAtomic(afFile(), els.toString());
+            catSt("flugplaetze", "ok");
             prefs.edit().putLong("af_fetched", System.currentTimeMillis())
                     .putString("af_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
 
@@ -3105,6 +3146,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     // ---------- Marktstammdatenregister (Bundesnetzagentur): Windenergieanlagen je Bundesland, gefiltert auf das Gebiet ----------
     private void mastrSyncImpl(String json) {
         JSONObject ev = new JSONObject();
+        catSt("windraeder", "load");
         try {
             JSONObject p = new JSONObject(json);
             JSONArray st = p.getJSONArray("states"), box = p.getJSONArray("box");
@@ -3148,8 +3190,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             }
             writeFileAtomic(dataFile("mastr_wind.json"), new JSONObject().put("t", System.currentTimeMillis()).put("list", out).toString());
             ev.put("ok", true).put("n", out.length());
+            catSt("windraeder", "ok");
         } catch (Exception ex) {
             try { ev.put("ok", false).put("error", ex.getMessage()); } catch (Exception ignored) { }
+            catSt("windraeder", errTxt(ex));
         }
         js("window.onMastr && window.onMastr(" + JSONObject.quote(ev.toString()) + ")");
     }
@@ -3341,6 +3385,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             } catch (Exception ignored) { }
             File dir = geoVecDir();
             if (!dir.isDirectory()) dir.mkdirs();
+            catSt("zonendaten", "load");
             int ok = 0, fail = 0, count = 0, k = 0;
             boolean shrunk = false;
             for (String layer : GEO_LAYERS) {
@@ -3365,6 +3410,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         .putString("geo_vec_bbox", shrunk ? new JSONObject().put("n", sn).put("s", ss).put("e", se).put("w", sw).toString()
                                 : new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             }
+            catSt("zonendaten", ok == 0 ? "keine Antwort von dipul" : fail > 0 ? "ok, " + fail + " von " + GEO_LAYERS.length + " Zonenarten fehlen" : "ok");
             if (ok == 0) {
                 String why = !online() ? "keine Internetverbindung"
                         : geoLastError != null && geoLastError.contains("resolve host") ? "dipul-Server nicht erreichbar"
