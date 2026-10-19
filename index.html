@@ -109,6 +109,17 @@
   #busy .bar{height:8px;border-radius:4px;background:var(--line);margin:12px 0 4px;overflow:hidden}
   #busy .bar i{display:block;height:100%;background:linear-gradient(90deg,#27b057,#1a8f40);border-radius:4px;transition:width .2s}
   #busy .bar.ind i{width:35% !important;animation:ind 1.1s ease-in-out infinite}
+  /* Bedienung mit den L/R-Tasten (DJI RC Plus 2): Leiste oben, rechte Knopfspalte aus, Tastenhinweise am Displayrand */
+  body.bartop #bar{top:0;bottom:auto;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+  body.bartop #wind,body.bartop #notam,body.bartop #net{transform:translateY(72px)}
+  body.bartop #toast{top:86px} body.bartop #searchBox{top:82px}
+  body.rckeys #ctrl{display:none}
+  body.rckeys #net{right:12px}
+  .rkh{position:fixed;z-index:16;display:none;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:17px;background:rgba(21,32,43,.86);color:#fff;font-size:14px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.35);pointer-events:none;white-space:nowrap;transform:translateY(50%)}
+  .rkh b{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;border-radius:6px;background:#fff;color:#15202b;font-size:12px;font-weight:800;padding:0 4px}
+  body.rckeys .rkh{display:flex}
+  .rkh.L{left:6px} .rkh.R{right:6px;flex-direction:row-reverse}
+  .rkh.flash{background:#1e7bff}
   #bLoc .gpsb{display:none;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:800;line-height:1}
   #bLoc .gpsb i{width:16px;height:16px;border:2.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:gspin .8s linear infinite}
   #bLoc.busy svg{display:none} #bLoc.busy .gpsb{display:flex}
@@ -448,6 +459,8 @@
   <button id="bLoc" title="Mein Standort"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span class="gpsb"><i></i>GPS</span></button>
 </div>
 
+<div class="rkh L" id="rkL1"><b>L1</b><span>＋ Zoom</span></div><div class="rkh L" id="rkL2"><b>L2</b><span>− Zoom</span></div><div class="rkh L" id="rkL3"><b>L3</b><span>⤢ Alles</span></div>
+<div class="rkh R" id="rkR1"><b>R1</b><span>Karte</span></div><div class="rkh R" id="rkR2"><b>R2</b><span>Info</span></div><div class="rkh R" id="rkR3"><b>R3</b><span>⌖ Standort</span></div>
 <div id="bar">
   <img class="logo" data-logo alt="Kitzrettung Limburg">
   <div id="count">0 markiert<small>0 Felder</small></div>
@@ -529,7 +542,10 @@
     </div>
     <div class="set"><div class="l"><div class="t">Flugplätze anzeigen</div><div class="v" id="vAf">Flugplätze, Segel-/UL-Plätze und Hubschrauberlandeplätze im Gebiet der Felder (+3 km)</div></div><button class="b-sec" id="bAfList">Liste</button><label class="sw"><input type="checkbox" id="sAf"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">NOTAM / temporäre Betriebseinschränkungen</div><div class="v" id="vNotam"></div></div><button class="b-sec" id="bNotamList">Anzeigen</button></div>
-    <div class="set"><div class="l"><div class="t">NOTAM-Umkreis</div><div class="v">So weit prüft die App automatisch auf NOTAMs und Tieffluggebiete – gemessen von deinem aktuellen Standort (ohne GPS: von den Feldern)</div></div><div class="seg"><button data-notamkm="10">10 km</button><button data-notamkm="25">25 km</button><button data-notamkm="50">50 km</button><button data-notamkm="100">100 km</button></div></div>
+    <div class="set"><div class="l"><div class="t">NOTAM-Umkreis</div><div class="v">So weit prüft die App automatisch auf NOTAMs und Tieffluggebiete – gemessen von deinem aktuellen Standort (ohne GPS: von den Feldern)</div></div><div class="seg"><button data-notamkm="5">5 km</button><button data-notamkm="10">10 km</button><button data-notamkm="25">25 km</button><button data-notamkm="50">50 km</button><button data-notamkm="100">100 km</button></div></div>
+    <div class="set" id="setRcKeys" style="display:none"><div class="l"><div class="t">Bedienung mit L/R-Tasten (DJI RC Plus 2)</div><div class="v">L1 = Zoom +, L2 = Zoom −, L3 = alles zeigen · R1 = Karte (Grau → Karte → Luftbild), R2 = Info (Felder → Geozonen → beides → aus), R3 = Standort. Die Leiste wandert nach oben, die Knöpfe rechts entfallen.</div>
+      <div class="v" style="margin-top:6px">Hinweise am Rand verschieben: <button class="b-sec" data-rkoff="-12">▲</button> <button class="b-sec" data-rkoff="12">▼</button> <span id="vRkOff"></span></div></div>
+      <div class="seg"><button data-rckeys="0">Aus</button><button data-rckeys="1">An</button></div></div>
     <div class="set"><div class="l"><div class="t">5D-Knopf der Fernsteuerung</div><div class="v" id="vRcKey">Karte: hoch/runter = zoomen · links/rechts = Feld für Feld · drücken = Feld markieren (ohne Feld: Standort). Seiten: hoch/runter = blättern · links = zurück.</div></div><button class="b-sec" id="bRcKey">Tasten-Test</button></div>
     <div class="set"><div class="l"><div class="t">Regeln &amp; Auflagen</div><div class="v">Übersicht: Allgemeinverfügung, Allgemeinerlaubnis, was gilt wo</div></div><button class="b-sec" id="bRules">Ansehen</button></div>
     <h3 class="setcat" id="sc-wetter">Wetter</h3>
@@ -603,7 +619,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { showNotam: '1', showLfa: '1', notamKm: '50', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/KMZ Mission', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/KMZ Mission', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -747,13 +763,16 @@ const x2lon = x => x * 360 - 180;
 const y2lat = y => 90 - 360 * Math.atan(Math.exp((y - 0.5) * 2 * Math.PI)) / Math.PI;
 const ws = () => 256 * Math.pow(2, V.z);
 const BAR = 72;
-const mapH = () => H - BAR;  // sichtbarer Kartenbereich über der Leiste
+const mapH = () => H - BAR;  // Höhe des sichtbaren Kartenbereichs (ohne Leiste)
+const barTop = () => document.body.classList.contains('bartop');   // Leiste oben (Bedienung mit L/R-Tasten)
+const cyOf = h => barTop() ? (h + BAR) / 2 : (h - BAR) / 2;          // senkrechte Mitte des Kartenbereichs
+const mapCY = () => cyOf(H);
 // Bildkonstanten nur neu rechnen, wenn sich Ausschnitt oder Größe ändern (spart Rechenzeit pro Punkt)
 const FR = { lat: NaN, lon: NaN, z: NaN, W: -1, H: -1, s: 0, cx: 0, cy: 0, hx: 0, hy: 0 };
 function frame() {
-  if (FR.lat !== V.lat || FR.lon !== V.lon || FR.z !== V.z || FR.W !== W || FR.H !== H) {
-    FR.lat = V.lat; FR.lon = V.lon; FR.z = V.z; FR.W = W; FR.H = H;
-    FR.s = ws(); FR.cx = lon2x(V.lon); FR.cy = lat2y(V.lat); FR.hx = W / 2; FR.hy = mapH() / 2;
+  if (FR.lat !== V.lat || FR.lon !== V.lon || FR.z !== V.z || FR.W !== W || FR.H !== H || FR.bt !== barTop()) {
+    FR.lat = V.lat; FR.lon = V.lon; FR.z = V.z; FR.W = W; FR.H = H; FR.bt = barTop();
+    FR.s = ws(); FR.cx = lon2x(V.lon); FR.cy = lat2y(V.lat); FR.hx = W / 2; FR.hy = mapCY();
   }
   return FR;
 }
@@ -780,7 +799,7 @@ function usePath(pp) {
 const resetTf = () => ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 function fromScreen(px, py) {
   const s = ws();
-  return [y2lat(lat2y(V.lat) + (py - mapH() / 2) / s), x2lon(lon2x(V.lon) + (px - W / 2) / s)];
+  return [y2lat(lat2y(V.lat) + (py - mapCY()) / s), x2lon(lon2x(V.lon) + (px - W / 2) / s)];
 }
 function resize() {
   DPR = window.devicePixelRatio || 1; W = innerWidth; H = innerHeight;
@@ -836,7 +855,7 @@ function bufPlace(B) {
   const k = Math.pow(2, V.z - B.z), s = ws(), ss = 256 * Math.pow(2, B.z);
   // Mitte des Bildes so, wie es gezeichnet wurde (nicht mit der heutigen Bildschirmgröße – die kann sich nach dem Wiederöffnen ändern)
   const X0 = lon2x(B.lon) - B.hx / ss, Y0 = lat2y(B.lat) - B.hy / ss;
-  return [(X0 - lon2x(V.lon)) * s + W / 2, (Y0 - lat2y(V.lat)) * s + mapH() / 2, k];
+  return [(X0 - lon2x(V.lon)) * s + W / 2, (Y0 - lat2y(V.lat)) * s + mapCY(), k];
 }
 const covers = (B, lo, hi) => { if (!B.ok) return false; const [x, y, k] = bufPlace(B); return k > lo && k < hi && x <= 0 && y <= 0 && x + B.bw * k >= W && y + B.bh * k >= H; };
 // Kachel-Ebene: ebenfalls vorgerendert mit Rand und per CSS verschoben – exakt im Gleichschritt mit den Zonen/Feldern
@@ -855,7 +874,7 @@ function makeTileLayer(div, cfg) {   // cfg: { url(z,x,y), maxz(), minz, id() = 
   };
   const place = L => {
     const k = Math.pow(2, V.z - L.z), n = 256 * Math.pow(2, L.z);
-    const x = (L.ox - lon2x(V.lon) * n) * k + W / 2, y = (L.oy - lat2y(V.lat) * n) * k + mapH() / 2;
+    const x = (L.ox - lon2x(V.lon) * n) * k + W / 2, y = (L.oy - lat2y(V.lat) * n) * k + mapCY();
     L.el.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0) scale(${k.toFixed(5)})`;
   };
   const drop = (L, key) => {   // Kachel aus der Ebene nehmen, geladene für späteres Zurückwischen aufheben
@@ -875,9 +894,9 @@ function makeTileLayer(div, cfg) {   // cfg: { url(z,x,y), maxz(), minz, id() = 
     const L = level(tz), N = 1 << tz, n = 256 * N;
     if (L.ox == null) { L.ox = Math.floor(lon2x(V.lon) * N) * 256; L.oy = Math.floor(lat2y(V.lat) * N) * 256; }
     if (T.cur !== tz) { T.cur = tz; T.levels.forEach(o => { o.el.style.zIndex = o === L ? 2 : 1; }); }
-    const k = Math.pow(2, V.z - tz), cx = lon2x(V.lon) * n, cy = lat2y(V.lat) * n, mh = mapH();
+    const k = Math.pow(2, V.z - tz), cx = lon2x(V.lon) * n, cy = lat2y(V.lat) * n, mc = mapCY();
     const x0 = Math.floor((cx - W / 2 / k) / 256) - 1, x1 = Math.floor((cx + W / 2 / k) / 256) + 1;
-    const y0 = Math.max(0, Math.floor((cy - mh / 2 / k) / 256) - 1), y1 = Math.min(N - 1, Math.floor((cy + (H - mh / 2) / k) / 256) + 1);
+    const y0 = Math.max(0, Math.floor((cy - mc / k) / 256) - 1), y1 = Math.min(N - 1, Math.floor((cy + (H - mc) / k) / 256) + 1);
     let want = 0, have = 0;
     for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
       const key = tx + ':' + ty, xx = ((tx % N) + N) % N;
@@ -978,19 +997,19 @@ function renderBuf() {
   try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, buf.width, buf.height); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); paintStatic(); }
   finally { W = Wr; H = Hr; ctx = mctx; DPR = D0; PERF.layers = performance.now() - t0; }
   labelBoxes.forEach(b => { b.x -= M; b.y -= M; });   // Etiketten-Treffer in Bildschirmkoordinaten
-  Object.assign(BV, { ok: true, lat: V.lat, lon: V.lon, z: V.z, M, bw, bh, hx: bw / 2, hy: (bh - BAR) / 2, sw: Wr, sh: Hr, dpr: D0, t: Date.now() });
+  Object.assign(BV, { ok: true, lat: V.lat, lon: V.lon, z: V.z, M, bw, bh, hx: bw / 2, hy: cyOf(bh), sw: Wr, sh: Hr, dpr: D0, t: Date.now() });
   dirty = false;
 }
 function paintTiles() {
   ctx.fillStyle = '#cfd6dc'; ctx.fillRect(0, 0, W, H);
   const tz = Math.max(1, Math.min(LAYER_MAXZ[P.layer] || 18, Math.round(V.z)));
   const n = Math.pow(2, tz), ts = 256 * Math.pow(2, V.z - tz);
-  const cx = lon2x(V.lon) * n * ts, cy = lat2y(V.lat) * n * ts, mh = mapH();
+  const cx = lon2x(V.lon) * n * ts, cy = lat2y(V.lat) * n * ts, mc = mapCY();
   const x0 = Math.floor((cx - W / 2) / ts), x1 = Math.floor((cx + W / 2) / ts);
-  const y0 = Math.max(0, Math.floor((cy - mh / 2) / ts)), y1 = Math.min(n - 1, Math.floor((cy + (H - mh / 2)) / ts));
+  const y0 = Math.max(0, Math.floor((cy - mc) / ts)), y1 = Math.min(n - 1, Math.floor((cy + (H - mc)) / ts));
   for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
     const xx = ((tx % n) + n) % n, t = tile(tz, xx, ty);
-    const dx = Math.round(tx * ts - cx + W / 2), dy = Math.round(ty * ts - cy + mh / 2), dw = Math.ceil(ts) + 1;
+    const dx = Math.round(tx * ts - cx + W / 2), dy = Math.round(ty * ts - cy + mc), dw = Math.ceil(ts) + 1;
     if (t && t.complete && t.naturalWidth) ctx.drawImage(t, dx, dy, dw, dw);
     else { const pt = parentTile(tz, xx, ty); if (pt) ctx.drawImage(pt.img, pt.sx, pt.sy, pt.sz, pt.sz, dx, dy, dw, dw); }
   }
@@ -1611,7 +1630,7 @@ function zoomAt(nz, px, py) {
   V.z = nz;
   const s = ws();
   V.lon = x2lon(lon2x(b[1]) - (px - W / 2) / s);
-  V.lat = y2lat(lat2y(b[0]) - (py - mapH() / 2) / s);
+  V.lat = y2lat(lat2y(b[0]) - (py - mapCY()) / s);
   drawLive(true);
 }
 function panBy(dx, dy) {
@@ -1963,8 +1982,8 @@ function fitAll() {
   fitBounds(bounds(S.files.filter(visible)) || bounds(sel));
 }
 
-$('zIn').onclick = () => zoomAt(V.z + 1, W / 2, mapH() / 2);
-$('zOut').onclick = () => zoomAt(V.z - 1, W / 2, mapH() / 2);
+$('zIn').onclick = () => zoomAt(V.z + 1, W / 2, mapCY());
+$('zOut').onclick = () => zoomAt(V.z - 1, W / 2, mapCY());
 $('bFit').onclick = fitAll;
 $('bLoc').onclick = () => {
   if (S.me) { V.lat = S.me[0]; V.lon = S.me[1]; V.z = Math.max(V.z, 15); draw(); }
@@ -2219,7 +2238,7 @@ function notamBriefHtml(sel) {
   const hits = [];   // je NOTAM: kleinster Abstand zu einem der Felder + welches Feld
   S.notams.forEach(n => { let d = 1e9, ff = null; fs.forEach(f => { const x = notamFieldDist(f, n); if (x < d) { d = x; ff = f; } }); hits.push({ n, d, f: ff }); });
   hits.sort((a, b) => a.d - b.d || (b.n.active - a.n.active));
-  const inF = hits.filter(x => x.d === 0), nearF = hits.filter(x => x.d > 0 && x.d <= NOTAM_FIELD_NEAR), next = hits.find(x => x.d > NOTAM_FIELD_NEAR && x.d < 1e9);
+  const inF = hits.filter(x => x.d === 0), nearF = [];   // nur was AM Feld gilt – kein Umkreis
   const multi = fs.length > 1;
   const when = n => n.active ? (n.recur ? '<b>aktiv zu bestimmten Zeiten</b>' : '<b style="color:#d42020">jetzt aktiv</b>') : n.start ? 'ab ' + esc(fmtDate(n.start)) : 'geplant';
   const li = x => `<li><b>${esc(notamTitle(x.n))}</b> – ${x.d === 0 ? (multi ? 'Feld <b>' + esc(x.f.title) + '</b> liegt drin' : 'Feld liegt drin') : Math.round(x.d) + ' m entfernt' + (multi ? ' (' + esc(x.f.title) + ')' : '')} · ${when(x.n)}${x.n.end ? ' bis ' + esc(fmtDate(x.n.end)) : ''}${x.n.props.upper ? ' · bis ' + esc(x.n.props.upper) : ''}${x.n.recur ? '<div class="meta">Zeiten: ' + esc(x.n.recur) + '</div>' : ''}</li>`;
@@ -2228,7 +2247,7 @@ function notamBriefHtml(sel) {
     return `<div class="zone" style="border:2px solid ${act ? '#d42020' : '#e07800'}"><h4 style="color:${act ? '#d42020' : '#e07800'}">⚠ NOTAM am Feld${act ? ' – Flug nur mit Zustimmung der genannten Stelle' : ' (geplant)'}</h4><ul>${inF.map(li).join('')}${nearF.map(li).join('')}</ul><div class="meta">Details und Zuständige auf der NOTAM-Seite${stand}</div></div>`;
   }
   if (nearF.length) return `<div class="zone" style="border-left:5px solid #e07800"><h4 style="color:#e07800">NOTAM knapp neben dem Feld (bis ${NOTAM_FIELD_NEAR / 1000} km)</h4><ul>${nearF.map(li).join('')}</ul><div class="meta">Grenze nicht überfliegen${stand}</div></div>`;
-  return `<div class="zone" style="border-left:5px solid #13a538"><h4 style="color:#13a538">✓ Kein NOTAM an ${multi ? 'diesen Feldern' : 'diesem Feld'}</h4><div class="meta">Temporäre Betriebseinschränkungen laut dipul geprüft${next ? ` · nächste: ${esc(notamTitle(next.n))} in ${(next.d / 1000).toFixed(1).replace('.', ',')} km${next.n.active ? '' : ' (geplant)'}` : ''}${stand}</div></div>`;
+  return `<div class="zone" style="border-left:5px solid #13a538"><h4 style="color:#13a538">✓ Kein NOTAM an ${multi ? 'diesen Feldern' : 'diesem Feld'}</h4><div class="meta">Temporäre Betriebseinschränkungen laut dipul an der Fläche ${multi ? 'der Felder' : 'des Feldes'} geprüft${stand}</div></div>`;
 }
 function briefingHtml(b, sel) {
   const fh = flightHeight(), multi = sel.length > 1;
@@ -2595,10 +2614,21 @@ function einsatzAuto() {
   if (!A.prefetchStart || !isOnline() || !S.files.length || (A.prefetchRunning && A.prefetchRunning()) || esPending) return;
   const need = einsatzBox(1); if (!need) return;
   let have = null; try { have = JSON.parse(A.getPref('esBox5', 'null') || 'null'); } catch (e) { }
-  let done = []; try { done = JSON.parse(A.getPref('esFields3', '[]') || '[]'); } catch (e) { }
-  const names = S.files.filter(f => !f.dup && f.bounds).map(f => f.name), dset = new Set(done);
-  const fresh = names.filter(n => !dset.has(n));   // neue Wiesen: Kacheln bis Zoom 18 um sie herum fehlen noch
-  if (have && have[0] <= need[0] && have[1] <= need[1] && have[2] >= need[2] && have[3] >= need[3] && !fresh.length) return;
+  // schon gespeicherte Wiesen nach ORT merken (nicht nach Namen) – UAV-E und RC haben für dieselbe Wiese andere Dateinamen
+  let done = []; try { done = JSON.parse(A.getPref('esSpots1', '[]') || '[]'); } catch (e) { }
+  if (!done.length) {   // Umstieg: bisher nach Namen gemerkte Wiesen übernehmen
+    let old = []; try { old = JSON.parse(A.getPref('esFields3', '[]') || '[]'); } catch (e) { }
+    const os = new Set(old); done = S.files.filter(f => f.center && os.has(f.name)).map(f => [Math.round(f.center[0] * 500) / 500, Math.round(f.center[1] * 500) / 500]);
+    if (done.length) setP('esSpots1', JSON.stringify(done));
+  }
+  const spot = f => [Math.round(f.center[0] * 500) / 500, Math.round(f.center[1] * 500) / 500];   // ca. 200-m-Raster
+  const dset = new Set(done.map(x => x.join(',')));
+  const known = f => { const [a, b] = spot(f); for (const da of [-.002, 0, .002]) for (const db of [-.002, 0, .002]) if (dset.has((Math.round((a + da) * 500) / 500) + ',' + (Math.round((b + db) * 500) / 500))) return true; return false; };
+  const fs = S.files.filter(f => !f.dup && f.bounds && f.center);
+  const fresh = fs.filter(f => !known(f));   // neue Wiesen: Kacheln bis Zoom 18 um sie herum fehlen noch
+  const inBox = have && have[0] <= need[0] && have[1] <= need[1] && have[2] >= need[2] && have[3] >= need[3];
+  if ((inBox || (have && !fresh.length)) && !fresh.length) return;   // alles schon da (auch nach Wechsel UAV-E ↔ RC)
+  const names = fs.map(f => f.name);
   esPendingNames = names;
   einsatzRun(false, false, true);   // schon gespeicherte Kacheln werden übersprungen – geht schnell
 }
@@ -2634,7 +2664,15 @@ window.onPrefetch = raw => {
   // Größen in der Liste ab und zu nachziehen, solange die Einstellungen offen sind
   if ($('pgSet').classList.contains('open') && A.cacheInfoAsync && (r.finished || Date.now() - cacheInfoT > 20000)) { cacheInfoT = Date.now(); A.cacheInfoAsync(); }
   if (r.finished) { toast(t, !r.cancelled && r.fail > Math.max(50, r.total * .05), 7000); draw();
-    if (esPending && !r.cancelled) { setP('esBox5', JSON.stringify(esPending)); setP('esFields3', JSON.stringify(esPendingNames || S.files.filter(f => !f.dup && f.bounds).map(f => f.name))); }   // erledigt – nicht nochmal automatisch
+    if (esPending && !r.cancelled) {
+      // Box und Wiesen-Orte ZUSAMMENFÜHREN statt ersetzen
+      let ob = null; try { ob = JSON.parse(A.getPref('esBox5', 'null') || 'null'); } catch (e) { }
+      const nb = ob && ob.length === 4 ? [Math.min(ob[0], esPending[0]), Math.min(ob[1], esPending[1]), Math.max(ob[2], esPending[2]), Math.max(ob[3], esPending[3])] : esPending;
+      setP('esBox5', JSON.stringify(nb));
+      let sp = []; try { sp = JSON.parse(A.getPref('esSpots1', '[]') || '[]'); } catch (e) { }
+      const ss = new Set(sp.map(x => x.join(',')));
+      S.files.filter(f => !f.dup && f.center).forEach(f => { const k = [Math.round(f.center[0] * 500) / 500, Math.round(f.center[1] * 500) / 500]; if (!ss.has(k.join(','))) { ss.add(k.join(',')); sp.push(k); } });
+      setP('esSpots1', JSON.stringify(sp.slice(-6000))); }   // erledigt – nicht nochmal automatisch
     esPendingNames = null;
     esPending = null; }
 };
@@ -3733,7 +3771,7 @@ function showAirfieldList() {
 }
 document.querySelectorAll('[data-rose]').forEach(b => b.onclick = () => { const v = b.dataset.rose; setP('rose', v === 'off' ? 0 : 1); if (v !== 'off') setP('compass', v === 'dev' ? 1 : 0); fillSettings(); windWidget(); draw(); });
 $('bRcKey').onclick = () => { rcKeyTest = !rcKeyTest; $('bRcKey').textContent = rcKeyTest ? 'Test beenden' : 'Tasten-Test';
-  if (rcKeyTest) rcKeyShow('jetzt eine Taste oder den 5D-Knopf drücken…'); };
+  if (rcKeyTest) rcKeyShow('jetzt eine Taste drücken oder den 5D-Knopf in alle Richtungen kippen…' + (RC_MODEL ? ' · Gerät: ' + RC_MODEL.split('|')[0] : '')); };
 document.querySelectorAll('[data-notamkm]').forEach(b => b.onclick = () => { setP('notamKm', b.dataset.notamkm);
   document.querySelectorAll('[data-notamkm]').forEach(x => x.classList.toggle('on', x === b)); S.notamSig = null; notamChip(); });
 document.querySelectorAll('[data-wxmax]').forEach(b => b.onclick = () => { setP('wxMaxH', b.dataset.wxmax);   // nur die Knöpfe umschalten – kein Neuaufbau der ganzen Einstellungen (das hakte)
@@ -4187,7 +4225,7 @@ const CLOUD_ICON = '<svg viewBox="0 0 24 24" class="hicon"><path d="M7 18h10a4 4
 function wxLoc() {
   if (S.files.length) { const b = bounds(S.files); return { lat: (b.n + b.s) / 2, lon: (b.e + b.w) / 2, what: 'Gebiet deiner Felder' }; }
   if (S.me) return { lat: S.me[0], lon: S.me[1], what: 'dein Standort' };
-  const [lat, lon] = fromScreen(W / 2, mapH() / 2); return { lat, lon, what: 'Kartenmitte' };
+  const [lat, lon] = fromScreen(W / 2, mapCY()); return { lat, lon, what: 'Kartenmitte' };
 }
 function evalCell(kind, v, extra) {
   if (v == null) return '';
@@ -4736,7 +4774,7 @@ async function showWeather(force) {
     upd();
   }
 }
-const LAYER_NAME = { grey: 'Grau', osm: 'Karte', sat: 'Satellit' };
+const LAYER_NAME = { grey: 'Grau', osm: 'Karte', sat: 'Luftbild' };
 // Kartenart: Auswahl links neben dem Knopf aufklappen, Wahl bleibt dauerhaft gespeichert
 $('bLayer').onclick = e => {
   e.stopPropagation();
@@ -6033,15 +6071,67 @@ window.onRcKey = (k, rep) => {
     else if (k === 21) window.onBack();
     return;
   }
-  if (k === 19) zoomAt(V.z + 1, W / 2, mapH() / 2);
-  else if (k === 20) zoomAt(V.z - 1, W / 2, mapH() / 2);
+  if (k === 19) zoomAt(V.z + 1, W / 2, mapCY());
+  else if (k === 20) zoomAt(V.z - 1, W / 2, mapCY());
   else if (k === 21 || k === 22) { if (!rep || rep % 3 === 0) rcFieldStep(k === 22 ? 1 : -1); }
   else if (k === 23) { if (S.kf && S.files.includes(S.kf)) { toggle(S.kf); toast(S.kf.title + (S.kf.selected ? ' markiert' : ' abgewählt'), 'ok', 1800); } else $('bLoc').onclick(); }
 };
 // Tasten-Test (Einstellungen): zeigt, welche Taste die RC meldet
 let rcKeyTest = false;
 function rcKeyShow(t) { const el = $('vRcKey'); if (el) el.innerHTML = '<b>Erkannt: ' + esc(t) + '</b>'; }
-window.onRcKeyOther = k => { if (rcKeyTest) rcKeyShow('Taste Nr. ' + k + ' (wird nicht benutzt)'); };
+// DJI RC Plus 2: sechs Tasten neben dem Display (L1–L3 links, R1–R3 rechts) – Belegung folgt noch
+let RC_MODEL = ''; try { RC_MODEL = A.rcModel ? A.rcModel() : ''; } catch (e) { }
+const RC_PLUS2 = /RC\s*PLUS\s*2/i.test(RC_MODEL);
+const RCP2_KEYS = { 131: 'L1', 132: 'L2', 133: 'L3', 134: 'R1', 135: 'R2', 136: 'R3' };
+function rcKeysOn() { return RC_PLUS2 && P.rcKeys === '1'; }
+/** Bedienkonzept L/R-Tasten anwenden: Leiste oben, Hinweise am Rand an den Markierungen */
+function rcKeysUi() {
+  const on = rcKeysOn();
+  document.body.classList.toggle('rckeys', on); document.body.classList.toggle('bartop', on);
+  // Markierungen sitzen im unteren Teil des Displayrands: Mitte der Hinweise bei ca. 118 / 70 / 22 px über der Unterkante (+ Feineinstellung)
+  const off = +P.rcKeyOff || 0;
+  [['1', 118], ['2', 70], ['3', 22]].forEach(([n, b]) => ['L', 'R'].forEach(sd => { const el = $('rk' + sd + n); if (el) el.style.bottom = (b - off) + 'px'; }));
+  rcKeyLabels();
+  const st = $('setRcKeys'); if (st) st.style.display = RC_PLUS2 ? '' : 'none';
+  document.querySelectorAll('[data-rckeys]').forEach(b => b.classList.toggle('on', b.dataset.rckeys === (P.rcKeys || '0')));
+  if ($('vRkOff')) $('vRkOff').textContent = off ? (off > 0 ? off + ' px tiefer' : -off + ' px höher') : '';
+  resize();
+}
+function infoState() { const g = infoMode, f = P.labels === '1'; return g && f ? 'beides' : g ? 'Geozonen' : f ? 'Felder' : 'aus'; }
+function rcKeyLabels() {
+  const r1 = $('rkR1'), r2 = $('rkR2'); if (!r1) return;
+  r1.querySelector('span').textContent = 'Karte: ' + (LAYER_NAME[P.layer] || P.layer);
+  r2.querySelector('span').textContent = 'Info: ' + infoState();
+}
+function rcFlash(id) { const el = $(id); if (!el) return; el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 350); }
+/** Funktionen der sechs Tasten */
+function rcKeyAct(name) {
+  if (rcScrollBox()) { if (name === 'L1' || name === 'L2') { const b = rcScrollBox(); b.scrollBy({ top: (name === 'L2' ? 1 : -1) * Math.round(b.clientHeight * .4), behavior: 'smooth' }); } return; }
+  rcFlash('rk' + name);
+  if (name === 'L1') zoomAt(V.z + 1, W / 2, mapCY());
+  else if (name === 'L2') zoomAt(V.z - 1, W / 2, mapCY());
+  else if (name === 'L3') fitAll();
+  else if (name === 'R2') {   // Felder → Geozonen → beides → nichts → Felder …
+    const order = [[false, '1'], [true, '0'], [true, '1'], [false, '0']];
+    const cur = order.findIndex(([g, f]) => g === infoMode && f === (P.labels === '1' ? '1' : '0'));
+    const [g, f] = order[(cur + 1) % order.length];
+    infoMode = g; if (!g) infoPin = null; setP('labels', f); infoBtnState(); draw();
+    toast('Info: ' + infoState(), false, 1500);
+  } else if (name === 'R1') {   // Grau → Karte → Luftbild → Grau
+    const ly = ['grey', 'osm', 'sat'], nx = ly[(ly.indexOf(P.layer) + 1) % ly.length];
+    setP('layer', nx); if ($('pgSet').classList.contains('open')) fillSettings(); draw();
+    toast('Karte: ' + (LAYER_NAME[nx] || nx), false, 1500);
+  } else if (name === 'R3') $('bLoc').onclick();
+  rcKeyLabels();
+}
+window.onRcKeyOther = k => {
+  if (!rcKeyTest && RC_PLUS2 && P.rcKeys === '1' && RCP2_KEYS[k]) return rcKeyAct(RCP2_KEYS[k]);
+  if (rcKeyTest) return rcKeyShow((RCP2_KEYS[k] && RC_PLUS2 ? 'Taste ' + RCP2_KEYS[k] + ' (Nr. ' + k + ')' : 'Taste Nr. ' + k) + ' – noch ohne Funktion');
+};
+window.onRcMotion = raw => { if (rcKeyTest) rcKeyShow('Bewegung: ' + raw); };
+document.querySelectorAll('[data-rckeys]').forEach(b => b.onclick = () => { setP('rcKeys', b.dataset.rckeys); rcKeysUi(); });
+document.querySelectorAll('[data-rkoff]').forEach(b => b.onclick = () => { setP('rcKeyOff', Math.max(-120, Math.min(120, (+P.rcKeyOff || 0) + +b.dataset.rkoff))); rcKeysUi(); });
+setTimeout(rcKeysUi, 0);
 
 // Zurück-Taste der RC
 window.onBack = () => {

@@ -178,6 +178,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
         int k = e.getKeyCode();
+        // andere Meldewege derselben Richtungen auf das Steuerkreuz abbilden (je nach Fernsteuerung verschieden)
+        if (k == 280 || k == 92) k = KeyEvent.KEYCODE_DPAD_UP;          // SYSTEM_NAVIGATION_UP / PAGE_UP
+        else if (k == 281 || k == 93) k = KeyEvent.KEYCODE_DPAD_DOWN;   // SYSTEM_NAVIGATION_DOWN / PAGE_DOWN
+        else if (k == 282) k = KeyEvent.KEYCODE_DPAD_LEFT;
+        else if (k == 283) k = KeyEvent.KEYCODE_DPAD_RIGHT;
         boolean dpad = k == KeyEvent.KEYCODE_DPAD_UP || k == KeyEvent.KEYCODE_DPAD_DOWN || k == KeyEvent.KEYCODE_DPAD_LEFT
                 || k == KeyEvent.KEYCODE_DPAD_RIGHT || k == KeyEvent.KEYCODE_DPAD_CENTER;
         boolean inApp = pageBox != null && pageBox.getVisibility() == View.VISIBLE;   // Webseite/PDF in der App: dort normal blättern
@@ -190,6 +195,29 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (e.getAction() == KeyEvent.ACTION_DOWN && web != null && k != KeyEvent.KEYCODE_BACK)
             web.evaluateJavascript("window.onRcKeyOther && window.onRcKeyOther(" + k + ")", null);
         return super.dispatchKeyEvent(e);
+    }
+
+    /** 5D-Knopf als Joystick/Steuerkreuz-Achse (HAT) oder Scrollrad: Richtungen an die App, Rohwerte für den Tasten-Test */
+    private int hatX = 0, hatY = 0;
+    @Override
+    public boolean dispatchGenericMotionEvent(android.view.MotionEvent ev) {
+        try {
+            if (ev.getAction() == android.view.MotionEvent.ACTION_MOVE || ev.getAction() == android.view.MotionEvent.ACTION_SCROLL) {
+                float hx = ev.getAxisValue(android.view.MotionEvent.AXIS_HAT_X), hy = ev.getAxisValue(android.view.MotionEvent.AXIS_HAT_Y);
+                float sv = ev.getAxisValue(android.view.MotionEvent.AXIS_VSCROLL), sh = ev.getAxisValue(android.view.MotionEvent.AXIS_HSCROLL);
+                boolean joy = (ev.getSource() & android.view.InputDevice.SOURCE_JOYSTICK) == android.view.InputDevice.SOURCE_JOYSTICK
+                        || (ev.getSource() & android.view.InputDevice.SOURCE_GAMEPAD) == android.view.InputDevice.SOURCE_GAMEPAD;
+                String raw = String.format(Locale.ROOT, "Quelle %d · HAT %.1f/%.1f · Scroll %.1f/%.1f · X/Y %.2f/%.2f", ev.getSource(), hx, hy, sh, sv,
+                        ev.getAxisValue(android.view.MotionEvent.AXIS_X), ev.getAxisValue(android.view.MotionEvent.AXIS_Y));
+                if (web != null) web.evaluateJavascript("window.onRcMotion && window.onRcMotion(" + JSONObject.quote(raw) + ")", null);
+                int nx = Math.round(hx), ny = Math.round(hy), key = 0;
+                if (nx != hatX) { if (nx < 0) key = KeyEvent.KEYCODE_DPAD_LEFT; else if (nx > 0) key = KeyEvent.KEYCODE_DPAD_RIGHT; hatX = nx; }
+                if (ny != hatY) { if (ny < 0) key = KeyEvent.KEYCODE_DPAD_UP; else if (ny > 0) key = KeyEvent.KEYCODE_DPAD_DOWN; hatY = ny; }
+                if (key != 0 && web != null) { web.evaluateJavascript("window.onRcKey && window.onRcKey(" + key + ",0)", null); return true; }
+                if (joy && (hx != 0 || hy != 0)) return true;
+            }
+        } catch (Exception ignored) { }
+        return super.dispatchGenericMotionEvent(ev);
     }
 
     @Override
@@ -944,6 +972,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
 
         /** DULV-Flugplatzdatenbank (ganz Deutschland, Telefon/PPR, Zeiten, Funk) */
+        @JavascriptInterface
+        public String rcModel() { return String.valueOf(Build.MODEL) + "|" + String.valueOf(Build.DEVICE) + "|" + String.valueOf(Build.PRODUCT); }
+
         @JavascriptInterface
         public String lfa() { try { File f = dataFile("lfa.kml"); return f.isFile() ? readFile(f) : ""; } catch (Exception e) { return ""; } }
 
@@ -2269,21 +2300,24 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (!force && fresh && !oldFormat && osmCovers(n, s, e, w) && osmFile().isFile() && osmWaysFile().isFile()) return;
         catSt("hindernisse", "load"); catSt("feldwege", "load");
         try {
-            String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
-            String q = "[out:json][timeout:120];("
-                    + "way[\"power\"~\"^(line|minor_line|cable)$\"](" + bb + ");"
-                    + "node[\"power\"~\"^(tower|portal)$\"](" + bb + ");"
-                    + "node[\"power\"=\"pole\"][\"height\"](" + bb + ");"
-                    // Hindernisse: Windräder, hohe Bauwerke, Bahnstrecken
-                    + "nwr[\"power\"=\"generator\"][\"generator:source\"=\"wind\"](" + bb + ");"
-                    + "node[\"man_made\"~\"^(mast|tower|chimney|communications_tower)$\"](" + bb + ");"
-                    + "way[\"railway\"~\"^(rail|light_rail)$\"](" + bb + ");"
-                    // Orts- und Flurnamen für die Suche (offline)
-                    + "node[\"place\"~\"^(city|town|village|hamlet|suburb|quarter|neighbourhood|isolated_dwelling|farm|locality)$\"][\"name\"](" + bb + ");"
-                    + ");out tags geom;";
-            JSONArray els = new JSONObject(overpass(q, 180000)).getJSONArray("elements");   // mit Ausweichservern
-            writeFileAtomic(osmFile(), els.toString());
-            catSt("hindernisse", "ok");
+            // Hindernisse, Leitungen, Bahn und Ortsnamen in Kacheln von ca. 20 km (große Einzelanfrage lief in Zeitüberschreitung)
+            final String[] OBS = {
+                    "way[\"power\"~\"^(line|minor_line|cable)$\"]", "node[\"power\"~\"^(tower|portal)$\"]", "node[\"power\"=\"pole\"][\"height\"]",
+                    "nwr[\"power\"=\"generator\"][\"generator:source\"=\"wind\"]", "node[\"man_made\"~\"^(mast|tower|chimney|communications_tower)$\"]",
+                    "way[\"railway\"~\"^(rail|light_rail)$\"]",
+                    "node[\"place\"~\"^(city|town|village|hamlet|suburb|quarter|neighbourhood|isolated_dwelling|farm|locality)$\"][\"name\"]"};
+            Object[] ob = overpassTiles(OBS, n, s, e, w, 20, 5, "hindernisse");
+            JSONArray els = (JSONArray) ob[0]; int obBad = (Integer) ob[1], obAll = (Integer) ob[2]; Exception obErr = (Exception) ob[3];
+            if (obBad > 0 && osmFile().isFile()) {   // Teilerfolg: mit dem bisher Gespeicherten zusammenführen
+                try { java.util.Set<String> seen = new java.util.HashSet<>(); for (int q2 = 0; q2 < els.length(); q2++) { JSONObject el = els.getJSONObject(q2); seen.add(el.optString("type") + el.optLong("id")); }
+                    JSONArray old = new JSONArray(readFile(osmFile())); for (int q2 = 0; q2 < old.length(); q2++) { JSONObject el = old.getJSONObject(q2); if (seen.add(el.optString("type") + el.optLong("id"))) els.put(el); } } catch (Exception ignored) { }
+            }
+            if (obBad == obAll) {   // nichts bekommen: Gespeichertes bleibt, Feldwege trotzdem versuchen
+                catSt("hindernisse", (osmFile().isFile() ? "alt:" : "") + errTxt(obErr != null ? obErr : new Exception("Kein OpenStreetMap-Server erreichbar")));
+            } else {
+                writeFileAtomic(osmFile(), els.toString());
+                catSt("hindernisse", obBad == 0 ? "ok" : "alt:" + obBad + " von " + obAll + " Teilen fehlen – " + errTxt(obErr));
+            }
             // Feld- und Wirtschaftswege eigene Abfrage: sehr viele Daten – schlägt sie fehl, bleiben die Hindernisse trotzdem gespeichert
             // in Kacheln von ca. 10 km abfragen – kleine Anfragen kommen bei überlasteten Servern viel eher durch
             try {
@@ -2317,10 +2351,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 if (wys.length() > 0) writeFileAtomic(osmWaysFile(), wys.toString());
                 catSt("feldwege", bad == 0 ? "ok" : (osmWaysFile().isFile() ? "alt:" : "") + bad + " von " + (k * k) + " Teilen fehlen – " + errTxt(wErr));
             } catch (Exception we) { catSt("feldwege", (osmWaysFile().isFile() ? "alt:" : "") + errTxt(we)); }
-            prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 5)
-                    .putString("osm_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
-            osmCache = els;
-            osmCacheLoaded = System.currentTimeMillis();
+            if (obBad == 0) {   // nur bei vollständigem Erfolg als „aktuell“ merken – sonst beim nächsten Mal erneut versuchen
+                prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 5)
+                        .putString("osm_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
+            }
+            if (obBad < obAll) { osmCache = els; osmCacheLoaded = System.currentTimeMillis(); }
         } catch (Exception ex) { catSt("hindernisse", (osmFile().isFile() ? "alt:" : "") + errTxt(ex)); if ("load".equals(catStatus.get("feldwege"))) catSt("feldwege", (osmWaysFile().isFile() ? "alt:" : "") + errTxt(ex)); }
     }
 
@@ -3487,6 +3522,35 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             }
         } catch (Exception ignored) { }
         return null;
+    }
+
+    /** Overpass-Abfrage in Kacheln (Kantenlänge ca. tileKm, höchstens maxK×maxK), bis zu 3 Durchgänge mit Pause.
+     *  Ergebnis: {JSONArray elemente (ohne Doppelte), Integer fehlende Teile, Integer Teile gesamt, Exception letzter Fehler} */
+    private Object[] overpassTiles(String[] filters, double n, double s, double e, double w, double tileKm, int maxK, String cat) throws Exception {
+        double km = Math.max((n - s) * 111.2, (e - w) * 111.2 * Math.cos(Math.toRadians((n + s) / 2)));
+        int k = Math.max(1, Math.min(maxK, (int) Math.ceil(km / tileKm)));
+        JSONArray out = new JSONArray(); java.util.Set<String> seen = new java.util.HashSet<>(); Exception err = null;
+        List<int[]> todo = new ArrayList<>();
+        for (int iy = 0; iy < k; iy++) for (int ix = 0; ix < k; ix++) todo.add(new int[]{iy, ix});
+        for (int pass = 0; pass < 3 && !todo.isEmpty(); pass++) {
+            if (pass > 0) Thread.sleep(pass * 20000L);
+            List<int[]> failed = new ArrayList<>();
+            for (int[] t : todo) {
+                double ts = s + (n - s) * t[0] / k, tn = s + (n - s) * (t[0] + 1) / k, tw = w + (e - w) * t[1] / k, te = w + (e - w) * (t[1] + 1) / k;
+                String tb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", ts, tw, tn, te);
+                StringBuilder q = new StringBuilder("[out:json][timeout:90];(");
+                for (String f : filters) q.append(f).append("(").append(tb).append(");");
+                q.append(");out tags geom;");
+                if (cat != null) catSt(cat, "load");
+                try {
+                    JSONArray part = new JSONObject(overpass(q.toString(), 120000)).getJSONArray("elements");
+                    for (int i = 0; i < part.length(); i++) { JSONObject el = part.getJSONObject(i); if (seen.add(el.optString("type") + el.optLong("id"))) out.put(el); }
+                } catch (Exception ex) { failed.add(t); err = ex; }
+                Thread.sleep(1500);
+            }
+            todo = failed;
+        }
+        return new Object[]{out, todo.size(), k * k, err};
     }
 
     private static List<String> csvLine(String line) {
