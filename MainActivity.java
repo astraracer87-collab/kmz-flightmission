@@ -923,6 +923,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
         /** DULV-Flugplatzdatenbank (ganz Deutschland, Telefon/PPR, Zeiten, Funk) */
         @JavascriptInterface
+        public String lfa() { try { File f = dataFile("lfa.kml"); return f.isFile() ? readFile(f) : ""; } catch (Exception e) { return ""; } }
+
+        @JavascriptInterface
         public String dulv() { try { File f = dulvFile(); return f.isFile() ? readFile(f) : ""; } catch (Exception e) { return ""; } }
         @JavascriptInterface
         public void dulvSync(boolean force) { dulvSyncImpl(force); }
@@ -2557,7 +2560,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private static final Map<String, String> DATA_CAT = new HashMap<>();
     static {
         String[][] m = {{"mastr_wind.json", "Windraeder"}, {"field_outlines.json", "Wiesen"}, {"field_outlines_kmz.json", "Wiesen"}, {"osm_power.json", "Hindernisse"},
-                {"osm_places.json", "Orte"}, {"osm_ways.json", "Feldwege"}, {"regions.json", "Orte"}, {"airfields.json", "Flugplaetze"}, {"airfield_freqs.json", "Flugplaetze"}, {"dulv_airfields.json", "Flugplaetze"}, {"notams.json", "Geozonen"}};
+                {"osm_places.json", "Orte"}, {"osm_ways.json", "Feldwege"}, {"regions.json", "Orte"}, {"airfields.json", "Flugplaetze"}, {"airfield_freqs.json", "Flugplaetze"}, {"dulv_airfields.json", "Flugplaetze"}, {"notams.json", "Geozonen"}, {"lfa.kml", "Geozonen"}};
         for (String[] x : m) DATA_CAT.put(x[0], x[1]);
     }
     private boolean isExt() { return !dataDir().equals(super.getFilesDir()); }
@@ -3474,7 +3477,29 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         } finally { c.disconnect(); }
     }
 
+    /** Tieffluggebiete 250 ft (LFA 1–8) der Bundeswehr als KML vom DHV – alle 30 Tage, sonst der gespeicherte Stand */
+    private static final String LFA_PAGE = "https://www.dhv.de/flugbetrieb/luftraum-luftrecht/militaerischer-tiefflug/";
+    private static final String LFA_KML = "https://www.dhv.de/media/jahre/2026/04_flugbetrieb/LuftraumLuftrecht/MilitaerischerTiefflug/LFAVereinfacht.kml";
+    private void lfaSync(boolean force) {
+        File f = dataFile("lfa.kml");
+        if (!force && f.isFile() && f.length() > 500 && System.currentTimeMillis() - f.lastModified() < 30L * 24 * 3600 * 1000) return;
+        if (!online()) return;
+        java.util.LinkedHashSet<String> urls = new java.util.LinkedHashSet<>();
+        try {   // aktuellen Link von der DHV-Seite holen (Pfad enthält das Jahr)
+            Matcher m = Pattern.compile("(?i)href=\"([^\"]*LFA[^\"]*\\.kml)\"").matcher(httpText(LFA_PAGE, 30000));
+            while (m.find()) { String u = m.group(1).replace("&amp;", "&"); urls.add(u.startsWith("http") ? u : "https://www.dhv.de" + (u.startsWith("/") ? "" : "/") + u); }
+        } catch (Exception ignored) { }
+        urls.add(LFA_KML);
+        for (String u : urls) {
+            try {
+                String k = httpText(u, 60000);
+                if (k.contains("<coordinates") && k.toLowerCase(Locale.ROOT).contains("<kml")) { writeFileAtomic(f, k); return; }
+            } catch (Exception ignored) { }
+        }
+    }
+
     private void notamSyncImpl(double n, double s, double e, double w, boolean force) {
+        try { lfaSync(false); } catch (Exception ignored) { }
         try {
             if (!force && System.currentTimeMillis() - prefs.getLong("notam_fetched", 0) < 3600000L && notamFile().isFile()) return;
             // 1. Wahl: dipul-Dienst „affectedAreas“ (mit Aktivierungszeiten, Höhen, Kreisen); bei Fehler: WFS-Ebenen wie bisher

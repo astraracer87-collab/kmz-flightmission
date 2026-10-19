@@ -2167,6 +2167,7 @@ function briefingHtml(b, sel) {
   const cnt = k => zs.filter(z => z.k === k).length;
   let h = `<div class="meta" style="margin-bottom:8px">${zs.length ? `<b style="color:#d42020">${cnt('off')} gesperrt</b> · <b style="color:#e07800">${cnt('dist')} nur mit Abstand</b> · <b style="color:#13a538">${cnt('on')} erlaubt mit Auflagen</b>` : '<b style="color:#13a538">Keine Geozone im Flugbereich.</b>'}${fh ? ` · Missionshöhe ${fh} m` : ''} · Daten offline (dipul/OSM), maßgeblich ist dipul.de</div>`;
   h += notamBriefHtml(sel);
+  h += lowFlyHtml(sel.filter(f => f.center).map(f => f.center), true);
   if (b.vh.length) h += `<div class="zone" style="border:2px solid #b3131b"><h4 style="color:#b3131b">⚠ Hubschrauberlandeplatz St. Vincenz</h4>
     <div class="meta">${b.vh.map(x => esc(x.f.title) + ' – ' + Math.round(x.d) + ' m').join(' · ')}</div>${vincenzHtml(b.vh[0].a, true)}</div>`;
   zs.forEach(z => {
@@ -4937,7 +4938,52 @@ function notamKeyMatch(a, b) {
   for (const x of a) for (const y of b) { if (x === y) return true; if (Math.min(x.length, y.length) >= 7 && (x.includes(y) || y.includes(x))) return true; }
   return false;
 }
+// ================= Militärischer Tiefflug (Bundeswehr) – NfL 2025-1-3686, LFA-Flächen vom DHV (KML) =================
+const LFA_NFL = 'https://www.dhv.de/media/seiten/04_flugbetrieb/AktuelleLuftraumbeschraenkungen/2025/2025-1-3686_Tieffluggebiete_250fthebt_I-90_02_auf.pdf';
+const LFA_DHV = 'https://www.dhv.de/flugbetrieb/luftraum-luftrecht/militaerischer-tiefflug/';
+function loadLfa() {
+  S.lfa = [];
+  try {
+    const t = A.lfa ? A.lfa() : ''; if (!t) return;
+    const doc = new DOMParser().parseFromString(t, 'application/xml');
+    [...doc.getElementsByTagName('Placemark')].forEach(pm => {
+      const nm = (pm.getElementsByTagName('name')[0] || {}).textContent || '';
+      const rings = [...pm.getElementsByTagName('coordinates')].map(c => c.textContent.trim().split(/\s+/).map(x => x.split(',').map(Number)).filter(p => p.length >= 2 && !isNaN(p[0]) && !isNaN(p[1])))
+        .filter(r => r.length > 2).map(r => { const a = r[0], b = r[r.length - 1]; return (a[0] !== b[0] || a[1] !== b[1]) ? r.concat([a]) : r; });
+      if (rings.length) S.lfa.push({ name: nm.trim() || 'Tieffluggebiet', geom: { type: 'Polygon', coordinates: rings } });
+    });
+  } catch (e) { S.lfa = []; }
+}
+/** Jetzt Tiefflugbetrieb? Allgemein Mo–Fr 08–17 Uhr; LFA 250 ft Mo–Fr 09–12:30 und 13:30–17 Uhr (Ortszeit, nicht an Feiertagen, bei Übungen abweichend) */
+function lowFlyNow(d) {
+  d = d || new Date(); const wd = d.getDay(), m = d.getHours() * 60 + d.getMinutes(), work = wd >= 1 && wd <= 5;
+  return { gen: work && m >= 480 && m < 1020, lfa: work && ((m >= 540 && m < 750) || (m >= 810 && m < 1020)) };
+}
+/** LFA, in denen eine der Wiesen liegt oder die bis 10 km heranreichen */
+function lfaNear(cs, maxD) {
+  return (S.lfa || []).map(l => {
+    const inside = cs.some(c => geomRings(l.geom).some(r => inRing(c[0], c[1], r)));
+    if (inside) return { l, d: 0 };
+    const pts = geomRings(l.geom).flat(), step = Math.max(1, Math.ceil(pts.length / 300));
+    const d = Math.min(...cs.map(c => Math.min(...pts.filter((p, i) => i % step === 0).map(p => distM(c[0], c[1], p[1], p[0])))));
+    return { l, d };
+  }).filter(x => x.d <= maxD).sort((a, b) => a.d - b.d);
+}
+function lowFlyHtml(cs, brief) {
+  const now = lowFlyNow(), near = cs.length ? lfaNear(cs, 10000) : [], inside = near.filter(x => x.d === 0);
+  const col = inside.length ? '#7b2fbf' : '#5d6975';
+  let h = `<div class="zone" style="border-left:5px solid ${col}"><h4 style="color:${col}">✈ Militärischer Tiefflug (Bundeswehr) <span class="chip ${now.gen ? 'dist' : 'grey'}">${now.gen ? 'jetzt Betriebszeit' : 'jetzt keine Betriebszeit'}</span></h4>`;
+  if (inside.length) h += `<div class="meta" style="color:#7b2fbf"><b>${brief ? 'Wiese liegt' : 'Eure Felder liegen'} im Tieffluggebiet ${inside.map(x => esc(x.l.name)).join(', ')}</b> – Kampfjets dürfen hier bis <b>250 ft (ca. 76 m)</b> über Grund fliegen${now.lfa ? ' – <b>jetzt aktiv</b>' : ''}.</div>`;
+  else if (near.length) h += `<div class="meta">Tieffluggebiet ${esc(near[0].l.name)} in ${(near[0].d / 1000).toFixed(1).replace('.', ',')} km Entfernung.</div>`;
+  h += `<ul><li>Ganz Deutschland: Mo–Fr 08:00–17:00 Uhr Tiefflug militärischer Jets, Transport- und Sonderflugzeuge ab <b>500 ft (ca. 150 m)</b> über Grund – Hubschrauber auch tiefer.</li>
+    <li>Tieffluggebiete LFA 1–8: Mo–Fr 09:00–12:30 und 13:30–17:00 Uhr bis <b>250 ft (ca. 76 m)</b>; 01.05.–31.10. Mittagspause 12:30–13:30 Uhr. Bei Übungen auch abweichend.</li>
+    <li>Wird <b>nicht per NOTAM</b> angekündigt. Keine Flugverbotszone – aber Kollisionsgefahr: Luftraum beobachten, bei Jet-Lärm sofort tief gehen.</li></ul>
+    ${brief ? '' : `<div class="meta">${S.lfa && S.lfa.length ? S.lfa.length + ' Tieffluggebiete auf der Karte (lila)' : 'Tieffluggebiete noch nicht geladen – kommt beim nächsten Abruf (online)'} · Quelle: NfL 2025-1-3686 (DFS), Flächen vereinfacht vom DHV ·
+      <span class="lnk" data-url="${LFA_NFL}">Bekanntmachung (PDF)</span> · <span class="lnk" data-url="${LFA_DHV}">DHV-Seite</span></div>`}</div>`;
+  return h;
+}
 function loadNotams() {
+  loadLfa();
   if (!A.notams) return;
   try {
     const r = JSON.parse(A.notams() || '{}');
@@ -5044,6 +5090,13 @@ function notamMapView(cv, items, nNear, onPick) {
     S.files.filter(f => !f.dup).forEach(f => (f.outline ? [f.outline] : f.shapes.map(sh => sh.pts)).forEach(r => {
       g.beginPath(); r.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath();
       g.fillStyle = 'rgba(30,123,255,.25)'; g.fill(); g.strokeStyle = '#1e7bff'; g.lineWidth = 1.5; g.stroke(); }));
+    (S.lfa || []).forEach(l => {
+      g.save(); g.lineWidth = 2; g.strokeStyle = '#7b2fbf'; g.fillStyle = 'rgba(123,47,191,.10)';
+      geomRings(l.geom).forEach(r => { g.beginPath(); r.forEach((c, j) => { const [x, y] = P2(c[1], c[0]); j ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath(); g.fill(); g.stroke(); });
+      const pts = geomRings(l.geom).flat(), [lx, ly] = P2(pts.reduce((a, c) => a + c[1], 0) / pts.length, pts.reduce((a, c) => a + c[0], 0) / pts.length);
+      g.font = '700 11px Roboto,system-ui,sans-serif'; g.textAlign = 'center'; g.fillStyle = '#5a1f8f'; g.fillText((l.name.match(/LFA\s*\d+\s*[a-d]?/i) || [l.name])[0], lx, ly);
+      g.restore();
+    });
     items.forEach((n, i) => {
       const on = i === sel;
       g.save(); g.setLineDash(n.active ? [12, 5] : [6, 5]); g.lineWidth = on ? 5 : n.active ? 3.5 : 2.5;
@@ -5112,7 +5165,8 @@ function showNotams() {
   const sorted = [...S.notams].sort((a, b) => (b.dist <= NOTAM_NEAR) - (a.dist <= NOTAM_NEAR) || b.active - a.active || (a.soon && b.soon ? a.start - b.start : 0) || a.dist - b.dist);
   const nNear = sorted.filter(n => n.dist <= NOTAM_NEAR).length;
   html += `<div class="nmapwrap"><canvas id="nMap"></canvas><div class="nmapbtn"><button id="nmIn">+</button><button id="nmOut">−</button><button id="nmAll" title="Alles zeigen">⤢</button></div>
-    <div class="nmleg"><span style="border-color:#ff2d2d;background:rgba(255,45,45,.2)"></span>aktiv <span style="border-color:#5d6975;background:rgba(93,105,117,.15)"></span>geplant/inaktiv <span style="border-color:#1e7bff;border-style:solid;background:rgba(30,123,255,.25)"></span>deine Felder</div></div>`;
+    <div class="nmleg"><span style="border-color:#ff2d2d;background:rgba(255,45,45,.2)"></span>aktiv <span style="border-color:#5d6975;background:rgba(93,105,117,.15)"></span>geplant/inaktiv <span style="border-color:#1e7bff;border-style:solid;background:rgba(30,123,255,.25)"></span>deine Felder${S.lfa && S.lfa.length ? ' <span style="border-color:#7b2fbf;border-style:solid;background:rgba(123,47,191,.12)"></span>Tieffluggebiet' : ''}</div></div>`;
+  html += lowFlyHtml(S.files.filter(f => f.center && !f.dup).map(f => f.center), false);
   if (S.notamErr) html += `<div class="zone" style="border-left:5px solid #b3131b"><h4>Aktualisierung fehlgeschlagen</h4><div class="meta">${esc(S.notamErr)} – angezeigt wird der letzte gespeicherte Stand.</div></div>`;
   sorted.forEach((n, i) => {
     const p = n.props;
