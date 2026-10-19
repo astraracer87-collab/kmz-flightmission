@@ -689,6 +689,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         else if (n.endsWith(".kml") || n.endsWith(".wpml")) others.append(readAll(zin)).append("\n<!--SPLIT-->\n");
                     }
                 }
+                // template.kml ohne Koordinaten (z. B. manche Pilot-2-Missionen): Wegpunkte aus waylines.wpml mitnehmen
+                if (template != null && !template.contains("coordinates") && others.length() > 0) return template + "\n<!--SPLIT-->\n" + others;
                 return template != null ? template : others.toString();
             } catch (Exception e) {
                 return "";
@@ -712,6 +714,21 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public boolean ensureDir(String path) {
             try { File d = new File(path); return d.isDirectory() || d.mkdirs(); } catch (Exception e) { return false; }
+        }
+
+        /** Ordner umbenennen bzw. Inhalt verschieben (z. B. „KMZ Mission“ → „UAV-Editor“); vorhandene Dateien im Ziel bleiben */
+        @JavascriptInterface
+        public String moveDir(String from, String to) {
+            try {
+                File a = new File(from), b = new File(to);
+                if (!a.isDirectory()) return "{\"ok\":true,\"moved\":0}";
+                if (!b.exists() && a.renameTo(b)) return "{\"ok\":true,\"moved\":-1}";
+                if (!b.isDirectory() && !b.mkdirs()) return "{\"ok\":false}";
+                int n = 0; File[] fs = a.listFiles();
+                if (fs != null) for (File f : fs) { File t = new File(b, f.getName()); if (!t.exists() && f.renameTo(t)) n++; }
+                File[] rest = a.listFiles(); if (rest == null || rest.length == 0) a.delete();
+                return "{\"ok\":true,\"moved\":" + n + "}";
+            } catch (Exception e) { return "{\"ok\":false}"; }
         }
 
         /** Kopiert/verschiebt Dateien in den Zielordner */
@@ -973,6 +990,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
         /** DULV-Flugplatzdatenbank (ganz Deutschland, Telefon/PPR, Zeiten, Funk) */
         @JavascriptInterface
+        public String uaveCatalog() { try { File f = dataFile("uave_katalog.json"); return f.isFile() ? readFile(f) : ""; } catch (Exception e) { return ""; } }
+
+        @JavascriptInterface
         public String rcModel() { return String.valueOf(Build.MODEL) + "|" + String.valueOf(Build.DEVICE) + "|" + String.valueOf(Build.PRODUCT); }
 
         @JavascriptInterface
@@ -1069,7 +1089,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             cacheCounting = true;
             new Thread(() -> {
                 try {
-                    do { cacheCountAgain = false; cacheCountOnce(); } while (cacheCountAgain);
+                    do { cacheCountAgain = false; cacheCountOnce(); if (cacheCountAgain) Thread.sleep(30000); } while (cacheCountAgain);   // höchstens alle 30 s neu zählen
+                } catch (InterruptedException ignored) {
                 } finally { cacheCounting = false; }
             }).start();
         }
@@ -1774,6 +1795,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         .put("meta", uaveMapMeta.containsKey(id) ? uaveMapMeta.get(id) : JSONObject.NULL));
             }
             prefs.edit().putString("uave_manifest", man.toString()).apply();
+            // Feldliste dauerhaft merken: die Karte zeigt sie (gemischte Ansicht) auch offline
+            try { writeFileAtomic(dataFile("uave_katalog.json"), new JSONObject().put("t", System.currentTimeMillis()).put("fields", result).toString()); } catch (Exception ignored) { }
             uaveEvent(new JSONObject().put("type", "list").put("fields", result)
                     .put("total", uaveFields.size()).put("missing", missing).put("changed", changed));
         } catch (Exception e) {
@@ -2493,7 +2516,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         try { pageWeb.loadUrl("about:blank"); pageWeb.clearHistory(); } catch (Exception ignored) { }
     }
     // ---------- Ablage der heruntergeladenen Daten (Karten, Geozonen, Wetter …) ----------
-    // Sobald die Speicher-Freigabe da ist, liegen sie im Ordner „Kitzrettung Cache“ im internen Speicher (neben „KMZ Mission“) –
+    // Sobald die Speicher-Freigabe da ist, liegen sie im Ordner „Kitzrettung Cache“ im internen Speicher (neben „UAV-Editor“) –
     // so bleiben sie auch bei Neuinstallation der App erhalten. Vorher (und bis zum Umzug) im App-eigenen Speicher.
     private volatile File dataDirCache = null;
     private File extDataDir() { return new File(Environment.getExternalStorageDirectory(), "Kitzrettung Cache"); }
@@ -2576,7 +2599,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             case "windraeder": l.add(dataFile("mastr_wind.json")); break;
             case "orte": l.add(placeFile()); l.add(regionFile()); break;
             case "flugplaetze": l.add(afFile()); l.add(afFreqFile()); l.add(dulvFile()); break;
-            case "wiesen": l.add(outlineFile()); l.add(outlineFileByKmz()); break;
+            case "wiesen": l.add(outlineFile()); l.add(outlineFileByKmz()); l.add(dataFile("uave_katalog.json")); break;
         }
         return l;
     }
@@ -2665,7 +2688,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private static final Map<String, String> DATA_CAT = new HashMap<>();
     static {
         String[][] m = {{"mastr_wind.json", "Windraeder"}, {"field_outlines.json", "Wiesen"}, {"field_outlines_kmz.json", "Wiesen"}, {"osm_power.json", "Hindernisse"},
-                {"osm_places.json", "Orte"}, {"osm_ways.json", "Feldwege"}, {"regions.json", "Orte"}, {"airfields.json", "Flugplaetze"}, {"airfield_freqs.json", "Flugplaetze"}, {"dulv_airfields.json", "Flugplaetze"}, {"notams.json", "Geozonen"}, {"lfa.kml", "Geozonen"}};
+                {"osm_places.json", "Orte"}, {"osm_ways.json", "Feldwege"}, {"regions.json", "Orte"}, {"airfields.json", "Flugplaetze"}, {"airfield_freqs.json", "Flugplaetze"}, {"dulv_airfields.json", "Flugplaetze"}, {"notams.json", "Geozonen"}, {"lfa.kml", "Geozonen"}, {"uave_katalog.json", "Wiesen"}};
         for (String[] x : m) DATA_CAT.put(x[0], x[1]);
     }
     private boolean isExt() { return !dataDir().equals(super.getFilesDir()); }
@@ -3214,7 +3237,103 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             writeFileAtomic(regionFile(), out.toString());
             prefs.edit().putLong("reg_fetched", System.currentTimeMillis())
                     .putString("reg_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
-        } catch (Exception ex) { catSt("orte", "Landesgrenzen: " + errTxt(ex)); }
+        } catch (Exception ex) {
+            // Ausweg: amtliche Verwaltungsgrenzen des BKG (VG2500, vereinfacht) – unabhängig von OpenStreetMap
+            try { if (regionSyncBkg(n, s, e, w)) { catSt("orte", "ok"); return; } } catch (Exception ignored) { }
+            catSt("orte", (regionFile().isFile() ? "alt:" : "") + "Landesgrenzen: " + errTxt(ex));
+        }
+    }
+
+    private static final String[] BKG_LAND = {"", "DE-SH", "DE-HH", "DE-NI", "DE-HB", "DE-NW", "DE-HE", "DE-RP", "DE-BW", "DE-BY", "DE-SL", "DE-BE", "DE-BB", "DE-MV", "DE-SN", "DE-ST", "DE-TH"};
+    /** Länder + Regierungsbezirke aus dem BKG-WFS (GeoJSON oder GML) im gleichen Format wie die OSM-Variante */
+    private boolean regionSyncBkg(double n, double s, double e, double w) throws Exception {
+        double clat = (n + s) / 2, clon = (e + w) / 2;
+        JSONArray out = new JSONArray();
+        for (String[] ly : new String[][]{{"vg2500_lan", "4"}, {"vg2500_rbz", "5"}}) {
+            List<Object[]> feats = bkgFeatures(ly[0]);   // {name, rs, List<double[] ring(lon,lat,...)>}
+            for (Object[] f : feats) {
+                String name = (String) f[0], rs = (String) f[1];
+                @SuppressWarnings("unchecked") List<double[]> rings = (List<double[]>) f[2];
+                String lvl = ly[1], code = "";
+                if ("4".equals(lvl)) { int k = -1; try { k = Integer.parseInt(rs.length() >= 2 ? rs.substring(0, 2) : rs); } catch (Exception ignored) { } if (k < 1 || k > 16) continue; code = BKG_LAND[k]; }
+                else { if (!name.matches(".*Gie(ß|ss)en.*")) continue; name = name.startsWith("Regierungsbezirk") ? name : "Regierungsbezirk " + name; }
+                boolean in = false; JSONArray lines = new JSONArray();
+                for (double[] r : rings) {
+                    // Punkt-im-Polygon für die Gebietsmitte
+                    boolean c = false; for (int i = 0, j = r.length / 2 - 1; i < r.length / 2; j = i++) {
+                        double xi = r[2 * i], yi = r[2 * i + 1], xj = r[2 * j], yj = r[2 * j + 1];
+                        if ((yi > clat) != (yj > clat) && clon < (xj - xi) * (clat - yi) / (yj - yi) + xi) c = !c; }
+                    if (c) in = true;
+                    // nur Grenzstücke im Gebiet (+ Rand) übernehmen
+                    JSONArray ln = new JSONArray(); double pad = 0.05;
+                    for (int i = 0; i < r.length / 2; i++) {
+                        double x = r[2 * i], y = r[2 * i + 1];
+                        boolean ins = y <= n + pad && y >= s - pad && x <= e + pad && x >= w - pad;
+                        if (ins) ln.put(Math.round(x * 1e5) / 1e5).put(Math.round(y * 1e5) / 1e5);
+                        else if (ln.length() >= 4) { lines.put(ln); ln = new JSONArray(); } else ln = new JSONArray();
+                    }
+                    if (ln.length() >= 4) lines.put(ln);
+                }
+                if (lines.length() == 0 && !in) continue;
+                out.put(new JSONObject().put("lvl", lvl).put("code", code).put("name", name).put("src", "BKG")
+                        .put("ref", new JSONArray().put(clat).put(clon)).put("refIn", in)
+                        .put("bb", new JSONArray().put(w).put(s).put(e).put(n)).put("lines", lines));
+            }
+        }
+        if (out.length() == 0) return false;
+        writeFileAtomic(regionFile(), out.toString());
+        prefs.edit().putLong("reg_fetched", System.currentTimeMillis())
+                .putString("reg_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
+        return true;
+    }
+    private List<Object[]> bkgFeatures(String layer) throws Exception {
+        Exception last = null;
+        for (String fmt : new String[]{"application/json", "application/geo%2Bjson", ""}) {
+            try {
+                String url = "https://sgx.geodatenzentrum.de/wfs_vg2500?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=" + layer
+                        + "&SRSNAME=EPSG:4326" + (fmt.isEmpty() ? "" : "&OUTPUTFORMAT=" + fmt);
+                String t = httpText(url, 60000);
+                List<Object[]> res = new ArrayList<>();
+                if (t.trim().startsWith("{")) {
+                    JSONArray fs = new JSONObject(t).optJSONArray("features"); if (fs == null) continue;
+                    for (int i = 0; i < fs.length(); i++) {
+                        JSONObject f = fs.getJSONObject(i), p = f.optJSONObject("properties"), g = f.optJSONObject("geometry");
+                        if (p == null || g == null) continue;
+                        List<double[]> rings = new ArrayList<>();
+                        JSONArray co = g.optJSONArray("coordinates");
+                        if ("Polygon".equals(g.optString("type"))) addRings(co, rings); else if ("MultiPolygon".equals(g.optString("type"))) for (int k = 0; k < co.length(); k++) addRings(co.getJSONArray(k), rings);
+                        res.add(new Object[]{p.optString("GEN", p.optString("gen", "")), p.optString("RS", p.optString("rs", p.optString("AGS", ""))), rings});
+                    }
+                } else if (t.contains("posList") || t.contains("coordinates")) {   // GML: Mitglieder einzeln lesen
+                    Matcher mm = Pattern.compile("(?s)<(?:wfs:member|gml:featureMember)>(.*?)</(?:wfs:member|gml:featureMember)>").matcher(t);
+                    while (mm.find()) {
+                        String b = mm.group(1);
+                        Matcher gn = Pattern.compile("<[\\w]+:GEN>([^<]*)<").matcher(b), rs = Pattern.compile("<[\\w]+:(?:RS|AGS)>([^<]*)<").matcher(b);
+                        List<double[]> rings = new ArrayList<>();
+                        Matcher pl = Pattern.compile("<gml:posList[^>]*>([^<]+)<").matcher(b);
+                        while (pl.find()) {
+                            String[] v = pl.group(1).trim().split("\\s+"); if (v.length < 6) continue;
+                            double[] r = new double[v.length - v.length % 2];
+                            boolean latFirst = Double.parseDouble(v[0]) > 40;   // EPSG:4326 in WFS 2.0: Breite zuerst
+                            for (int i = 0; i + 1 < v.length; i += 2) { double a = Double.parseDouble(v[i]), c = Double.parseDouble(v[i + 1]); r[i] = latFirst ? c : a; r[i + 1] = latFirst ? a : c; }
+                            rings.add(r);
+                        }
+                        res.add(new Object[]{gn.find() ? gn.group(1) : "", rs.find() ? rs.group(1) : "", rings});
+                    }
+                }
+                if (!res.isEmpty()) return res;
+            } catch (Exception ex) { last = ex; }
+        }
+        if (last != null) throw last;
+        return new ArrayList<>();
+    }
+    private static void addRings(JSONArray poly, List<double[]> rings) throws Exception {
+        for (int i = 0; i < poly.length(); i++) {
+            JSONArray r = poly.getJSONArray(i); double[] a = new double[r.length() * 2];
+            for (int k = 0; k < r.length(); k++) { a[2 * k] = r.getJSONArray(k).getDouble(0); a[2 * k + 1] = r.getJSONArray(k).getDouble(1); }
+            if (a.length > 1 && a[1] < 20 && a[0] > 40) for (int k = 0; k < a.length; k += 2) { double t2 = a[k]; a[k] = a[k + 1]; a[k + 1] = t2; }   // vertauscht?
+            rings.add(a);
+        }
     }
 
     /** "142 m" / "142,5" -> 142.5, sonst 0 */
@@ -3274,7 +3393,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     // Hauptserver zuerst (gleiches Zertifikat, drei Rechner), dann Ausweichserver
     private static final String[] OVERPASS = {
             "https://overpass-api.de/api/interpreter", "https://lz4.overpass-api.de/api/interpreter", "https://z.overpass-api.de/api/interpreter",
-            "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"};
+            "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+            "https://overpass.osm.jp/api/interpreter"};
 
     // ---------- DULV-Flugplatzdatenbank: einmal alle Plätze in Deutschland (ca. 700 Seiten) im Hintergrund, alle 90 Tage ----------
     // Der DULV ist mit der Nutzung für die ehrenamtliche Kitzrettung einverstanden. Angaben ohne Gewähr, nicht für die Navigation.
@@ -3404,14 +3524,21 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     /** Overpass-Abfrage; ist ein Server überlastet, wird der nächste versucht */
+    private static volatile String overpassGood = null;
+    private static final Map<String, Long> overpassDead = new java.util.concurrent.ConcurrentHashMap<>();
     private String overpass(String q, int readTimeoutMs) throws Exception {
         Exception first = null;
-        for (String ep : OVERPASS) {
+        List<String> eps = new ArrayList<>(Arrays.asList(OVERPASS));
+        if (overpassGood != null) { eps.remove(overpassGood); eps.add(0, overpassGood); }   // zuletzt funktionierender Server zuerst
+        long now = System.currentTimeMillis();
+        List<String> alive = new ArrayList<>(); for (String ep : eps) { Long d = overpassDead.get(ep); if (d == null || now - d > 10 * 60000L) alive.add(ep); }
+        if (alive.isEmpty()) alive = eps;   // alle gesperrt: trotzdem nochmal alle versuchen
+        for (String ep : alive) {
           for (int tr = 0; tr < 2; tr++) {   // überlastet (429/504): kurz warten, nochmal
             try {
                 HttpURLConnection c = (HttpURLConnection) new URL(ep).openConnection();
                 c.setRequestMethod("POST");
-                c.setConnectTimeout(15000); c.setReadTimeout(readTimeoutMs);
+                c.setConnectTimeout(8000); c.setReadTimeout(readTimeoutMs);
                 c.setDoOutput(true);
                 c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
                 c.setRequestProperty("User-Agent", "MissionKitzrettung/2.0 (Kitzrettung, nicht-kommerziell)");
@@ -3424,8 +3551,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     if ((code == 429 || code == 504) && tr == 0) { Thread.sleep(6000); continue; }
                     break;
                 }
-                try (InputStream in = c.getInputStream()) { return readAll(in); } finally { c.disconnect(); }
+                try (InputStream in = c.getInputStream()) { String res = readAll(in); overpassGood = ep; overpassDead.remove(ep); return res; } finally { c.disconnect(); }
             } catch (Exception e) {
+                // keine Verbindung / Zertifikat: diesen Server 10 min auslassen (statt bei jeder Kachel wieder 8–15 s zu warten)
+                if (e instanceof java.net.ConnectException || e instanceof java.net.SocketTimeoutException && String.valueOf(e.getMessage()).contains("connect")
+                        || e instanceof java.net.UnknownHostException || e instanceof javax.net.ssl.SSLException || String.valueOf(e.getMessage()).contains("Failed to connect"))
+                    overpassDead.put(ep, System.currentTimeMillis());
                 // Zertifikatsfehler eines Ausweichservers (alte Android-Version kennt dessen Zertifikat nicht) nicht als Hauptgrund melden
                 if (first == null && !(e instanceof javax.net.ssl.SSLException) && !String.valueOf(e.getMessage()).contains("CertPath")) first = e;
                 break;
