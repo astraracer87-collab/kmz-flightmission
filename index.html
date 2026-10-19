@@ -113,13 +113,14 @@
   body.bartop #bar{top:0;bottom:auto;box-shadow:0 2px 10px rgba(0,0,0,.25)}
   body.bartop #wind,body.bartop #notam,body.bartop #net{transform:translateY(72px)}
   body.bartop #toast{top:86px} body.bartop #searchBox{top:82px}
-  body.rckeys #ctrl{display:none}
+  /* die gewohnten Knöpfe wandern klein an die Markierungen neben L1–L3 (links) und R1–R3 (rechts) */
+  body.rckeys #ctrl{display:block;position:static}
+  body.rckeys #ctrl button{position:fixed;width:52px;height:34px;border-radius:10px;transform:translateY(50%);z-index:16}
+  body.rckeys #ctrl button svg{width:22px;height:22px}
+  body.rckeys #zIn{left:4px;bottom:var(--k1)} body.rckeys #zOut{left:4px;bottom:var(--k2)} body.rckeys #bFit{left:4px;bottom:var(--k3)}
+  body.rckeys #bLayer{right:4px;bottom:var(--k1)} body.rckeys #bInfo{right:4px;bottom:var(--k2)} body.rckeys #bLoc{right:4px;bottom:var(--k3)}
+  body.rckeys #ctrl button.kflash{outline:3px solid #1e7bff;outline-offset:1px}
   body.rckeys #net{right:12px}
-  .rkh{position:fixed;z-index:16;display:none;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:17px;background:rgba(21,32,43,.86);color:#fff;font-size:14px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.35);pointer-events:none;white-space:nowrap;transform:translateY(50%)}
-  .rkh b{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;border-radius:6px;background:#fff;color:#15202b;font-size:12px;font-weight:800;padding:0 4px}
-  body.rckeys .rkh{display:flex}
-  .rkh.L{left:6px} .rkh.R{right:6px;flex-direction:row-reverse}
-  .rkh.flash{background:#1e7bff}
   #bLoc .gpsb{display:none;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:800;line-height:1}
   #bLoc .gpsb i{width:16px;height:16px;border:2.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:gspin .8s linear infinite}
   #bLoc.busy svg{display:none} #bLoc.busy .gpsb{display:flex}
@@ -459,8 +460,6 @@
   <button id="bLoc" title="Mein Standort"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span class="gpsb"><i></i>GPS</span></button>
 </div>
 
-<div class="rkh L" id="rkL1"><b>L1</b><span>＋ Zoom</span></div><div class="rkh L" id="rkL2"><b>L2</b><span>− Zoom</span></div><div class="rkh L" id="rkL3"><b>L3</b><span>⤢ Alles</span></div>
-<div class="rkh R" id="rkR1"><b>R1</b><span>Karte</span></div><div class="rkh R" id="rkR2"><b>R2</b><span>Info</span></div><div class="rkh R" id="rkR3"><b>R3</b><span>⌖ Standort</span></div>
 <div id="bar">
   <img class="logo" data-logo alt="Kitzrettung Limburg">
   <div id="count">0 markiert<small>0 Felder</small></div>
@@ -6088,9 +6087,9 @@ function rcKeysOn() { return RC_PLUS2 && P.rcKeys === '1'; }
 function rcKeysUi() {
   const on = rcKeysOn();
   document.body.classList.toggle('rckeys', on); document.body.classList.toggle('bartop', on);
-  // Markierungen sitzen im unteren Teil des Displayrands: Mitte der Hinweise bei ca. 118 / 70 / 22 px über der Unterkante (+ Feineinstellung)
+  // Markierungen am Displayrand (nach Fotos der RC Plus 2): ca. 91 / 54 / 15 px über der Unterkante (+ Feineinstellung)
   const off = +P.rcKeyOff || 0;
-  [['1', 118], ['2', 70], ['3', 22]].forEach(([n, b]) => ['L', 'R'].forEach(sd => { const el = $('rk' + sd + n); if (el) el.style.bottom = (b - off) + 'px'; }));
+  [['--k1', 91], ['--k2', 54], ['--k3', 15]].forEach(([v, b]) => document.body.style.setProperty(v, (b - off) + 'px'));
   rcKeyLabels();
   const st = $('setRcKeys'); if (st) st.style.display = RC_PLUS2 ? '' : 'none';
   document.querySelectorAll('[data-rckeys]').forEach(b => b.classList.toggle('on', b.dataset.rckeys === (P.rcKeys || '0')));
@@ -6098,16 +6097,13 @@ function rcKeysUi() {
   resize();
 }
 function infoState() { const g = infoMode, f = P.labels === '1'; return g && f ? 'beides' : g ? 'Geozonen' : f ? 'Felder' : 'aus'; }
-function rcKeyLabels() {
-  const r1 = $('rkR1'), r2 = $('rkR2'); if (!r1) return;
-  r1.querySelector('span').textContent = 'Karte: ' + (LAYER_NAME[P.layer] || P.layer);
-  r2.querySelector('span').textContent = 'Info: ' + infoState();
-}
-function rcFlash(id) { const el = $(id); if (!el) return; el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 350); }
+function rcKeyLabels() { }
+const RCK_BTN = { L1: 'zIn', L2: 'zOut', L3: 'bFit', R1: 'bLayer', R2: 'bInfo', R3: 'bLoc' };
+function rcFlash(name) { const el = $(RCK_BTN[name]); if (!el) return; el.classList.add('kflash'); setTimeout(() => el.classList.remove('kflash'), 350); }
 /** Funktionen der sechs Tasten */
 function rcKeyAct(name) {
   if (rcScrollBox()) { if (name === 'L1' || name === 'L2') { const b = rcScrollBox(); b.scrollBy({ top: (name === 'L2' ? 1 : -1) * Math.round(b.clientHeight * .4), behavior: 'smooth' }); } return; }
-  rcFlash('rk' + name);
+  rcFlash(name);
   if (name === 'L1') zoomAt(V.z + 1, W / 2, mapCY());
   else if (name === 'L2') zoomAt(V.z - 1, W / 2, mapCY());
   else if (name === 'L3') fitAll();
