@@ -45,6 +45,8 @@
   #count{min-width:96px;max-width:200px;flex:0 1 auto;font-weight:700;font-size:17px;overflow:hidden;white-space:nowrap}
   .srcseg{display:flex;flex:none;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;align-self:center}
   .srcseg button{flex:1 1 0;min-width:64px;text-align:center;height:38px;padding:0 10px;border-radius:9px;border:0;background:transparent;color:var(--muted);font-size:14px;font-weight:700;white-space:nowrap}
+  .b2l{display:inline-block;text-align:left;line-height:1.05}
+  .b2l small{font-size:.82em;font-weight:700;opacity:.92}
   .srcseg button.on{background:#1e7bff;color:#fff}
   #count small{display:block;font-weight:400;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #bar{overflow:hidden}
@@ -95,6 +97,8 @@
   #notam:active{filter:brightness(.85)}
   #notam.inact{background:#c77800}
   #notam.ok{background:#0e7a2c}
+  #notam.lfa{background:#6a2aa8}
+  #notam.lfa.lfain{background:#7b2fbf;box-shadow:0 0 0 3px rgba(123,47,191,.45),0 2px 8px rgba(0,0,0,.35)}
   #notam.none{background:#5d6975}
   #net{position:fixed;right:80px;top:12px;padding:6px 12px 6px 9px;border-radius:20px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;background:#0e7a2c;color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.35);pointer-events:none;z-index:4}
   #net.off{background:#b3131b;color:#fff}
@@ -453,7 +457,7 @@
   <div class="sp"></div>
   <button id="bSearch" class="b-sec" title="Feld suchen"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button>
   <button id="bSync" class="b-sec" title="Wiesen aus dem UAV Editor holen">UAV Editor</button>
-  <button id="bDl" class="b-ok" disabled title="Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen"><svg viewBox="0 0 24 24" style="width:32px;height:32px"><path d="M1.5 4.5h7M15.5 4.5h7"/><path d="M5 4.5l3.5 5M19 4.5l-3.5 5"/><rect x="8" y="8" width="8" height="5" rx="2" fill="currentColor"/><path d="M12 14.5v7M9 18.5l3 3 3-3"/></svg>Pre-Check</button>
+  <button id="bDl" class="b-ok" disabled title="Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen"><svg viewBox="0 0 24 24" style="width:32px;height:32px"><path d="M1.5 4.5h7M15.5 4.5h7"/><path d="M5 4.5l3.5 5M19 4.5l-3.5 5"/><rect x="8" y="8" width="8" height="5" rx="2" fill="currentColor"/><path d="M12 14.5v7M9 18.5l3 3 3-3"/></svg><span id="bDlT" class="b2l">Pre-Check &amp;<br><small>Download</small></span></button>
   <button id="bSet" class="b-sec" title="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </div>
 
@@ -525,6 +529,8 @@
     </div>
     <div class="set"><div class="l"><div class="t">Flugplätze anzeigen</div><div class="v" id="vAf">Flugplätze, Segel-/UL-Plätze und Hubschrauberlandeplätze im Gebiet der Felder (+3 km)</div></div><button class="b-sec" id="bAfList">Liste</button><label class="sw"><input type="checkbox" id="sAf"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">NOTAM / temporäre Betriebseinschränkungen</div><div class="v" id="vNotam"></div></div><button class="b-sec" id="bNotamList">Anzeigen</button></div>
+    <div class="set"><div class="l"><div class="t">NOTAM-Umkreis</div><div class="v">So weit prüft die App automatisch auf NOTAMs und Tieffluggebiete – gemessen von deinem aktuellen Standort (ohne GPS: von den Feldern)</div></div><div class="seg"><button data-notamkm="10">10 km</button><button data-notamkm="25">25 km</button><button data-notamkm="50">50 km</button><button data-notamkm="100">100 km</button></div></div>
+    <div class="set"><div class="l"><div class="t">5D-Knopf der Fernsteuerung</div><div class="v" id="vRcKey">Karte: hoch/runter = zoomen · links/rechts = Feld für Feld · drücken = Feld markieren (ohne Feld: Standort). Seiten: hoch/runter = blättern · links = zurück.</div></div><button class="b-sec" id="bRcKey">Tasten-Test</button></div>
     <div class="set"><div class="l"><div class="t">Regeln &amp; Auflagen</div><div class="v">Übersicht: Allgemeinverfügung, Allgemeinerlaubnis, was gilt wo</div></div><button class="b-sec" id="bRules">Ansehen</button></div>
     <h3 class="setcat" id="sc-wetter">Wetter</h3>
     <div class="set"><div class="l"><div class="t">Wetter</div><div class="v">Tagesgang, Sonnenlauf und Einsatzwetter – auch per Tipp auf die Windanzeige</div></div><button class="b-sec" id="bWxSet">Wetter öffnen</button></div>
@@ -597,7 +603,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/KMZ Mission', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { showNotam: '1', showLfa: '1', notamKm: '50', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/KMZ Mission', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -627,8 +633,8 @@ const fmtBytes = b => { const mb = b / 1048576; return mb < 1 ? (b > 0 ? '< 1 MB
 window.onCacheInfo = raw => {
   let r = {}; try { r = JSON.parse(raw); } catch (e) { return; }
   if (!$('cacheList')) return;
-  $('vCache').textContent = `Zusammen ${fmtBytes(r.total || 0)} · Ordner: ${r.where || ''} · Löschen ist ungefährlich – „Neu holen“ lädt den Bereich mit Internet wieder (am besten im WLAN).`;
-  $('cacheList').innerHTML = (r.list || []).map(c => `<div class="cacherow" data-cid="${c.id}"><div class="l"><b>${esc(c.name)}</b><em>${fmtBytes(c.bytes)}${c.files > 1 ? ' · ' + c.files.toLocaleString('de-DE') + ' Dateien' : ''}${c.t && c.bytes ? ' · Stand ' + new Date(c.t).toLocaleDateString('de-DE') : ''}${c.ver == null ? '' : c.have && c.have < c.ver ? ' · <span style="color:#e07800;font-weight:700">Version veraltet – wird neu geholt</span>' : ' · <span title="Gespeicherte Datenversion passt zu dieser App">Version ' + c.ver + ' ✓</span>'}</em><div class="cprog"></div></div>
+  $('vCache').textContent = `${r.counting ? 'Zählt nach… (zeigt solange den letzten Stand) · ' : ''}Zusammen ${fmtBytes(r.total || 0)} · Ordner: ${r.where || ''} · Löschen ist ungefährlich – „Neu holen“ lädt den Bereich mit Internet wieder (am besten im WLAN).`;
+  $('cacheList').innerHTML = (r.list || []).map(c => `<div class="cacherow" data-cid="${c.id}"><div class="l"><b>${esc(c.name)}</b><em>${c.pending ? '<span style="opacity:.7">zählt noch… · zuletzt </span>' : ''}${fmtBytes(c.bytes)}${c.files > 1 ? ' · ' + c.files.toLocaleString('de-DE') + ' Dateien' : ''}${c.t && c.bytes ? ' · Stand ' + new Date(c.t).toLocaleDateString('de-DE') : ''}${c.ver == null ? '' : c.have && c.have < c.ver ? ' · <span style="color:#e07800;font-weight:700">Version veraltet – wird neu geholt</span>' : ' · <span title="Gespeicherte Datenversion passt zu dieser App">Version ' + c.ver + ' ✓</span>'}</em><div class="cprog"></div></div>
     <button class="b-sec" data-cdel="${c.id}"${c.bytes ? '' : ' disabled'}>Löschen</button><button class="b-sec" data-cnew="${c.id}">Neu holen</button></div>`).join('');
   $('cacheList').querySelectorAll('[data-cdel]').forEach(b => b.onclick = () => {
     const c = r.list.find(x => x.id === b.dataset.cdel);
@@ -996,7 +1002,8 @@ function paintStatic() {
   if (P.geo === '1' && P.geoOwn !== '0' && S.geo.length && V.z >= 9) paintGeo();
   if (P.osmPower === '1' && (S.obs.length || S.rails.length) && V.z >= 11) paintObstacles();
   if (P.osmPower === '1' && S.osm.length && V.z >= 11) paintOsmLines();
-  if (S.notams.length) S.notams.forEach(drawNotam);
+  if (P.showNotam !== '0') (S.lfa || []).forEach(drawLfa);   // Tieffluggebiete – egal ob gerade Betriebszeit (Ebenen-Knopf: ein/aus)
+  if (P.showNotam !== '0' && S.notams.length) S.notams.forEach(drawNotam);
   const vis = S.files.filter(visible);
   const ord = vis.filter(fieldOnScreen).sort(byAreaDesc);
   ord.forEach(f => { drawOutline(f); drawField(f); });
@@ -1016,6 +1023,11 @@ function paintStatic() {
   if (S.plan) paintPlan();
   resetTf(); ctx.setLineDash([]);
   obsIcons.forEach(f => f()); obsLabels.forEach(f => f());   // ganz oben
+  if (S.kf && S.files.includes(S.kf)) {   // mit dem 5D-Knopf gewähltes Feld: gelber Rahmen
+    const r = S.kf.outline && S.kf.outline.length > 2 ? S.kf.outline : (S.kf.shapes[0] || {}).pts || [];
+    ctx.save(); ctx.lineWidth = 6; ctx.strokeStyle = '#ffd400'; ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 6; ctx.beginPath();
+    r.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath(); ctx.stroke(); ctx.restore();
+  }
 }
 
 /** Schnell wechselnde Teile direkt auf den Bildschirm: Markierung, eigene Position, Blickrichtung, Quellenangabe */
@@ -1377,18 +1389,56 @@ function geomRings(g) {
   if (g.type === 'Point') return [[g.coordinates]];
   return [];
 }
+/** Tieffluggebiet im Stil der Bundeswehr-Übersicht: magenta-lila Rand mit hellem Innenband, Name im weißen Kasten */
+const LFA_COL = '#8e2a8e';
+function lfaLabel(l) { const m = String(l.name).match(/LFA\s*(\d+)\s*([a-d])?\b/i); return m ? 'LFA ' + m[1] + (l.sector || (m[2] || '').toLowerCase() ? ' ' + (l.sector || m[2].toLowerCase()) : '') : l.name; }
+function paintLfa(g, l, P2, big) {
+  const rs = geomRings(l.geom); if (!rs.length) return;
+  const path = () => { g.beginPath(); rs.forEach(r => r.forEach((c, j) => { const [x, y] = P2(c[1], c[0]); j ? g.lineTo(x, y) : g.moveTo(x, y); })); g.closePath(); };
+  g.save(); g.setLineDash([]);
+  path(); g.fillStyle = 'rgba(142,42,142,.05)'; g.fill();
+  g.save(); path(); g.clip(); path(); g.lineWidth = big ? 14 : 10; g.strokeStyle = 'rgba(190,110,190,.45)'; g.stroke(); g.restore();   // Innenband
+  path(); g.lineWidth = big ? 2.5 : 2; g.strokeStyle = LFA_COL; g.stroke();
+  // Beschriftung nur, wenn die Fläche auf dem Bildschirm groß genug ist (sonst stapeln sich die Kästen)
+  let bx0 = 1e9, bx1 = -1e9; rs[0].forEach((c, j) => { if (j % 4) return; const [x] = P2(c[1], c[0]); bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); });
+  if (l.lbl && bx1 - bx0 > (big ? 120 : 45)) {
+    const [x, y] = P2(l.lbl[1], l.lbl[0]);
+    const t = (big && bx1 - bx0 > 220 ? 'Tieffluggebiet ' : '') + lfaLabel(l);
+    g.font = (big ? '800 14px' : '800 12px') + ' Roboto,system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const w = g.measureText(t).width + (big ? 16 : 12), h = big ? 24 : 20;
+    g.fillStyle = '#fff'; g.strokeStyle = LFA_COL; g.lineWidth = 2;
+    g.beginPath(); g.roundRect ? g.roundRect(x - w / 2, y - h / 2, w, h, 4) : g.rect(x - w / 2, y - h / 2, w, h); g.fill(); g.stroke();
+    g.fillStyle = '#4a1050'; g.fillText(t, x, y + 1);
+  }
+  g.restore();
+}
+function drawLfa(l) {
+  const pts = geomRings(l.geom).flat(); if (!pts.length) return;
+  paintLfa(ctx, l, (la, lo) => toScreen(la, lo), true);
+}
 function drawNotam(n) {
   ctx.save();
   ctx.setLineDash(n.active ? [14, 6] : [6, 6]);
   ctx.lineWidth = n.active ? 4 : 2.5;
   ctx.strokeStyle = n.active ? '#ff2d2d' : '#5d6975';
   ctx.fillStyle = n.active ? 'rgba(255,45,45,.12)' : 'rgba(93,105,117,.08)';
-  geomRings(n.geom).forEach(ring => {
+  const rs = geomRings(n.geom);
+  rs.forEach(ring => {
     ctx.beginPath();
     ring.forEach((c, i) => { const [x, y] = toScreen(c[1], c[0]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
     if (ring.length > 2) { ctx.closePath(); ctx.fill(); }
     ctx.stroke();
   });
+  // Name mittig in der Fläche (ab mittlerem Zoom, damit es bei Deutschland-Ansicht nicht zugeschrieben ist)
+  if (rs.length && rs[0].length > 2 && V.z >= 8) {
+    if (n.lbl === undefined) n.lbl = innerPoint(rs);
+    if (n.lbl) { const [x, y] = toScreen(n.lbl[1], n.lbl[0]);
+      if (x > -150 && y > -40 && x < W + 150 && y < mapH() + 40) {
+        const t = 'NOTAM · ' + notamTitle(n).slice(0, 40) + (n.active ? '' : ' (geplant)');
+        ctx.setLineDash([]); ctx.font = '800 13px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.strokeText(t, x, y); ctx.fillStyle = n.active ? '#b3131b' : '#4a5560'; ctx.fillText(t, x, y);
+      } }
+  }
   ctx.restore();
 }
 
@@ -1836,7 +1886,7 @@ function srcUi() {
   const rc = P.fsrc === 'rc';
   document.querySelectorAll('[data-fsrc]').forEach(b => b.classList.toggle('on', b.dataset.fsrc === P.fsrc));
   document.body.classList.toggle('src-rc', rc);
-  const b = $('bDl'); if (b && b.lastChild && b.lastChild.nodeType === 3) b.lastChild.textContent = 'Pre-Check';
+  const b = $('bDl'), bt = $('bDlT'); if (bt) bt.innerHTML = rc ? 'Pre-Check' : 'Pre-Check &amp;<br><small>Download</small>';
   if (b) b.title = rc ? 'Flughinweise zu den markierten Missionen (sie liegen schon in DJI Pilot 2)' : 'Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen';
 }
 async function load(keepView) {
@@ -2141,24 +2191,44 @@ function flightBriefing(sel) {
   return { zones: [...zones.values()], obs: [...obs.values()].sort((a, b) => a.d - b.d), rails: [...rails.values()], lines: [...lines.values()], vh: vincenzHits(sel) };
 }
 const KIND_ORDER = { off: 0, dist: 1, on: 2 };
-/** NOTAM-Hinweis oben im Briefing: Einschränkungen bis 50 km um die markierten Wiesen */
+/** NOTAM-Prüfung im Pre-Check: genau an der Fläche der markierten Felder (nicht im Umkreis) */
+const NOTAM_FIELD_NEAR = 2000;   // m – „knapp daneben“
+function fieldRingLL(f) { const r = f.outline && f.outline.length > 2 ? f.outline : (f.shapes || []).flatMap(sh => sh.pts || []); return r.map(p => [p[1], p[0]]); }   // [lon, lat]
+/** Abstand Feld ↔ NOTAM in m (0 = überschneidet sich) */
+function notamFieldDist(f, n) {
+  const nr = geomRings(n.geom).filter(r => r.length), fr = fieldRingLL(f);
+  if (!nr.length || !fr.length) return 1e9;
+  const fpts = fr.concat(f.center ? [[f.center[1], f.center[0]]] : []);
+  if (nr.some(r => r.length > 2 && fpts.some(p => inRing(p[1], p[0], r)))) return 0;   // Feld(punkt) liegt im NOTAM
+  const npts = nr.flat();
+  if (fr.length > 2 && npts.some(p => inRing(p[1], p[0], fr))) return 0;                // NOTAM-Ecke liegt im Feld
+  // sonst kürzester Abstand: NOTAM-Kanten gegen Feldpunkte (Kanten unterteilt, damit lange Polygonseiten zählen)
+  let best = 1e9;
+  const kx = 111320 * Math.cos((f.center ? f.center[0] : fr[0][1]) * Math.PI / 180), ky = 110540;
+  nr.forEach(r => { for (let i = 0; i < r.length; i++) { const a = r[i], b = r[(i + 1) % r.length];
+    fpts.forEach(q => { const px = (q[0] - a[0]) * kx, py = (q[1] - a[1]) * ky, bx = (b[0] - a[0]) * kx, by = (b[1] - a[1]) * ky, l = bx * bx + by * by;
+      const t = l > 0 ? Math.max(0, Math.min(1, (px * bx + py * by) / l)) : 0, d = Math.hypot(px - t * bx, py - t * by); if (d < best) best = d; }); } });
+  return best;
+}
 function notamBriefHtml(sel) {
-  const cs = sel.filter(f => f.center).map(f => f.center);
-  if (!cs.length) return '';
+  const fs = sel.filter(f => f.center || (f.shapes && f.shapes.length));
+  if (!fs.length) return '';
   const old = S.notamFetched && Date.now() - S.notamFetched > 24 * 3600000;
-  const stand = !S.notamFetched ? '' : old ? ' · <b style="color:#e07800">Stand älter als 24 h</b>' : '';
+  const stand = !S.notamFetched ? '' : old ? ' · <b style="color:#e07800">Stand älter als 24 h</b>' : ' · Stand ' + esc(fmtDate(S.notamFetched));
   if (!S.notamFetched && !S.notams.length) return `<div class="zone" style="border-left:5px solid #8a8f98"><h4>NOTAM: noch nicht geladen</h4><div class="meta">Bitte online gehen und die NOTAMs laden – sonst vor dem Flug in dipul prüfen.</div></div>`;
-  const near = S.notams.map(n => { const pts = geomRings(n.geom).flat();
-      const step = Math.max(1, Math.ceil(pts.length / 80));
-      const d = pts.length ? Math.min(...cs.map(c => Math.min(...pts.filter((p, i) => i % step === 0).map(p => distM(c[0], c[1], p[1], p[0]))))) : 1e9;
-      const inside = pts.length && cs.some(c => geomRings(n.geom).some(r => r.length > 2 && inRing(c[0], c[1], r)));
-      return { n, d: inside ? 0 : d }; })
-    .filter(x => x.d <= NOTAM_NEAR).sort((a, b) => (b.n.active - a.n.active) || a.d - b.d);
-  if (!near.length) return `<div class="zone" style="border-left:5px solid #13a538"><h4 style="color:#13a538">✓ Keine NOTAMs im Umkreis von 50 km</h4><div class="meta">Temporäre Betriebseinschränkungen laut dipul${stand}</div></div>`;
-  const act = near.filter(x => x.n.active).length;
-  return `<div class="zone" style="border-left:5px solid ${act ? '#d42020' : '#e07800'}"><h4 style="color:${act ? '#d42020' : '#e07800'}">⚠ ${near.length} NOTAM${near.length > 1 ? 's' : ''} im Umkreis von 50 km${act ? ` · ${act} aktiv` : ' · geplant'}</h4><ul>
-    ${near.slice(0, 8).map(x => `<li><b>${esc(notamTitle(x.n))}</b> – ${x.d === 0 ? '<b style="color:#d42020">Wiese liegt drin</b>' : (x.d / 1000).toFixed(x.d < 10000 ? 1 : 0).replace('.', ',') + ' km'}${x.n.active ? '' : ' (geplant)'}${x.n.props.upper ? ' · bis ' + esc(x.n.props.upper) : ''}</li>`).join('')}
-    ${near.length > 8 ? `<li>… und ${near.length - 8} weitere</li>` : ''}</ul><div class="meta">Details auf der NOTAM-Seite (Chip oben)${stand}</div></div>`;
+  const hits = [];   // je NOTAM: kleinster Abstand zu einem der Felder + welches Feld
+  S.notams.forEach(n => { let d = 1e9, ff = null; fs.forEach(f => { const x = notamFieldDist(f, n); if (x < d) { d = x; ff = f; } }); hits.push({ n, d, f: ff }); });
+  hits.sort((a, b) => a.d - b.d || (b.n.active - a.n.active));
+  const inF = hits.filter(x => x.d === 0), nearF = hits.filter(x => x.d > 0 && x.d <= NOTAM_FIELD_NEAR), next = hits.find(x => x.d > NOTAM_FIELD_NEAR && x.d < 1e9);
+  const multi = fs.length > 1;
+  const when = n => n.active ? (n.recur ? '<b>aktiv zu bestimmten Zeiten</b>' : '<b style="color:#d42020">jetzt aktiv</b>') : n.start ? 'ab ' + esc(fmtDate(n.start)) : 'geplant';
+  const li = x => `<li><b>${esc(notamTitle(x.n))}</b> – ${x.d === 0 ? (multi ? 'Feld <b>' + esc(x.f.title) + '</b> liegt drin' : 'Feld liegt drin') : Math.round(x.d) + ' m entfernt' + (multi ? ' (' + esc(x.f.title) + ')' : '')} · ${when(x.n)}${x.n.end ? ' bis ' + esc(fmtDate(x.n.end)) : ''}${x.n.props.upper ? ' · bis ' + esc(x.n.props.upper) : ''}${x.n.recur ? '<div class="meta">Zeiten: ' + esc(x.n.recur) + '</div>' : ''}</li>`;
+  if (inF.length) {
+    const act = inF.some(x => x.n.active);
+    return `<div class="zone" style="border:2px solid ${act ? '#d42020' : '#e07800'}"><h4 style="color:${act ? '#d42020' : '#e07800'}">⚠ NOTAM am Feld${act ? ' – Flug nur mit Zustimmung der genannten Stelle' : ' (geplant)'}</h4><ul>${inF.map(li).join('')}${nearF.map(li).join('')}</ul><div class="meta">Details und Zuständige auf der NOTAM-Seite${stand}</div></div>`;
+  }
+  if (nearF.length) return `<div class="zone" style="border-left:5px solid #e07800"><h4 style="color:#e07800">NOTAM knapp neben dem Feld (bis ${NOTAM_FIELD_NEAR / 1000} km)</h4><ul>${nearF.map(li).join('')}</ul><div class="meta">Grenze nicht überfliegen${stand}</div></div>`;
+  return `<div class="zone" style="border-left:5px solid #13a538"><h4 style="color:#13a538">✓ Kein NOTAM an ${multi ? 'diesen Feldern' : 'diesem Feld'}</h4><div class="meta">Temporäre Betriebseinschränkungen laut dipul geprüft${next ? ` · nächste: ${esc(notamTitle(next.n))} in ${(next.d / 1000).toFixed(1).replace('.', ',')} km${next.n.active ? '' : ' (geplant)'}` : ''}${stand}</div></div>`;
 }
 function briefingHtml(b, sel) {
   const fh = flightHeight(), multi = sel.length > 1;
@@ -2167,7 +2237,7 @@ function briefingHtml(b, sel) {
   const cnt = k => zs.filter(z => z.k === k).length;
   let h = `<div class="meta" style="margin-bottom:8px">${zs.length ? `<b style="color:#d42020">${cnt('off')} gesperrt</b> · <b style="color:#e07800">${cnt('dist')} nur mit Abstand</b> · <b style="color:#13a538">${cnt('on')} erlaubt mit Auflagen</b>` : '<b style="color:#13a538">Keine Geozone im Flugbereich.</b>'}${fh ? ` · Missionshöhe ${fh} m` : ''} · Daten offline (dipul/OSM), maßgeblich ist dipul.de</div>`;
   h += notamBriefHtml(sel);
-  h += lowFlyHtml(sel.filter(f => f.center).map(f => f.center), true);
+  h += lowFlyBriefHtml(sel);
   if (b.vh.length) h += `<div class="zone" style="border:2px solid #b3131b"><h4 style="color:#b3131b">⚠ Hubschrauberlandeplatz St. Vincenz</h4>
     <div class="meta">${b.vh.map(x => esc(x.f.title) + ' – ' + Math.round(x.d) + ' m').join(' · ')}</div>${vincenzHtml(b.vh[0].a, true)}</div>`;
   zs.forEach(z => {
@@ -2775,6 +2845,7 @@ function fillRules() {
   $('sAf').checked = P.airf === '1'; $('sGeoAll').checked = P.geoAll !== '0'; $('sGeoOwn').checked = P.geoOwn !== '0'; $('sMetar').checked = P.metar !== '0';
   $('sWxStart').value = P.wxStart;
   document.querySelectorAll('[data-wxmax]').forEach(b => b.classList.toggle('on', b.dataset.wxmax === P.wxMaxH));
+  document.querySelectorAll('[data-notamkm]').forEach(b => b.classList.toggle('on', b.dataset.notamkm === P.notamKm));
   const rm = P.rose === '0' ? 'off' : P.compass === '0' ? 'north' : 'dev';
   document.querySelectorAll('[data-rose]').forEach(b => b.classList.toggle('on', b.dataset.rose === rm));
   $('vNotam').textContent = (S.notams.length ? `${S.notams.filter(n => n.active).length} aktiv, ${S.notams.filter(n => !n.active).length} geplant` : 'keine im Gebiet') + (S.notamFetched ? ` · Stand ${fmtDate(S.notamFetched)}` : ' · noch nicht geladen');
@@ -3010,7 +3081,19 @@ function geoInfoAt(px, py) {
       return;
     }
   }
-  window.onGeoInfo(JSON.stringify({ ok: true, lat, lon, features: geoAt(lat, lon), offline: true, reg: regionAt(lat, lon) }));
+  const loc = geoAt(lat, lon);
+  if (!loc.length && A.geoInfo && isOnline()) {   // gespeicherte Daten lückenhaft? Dann live fragen (Ergebnis wird gespeichert)
+    let pg = []; try { pg = mapPixelGroups(lat, lon); } catch (e) { }
+    const kn = tapcAt(lat, lon);
+    if (kn.length) return window.onGeoInfo(JSON.stringify({ ok: true, lat, lon, features: kn, offline: true, reg: regionAt(lat, lon) }));
+    if (pg.length) {
+      busy('Frage dipul nach Geozonen an diesem Punkt…');
+      const ls = ZG.filter(([k]) => zgOn(k)).flatMap(([, , l]) => l).concat(['temporaere_betriebseinschraenkungen']);
+      A.geoInfo(lat, lon, JSON.stringify(ls));
+      return;
+    }
+  }
+  window.onGeoInfo(JSON.stringify({ ok: true, lat, lon, features: loc, offline: true, reg: regionAt(lat, lon) }));
 }
 let geoTap = null;
 /** Antippen auf der Karte: kleine Blase mit den Zonen; „Details“ öffnet die volle Seite */
@@ -3486,6 +3569,7 @@ function loadDulv() {
 }
 window.onDulv = () => { loadDulv(); loadAirfields(); };
 loadDulv();
+setTimeout(() => { try { if (S.dulv.length) { loadAirfields(); draw(); } } catch (e) { } }, 0);   // DULV-Plätze sofort mit auf die Karte
 /** Passender DULV-Eintrag zu einem Flugplatz: gleiche ICAO-Kennung oder höchstens 1,5 km entfernt */
 function dulvFor(a) {
   if (!a || !S.dulv.length) return null;
@@ -3527,9 +3611,9 @@ function dulvHtml(d) {
 }
 /** DULV-Plätze in der Nähe der Felder, die OpenStreetMap nicht kennt (z. B. UL-Gelände), ergänzen */
 function dulvExtraAirfields() {
-  if (!S.dulv.length || !S.files.length) return [];
-  const fs = S.files.filter(f => !f.dup && f.center);
-  return S.dulv.filter(d => fs.some(f => distM(f.center[0], f.center[1], d.lat, d.lon) < 25000) && !S.airfields.some(a => distM(a.lat, a.lon, d.lat, d.lon) < 1500))
+  if (!S.dulv.length) return [];
+  // ganz Deutschland: jeder DULV-Platz, an dem OSM keinen Platz kennt, bekommt ein Symbol
+  return S.dulv.filter(d => d.lat && d.lon && !S.airfields.some(a => Math.abs(a.lat - d.lat) < .02 && distM(a.lat, a.lon, d.lat, d.lon) < 1500))
     .map(d => ({ id: 'dulv' + d.id, name: dulvName(d), icao: d.icao || '', lat: d.lat, lon: d.lon, kind: /\bUL\b/.test(d.arten || '') && !/SLP|VLP|LP\b/.test(d.arten || '') ? 'airstrip' : 'aerodrome', type: (d.arten ? d.arten + ' · ' : '') + 'laut DULV', dulv: d, freqs: [] }));
 }
 function nearestField(a) {
@@ -3648,6 +3732,10 @@ function showAirfieldList() {
   $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => showAirfield(S.airfields.find(a => a.id === el.dataset.af)));
 }
 document.querySelectorAll('[data-rose]').forEach(b => b.onclick = () => { const v = b.dataset.rose; setP('rose', v === 'off' ? 0 : 1); if (v !== 'off') setP('compass', v === 'dev' ? 1 : 0); fillSettings(); windWidget(); draw(); });
+$('bRcKey').onclick = () => { rcKeyTest = !rcKeyTest; $('bRcKey').textContent = rcKeyTest ? 'Test beenden' : 'Tasten-Test';
+  if (rcKeyTest) rcKeyShow('jetzt eine Taste oder den 5D-Knopf drücken…'); };
+document.querySelectorAll('[data-notamkm]').forEach(b => b.onclick = () => { setP('notamKm', b.dataset.notamkm);
+  document.querySelectorAll('[data-notamkm]').forEach(x => x.classList.toggle('on', x === b)); S.notamSig = null; notamChip(); });
 document.querySelectorAll('[data-wxmax]').forEach(b => b.onclick = () => { setP('wxMaxH', b.dataset.wxmax);   // nur die Knöpfe umschalten – kein Neuaufbau der ganzen Einstellungen (das hakte)
   document.querySelectorAll('[data-wxmax]').forEach(x => x.classList.toggle('on', x === b)); });
 $('sWxStart').onchange = e => { if (e.target.value) setP('wxStart', e.target.value); };
@@ -4661,6 +4749,12 @@ $('bLayer').onclick = e => {
   pop.querySelectorAll('[data-ly]').forEach(b => b.classList.toggle('on', b.dataset.ly === P.layer));
   $('zgRow').innerHTML = ZG.map(([k, t]) => `<button class="zgb${zgOn(k) ? ' on' : ''}" data-zg="${k}">${t}</button>`).join('');
   $('zgRow').querySelectorAll('[data-zg]').forEach(b => b.onclick = e => { e.stopPropagation(); const on = !zgOn(b.dataset.zg); zgSet(b.dataset.zg, on); b.classList.toggle('on', on); });
+  // eigene Ebenen: NOTAMs und Tieffluggebiete (von der App gezeichnet, unabhängig von den dipul-Geozonen)
+  [['showNotam', 'NOTAMs & Tiefflug']].forEach(([k, t]) => {
+    const b = document.createElement('button'); b.className = 'zgb' + (P[k] !== '0' ? ' on' : ''); b.textContent = t; b.dataset.ex = k;
+    b.onclick = e => { e.stopPropagation(); const on = P[k] === '0'; setP(k, on ? '1' : '0'); b.classList.toggle('on', on); draw(); };
+    $('zgRow').appendChild(b);
+  });
   pop.classList.add('open');
 };
 document.querySelectorAll('#layerPop [data-ly]').forEach(b => b.onclick = e => {
@@ -4939,10 +5033,14 @@ function notamKeyMatch(a, b) {
   return false;
 }
 // ================= Militärischer Tiefflug (Bundeswehr) – NfL 2025-1-3686, LFA-Flächen vom DHV (KML) =================
-const LFA_NFL = 'https://www.dhv.de/media/seiten/04_flugbetrieb/AktuelleLuftraumbeschraenkungen/2025/2025-1-3686_Tieffluggebiete_250fthebt_I-90_02_auf.pdf';
+const LFA_NFL = 'https://www.bundeswehr.de/resource/blob/6045194/3390b6f894b32299ae0e8d93533405d6/download-bekanntmachung-ueber-tieffluege-data.pdf';
 const LFA_DHV = 'https://www.dhv.de/flugbetrieb/luftraum-luftrecht/militaerischer-tiefflug/';
+// Tieffluggebiete 250 ft nach NfL 2025-1-3686 (Bundeswehr/DFS, gültig ab 27.11.2025): Eckpunkte und Kreisbögen exakt aus der
+// Bekanntmachung berechnet; Abschnitte „entlang Bahnlinie/Fluss/Straße/Grenze“ als gerade Linie zwischen den genannten Punkten genähert
+const LFA_NFL_DATA = [["LFA 1 Niedersachsen",[[7.21667,53.19167],[7.56667,53.15833],[7.675,53.17783],[7.95,53.11667],[8.17583,53.068],[8.1725,53.06722],[8.17132,53.06563],[8.17042,53.06397],[8.16982,53.06226],[8.16952,53.06052],[8.16952,53.05878],[8.16983,53.05704],[8.17044,53.05533],[8.17134,53.05367],[8.17253,53.05208],[8.17399,53.05057],[8.1757,53.04916],[8.17765,53.04787],[8.17982,53.0467],[8.18217,53.04568],[8.1847,53.04481],[8.18735,53.04411],[8.19012,53.04358],[8.19296,53.04322],[8.19586,53.04305],[8.19876,53.04306],[8.20165,53.04325],[8.20449,53.04362],[8.20724,53.04417],[8.20989,53.04489],[8.2124,53.04577],[8.21473,53.04681],[8.21688,53.04799],[8.21881,53.04929],[8.2205,53.05071],[8.22193,53.05223],[8.22309,53.05383],[8.22397,53.0555],[8.22455,53.05721],[8.68883,52.95833],[8.70833,52.86167],[8.70493,52.86164],[8.70277,52.86048],[8.70082,52.85918],[8.69911,52.85777],[8.69766,52.85626],[8.69647,52.85467],[8.69557,52.85301],[8.69497,52.8513],[8.69466,52.84956],[8.69465,52.84782],[8.69495,52.84608],[8.69555,52.84437],[8.69645,52.84271],[8.69762,52.84111],[8.69907,52.8396],[8.70077,52.83818],[8.70271,52.83689],[8.70487,52.83572],[8.70721,52.8347],[8.70972,52.83383],[8.71236,52.83312],[8.66517,52.80833],[8.66381,52.80988],[8.66198,52.81123],[8.65992,52.81245],[8.65765,52.81354],[8.65522,52.81448],[8.65263,52.81526],[8.64992,52.81587],[8.64712,52.81631],[8.64426,52.81656],[8.64138,52.81664],[8.63849,52.81653],[8.63564,52.81623],[8.63286,52.81576],[8.63017,52.81512],[8.62761,52.8143],[8.62521,52.81333],[8.62299,52.81222],[8.62097,52.81096],[8.61918,52.80959],[8.61764,52.80811],[8.61637,52.80654],[8.61537,52.8049],[8.61467,52.80321],[8.61426,52.80148],[8.61415,52.79973],[8.61435,52.79799],[8.61485,52.79627],[8.61565,52.79459],[8.61673,52.79297],[8.61809,52.79142],[8.61971,52.78998],[8.62157,52.78864],[8.62365,52.78743],[8.62593,52.78635],[8.62838,52.78543],[8.63099,52.78467],[8.6337,52.78408],[8.5375,52.72083],[8.53607,52.72237],[8.53444,52.72384],[8.53257,52.72519],[8.53047,52.72642],[8.52817,52.7275],[8.52569,52.72843],[8.52306,52.72919],[8.52031,52.72978],[8.51748,52.73019],[8.51459,52.73042],[8.51168,52.73046],[8.50877,52.73032],[8.50591,52.72998],[8.50312,52.72947],[8.50044,52.72878],[8.49789,52.72792],[8.49551,52.7269],[8.49332,52.72574],[8.49135,52.72444],[8.48961,52.72302],[8.48813,52.7215],[8.48693,52.7199],[8.48601,52.71822],[8.48539,52.7165],[8.48508,52.71474],[8.48507,52.71297],[8.48538,52.71122],[8.48599,52.70949],[8.4869,52.70782],[8.48809,52.70621],[8.48957,52.70468],[8.31117,52.72083],[8.31566,52.72106],[8.31694,52.72264],[8.31793,52.72429],[8.31863,52.72599],[8.31904,52.72773],[8.31913,52.72949],[8.31892,52.73124],[8.31841,52.73297],[8.3176,52.73465],[8.3165,52.73628],[8.31512,52.73783],[8.31349,52.73927],[8.31161,52.74061],[8.3095,52.74182],[8.3072,52.74289],[8.30472,52.7438],[8.3021,52.74456],[8.29936,52.74514],[8.29654,52.74554],[8.29366,52.74576],[8.29076,52.74579],[8.28787,52.74564],[8.28503,52.74531],[8.28225,52.7448],[8.27958,52.74411],[8.27705,52.74325],[8.27468,52.74224],[8.2725,52.74108],[8.27053,52.73979],[8.2688,52.73838],[8.26732,52.73687],[8.26611,52.73528],[8.26519,52.73361],[8.26457,52.7319],[8.26424,52.73015],[8.26422,52.72839],[8.26451,52.72665],[8.2651,52.72493],[8.26599,52.72325],[8.26716,52.72165],[8.26861,52.72012],[8.27031,52.7187],[8.27225,52.7174],[8.27441,52.71622],[8.24083,52.68333],[8.23785,52.6833],[8.2349,52.68323],[8.23198,52.68296],[8.22912,52.68251],[8.22635,52.68187],[8.22372,52.68105],[8.22125,52.68007],[8.21897,52.67893],[8.2169,52.67765],[8.21507,52.67624],[8.2135,52.67472],[8.21221,52.67311],[8.21121,52.67142],[8.21052,52.66968],[8.21014,52.6679],[8.21008,52.66611],[8.21034,52.66432],[8.21091,52.66256],[8.2118,52.66085],[8.21298,52.65921],[8.21444,52.65765],[8.21618,52.6562],[8.21816,52.65487],[8.22036,52.65368],[8.22277,52.65263],[8.22534,52.65175],[7.96667,52.43883],[7.67083,52.52217],[7.495,52.6555],[7.49787,52.65579],[7.50041,52.65661],[7.50278,52.65759],[7.50497,52.65872],[7.50696,52.65998],[7.50872,52.66136],[7.51023,52.66284],[7.51148,52.66441],[7.51244,52.66605],[7.51313,52.66774],[7.51351,52.66947],[7.5136,52.67121],[7.51338,52.67295],[7.51286,52.67467],[7.51206,52.67634],[7.51096,52.67795],[7.5096,52.67948],[7.50798,52.68092],[7.50612,52.68225],[7.50404,52.68345],[7.50177,52.68452],[7.49932,52.68543],[7.49673,52.68619],[7.49402,52.68677],[7.49123,52.68718],[7.48838,52.68742],[7.48551,52.68747],[7.48264,52.68733],[7.47981,52.68702],[7.47706,52.68653],[7.4744,52.68586],[7.47187,52.68503],[7.4695,52.68405],[7.46731,52.68292],[7.4,52.7],[7.54167,52.88333],[7.6,52.95],[7.43333,52.96667],[7.40833,52.93333],[7.25,52.7],[7.25283,52.68333],[7.06383,52.718],[7.21667,53.19167]]],["LFA 2 Münsterland",[[7.08333,52.21117],[7.16333,52.20283],[7.16435,52.20114],[7.16577,52.19956],[7.16745,52.19808],[7.16939,52.19672],[7.17155,52.1955],[7.17392,52.19443],[7.17647,52.19352],[7.17916,52.19279],[7.18196,52.19224],[7.18485,52.19188],[7.18778,52.19171],[7.19072,52.19174],[7.19364,52.19196],[7.19651,52.19238],[7.19928,52.19298],[7.20194,52.19376],[7.20443,52.19472],[7.20675,52.19583],[7.20885,52.1971],[7.21072,52.19849],[7.31383,52.15833],[7.31343,52.15623],[7.31197,52.15467],[7.31079,52.15303],[7.30991,52.15132],[7.30934,52.14956],[7.30907,52.14777],[7.30912,52.14598],[7.30949,52.1442],[7.31017,52.14245],[7.31114,52.14076],[7.31241,52.13915],[7.31396,52.13762],[7.31576,52.13621],[7.3178,52.13493],[7.32006,52.13379],[7.3225,52.1328],[7.3251,52.13198],[7.32783,52.13134],[7.33065,52.13088],[7.33354,52.13061],[7.33646,52.13053],[7.33938,52.13065],[7.34226,52.13096],[7.34507,52.13145],[7.34778,52.13213],[7.35035,52.13299],[7.5,52.04167],[7.5,51.91117],[7.36667,51.86667],[7.26667,51.89167],[7.10417,51.84167],[7.10417,51.725],[7.09167,51.725],[7.0255,51.75133],[7.01667,51.72367],[6.89533,51.69617],[6.89761,51.6983],[6.89655,51.69996],[6.89521,51.70153],[6.8936,51.70301],[6.89175,51.70438],[6.88967,51.70561],[6.8874,51.7067],[6.88494,51.70763],[6.88234,51.70839],[6.87963,51.70898],[6.87683,51.70938],[6.87397,51.7096],[6.8711,51.70962],[6.86823,51.70946],[6.86542,51.7091],[6.86268,51.70856],[6.86004,51.70784],[6.85755,51.70695],[6.85523,51.7059],[6.8531,51.70471],[6.85119,51.70337],[6.84952,51.70192],[6.8481,51.70037],[6.84697,51.69873],[6.84613,51.69703],[6.84558,51.69528],[6.84534,51.6935],[6.84541,51.69172],[6.84578,51.68995],[6.84646,51.68822],[6.84743,51.68654],[6.84869,51.68494],[6.85022,51.68343],[6.675,51.66667],[6.67028,51.67179],[6.66797,51.677],[6.66476,51.68203],[6.66069,51.68681],[6.65581,51.69129],[6.65018,51.69542],[6.64386,51.69915],[6.63693,51.70243],[6.62947,51.70523],[6.62156,51.7075],[6.6133,51.70924],[6.60479,51.71041],[6.59612,51.711],[6.5874,51.71101],[6.57874,51.71043],[6.57022,51.70927],[6.56195,51.70755],[6.55404,51.70528],[6.54656,51.7025],[6.53962,51.69923],[6.53329,51.69551],[6.52764,51.69139],[6.52274,51.68692],[6.51865,51.68214],[6.51542,51.67711],[6.51309,51.6719],[6.51168,51.66657],[6.51121,51.66117],[6.42083,51.75133],[6.42374,51.7517],[6.42597,51.75278],[6.428,51.75399],[6.42982,51.75533],[6.4314,51.75679],[6.43272,51.75833],[6.43377,51.75996],[6.43455,51.76164],[6.43503,51.76337],[6.43521,51.76511],[6.4351,51.76686],[6.43469,51.7686],[6.43399,51.77029],[6.43301,51.77193],[6.43175,51.7735],[6.43023,51.77498],[6.42848,51.77635],[6.42649,51.7776],[6.42431,51.77871],[6.42195,51.77968],[6.41944,51.78048],[6.4168,51.78112],[6.41408,51.78159],[6.41128,51.78187],[6.40846,51.78197],[6.40563,51.78189],[6.40284,51.78162],[6.4001,51.78117],[6.39746,51.78055],[6.39494,51.77976],[6.39256,51.77881],[6.39036,51.77771],[6.38836,51.77647],[6.38658,51.77511],[6.38504,51.77364],[6.38376,51.77208],[6.38275,51.77044],[6.38202,51.76875],[6.38159,51.76702],[6.38145,51.76527],[6.38161,51.76352],[6.38207,51.7618],[6.38281,51.76011],[6.38384,51.75848],[6.33333,51.76667],[6.4195,51.79717],[6.46083,51.83883],[6.5805,51.81117],[6.58966,51.81288],[6.59478,51.81126],[6.60016,51.80999],[6.60572,51.80909],[6.61141,51.80855],[6.61716,51.80839],[6.62291,51.80862],[6.62858,51.80922],[6.63411,51.81019],[6.63945,51.81152],[6.64453,51.81319],[6.64929,51.81519],[6.65367,51.81749],[6.65764,51.82007],[6.66113,51.8229],[6.66412,51.82594],[6.66657,51.82915],[6.66844,51.83252],[6.66973,51.83598],[6.66805,51.8344],[6.66872,51.83269],[6.66969,51.83104],[6.67094,51.82945],[6.67244,51.82796],[6.6742,51.82657],[6.67618,51.82531],[6.67837,51.82418],[6.68074,51.8232],[6.68327,51.82238],[6.68592,51.82173],[6.68866,51.82126],[6.69148,51.82097],[6.69432,51.82086],[6.69717,51.82095],[6.69999,51.82121],[6.70274,51.82166],[6.70541,51.82229],[6.70795,51.82309],[6.71034,51.82405],[6.71255,51.82516],[6.71456,51.82641],[6.71635,51.82778],[6.71789,51.82926],[6.71917,51.83083],[6.72017,51.83248],[6.72089,51.83419],[6.7213,51.83593],[6.72142,51.83769],[6.72124,51.83945],[6.72076,51.84118],[6.71998,51.84288],[6.71892,51.84451],[6.71758,51.84607],[6.71598,51.84753],[6.71415,51.84888],[6.71209,51.8501],[6.70984,51.85117],[6.70741,51.8521],[6.70484,51.85286],[6.70215,51.85345],[6.69938,51.85386],[6.69655,51.85409],[6.6937,51.85413],[6.69086,51.85398],[6.68806,51.85365],[6.68534,51.85314],[6.68271,51.85246],[6.71667,51.89717],[6.87917,52.143],[6.90344,52.14416],[6.92746,52.14589],[6.95101,52.14925],[6.97381,52.15418],[6.99558,52.16063],[7.01604,52.16852],[7.03494,52.17775],[7.05205,52.18821],[7.06716,52.19977],[7.08007,52.21228],[7.08333,52.21117]]],["LFA 3 Nordhessen",[[7.96667,51.1555],[7.97057,51.15643],[7.97338,51.15593],[7.97625,51.15563],[7.97915,51.15553],[7.98206,51.15563],[7.98493,51.15593],[7.98773,51.15642],[7.99043,51.1571],[7.993,51.15797],[7.99539,51.159],[7.9976,51.1602],[7.99958,51.16154],[8.00131,51.163],[8.00278,51.16458],[8.00396,51.16624],[8.00485,51.16798],[8.00543,51.16977],[8.00569,51.17159],[8.00563,51.17341],[8.00525,51.17522],[8.19167,51.27083],[8.20833,51.25],[8.26667,51.34033],[8.27066,51.33977],[8.27254,51.33842],[8.27465,51.3372],[8.27695,51.33613],[8.27943,51.33522],[8.28204,51.33449],[8.28477,51.33393],[8.28758,51.33356],[8.29044,51.33338],[8.29331,51.33339],[8.29616,51.3336],[8.29896,51.334],[8.30167,51.33458],[8.30427,51.33534],[8.30672,51.33627],[8.309,51.33737],[8.31107,51.3386],[8.31292,51.33997],[8.31453,51.34146],[8.31587,51.34305],[8.31692,51.34471],[8.31769,51.34644],[8.31815,51.34821],[8.3183,51.35],[8.36667,51.35667],[8.36563,51.3548],[8.36639,51.35308],[8.36744,51.35141],[8.36877,51.34983],[8.37036,51.34834],[8.3722,51.34697],[8.37427,51.34573],[8.37653,51.34464],[8.37897,51.34371],[8.38156,51.34294],[8.38427,51.34235],[8.38706,51.34195],[8.3899,51.34173],[8.39276,51.34171],[8.39561,51.34188],[8.39842,51.34224],[8.40115,51.34279],[8.40377,51.34351],[8.40624,51.34441],[8.40855,51.34546],[8.41067,51.34667],[8.41256,51.34801],[8.41422,51.34947],[8.41561,51.35103],[8.41672,51.35268],[8.41755,51.35439],[8.41808,51.35615],[8.4183,51.35793],[8.41822,51.35972],[8.41782,51.36149],[8.41713,51.36323],[8.41614,51.36491],[8.41487,51.36651],[8.41333,51.36802],[8.41154,51.36941],[8.45967,51.36667],[8.45886,51.36491],[8.45787,51.36324],[8.45718,51.36151],[8.45679,51.35974],[8.4567,51.35796],[8.45691,51.35618],[8.45743,51.35443],[8.45825,51.35272],[8.45936,51.35108],[8.46073,51.34952],[8.46237,51.34806],[8.46425,51.34672],[8.46635,51.34551],[8.46864,51.34445],[8.47111,51.34355],[8.47371,51.34282],[8.47642,51.34227],[8.47921,51.3419],[8.48205,51.34172],[8.4849,51.34173],[8.48774,51.34193],[8.49053,51.34231],[8.49323,51.34289],[8.49582,51.34364],[8.49826,51.34455],[8.50054,51.34563],[8.50261,51.34685],[8.50447,51.34821],[8.50608,51.34968],[8.50744,51.35124],[8.50851,51.35289],[8.5093,51.35461],[8.50979,51.35636],[8.50997,51.35814],[8.50985,51.35992],[8.50943,51.36168],[8.50871,51.36341],[8.59167,51.30283],[8.592,51.30073],[8.59108,51.29906],[8.59045,51.29735],[8.59012,51.2956],[8.59008,51.29383],[8.59034,51.29208],[8.5909,51.29035],[8.59175,51.28867],[8.59287,51.28706],[8.59427,51.28552],[8.59591,51.28409],[8.59779,51.28278],[8.59988,51.2816],[8.60215,51.28056],[8.60459,51.27968],[8.60717,51.27896],[8.60985,51.27842],[8.61261,51.27806],[8.61541,51.27788],[8.61823,51.27789],[8.62103,51.27809],[8.62378,51.27847],[8.62645,51.27903],[8.62901,51.27976],[8.63144,51.28066],[8.63369,51.28172],[8.63576,51.28291],[8.63761,51.28424],[8.63923,51.28569],[8.6406,51.28723],[8.64169,51.28885],[8.64251,51.29054],[8.64303,51.29227],[8.64326,51.29403],[8.64319,51.29579],[8.64283,51.29753],[8.64217,51.29925],[8.64122,51.30091],[8.64,51.30249],[8.63852,51.30399],[8.63679,51.30538],[8.63483,51.30665],[8.63268,51.30779],[8.99717,51.72783],[9.00223,51.72734],[9.00392,51.72585],[9.00586,51.72449],[9.00803,51.72327],[9.0104,51.7222],[9.01294,51.7213],[9.01563,51.72058],[9.01842,51.72004],[9.0213,51.71969],[9.02422,51.71954],[9.02715,51.71958],[9.03005,51.71983],[9.0329,51.72027],[9.03565,51.72089],[9.03827,51.7217],[9.04074,51.72268],[9.04301,51.72382],[9.04508,51.72511],[9.0469,51.72653],[9.04847,51.72807],[9.04975,51.7297],[9.05074,51.73141],[9.05143,51.73317],[9.09167,51.75833],[9.08678,51.76162],[9.08751,51.76335],[9.08793,51.76512],[9.08805,51.7669],[9.08785,51.76869],[9.08735,51.77045],[9.08654,51.77216],[9.08544,51.77382],[9.08406,51.77539],[9.08242,51.77686],[9.08053,51.77821],[9.07841,51.77943],[9.0761,51.7805],[9.07362,51.78141],[9.07099,51.78215],[9.06825,51.78272],[9.06542,51.78309],[9.06255,51.78328],[9.05966,51.78328],[9.05679,51.78308],[9.05397,51.7827],[9.05123,51.78213],[9.04861,51.78138],[9.04613,51.78046],[9.09167,51.8375],[9.10117,51.853],[9.10339,51.85452],[9.10596,51.8554],[9.10835,51.85644],[9.11055,51.85763],[9.11252,51.85897],[9.11425,51.86043],[9.11571,51.86199],[9.11689,51.86365],[9.11777,51.86537],[9.11834,51.86715],[9.1186,51.86895],[9.11853,51.87075],[9.11816,51.87255],[9.11746,51.8743],[9.11647,51.876],[9.11518,51.87763],[9.11361,51.87915],[9.11179,51.88057],[9.10972,51.88185],[9.10744,51.88299],[9.10498,51.88396],[9.10236,51.88477],[9.09961,51.8854],[9.24617,51.94667],[9.24888,51.94588],[9.25176,51.9459],[9.25461,51.94611],[9.25742,51.9465],[9.26014,51.94708],[9.26275,51.94783],[9.26521,51.94875],[9.26749,51.94983],[9.26958,51.95105],[9.27145,51.9524],[9.27307,51.95386],[9.27443,51.95542],[9.27552,51.95706],[9.27631,51.95877],[9.27681,51.96051],[9.277,51.96228],[9.27688,51.96406],[9.27646,51.96581],[9.27574,51.96753],[9.27472,51.96918],[9.27343,51.97077],[9.27187,51.97226],[9.38333,52.04167],[9.49167,51.98467],[9.48999,51.98311],[9.48969,51.98135],[9.4897,51.97958],[9.49001,51.97783],[9.49062,51.9761],[9.49153,51.97442],[9.49272,51.97281],[9.49418,51.97128],[9.4959,51.96986],[9.49785,51.96856],[9.50001,51.9674],[9.50237,51.96639],[9.50488,51.96553],[9.50753,51.96484],[9.51028,51.96433],[9.51311,51.96401],[9.51597,51.96387],[9.51884,51.96392],[9.52169,51.96415],[9.52448,51.96458],[9.52719,51.96518],[9.52977,51.96595],[9.5322,51.96689],[9.53446,51.96799],[9.53652,51.96922],[9.53835,51.97058],[9.53994,51.97206],[9.54127,51.97363],[9.54231,51.97528],[9.54307,51.97699],[9.54352,51.97873],[9.54368,51.9805],[9.88333,51.87783],[9.81667,51.83333],[9.76667,51.65833],[9.66667,51.657],[9.66711,51.65872],[9.66712,51.66046],[9.66684,51.6622],[9.66627,51.66391],[9.66541,51.66557],[9.66428,51.66716],[9.66288,51.66868],[9.66124,51.67009],[9.65936,51.67139],[9.65728,51.67256],[9.65501,51.67359],[9.65258,51.67447],[9.65002,51.67518],[9.64734,51.67572],[9.6446,51.67609],[9.6418,51.67628],[9.63899,51.67628],[9.63619,51.6761],[9.63344,51.67574],[9.63077,51.67521],[9.6282,51.6745],[9.62576,51.67363],[9.62348,51.67261],[9.62139,51.67145],[9.61951,51.67015],[9.61785,51.66874],[9.61645,51.66723],[9.6153,51.66564],[9.61443,51.66398],[9.61385,51.66228],[9.61355,51.66054],[9.61355,51.6588],[9.61384,51.65706],[9.61443,51.65536],[9.6153,51.6537],[9.61644,51.65211],[9.61785,51.6506],[9.6195,51.64919],[9.62139,51.64789],[9.62348,51.64673],[9.62575,51.6457],[9.62819,51.64483],[9.63076,51.64413],[9.63344,51.64359],[9.63619,51.64323],[9.63898,51.64305],[9.64179,51.64305],[9.56667,51.62783],[9.4125,51.64717],[9.405,51.67333],[9.40321,51.67489],[9.40215,51.67652],[9.40082,51.67808],[9.39922,51.67954],[9.39739,51.68089],[9.39533,51.68211],[9.39308,51.68319],[9.39066,51.68411],[9.3881,51.68487],[9.38541,51.68546],[9.38265,51.68587],[9.37983,51.68609],[9.37698,51.68613],[9.37415,51.68598],[9.37136,51.68564],[9.36864,51.68513],[9.36602,51.68444],[9.36354,51.68358],[9.36122,51.68256],[9.35908,51.6814],[9.35716,51.6801],[9.35546,51.67868],[9.35402,51.67716],[9.35285,51.67555],[9.35195,51.67388],[9.35135,51.67216],[9.35105,51.6704],[9.35104,51.66864],[9.35134,51.66689],[9.35194,51.66516],[9.35282,51.66348],[9.35399,51.66188],[9.38333,51.61667],[8.88333,51.175],[8.83333,51.08333],[8.82041,51.08761],[8.80833,51.09235],[8.79552,51.09624],[8.78212,51.09925],[8.76828,51.10133],[8.75416,51.10246],[8.73994,51.10263],[8.72577,51.10184],[8.71181,51.1001],[8.69823,51.09743],[8.68519,51.09385],[8.67283,51.08941],[8.66131,51.08416],[8.65075,51.07816],[8.64127,51.07149],[8.63299,51.06421],[8.626,51.05641],[8.62038,51.04819],[8.6162,51.03963],[8.6135,51.03084],[8.61232,51.02193],[8.61267,51.01298],[8.61455,51.0041],[8.61793,50.99541],[8.62278,50.987],[8.62903,50.97896],[8.63663,50.97139],[8.64547,50.96437],[8.65546,50.958],[8.66648,50.95234],[8.6784,50.94745],[8.69109,50.9434],[8.7044,50.94023],[8.71817,50.93798],[8.75833,50.875],[8.53883,50.8945],[8.54107,50.89659],[8.54373,50.89721],[8.54627,50.898],[8.54866,50.89896],[8.55087,50.90007],[8.55288,50.90133],[8.55467,50.90271],[8.55621,50.90421],[8.55749,50.9058],[8.55848,50.90747],[8.55919,50.9092],[8.55961,50.91096],[8.55972,50.91275],[8.55952,50.91453],[8.55903,50.91629],[8.55824,50.918],[8.55716,50.91965],[8.55581,50.92122],[8.5542,50.92269],[8.55235,50.92404],[8.55028,50.92525],[8.54801,50.92633],[8.54558,50.92724],[8.543,50.92798],[8.54032,50.92854],[8.53755,50.92892],[8.53474,50.92911],[8.53191,50.92911],[8.52909,50.92892],[8.52633,50.92854],[8.52364,50.92797],[8.52107,50.92723],[8.51864,50.92632],[8.51637,50.92524],[8.5143,50.92403],[8.51246,50.92267],[8.51085,50.92121],[8.5095,50.91964],[8.443,50.925],[8.44291,50.92679],[8.44245,50.92856],[8.44169,50.93029],[8.44064,50.93196],[8.43931,50.93355],[8.43772,50.93504],[8.43588,50.93641],[8.43382,50.93764],[8.43156,50.93874],[8.42913,50.93967],[8.42655,50.94043],[8.42385,50.94101],[8.42108,50.9414],[8.41825,50.94161],[8.4154,50.94162],[8.41257,50.94144],[8.40979,50.94106],[8.40708,50.9405],[8.40449,50.93976],[8.40204,50.93885],[8.39976,50.93777],[8.39767,50.93655],[8.39581,50.93519],[8.39419,50.93372],[8.39283,50.93214],[8.39175,50.93048],[8.3055,50.95283],[8.15,50.96667],[8.11667,50.97667],[8.11842,50.97823],[8.12057,50.97933],[8.12252,50.98057],[8.12426,50.98193],[8.12576,50.98339],[8.12701,50.98495],[8.128,50.98658],[8.12871,50.98826],[8.12913,50.98999],[8.12926,50.99173],[8.12911,50.99347],[8.12867,50.99519],[8.12794,50.99687],[8.12694,50.9985],[8.12567,51.00005],[8.12415,51.0015],[8.1224,51.00285],[8.12043,51.00408],[8.11827,51.00517],[8.11594,51.00611],[8.11346,51.0069],[8.11087,51.00752],[8.10819,51.00796],[8.10546,51.00822],[8.10269,51.0083],[8.09992,51.0082],[8.09719,51.00792],[8.09452,51.00746],[8.09194,51.00682],[8.08948,51.00602],[8.08716,51.00506],[8.08502,51.00396],[8.08308,51.00272],[8.08135,51.00136],[8.07985,50.99989],[8.07861,50.99833],[8.07764,50.9967],[8.07694,50.99501],[8.07653,50.99329],[8.0764,50.99154],[8.07657,50.9898],[8.07702,50.98808],[8.07776,50.9864],[8.07877,50.98478],[8.08005,50.98323],[8.08158,50.98178],[8.08334,50.98043],[8.08531,50.97921],[8.08748,50.97812],[8.08982,50.97719],[8.09229,50.97641],[8.01667,50.95833],[8.01801,50.95998],[8.01806,50.96175],[8.01782,50.96351],[8.01728,50.96524],[8.01644,50.96693],[8.01533,50.96856],[8.01395,50.9701],[8.01232,50.97154],[8.01045,50.97286],[8.00837,50.97405],[8.00611,50.9751],[8.00367,50.97598],[8.00111,50.9767],[7.99843,50.97725],[7.99568,50.97761],[7.99289,50.97779],[7.99008,50.97777],[7.98729,50.97757],[7.98455,50.97719],[7.98189,50.97662],[7.97934,50.97588],[7.97692,50.97497],[7.97468,50.97391],[7.875,51.0375],[7.87471,51.03927],[7.87358,51.04088],[7.87218,51.0424],[7.87054,51.04382],[7.86866,51.04513],[7.86658,51.0463],[7.86431,51.04733],[7.86188,51.0482],[7.85932,51.0489],[7.85665,51.04944],[7.85391,51.04979],[7.85113,51.04995],[7.84833,51.04994],[7.84555,51.04973],[7.84282,51.04935],[7.84018,51.04878],[7.83764,51.04804],[7.83524,51.04714],[7.833,51.04608],[7.88883,51.11667],[7.89302,51.11692],[7.89546,51.11596],[7.89805,51.11517],[7.90076,51.11456],[7.90356,51.11414],[7.90642,51.11391],[7.9093,51.11387],[7.91216,51.11404],[7.91499,51.1144],[7.91773,51.11494],[7.92036,51.11567],[7.92285,51.11658],[7.92517,51.11765],[7.92729,51.11887],[7.92919,51.12023],[7.93084,51.12171],[7.93223,51.12329],[7.93333,51.12496],[7.93414,51.1267],[7.93465,51.12848],[7.93484,51.13028],[7.93472,51.13208],[7.96667,51.1555]]],["LFA 5 Hamburg/Bremen",[[9.41667,52.95833],[9.45,53.07217],[9.45986,53.07869],[9.46814,53.08597],[9.4751,53.09373],[9.48064,53.1019],[9.48472,53.11037],[9.48727,53.11905],[9.48829,53.12784],[9.48774,53.13665],[9.48564,53.14538],[9.48202,53.15392],[9.48709,53.15051],[9.48988,53.15101],[9.49256,53.15168],[9.4951,53.15252],[9.49749,53.15351],[9.49969,53.15465],[9.50168,53.15592],[9.50344,53.15731],[9.50495,53.1588],[9.50619,53.16037],[9.50715,53.16202],[9.50781,53.16371],[9.50818,53.16544],[9.50824,53.16718],[9.508,53.16892],[9.50745,53.17063],[9.50661,53.1723],[9.50549,53.17391],[9.50409,53.17543],[9.50243,53.17686],[9.50053,53.17818],[9.49841,53.17937],[9.49609,53.18043],[9.49361,53.18133],[9.49098,53.18207],[9.48823,53.18264],[9.4854,53.18304],[9.48252,53.18326],[9.47961,53.18329],[9.47672,53.18315],[9.47386,53.18282],[9.47108,53.18232],[9.4684,53.18164],[9.46586,53.1808],[9.46347,53.1798],[9.46127,53.17866],[9.44819,53.18769],[9.43651,53.19401],[9.42372,53.19949],[9.40998,53.20407],[9.39546,53.20768],[9.38036,53.21029],[9.36486,53.21185],[9.34916,53.21235],[9.33347,53.21178],[9.28333,53.2805],[9.28654,53.27809],[9.28945,53.27847],[9.29227,53.27904],[9.29497,53.27978],[9.29753,53.28069],[9.29991,53.28176],[9.30208,53.28298],[9.30402,53.28433],[9.30572,53.28579],[9.30714,53.28735],[9.30827,53.289],[9.3091,53.29071],[9.30962,53.29246],[9.30983,53.29423],[9.30972,53.29601],[9.30929,53.29777],[9.30855,53.2995],[9.30751,53.30116],[9.30617,53.30275],[9.30456,53.30425],[9.30269,53.30563],[9.30058,53.30689],[9.29826,53.308],[9.29575,53.30896],[9.29309,53.30976],[9.2903,53.31038],[9.28742,53.31082],[9.28447,53.31107],[9.28149,53.31113],[9.27852,53.31101],[9.2756,53.31069],[9.27274,53.31019],[9.26999,53.30951],[9.26738,53.30866],[9.26493,53.30764],[9.26268,53.30648],[9.26065,53.30517],[9.15833,53.475],[9.80833,53.31117],[9.85,53.0195],[9.84338,53.01659],[9.83748,53.01651],[9.83163,53.01605],[9.8259,53.01522],[9.82034,53.01403],[9.81503,53.01249],[9.81002,53.01061],[9.80537,53.00843],[9.80114,53.00595],[9.79736,53.00322],[9.79409,53.00027],[9.79137,52.99712],[9.78921,52.99381],[9.78766,52.99039],[9.78671,52.98688],[9.7864,52.98333],[9.60833,52.97917],[9.6106,52.98063],[9.61092,52.9824],[9.61093,52.98417],[9.61063,52.98594],[9.61001,52.98768],[9.60909,52.98937],[9.60787,52.99099],[9.60637,52.99252],[9.60462,52.99394],[9.60261,52.99525],[9.60039,52.99642],[9.59798,52.99744],[9.59539,52.9983],[9.59267,52.99899],[9.58985,52.9995],[9.58695,52.99983],[9.584,52.99997],[9.58105,52.99991],[9.57813,52.99967],[9.57526,52.99924],[9.57249,52.99864],[9.56984,52.99785],[9.56735,52.9969],[9.56503,52.9958],[9.56293,52.99455],[9.56106,52.99318],[9.55944,52.99169],[9.5581,52.99011],[9.55704,52.98845],[9.55628,52.98673],[9.55584,52.98498],[9.5557,52.9832],[9.55588,52.98143],[9.55638,52.97968],[9.55718,52.97797],[9.55828,52.97632],[9.41667,52.95833]]],["LFA 6 Schleswig-Holstein",[[9.26667,54.01667],[9.07783,54.07633],[9.0807,54.07505],[9.08367,54.07524],[9.08658,54.07561],[9.08942,54.07615],[9.09214,54.07687],[9.09471,54.07775],[9.09712,54.07878],[9.09932,54.07996],[9.10131,54.08127],[9.10305,54.08269],[9.10452,54.08421],[9.10572,54.08581],[9.10662,54.08748],[9.10722,54.08919],[9.10751,54.09093],[9.10748,54.09268],[9.10714,54.09442],[9.1065,54.09612],[9.10555,54.09778],[9.10431,54.09937],[9.10279,54.10088],[9.10101,54.10228],[9.09899,54.10357],[9.09675,54.10472],[9.09432,54.10573],[9.09172,54.10659],[9.08898,54.10728],[9.08613,54.10779],[9.0832,54.10813],[9.08023,54.10829],[9.07725,54.10827],[9.07429,54.10806],[9.07139,54.10767],[9.06857,54.1071],[9.06586,54.10636],[9.06331,54.10546],[9.06093,54.10441],[9.05875,54.10321],[9.05679,54.10189],[9.05509,54.10046],[9.05364,54.09893],[9.05249,54.09732],[9.05162,54.09564],[9.05106,54.09393],[9.05081,54.09218],[9.05088,54.09043],[9.05125,54.0887],[9.05194,54.087],[9.05293,54.08535],[9.0542,54.08377],[9.0,54.1],[8.91667,54.14167],[8.89167,54.2625],[9.0,54.37217],[9.06117,54.35],[9.0805,54.36667],[9.35,54.28333],[9.35833,54.24167],[9.44167,54.25283],[9.49167,54.21383],[9.49455,54.20872],[9.49699,54.20363],[9.50035,54.19873],[9.50456,54.19406],[9.5096,54.18967],[9.51541,54.18562],[9.52191,54.18196],[9.52904,54.17871],[9.53672,54.17593],[9.54485,54.17363],[9.55336,54.17185],[9.56214,54.17061],[9.5711,54.16991],[9.58013,54.16977],[9.58913,54.1702],[9.59801,54.17117],[9.60667,54.17269],[9.615,54.17473],[9.62291,54.17728],[9.63032,54.18031],[9.63714,54.18377],[9.6433,54.18764],[9.64872,54.19186],[9.65335,54.1964],[9.65713,54.20119],[9.66003,54.2062],[9.662,54.21135],[9.66304,54.2166],[9.71383,54.2555],[9.71977,54.26221],[9.72813,54.26616],[9.73565,54.27065],[9.7422,54.27563],[9.84167,54.18333],[9.8404,54.18076],[9.8379,54.17973],[9.8356,54.17854],[9.83353,54.17722],[9.83172,54.17578],[9.83019,54.17423],[9.82894,54.17259],[9.82801,54.17088],[9.82739,54.16912],[9.82711,54.16734],[9.82715,54.16555],[9.82752,54.16377],[9.82821,54.16202],[9.82922,54.16033],[9.83054,54.15871],[9.83215,54.15719],[9.83403,54.15577],[9.83615,54.15448],[9.83851,54.15333],[9.84105,54.15234],[9.84377,54.15151],[9.84662,54.15086],[9.84958,54.15039],[9.85261,54.15012],[9.85566,54.15003],[9.85872,54.15014],[9.86174,54.15044],[9.86469,54.15092],[9.86753,54.15159],[9.87023,54.15244],[9.87276,54.15345],[9.87509,54.15461],[9.87719,54.15592],[9.9375,54.12083],[9.93014,54.11636],[9.92307,54.11178],[9.91686,54.10679],[9.91158,54.10145],[9.90731,54.0958],[9.90407,54.08993],[9.90192,54.08388],[9.90087,54.07773],[9.90093,54.07156],[9.90211,54.06542],[9.90439,54.05939],[9.90775,54.05353],[9.91214,54.04792],[9.91753,54.04261],[9.92384,54.03767],[9.93101,54.03314],[9.93895,54.02909],[9.94758,54.02556],[9.93333,53.9945],[9.93333,53.97783],[9.92473,53.97557],[9.91908,53.97665],[9.91328,53.97737],[9.90738,53.97773],[9.90145,53.97772],[9.89555,53.97735],[9.88975,53.97662],[9.88411,53.97553],[9.87869,53.9741],[9.87356,53.97235],[9.86878,53.97029],[9.86438,53.96794],[9.86043,53.96534],[9.85696,53.96251],[9.85402,53.95947],[9.85163,53.95628],[9.84982,53.95295],[9.84862,53.94953],[9.84803,53.94606],[9.84806,53.94256],[9.84872,53.93909],[9.84999,53.93568],[9.85186,53.93237],[9.85431,53.92919],[9.85731,53.92618],[9.86083,53.92337],[9.86484,53.92079],[9.86928,53.91847],[9.8741,53.91645],[9.87927,53.91472],[9.88471,53.91333],[9.87917,53.793],[9.67217,53.77783],[9.6679,53.7791],[9.66329,53.77986],[9.65857,53.78032],[9.65379,53.78045],[9.64902,53.78027],[9.64432,53.77977],[9.63974,53.77895],[9.63534,53.77784],[9.63119,53.77643],[9.62733,53.77476],[9.62382,53.77284],[9.45833,53.73333],[9.41117,53.78617],[9.41257,53.78459],[9.41471,53.78335],[9.41705,53.78226],[9.41958,53.78132],[9.42226,53.78054],[9.42507,53.77993],[9.42796,53.7795],[9.43092,53.77926],[9.43391,53.7792],[9.43689,53.77933],[9.43983,53.77965],[9.4427,53.78014],[9.44546,53.78082],[9.44808,53.78166],[9.45054,53.78266],[9.45281,53.78381],[9.45486,53.7851],[9.45666,53.78651],[9.4582,53.78802],[9.45946,53.78962],[9.46043,53.79129],[9.46109,53.79301],[9.46144,53.79477],[9.46147,53.79653],[9.46119,53.79829],[9.46059,53.80002],[9.45969,53.8017],[9.45849,53.80332],[9.45701,53.80485],[9.45526,53.80628],[9.45326,53.80759],[9.45104,53.80877],[9.44862,53.80981],[9.44602,53.81069],[9.44329,53.8114],[9.44044,53.81193],[9.43751,53.81229],[9.43454,53.81245],[9.43155,53.81244],[9.42858,53.81223],[9.42567,53.81184],[9.42284,53.81127],[9.42013,53.81053],[9.41757,53.80962],[9.41518,53.80856],[9.413,53.80735],[9.41105,53.80601],[9.40935,53.80456],[9.40792,53.80301],[9.40678,53.80138],[9.28883,53.87783],[9.26667,54.01667]]],["LFA 7 Bayern",[[10.425,49.29167],[10.15,49.18883],[10.14946,49.17744],[10.15596,49.16977],[10.16118,49.16169],[10.16508,49.15331],[10.16761,49.14469],[10.16874,49.13596],[10.16845,49.12719],[10.16676,49.11849],[10.16368,49.10996],[10.15924,49.10169],[10.1535,49.09377],[10.14651,49.08628],[10.13836,49.07933],[10.12913,49.07297],[10.11894,49.06728],[10.10788,49.06232],[10.09609,49.05816],[10.08369,49.05483],[10.125,49.0],[10.13371,48.99708],[10.14191,48.99676],[10.15002,48.99586],[10.15793,48.99439],[10.16555,48.99237],[10.17279,48.98982],[10.17957,48.98678],[10.18581,48.98326],[10.19144,48.97933],[10.19639,48.97502],[10.2006,48.97039],[10.20403,48.96548],[10.20662,48.96036],[10.20837,48.95509],[10.20923,48.94972],[10.20921,48.94432],[10.20829,48.93896],[10.20651,48.93369],[10.20386,48.92858],[10.20039,48.92369],[10.19614,48.91907],[10.19116,48.91478],[10.18549,48.91087],[10.17922,48.90738],[10.17241,48.90436],[10.16514,48.90184],[10.15751,48.89985],[10.14959,48.89841],[10.30833,48.85417],[10.33333,48.76117],[10.425,48.625],[10.61667,48.6125],[10.72917,48.68617],[10.72097,48.68842],[10.71683,48.69288],[10.71342,48.69761],[10.71078,48.70254],[10.70894,48.70763],[10.70791,48.71282],[10.70772,48.71806],[10.70835,48.72327],[10.70981,48.72842],[10.71208,48.73343],[10.71513,48.73826],[10.71894,48.74285],[10.72345,48.74716],[10.72862,48.75113],[10.73439,48.75472],[10.74069,48.75789],[10.74747,48.76061],[10.75464,48.76285],[10.76213,48.76458],[10.76985,48.76578],[10.77772,48.76644],[10.78565,48.76655],[10.79355,48.76612],[10.80134,48.76514],[10.80894,48.76363],[10.81625,48.7616],[10.8232,48.75908],[10.82971,48.75609],[10.83572,48.75267],[10.84114,48.74886],[10.84593,48.74469],[10.85004,48.74021],[10.85341,48.73547],[10.85601,48.73052],[10.85781,48.72543],[11.03333,48.73617],[11.03333,48.7625],[11.05833,48.7625],[11.10833,48.88333],[11.10926,48.88869],[11.11147,48.89388],[11.11453,48.89889],[11.11838,48.90365],[11.123,48.90811],[11.12832,48.91221],[11.13428,48.91592],[11.14081,48.91917],[11.14785,48.92195],[11.15529,48.92421],[11.16307,48.92593],[11.17108,48.92709],[11.17923,48.92767],[11.18743,48.92767],[11.19559,48.92709],[11.2036,48.92593],[11.21137,48.92421],[11.21882,48.92195],[11.22585,48.91917],[11.23239,48.91592],[11.23835,48.91221],[11.24367,48.90811],[11.24829,48.90365],[11.25214,48.89889],[11.25519,48.89388],[11.25741,48.88869],[11.25876,48.88336],[11.37783,48.99717],[11.24167,49.2],[11.22633,49.2],[11.21974,49.19187],[11.21479,49.18361],[11.20853,49.17574],[11.20102,49.16835],[11.19234,49.16153],[11.18261,49.15535],[11.17192,49.14988],[11.1604,49.14518],[11.14818,49.14132],[11.1354,49.13832],[11.12221,49.13623],[11.10875,49.13507],[11.09517,49.13485],[11.08164,49.13558],[11.0683,49.13724],[11.05531,49.13982],[11.04282,49.14329],[11.03096,49.14761],[11.01987,49.15273],[11.00969,49.1586],[11.00051,49.16513],[10.99245,49.17227],[10.9856,49.17993],[10.75,49.2695],[10.73992,49.26261],[10.73159,49.25527],[10.72207,49.24856],[10.71148,49.24258],[10.69995,49.23739],[10.68762,49.23306],[10.67463,49.22963],[10.66115,49.22715],[10.64732,49.22565],[10.63333,49.22515],[10.55,49.20833],[10.425,49.29167]]],["LFA 8 a",[[12.5,54.23333],[13.15,54.23333],[13.9,53.66667],[12.81667,53.65],[12.5,54.23333]]],["LFA 8 b",[[12.81667,53.65],[13.9,53.66667],[14.0,53.6],[14.0,53.0],[12.9,53.28333],[12.9,53.5],[12.81667,53.65]]],["LFA 8 c",[[12.9,53.28333],[14.0,53.0],[13.3,52.83333],[12.9,52.83333],[12.9,53.28333]]],["LFA 8 d",[[12.1,53.28333],[12.9,53.28333],[12.9,52.83333],[12.1,52.83333],[12.1,53.28333]]]];
 function loadLfa() {
-  S.lfa = [];
+  S.lfa = LFA_NFL_DATA.map(([name, ring]) => ({ name, geom: { type: 'Polygon', coordinates: [ring] }, lbl: innerPoint([ring]), src: 'nfl' }));
+  if (S.lfa.length) return;   // eingebaute amtliche Flächen; die DHV-Datei nur als Rückfall
   try {
     const t = A.lfa ? A.lfa() : ''; if (!t) return;
     const doc = new DOMParser().parseFromString(t, 'application/xml');
@@ -4950,9 +5048,39 @@ function loadLfa() {
       const nm = (pm.getElementsByTagName('name')[0] || {}).textContent || '';
       const rings = [...pm.getElementsByTagName('coordinates')].map(c => c.textContent.trim().split(/\s+/).map(x => x.split(',').map(Number)).filter(p => p.length >= 2 && !isNaN(p[0]) && !isNaN(p[1])))
         .filter(r => r.length > 2).map(r => { const a = r[0], b = r[r.length - 1]; return (a[0] !== b[0] || a[1] !== b[1]) ? r.concat([a]) : r; });
-      if (rings.length) S.lfa.push({ name: nm.trim() || 'Tieffluggebiet', geom: { type: 'Polygon', coordinates: rings } });
+      if (rings.length) { const g = { type: 'Polygon', coordinates: rings }; S.lfa.push({ name: nm.trim() || 'Tieffluggebiet', geom: g, lbl: innerPoint(rings) }); }
     });
   } catch (e) { S.lfa = []; }
+  try {
+    const grp = {};
+    S.lfa.forEach(l => { const m = String(l.name).match(/LFA\s*(\d+)\s*([a-d])?\b/i); if (m && !m[2]) (grp[m[1]] = grp[m[1]] || []).push(l); });
+    Object.values(grp).filter(g => g.length === 4).forEach(g => {
+      const c = l => { const p = geomRings(l.geom).flat(); return [p.reduce((a, q) => a + q[0], 0) / p.length, p.reduce((a, q) => a + q[1], 0) / p.length]; };
+      const rest = g.slice().sort((a, b) => c(b)[1] - c(a)[1]); rest.shift().sector = 'a';
+      rest.sort((a, b) => c(a)[0] - c(b)[0]); rest.shift().sector = 'd';
+      rest.sort((a, b) => c(b)[1] - c(a)[1]); rest[0].sector = 'b'; rest[1].sector = 'c';
+    });
+  } catch (e) { }
+}
+/** Beschriftungspunkt mitten in der Fläche (Punkt mit größtem Abstand zum Rand, grob über ein Raster) – [lon, lat] */
+function innerPoint(rings) {
+  const r0 = rings[0] || []; if (!r0.length) return null;
+  let w = 1e9, e = -1e9, so = 1e9, n = -1e9; r0.forEach(p => { w = Math.min(w, p[0]); e = Math.max(e, p[0]); so = Math.min(so, p[1]); n = Math.max(n, p[1]); });
+  const kx = Math.cos((so + n) / 2 * Math.PI / 180);
+  const edgeD = (x, y) => { let b = 1e9; rings.forEach(r => { for (let i = 0; i < r.length; i++) { const a = r[i], c = r[(i + 1) % r.length];
+    const ax = (a[0] - x) * kx, ay = a[1] - y, bx = (c[0] - a[0]) * kx, by = c[1] - a[1], l = bx * bx + by * by;
+    const t = l > 0 ? Math.max(0, Math.min(1, -(ax * bx + ay * by) / l)) : 0; b = Math.min(b, Math.hypot(ax + t * bx, ay + t * by)); } }); return b; };
+  const inside = (x, y) => inRing(y, x, r0) && !rings.slice(1).some(r => inRing(y, x, r));
+  let best = null, bd = -1, cx = (w + e) / 2, cy = (so + n) / 2, sx = e - w, sy = n - so;
+  for (let pass = 0; pass < 3; pass++) {   // grob → fein um den besten Punkt
+    const N = 24;
+    for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) {
+      const x = cx - sx / 2 + sx * i / N, y = cy - sy / 2 + sy * j / N;
+      if (!inside(x, y)) continue; const d = edgeD(x, y); if (d > bd) { bd = d; best = [x, y]; }
+    }
+    if (!best) break; cx = best[0]; cy = best[1]; sx /= 4; sy /= 4;
+  }
+  return best || r0[0];
 }
 /** Jetzt Tiefflugbetrieb? Allgemein Mo–Fr 08–17 Uhr; LFA 250 ft Mo–Fr 09–12:30 und 13:30–17 Uhr (Ortszeit, nicht an Feiertagen, bei Übungen abweichend) */
 function lowFlyNow(d) {
@@ -4969,16 +5097,44 @@ function lfaNear(cs, maxD) {
     return { l, d };
   }).filter(x => x.d <= maxD).sort((a, b) => a.d - b.d);
 }
+const lfaShort = n => { const m = String(n).match(/^LFA\s*\d+(\s+[a-d]\b)?/i); return m ? String(n).trim() : (String(n).match(/LFA\s*\d+[^,;]{0,30}/i) || [n])[0].trim(); };
+/** Nächster Beginn der LFA-Betriebszeit (Ortszeit) */
+function lfaNextStart(d) {
+  const t = new Date(d || Date.now()); t.setSeconds(0, 0); t.setMinutes(Math.ceil(t.getMinutes() / 15) * 15);
+  for (let i = 0; i < 8 * 96; i++) { if (lowFlyNow(t).lfa) return t; t.setMinutes(t.getMinutes() + 15); }
+  return null;
+}
+/** Pre-Check: liegt eine markierte Wiese in einem Tieffluggebiet? Dann nach Betriebszeit bewerten; sonst nur kurzer Hinweis */
+function lowFlyBriefHtml(sel) {
+  const fs = sel.filter(f => f.center || (f.shapes && f.shapes.length));
+  const hits = [];
+  (S.lfa || []).forEach(l => { const rs = geomRings(l.geom);
+    fs.forEach(f => { const pts = fieldRingLL(f).concat(f.center ? [[f.center[1], f.center[0]]] : []);
+      if (pts.some(p => rs.some(r => inRing(p[1], p[0], r)))) hits.push({ l, f }); }); });
+  const now = lowFlyNow();
+  if (!hits.length) return `<div class="zone" style="border-left:5px solid #8a8f98"><h4 style="color:#5d6975">✈ Kein Tieffluggebiet (LFA) am Feld</h4><div class="meta">Trotzdem in ganz Deutschland Mo–Fr 08–17 Uhr militärischer Tiefflug ab 500 ft (ca. 150 m)${now.gen ? ' – <b>jetzt Betriebszeit</b>' : ''}, Hubschrauber auch tiefer. Wird nicht per NOTAM angekündigt.${S.lfa && S.lfa.length ? '' : ' · Tieffluggebiete noch nicht geladen'}</div></div>`;
+  const names = [...new Set(hits.map(x => lfaShort(x.l.name)))].join(', ');
+  const multi = fs.length > 1, fnames = [...new Set(hits.map(x => x.f.title))];
+  const nx = now.lfa ? null : lfaNextStart();
+  const nxTxt = nx ? (nx.toDateString() === new Date().toDateString() ? 'heute ' : ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][nx.getDay()] + ' ') + nx.toTimeString().slice(0, 5) + ' Uhr' : '';
+  const col = now.lfa ? '#7b2fbf' : '#8a6fb0';
+  return `<div class="zone" style="border:2px solid ${col}"><h4 style="color:${col}">✈ ${multi ? 'Felder liegen' : 'Feld liegt'} im Tieffluggebiet ${esc(names)} – ${now.lfa ? '<b>jetzt aktiv</b>' : 'gerade nicht aktiv'}</h4>
+    ${multi ? `<div class="meta">Betrifft: ${fnames.map(esc).join(', ')}</div>` : ''}
+    <ul>${now.lfa ? `<li><b>Jetzt Betriebszeit:</b> Kampfjets dürfen hier bis <b>250 ft (ca. 76 m)</b> über Grund fliegen – Luftraum ständig beobachten, Beobachter einsetzen, bei Jet-Lärm sofort tief gehen und landen.</li>`
+      : `<li>Aktuell außerhalb der Betriebszeit${nxTxt ? ' – nächste ab <b>' + nxTxt + '</b>' : ''}. Bei Übungen auch abweichend möglich.</li>`}
+    <li>Betriebszeiten: Mo–Fr 09:00–12:30 und 13:30–17:00 Uhr (nicht an Feiertagen); Tiefflug allgemein Mo–Fr 08–17 Uhr ab 500 ft.</li>
+    <li>Wird nicht per NOTAM angekündigt; Status beim Fluginformationsdienst (FIS) erfragbar.</li></ul></div>`;
+}
 function lowFlyHtml(cs, brief) {
-  const now = lowFlyNow(), near = cs.length ? lfaNear(cs, 10000) : [], inside = near.filter(x => x.d === 0);
+  const now = lowFlyNow(), near = cs.length ? lfaNear(cs, brief ? 10000 : NOTAM_NEAR) : [], inside = near.filter(x => x.d === 0);
   const col = inside.length ? '#7b2fbf' : '#5d6975';
-  let h = `<div class="zone" style="border-left:5px solid ${col}"><h4 style="color:${col}">✈ Militärischer Tiefflug (Bundeswehr) <span class="chip ${now.gen ? 'dist' : 'grey'}">${now.gen ? 'jetzt Betriebszeit' : 'jetzt keine Betriebszeit'}</span></h4>`;
-  if (inside.length) h += `<div class="meta" style="color:#7b2fbf"><b>${brief ? 'Wiese liegt' : 'Eure Felder liegen'} im Tieffluggebiet ${inside.map(x => esc(x.l.name)).join(', ')}</b> – Kampfjets dürfen hier bis <b>250 ft (ca. 76 m)</b> über Grund fliegen${now.lfa ? ' – <b>jetzt aktiv</b>' : ''}.</div>`;
+  let h = `<div class="zone" style="border-left:5px solid ${col}"><h4 style="color:${col}">✈ Militärischer Tiefflug (Bundeswehr) <span class="chip ${now.gen ? 'dist' : 'grey'}">${now.gen ? 'jetzt Betriebszeit' : 'gerade außerhalb der Betriebszeit'}</span></h4>`;
+  if (inside.length) h += `<div class="meta" style="color:#7b2fbf"><b>${brief ? 'Wiese liegt' : (S.me ? 'Dein Standort liegt' : 'Eure Felder liegen')} im Tieffluggebiet ${inside.map(x => esc(x.l.name)).join(', ')}</b> – Kampfjets dürfen hier bis <b>250 ft (ca. 76 m)</b> über Grund fliegen${now.lfa ? ' – <b>jetzt aktiv</b>' : ''}.</div>`;
   else if (near.length) h += `<div class="meta">Tieffluggebiet ${esc(near[0].l.name)} in ${(near[0].d / 1000).toFixed(1).replace('.', ',')} km Entfernung.</div>`;
   h += `<ul><li>Ganz Deutschland: Mo–Fr 08:00–17:00 Uhr Tiefflug militärischer Jets, Transport- und Sonderflugzeuge ab <b>500 ft (ca. 150 m)</b> über Grund – Hubschrauber auch tiefer.</li>
     <li>Tieffluggebiete LFA 1–8: Mo–Fr 09:00–12:30 und 13:30–17:00 Uhr bis <b>250 ft (ca. 76 m)</b>; 01.05.–31.10. Mittagspause 12:30–13:30 Uhr. Bei Übungen auch abweichend.</li>
     <li>Wird <b>nicht per NOTAM</b> angekündigt. Keine Flugverbotszone – aber Kollisionsgefahr: Luftraum beobachten, bei Jet-Lärm sofort tief gehen.</li></ul>
-    ${brief ? '' : `<div class="meta">${S.lfa && S.lfa.length ? S.lfa.length + ' Tieffluggebiete auf der Karte (lila)' : 'Tieffluggebiete noch nicht geladen – kommt beim nächsten Abruf (online)'} · Quelle: NfL 2025-1-3686 (DFS), Flächen vereinfacht vom DHV ·
+    ${brief ? '' : `<div class="meta">${S.lfa && S.lfa.length ? S.lfa.length + ' Tieffluggebiete auf der Karte (lila)' : 'Tieffluggebiete noch nicht geladen – kommt beim nächsten Abruf (online)'} · Quelle: NfL 2025-1-3686 (Bundeswehr/DFS) – Eckpunkte und Kreisbögen exakt, Abschnitte entlang Bahn/Fluss/Straße genähert ·
       <span class="lnk" data-url="${LFA_NFL}">Bekanntmachung (PDF)</span> · <span class="lnk" data-url="${LFA_DHV}">DHV-Seite</span></div>`}</div>`;
   return h;
 }
@@ -5010,12 +5166,23 @@ function loadNotams() {
   notamChip(); draw();
 }
 window.onNotams = () => { loadNotams(); if ($('pgSet').classList.contains('open')) fillSettings(); };
-const NOTAM_NEAR = 50000;   // m – im Hinweis-Chip und oben in der Liste
+// Umkreis für die automatische NOTAM-Prüfung (Einstellung, km) – gemessen vom aktuellen Standort, sonst von den Feldern
+const nKm = () => Math.max(5, +P.notamKm || 50);
+Object.defineProperty(window, 'NOTAM_NEAR', { get: () => nKm() * 1000, configurable: true });
+/** Bezugspunkte der NOTAM-Prüfung: aktueller Standort, sonst die Felder, sonst die Kartenmitte */
+function notamRef() {
+  if (S.me) return [S.me];
+  const fs = S.files.filter(f => !f.dup && f.center);
+  return fs.length ? fs.map(f => f.center) : [[V.lat, V.lon]];
+}
+const notamRefTxt = () => S.me ? 'um deinen Standort' : S.files.length ? 'um eure Felder' : 'um die Kartenmitte';
 /** Entfernung jeder Einschränkung zum nächsten Feld (ohne Felder: zur Kartenmitte); neu, wenn sich die Felder ändern */
 function notamDists() {
-  const fs = S.files.filter(f => !f.dup && f.center), sig = fs.length + ':' + S.notams.length + ':' + (fs[0] ? fs[0].center.join() : V.lat.toFixed(2));
+  const fs = S.files.filter(f => !f.dup && f.center), me = S.me ? S.me.map(x => x.toFixed(2)).join() : '';
+  const sig = fs.length + ':' + S.notams.length + ':' + (S.lfa || []).length + ':' + me + ':' + nKm() + ':' + (fs[0] ? fs[0].center.join() : V.lat.toFixed(2));
   if (S.notamSig === sig) return; S.notamSig = sig;
-  const ref = fs.length ? fs.map(f => f.center) : [[V.lat, V.lon]];
+  const ref = notamRef();
+  S.lfaNear = ref.length ? lfaNear(ref, NOTAM_NEAR) : [];
   S.notams.forEach(n => { const pts = geomRings(n.geom).flat().filter((p, i, a) => a.length < 60 || i % Math.ceil(a.length / 60) === 0);
     n.dist = pts.length ? Math.min(...ref.map(c => Math.min(...pts.map(p => distM(c[0], c[1], p[1], p[0]))))) : 1e9; });
 }
@@ -5027,13 +5194,21 @@ function notamChip() {
   const old = S.notamFetched && Date.now() - S.notamFetched > 24 * 3600000;
   const ic = '<svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>';
   if (!S.notamFetched && !S.notams.length) { el.className = 'none'; el.innerHTML = ic + 'NOTAM: noch nicht geladen'; }
-  else if (act) { el.className = ''; el.innerHTML = ic + `${act} aktive NOTAM${act > 1 ? 's' : ''} · 50 km${inact ? ` · +${inact} geplant` : ''}`; }
-  else if (inact) { el.className = 'inact'; el.innerHTML = ic + `${inact} geplante NOTAM${inact > 1 ? 's' : ''} · 50 km`; }
-  else { el.className = 'ok'; el.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Keine NOTAMs · 50 km'; }
+  else if (act) { el.className = ''; el.innerHTML = ic + `${act} aktive NOTAM${act > 1 ? 's' : ''} · ${nKm()} km${inact ? ` · +${inact} geplant` : ''}`; }
+  else if (inact) { el.className = 'inact'; el.innerHTML = ic + `${inact} geplante NOTAM${inact > 1 ? 's' : ''} · ${nKm()} km`; }
+  else { el.className = 'ok'; el.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Keine NOTAMs · ' + nKm() + ' km'; }
+  // Tieffluggebiet in der Nähe: immer spürbar (unabhängig von Betriebszeiten)
+  const lf = S.lfaNear || [];
+  if (lf.length) {
+    const t = lf[0].d === 0 ? 'im Tieffluggebiet ' + esc(lfaShort(lf[0].l.name)) : esc(lfaShort(lf[0].l.name)) + ' ' + (lf[0].d / 1000).toFixed(lf[0].d < 10000 ? 1 : 0).replace('.', ',') + ' km';
+    if (el.className === 'ok') { el.className = 'lfa'; el.innerHTML = '<svg viewBox="0 0 24 24"><path d="M2 16l20-8-6 9-4-2-3 4v-5z"/></svg>' + t; }
+    else el.innerHTML += ' <small>· ' + t + '</small>';
+  }
   if (old) el.innerHTML += ' <small>· älter als 24 h</small>';
   el.innerHTML += '<b class="nchev">›</b>';   // antippen öffnet die NOTAM-Ansicht
   // nur zeigen, wenn es etwas zu beachten gibt: NOTAMs in 50 km, veralteter Stand oder noch nicht geladen – „alles frei“ spart den Platz
   el.style.display = el.className === 'ok' && !old ? 'none' : 'flex';
+  el.classList.toggle('lfain', !!(lf[0] && lf[0].d === 0));
 }
 // Detailseite auf dipul.de aus dem Namen ableiten, z. B. „ED-R Eickhofer Heide (NOTAM D1659/26)“ -> /ed-r-eickhofer-heide/
 function notamSlug(name) {   // nur für ED-R-Gebiete gibt es bei dipul eine Detailseite mit diesem Namen
@@ -5066,7 +5241,7 @@ function notamMapView(cv, items, nNear, onPick) {
   // Start und „Alles zeigen“: immer ganz Deutschland mit allen Einschränkungen
   const allPts = () => [[DE_BOX[0], DE_BOX[1]], [DE_BOX[2], DE_BOX[3]]].concat(items.flatMap(n => geomRings(n.geom).flat()));
   // 50-km-Bereich um eure Felder als Kreis (Mitte der Felder, Radius 50 km + halbe Ausdehnung)
-  const fb = S.files.length ? bounds(S.files.filter(f => !f.dup)) : null;
+  const fb = S.me ? { n: S.me[0], s: S.me[0], e: S.me[1], w: S.me[1] } : S.files.length ? bounds(S.files.filter(f => !f.dup)) : null;
   const ring50 = fb ? (() => { const la = (fb.n + fb.s) / 2, lo = (fb.e + fb.w) / 2, half = Math.hypot((fb.n - fb.s) * 111.2, (fb.e - fb.w) * 111.2 * Math.cos(la * Math.PI / 180)) / 2, rk = NOTAM_NEAR / 1000 + half;
     return Array.from({ length: 73 }, (_, i) => { const a = i / 72 * 2 * Math.PI; return [la + Math.cos(a) * rk / 111.2, lo + Math.sin(a) * rk / (111.2 * Math.cos(la * Math.PI / 180))]; }); })() : null;
   const P2 = (la, lo) => { const k = 256 * Math.pow(2, z); return [(lon2x(lo) - cx) * k + Wm / 2, (lat2y(la) - cy) * k + Hm / 2]; };
@@ -5085,18 +5260,12 @@ function notamMapView(cv, items, nNear, onPick) {
     if (ring50) {   // Umkreis 50 km um die Felder
       g.save(); g.beginPath(); ring50.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath();
       g.fillStyle = nNear ? 'rgba(255,170,0,.08)' : 'rgba(19,165,56,.10)'; g.fill(); g.setLineDash([8, 6]); g.lineWidth = 2; g.strokeStyle = nNear ? '#e8a200' : '#13a538'; g.stroke(); g.restore();
-      const [tx, ty] = P2(ring50[0][0], ring50[0][1]); g.font = '700 12px Roboto,system-ui,sans-serif'; g.textAlign = 'center'; g.fillStyle = nNear ? '#9a6b00' : '#0e7a2c'; g.fillText('50 km um eure Felder', tx, ty - 6);
+      const [tx, ty] = P2(ring50[0][0], ring50[0][1]); g.font = '700 12px Roboto,system-ui,sans-serif'; g.textAlign = 'center'; g.fillStyle = nNear ? '#9a6b00' : '#0e7a2c'; g.fillText(nKm() + ' km ' + notamRefTxt(), tx, ty - 6);
     }
     S.files.filter(f => !f.dup).forEach(f => (f.outline ? [f.outline] : f.shapes.map(sh => sh.pts)).forEach(r => {
       g.beginPath(); r.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath();
       g.fillStyle = 'rgba(30,123,255,.25)'; g.fill(); g.strokeStyle = '#1e7bff'; g.lineWidth = 1.5; g.stroke(); }));
-    (S.lfa || []).forEach(l => {
-      g.save(); g.lineWidth = 2; g.strokeStyle = '#7b2fbf'; g.fillStyle = 'rgba(123,47,191,.10)';
-      geomRings(l.geom).forEach(r => { g.beginPath(); r.forEach((c, j) => { const [x, y] = P2(c[1], c[0]); j ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath(); g.fill(); g.stroke(); });
-      const pts = geomRings(l.geom).flat(), [lx, ly] = P2(pts.reduce((a, c) => a + c[1], 0) / pts.length, pts.reduce((a, c) => a + c[0], 0) / pts.length);
-      g.font = '700 11px Roboto,system-ui,sans-serif'; g.textAlign = 'center'; g.fillStyle = '#5a1f8f'; g.fillText((l.name.match(/LFA\s*\d+\s*[a-d]?/i) || [l.name])[0], lx, ly);
-      g.restore();
-    });
+    (S.lfa || []).forEach(l => paintLfa(g, l, P2, false));
     items.forEach((n, i) => {
       const on = i === sel;
       g.save(); g.setLineDash(n.active ? [12, 5] : [6, 5]); g.lineWidth = on ? 5 : n.active ? 3.5 : 2.5;
@@ -5109,7 +5278,7 @@ function notamMapView(cv, items, nNear, onPick) {
       const t = String(i + 1); g.fillStyle = n.active ? '#b3131b' : '#5d6975'; g.beginPath(); g.arc(lx, ly, 11, 0, 7); g.fill(); g.fillStyle = '#fff'; g.fillText(t, lx, ly + 4);
     });
     if (!nNear) { g.fillStyle = 'rgba(19,165,56,.92)'; g.font = '700 14px Roboto,system-ui,sans-serif'; g.textAlign = 'center';
-      const m = 'Keine temporären Einschränkungen im Umkreis von 50 km'; const tw = g.measureText(m).width + 24; g.beginPath(); g.roundRect ? g.roundRect(Wm / 2 - tw / 2, 12, tw, 30, 15) : g.rect(Wm / 2 - tw / 2, 12, tw, 30); g.fill(); g.fillStyle = '#fff'; g.fillText(m, Wm / 2, 32); }
+      const m = 'Keine temporären Einschränkungen im Umkreis von ' + nKm() + ' km'; const tw = g.measureText(m).width + 24; g.beginPath(); g.roundRect ? g.roundRect(Wm / 2 - tw / 2, 12, tw, 30, 15) : g.rect(Wm / 2 - tw / 2, 12, tw, 30); g.fill(); g.fillStyle = '#fff'; g.fillText(m, Wm / 2, 32); }
     g.font = '11px Roboto,system-ui,sans-serif'; g.textAlign = 'right'; const at = '© GeoBasis-DE / BKG · dipul';
     g.fillStyle = 'rgba(255,255,255,.8)'; g.fillRect(Wm - g.measureText(at).width - 8, Hm - 15, 400, 15); g.fillStyle = '#334'; g.fillText(at, Wm - 4, Hm - 4);
   }
@@ -5160,13 +5329,13 @@ function notamMapView(cv, items, nNear, onPick) {
 function showNotams() {
   notamDists();
   const stamp = S.notamFetched ? `Stand ${fmtDate(S.notamFetched)}` + (Date.now() - S.notamFetched > 7 * 86400000 ? ' <b style="color:#b3131b">⚠ veraltet</b>' : '') : 'noch nicht geladen';
-  let html = `<div class="meta" style="margin-bottom:10px">Temporäre Beschränkungsgebiete für Drohnen (dipul) in ganz Deutschland · Zeiten in Ortszeit – oben die im Umkreis von 50 km um deine Felder · ${stamp} · online stündlich aktualisiert · Quelle: dipul, CC BY-ND 4.0 ·
+  let html = `<div class="meta" style="margin-bottom:10px">Temporäre Beschränkungsgebiete für Drohnen (dipul) in ganz Deutschland · Zeiten in Ortszeit – oben die im Umkreis von ${nKm()} km ${notamRefTxt()} (einstellbar) · ${stamp} · online stündlich aktualisiert · Quelle: dipul, CC BY-ND 4.0 ·
     <span class="lnk" data-url="${LINK_TBE}">Infos zu temporären Betriebseinschränkungen</span> · <span class="lnk" data-url="${LINK_MAPTOOL}">dipul-Karte öffnen</span> · <span class="lnk" id="nReload">jetzt neu laden</span></div>`;
   const sorted = [...S.notams].sort((a, b) => (b.dist <= NOTAM_NEAR) - (a.dist <= NOTAM_NEAR) || b.active - a.active || (a.soon && b.soon ? a.start - b.start : 0) || a.dist - b.dist);
   const nNear = sorted.filter(n => n.dist <= NOTAM_NEAR).length;
   html += `<div class="nmapwrap"><canvas id="nMap"></canvas><div class="nmapbtn"><button id="nmIn">+</button><button id="nmOut">−</button><button id="nmAll" title="Alles zeigen">⤢</button></div>
     <div class="nmleg"><span style="border-color:#ff2d2d;background:rgba(255,45,45,.2)"></span>aktiv <span style="border-color:#5d6975;background:rgba(93,105,117,.15)"></span>geplant/inaktiv <span style="border-color:#1e7bff;border-style:solid;background:rgba(30,123,255,.25)"></span>deine Felder${S.lfa && S.lfa.length ? ' <span style="border-color:#7b2fbf;border-style:solid;background:rgba(123,47,191,.12)"></span>Tieffluggebiet' : ''}</div></div>`;
-  html += lowFlyHtml(S.files.filter(f => f.center && !f.dup).map(f => f.center), false);
+  html += lowFlyHtml(notamRef(), false);
   if (S.notamErr) html += `<div class="zone" style="border-left:5px solid #b3131b"><h4>Aktualisierung fehlgeschlagen</h4><div class="meta">${esc(S.notamErr)} – angezeigt wird der letzte gespeicherte Stand.</div></div>`;
   sorted.forEach((n, i) => {
     const p = n.props;
@@ -5174,7 +5343,7 @@ function showNotams() {
       .map(k => `<div><b>${esc(NOTAM_LABEL[k] || k)}:</b> ${isDateStr(p[k]) ? esc(fmtDate(new Date(p[k]).getTime())) : /^https?:/.test(p[k]) ? `<span class="lnk" data-url="${esc(p[k])}">${esc(p[k])}</span>` : esc(p[k])}</div>`).join('');
     const nf = S.files.length ? S.files.map(f => ({ f, d: Math.min(...geomRings(n.geom).flat().map(c => fieldDistTo(f, c[1], c[0]))) })).sort((a, b) => a.d - b.d)[0] : null;
     if (i === nNear && i < sorted.length) html += `<h3 class="sec">Weiter entfernt in Deutschland (${sorted.length - nNear})</h3>`;
-    else if (i < nNear && (i === 0 || sorted[i - 1].active !== n.active)) html += `<h3 class="sec">${n.active ? 'Aktuell aktiv' : 'Demnächst / geplant'} – im Umkreis von 50 km</h3>`;
+    else if (i < nNear && (i === 0 || sorted[i - 1].active !== n.active)) html += `<h3 class="sec">${n.active ? 'Aktuell aktiv' : 'Demnächst / geplant'} – im Umkreis von ${nKm()} km</h3>`;
     html += `<div class="zone" data-ni="${i}"><h4><span class="nnum ${n.active ? '' : 'in'}">${i + 1}</span>${esc(notamTitle(n))} <span class="chip ${n.active ? (n.recur ? 'dist' : '') : 'grey'}">${n.active ? (n.recur ? 'Aktiv zu bestimmten Zeiten' : 'Aktiv') : n.soon ? 'Demnächst ab ' + esc(fmtDate(n.start)) : 'Geplant / inaktiv'}</span></h4>
       ${n.end ? `<div class="meta">Gültig ${n.start ? 'vom ' + esc(fmtDate(n.start)) + ' ' : ''}bis ${esc(fmtDate(n.end))} (Ortszeit)${n.recur ? ' · <b>nur in den Aktivierungszeiten</b>' : ''}</div>` : ''}
       ${nf && nf.d < 1e8 ? `<div class="meta">Nächstes Feld: ${esc(nf.f.title)} – ${nf.d < 1000 ? Math.round(nf.d) + ' m' : (nf.d / 1000).toFixed(1).replace('.', ',') + ' km'}</div>` : ''}
@@ -5204,7 +5373,7 @@ function showNotams() {
 $('notam').onclick = showNotams;
 $('bNotamList').onclick = showNotams;
 setTimeout(() => { try { notamChip(); } catch (e) { } }, 1200);
-setInterval(() => { if (A.notamSync) A.notamSync(false); }, 3600 * 1000);
+setInterval(() => { if (A.notamSync && isOnline()) A.notamSync(false); }, 10 * 60 * 1000);   // alle 10 min prüfen – geladen wird höchstens stündlich, nach Fehlern sofort wieder
 
 // ================= Geozonen: Abgleich & Hinweis =================
 let geoProgress = null;
@@ -5607,7 +5776,7 @@ const TOUR = [
   ['#bLoc', 'Mein Standort', 'Springt zu deinem GPS-Standort.'],
   ['#wind', 'Wind & Wetter', 'Wind in 10/50/100 m und Kompass. Antippen öffnet das Wetter: Bewertung des Einsatzfensters am Morgen, Tageslauf, 8-Tage-Vorschau.'],
   ['#net', 'Online / Offline', 'Zeigt, ob Internet da ist. Ohne Internet läuft alles aus dem Speicher – nur „UAV Editor“ braucht Netz.'],
-  ['#notam', 'NOTAMs', 'Immer oben sichtbar: rot = aktive Flugbeschränkung im Umkreis von 50 km, orange = geplant, grün = keine. Antippen zeigt die Karte mit allen NOTAMs in Deutschland.'],
+  ['#notam', 'NOTAMs', 'Erscheint, wenn es etwas zu beachten gibt: rot = aktive Flugbeschränkung im eingestellten Umkreis um deinen Standort, orange = geplant, lila = militärisches Tieffluggebiet in der Nähe. Antippen zeigt die Karte mit allen NOTAMs in Deutschland.'],
   ['#bPlan', 'Einsatzplan', 'Reihenfolge der markierten Wiesen, Fahrt, Akkus, gemeinsamer Standort für Pilot + Spotter (in den Einstellungen einschaltbar).'],
   ['#bSet', 'Einstellungen', 'Drohne, Fernpilotenzeugnis, Allgemeinerlaubnis/-verfügungen, UAV-Editor-Zugang, Ordner, Offline-Speicher – und diese Einführung.']
 ];
@@ -5831,6 +6000,48 @@ function openDir(path) {
 }
 $('pCancel').onclick = () => { $('pgPick').classList.remove('open'); suReturn = false; };
 $('pOk').onclick = () => { setP(pick.key, pick.path); $('pgPick').classList.remove('open'); fillSettings(); if (pick.key === 'rcDir' && P.fsrc === 'rc') load(true); if (suReturn) { suReturn = false; showSetup(suStep); } };
+
+// ================= 5D-Knopf der Fernsteuerung =================
+// Karte: hoch/runter = zoomen · links/rechts = Feld für Feld durchgehen · drücken = Feld markieren (ohne gewähltes Feld: eigener Standort)
+// Seiten/Dialoge: hoch/runter = blättern · links = zurück
+function rcScrollBox() {
+  const open = [...document.querySelectorAll('.dlg.open .box, .page.open')].pop(); if (!open) return null;
+  const cands = [open, ...open.querySelectorAll('*')].filter(el => el.scrollHeight > el.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(el).overflowY));
+  return cands.sort((a, b) => b.clientHeight - a.clientHeight)[0] || open;
+}
+function rcFieldStep(dir) {
+  const fs = S.files.filter(f => visible(f) && f.center);
+  if (!fs.length) return toast('Keine Felder auf der Karte.');
+  let i = fs.indexOf(S.kf);
+  if (i < 0) {   // Start: das Feld, das der Kartenmitte am nächsten liegt
+    let best = 1e18; fs.forEach((f, k) => { const d = distM(V.lat, V.lon, f.center[0], f.center[1]); if (d < best) { best = d; i = k; } });
+  } else {
+    // nächstes Feld in Pfeilrichtung (nach Osten/Westen), bei Gleichstand das nächstgelegene
+    const c = S.kf.center, side = fs.map((f, k) => ({ f, k, dx: (f.center[1] - c[1]) * dir, d: distM(c[0], c[1], f.center[0], f.center[1]) })).filter(x => x.f !== S.kf && x.dx > -1e-9);
+    if (side.length) i = side.sort((a, b) => (a.d / (1 + 4 * a.dx * 71000 / Math.max(a.d, 1))) - (b.d / (1 + 4 * b.dx * 71000 / Math.max(b.d, 1))))[0].k;
+    else i = (i + dir + fs.length) % fs.length;
+  }
+  S.kf = fs[i]; V.lat = S.kf.center[0]; V.lon = S.kf.center[1]; if (V.z < 14) V.z = 14; draw();
+  toast(`${S.kf.title}${S.kf.selected ? ' · markiert' : ''} – 5D drücken = ${S.kf.selected ? 'abwählen' : 'markieren'}`, false, 2500);
+}
+window.onRcKey = (k, rep) => {
+  if (rcKeyTest) { rcKeyShow('5D ' + ({ 19: 'hoch', 20: 'runter', 21: 'links', 22: 'rechts', 23: 'drücken' }[k] || k)); return; }
+  const ae = document.activeElement; if (ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName)) { if (k === 23) ae.blur(); return; }
+  const box = rcScrollBox();
+  if (box) {   // Seite oder Dialog offen
+    if (k === 19 || k === 20) box.scrollBy({ top: (k === 20 ? 1 : -1) * Math.round(box.clientHeight * .4), behavior: 'smooth' });
+    else if (k === 21) window.onBack();
+    return;
+  }
+  if (k === 19) zoomAt(V.z + 1, W / 2, mapH() / 2);
+  else if (k === 20) zoomAt(V.z - 1, W / 2, mapH() / 2);
+  else if (k === 21 || k === 22) { if (!rep || rep % 3 === 0) rcFieldStep(k === 22 ? 1 : -1); }
+  else if (k === 23) { if (S.kf && S.files.includes(S.kf)) { toggle(S.kf); toast(S.kf.title + (S.kf.selected ? ' markiert' : ' abgewählt'), 'ok', 1800); } else $('bLoc').onclick(); }
+};
+// Tasten-Test (Einstellungen): zeigt, welche Taste die RC meldet
+let rcKeyTest = false;
+function rcKeyShow(t) { const el = $('vRcKey'); if (el) el.innerHTML = '<b>Erkannt: ' + esc(t) + '</b>'; }
+window.onRcKeyOther = k => { if (rcKeyTest) rcKeyShow('Taste Nr. ' + k + ' (wird nicht benutzt)'); };
 
 // Zurück-Taste der RC
 window.onBack = () => {

@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Looper;
 import android.provider.Settings;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
@@ -92,6 +93,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        installAiaTrust();   // fehlende Zwischenzertifikate (dulv.de u. a.) automatisch nachladen
         prefs = getSharedPreferences("settings", Context.MODE_PRIVATE);
         dopCleanup();   // einmalig: Luftbilder mit grauem Fleck entfernen
         cacheVersionCheck();   // geänderte Datenbereiche aufräumen
@@ -172,9 +174,29 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (hasFocus) hideSystemBars();
     }
 
+    /** 5D-Knopf der Fernsteuerung (meldet sich als Steuerkreuz): an die App weiterreichen. Andere Tasten (Zurück, Lautstärke …) normal. */
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent e) {
+        int k = e.getKeyCode();
+        boolean dpad = k == KeyEvent.KEYCODE_DPAD_UP || k == KeyEvent.KEYCODE_DPAD_DOWN || k == KeyEvent.KEYCODE_DPAD_LEFT
+                || k == KeyEvent.KEYCODE_DPAD_RIGHT || k == KeyEvent.KEYCODE_DPAD_CENTER;
+        boolean inApp = pageBox != null && pageBox.getVisibility() == View.VISIBLE;   // Webseite/PDF in der App: dort normal blättern
+        if (dpad && web != null && !inApp) {
+            if (e.getAction() == KeyEvent.ACTION_DOWN)
+                web.evaluateJavascript("window.onRcKey && window.onRcKey(" + k + "," + e.getRepeatCount() + ")", null);
+            return true;
+        }
+        // unbekannte Tasten für den Tasten-Test in den Einstellungen melden (nicht abfangen)
+        if (e.getAction() == KeyEvent.ACTION_DOWN && web != null && k != KeyEvent.KEYCODE_BACK)
+            web.evaluateJavascript("window.onRcKeyOther && window.onRcKeyOther(" + k + ")", null);
+        return super.dispatchKeyEvent(e);
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        // Zugriff gerade (wieder) erteilt, z. B. nach Neuinstallation: ab jetzt den Ordner „Kitzrettung Cache“ benutzen und Karte neu laden
+        try { File dc = dataDirCache; if (hasFileAccess() && dc != null && dc.equals(super.getFilesDir())) { dataDirCache = null; if (web != null && prefs.getBoolean("prefs_restored", false)) web.reload(); } } catch (Exception ignored) { }
         try { if (hasFileAccess() && !prefs.getBoolean("prefs_restored", false) && prefsRestore() && web != null) { web.reload(); } } catch (Exception ignored) { }
         try { if (hasFileAccess()) dataMigrate(); } catch (Exception ignored) { }   // Daten in „Kitzrettung Cache“ umziehen (einmalig)
         try { if (hasFileAccess() && !prefs.contains("uave_pw")) new Thread(() -> { uaveBackupRestore(); if (prefs.contains("uave_pw")) js("window.onUaveRestored && window.onUaveRestored()"); }).start(); } catch (Exception ignored) { }
@@ -1009,20 +1031,15 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         /** Größe je Datenbereich – im Hintergrund gezählt (bei vielen Kacheln dauert das), Ergebnis über window.onCacheInfo */
         @JavascriptInterface
         public void cacheInfoAsync() {
+            // 1. sofort den zuletzt gezählten Stand zeigen (liegt im Cache-Ordner, überlebt Updates)
+            try { File lf = cacheCountFile(); if (lf.isFile()) { JSONObject o = new JSONObject(readFile(lf)); o.put("counting", true); o.put("where", dataDir().getAbsolutePath());
+                js("window.onCacheInfo && window.onCacheInfo(" + JSONObject.quote(o.toString()) + ")"); } } catch (Exception ignored) { }
+            if (cacheCounting) { cacheCountAgain = true; return; }   // läuft schon – danach einmal nachzählen
+            cacheCounting = true;
             new Thread(() -> {
-                JSONArray out = new JSONArray(); long total = 0;
                 try {
-                    JSONObject marks = cacheMarks();
-                    for (String[] c : CACHE_CATS) {
-                        long[] r = {0, 0}; for (File f : catFiles(c[0])) sizeOf(f, r);
-                        total += r[0];
-                        JSONObject m = marks.optJSONObject(c[0]);
-                        out.put(new JSONObject().put("id", c[0]).put("name", c[1]).put("bytes", r[0]).put("files", r[1]).put("ver", CACHE_VER.getOrDefault(c[0], 1))
-                                .put("have", m != null ? m.optInt("ver", 0) : 0).put("t", m != null ? m.optLong("t", 0) : 0).put("st", catStatus.containsKey(c[0]) ? catStatus.get(c[0]) : ""));
-                    }
-                    lastTileBytes = 0; for (String id : new String[]{"karte", "luftbild", "geokacheln"}) { long[] r = {0, 0}; for (File f : catFiles(id)) sizeOf(f, r); lastTileBytes += r[0]; }
-                    js("window.onCacheInfo && window.onCacheInfo(" + JSONObject.quote(new JSONObject().put("list", out).put("total", total).put("where", dataDir().getAbsolutePath()).toString()) + ")");
-                } catch (Exception ignored) { }
+                    do { cacheCountAgain = false; cacheCountOnce(); } while (cacheCountAgain);
+                } finally { cacheCounting = false; }
             }).start();
         }
 
@@ -2273,16 +2290,31 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 double km = Math.max((n - s) * 111.2, (e - w) * 111.2 * Math.cos(Math.toRadians((n + s) / 2)));
                 int k = Math.max(1, Math.min(6, (int) Math.ceil(km / 10)));
                 JSONArray wys = new JSONArray(); java.util.Set<Long> seenW = new java.util.HashSet<>(); int bad = 0; Exception wErr = null;
-                for (int iy = 0; iy < k; iy++) for (int ix = 0; ix < k; ix++) {
-                    double ts = s + (n - s) * iy / k, tn = s + (n - s) * (iy + 1) / k, tw = w + (e - w) * ix / k, te = w + (e - w) * (ix + 1) / k;
-                    String tb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", ts, tw, tn, te);
-                    catSt("feldwege", "load");
-                    try {
-                        JSONArray part = new JSONObject(overpass("[out:json][timeout:90];(way[\"highway\"~\"^(track|path|service|unclassified|tertiary|bridleway|cycleway|footway)$\"](" + tb + "););out tags geom;", 120000)).getJSONArray("elements");
-                        for (int q2 = 0; q2 < part.length(); q2++) { JSONObject el = part.getJSONObject(q2); if (seenW.add(el.optLong("id"))) wys.put(el); }
-                    } catch (Exception te2) { bad++; wErr = te2; }
+                List<int[]> todo = new ArrayList<>();
+                for (int iy = 0; iy < k; iy++) for (int ix = 0; ix < k; ix++) todo.add(new int[]{iy, ix});
+                // bis zu 3 Durchgänge: fehlgeschlagene Teile nach einer Pause nochmal (Server drosseln bei vielen Anfragen kurz hintereinander)
+                for (int pass = 0; pass < 3 && !todo.isEmpty(); pass++) {
+                    if (pass > 0) Thread.sleep(pass * 20000L);
+                    List<int[]> failed = new ArrayList<>();
+                    for (int[] t : todo) {
+                        int iy = t[0], ix = t[1];
+                        double ts = s + (n - s) * iy / k, tn = s + (n - s) * (iy + 1) / k, tw = w + (e - w) * ix / k, te = w + (e - w) * (ix + 1) / k;
+                        String tb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", ts, tw, tn, te);
+                        catSt("feldwege", "load");
+                        try {
+                            JSONArray part = new JSONObject(overpass("[out:json][timeout:90];(way[\"highway\"~\"^(track|path|service|unclassified|tertiary|bridleway|cycleway|footway)$\"](" + tb + "););out tags geom;", 120000)).getJSONArray("elements");
+                            for (int q2 = 0; q2 < part.length(); q2++) { JSONObject el = part.getJSONObject(q2); if (seenW.add(el.optLong("id"))) wys.put(el); }
+                        } catch (Exception te2) { failed.add(t); wErr = te2; }
+                        Thread.sleep(1500);   // freundlich zum Server
+                    }
+                    todo = failed;
                 }
-                if (bad == 0 || (wys.length() > 0 && !osmWaysFile().isFile())) writeFileAtomic(osmWaysFile(), wys.toString());
+                bad = todo.size();
+                // Teilerfolg: neue Wege + bisher gespeicherte Wege (für die fehlenden Teile) zusammenführen – nichts geht verloren
+                if (bad > 0 && osmWaysFile().isFile()) {
+                    try { JSONArray old = new JSONArray(readFile(osmWaysFile())); for (int q2 = 0; q2 < old.length(); q2++) { JSONObject el = old.getJSONObject(q2); if (seenW.add(el.optLong("id"))) wys.put(el); } } catch (Exception ignored) { }
+                }
+                if (wys.length() > 0) writeFileAtomic(osmWaysFile(), wys.toString());
                 catSt("feldwege", bad == 0 ? "ok" : (osmWaysFile().isFile() ? "alt:" : "") + bad + " von " + (k * k) + " Teilen fehlen – " + errTxt(wErr));
             } catch (Exception we) { catSt("feldwege", (osmWaysFile().isFile() ? "alt:" : "") + errTxt(we)); }
             prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 5)
@@ -2432,7 +2464,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private File extDataDir() { return new File(Environment.getExternalStorageDirectory(), "Kitzrettung Cache"); }
     private File dataDir() {
         File c = dataDirCache; if (c != null) return c;
-        if (prefs != null && prefs.getBoolean("data_ext_done", false) && hasFileAccess()) {
+        // Sobald Dateizugriff da ist, IMMER „Kitzrettung Cache“ – auch direkt nach Neuinstallation/Update, wenn der Umzugs-Merker fehlt.
+        // Alte Reste im App-Speicher zieht dataMigrate() nach.
+        if (prefs != null && hasFileAccess()) {
             File e = extDataDir();
             if (e.isDirectory() || e.mkdirs()) return dataDirCache = e;
         }
@@ -2465,7 +2499,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         if (f.isDirectory()) { st.push(f); continue; }
                         File t = new File(dst, migTarget(f.getAbsolutePath().substring(base.length() + 1)));
                         try {
-                            if (!(t.isFile() && t.length() == f.length())) {
+                            if (!t.exists()) {   // im Cache-Ordner Vorhandenes hat Vorrang (überlebt Updates) – nie überschreiben
                                 t.getParentFile().mkdirs();
                                 File tmp = new File(t.getPath() + ".mv");
                                 try (InputStream in = new FileInputStream(f); OutputStream o = new FileOutputStream(tmp)) { byte[] b = new byte[65536]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r); }
@@ -2531,6 +2565,42 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             for (File x : fs) { if (x.isDirectory()) st.push(x); else { r[0] += x.length(); r[1]++; } } }
     }
     // Versions-Merker liegt IM Cache-Ordner („Versionen.json“) – bleibt bei Neuinstallation erhalten und wird bei jedem Start schnell verglichen
+    private volatile boolean cacheCounting = false, cacheCountAgain = false;
+    private File cacheCountFile() { return new File(dataDir(), "Sonstiges/speicherstand.json"); }
+    /** Alle Bereiche zählen; nach jedem Bereich Zwischenstand an die App – Fehler in einem Bereich halten den Rest nicht auf */
+    private void cacheCountOnce() {
+        JSONArray out = new JSONArray(); long total = 0, tiles = 0;
+        JSONObject marks = cacheMarks();
+        JSONObject prev = null; try { File lf = cacheCountFile(); if (lf.isFile()) prev = new JSONObject(readFile(lf)); } catch (Exception ignored) { }
+        for (int i = 0; i < CACHE_CATS.length; i++) {
+            String[] c = CACHE_CATS[i];
+            long[] r = {0, 0};
+            try { for (File f : catFiles(c[0])) sizeOf(f, r); } catch (Exception ignored) { }
+            total += r[0];
+            if (c[0].equals("karte") || c[0].equals("luftbild") || c[0].equals("geokacheln")) tiles += r[0];
+            try {
+                JSONObject m = marks.optJSONObject(c[0]);
+                out.put(new JSONObject().put("id", c[0]).put("name", c[1]).put("bytes", r[0]).put("files", r[1]).put("ver", CACHE_VER.getOrDefault(c[0], 1))
+                        .put("have", m != null ? m.optInt("ver", 0) : 0).put("t", m != null ? m.optLong("t", 0) : 0).put("st", catStatus.containsKey(c[0]) ? catStatus.get(c[0]) : ""));
+                // Zwischenstand: schon gezählte Bereiche neu, der Rest vom letzten Mal (markiert als „zählt noch“)
+                JSONArray show = new JSONArray(out.toString());
+                JSONArray pl = prev != null ? prev.optJSONArray("list") : null;
+                for (int k = i + 1; k < CACHE_CATS.length; k++) {
+                    JSONObject old = null;
+                    if (pl != null) for (int q = 0; q < pl.length(); q++) if (CACHE_CATS[k][0].equals(pl.getJSONObject(q).optString("id"))) old = pl.getJSONObject(q);
+                    show.put((old != null ? old : new JSONObject().put("id", CACHE_CATS[k][0]).put("name", CACHE_CATS[k][1]).put("bytes", 0).put("files", 0)).put("pending", true));
+                }
+                if (i < CACHE_CATS.length - 1)
+                    js("window.onCacheInfo && window.onCacheInfo(" + JSONObject.quote(new JSONObject().put("list", show).put("total", total).put("counting", true).put("where", dataDir().getAbsolutePath()).toString()) + ")");
+            } catch (Exception ignored) { }
+        }
+        lastTileBytes = tiles;
+        try {
+            JSONObject res = new JSONObject().put("list", out).put("total", total).put("where", dataDir().getAbsolutePath()).put("counted", System.currentTimeMillis());
+            try { writeFileAtomic(cacheCountFile(), res.toString()); } catch (Exception ignored) { }
+            js("window.onCacheInfo && window.onCacheInfo(" + JSONObject.quote(res.toString()) + ")");
+        } catch (Exception ignored) { }
+    }
     private File cacheMarkFile() { return new File(dataDir(), "Versionen.json"); }
     private JSONObject cacheMarks() { try { File f = cacheMarkFile(); return f.isFile() ? new JSONObject(readFile(f)) : new JSONObject(); } catch (Exception e) { return new JSONObject(); } }
     private String appVer() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return ""; } }
@@ -3331,6 +3401,94 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
 
+    /** Manche Server (z. B. dulv.de, einzelne OpenStreetMap-Spiegel) schicken ihr Zwischenzertifikat nicht mit; Android baut die Kette dann nicht.
+     *  Hier wird das fehlende Zwischenzertifikat über die im Zertifikat genannte Adresse (AIA) nachgeladen und die Kette danach
+     *  ganz normal gegen die Android-Stammzertifikate geprüft – es wird also nichts ungeprüft akzeptiert. */
+    private static void installAiaTrust() {
+        try {
+            javax.net.ssl.TrustManagerFactory tmf = javax.net.ssl.TrustManagerFactory.getInstance(javax.net.ssl.TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init((java.security.KeyStore) null);
+            javax.net.ssl.X509TrustManager def = null;
+            for (javax.net.ssl.TrustManager t : tmf.getTrustManagers()) if (t instanceof javax.net.ssl.X509TrustManager) def = (javax.net.ssl.X509TrustManager) t;
+            if (def == null) return;
+            final javax.net.ssl.X509TrustManager d = def;
+            javax.net.ssl.X509TrustManager tm = new javax.net.ssl.X509TrustManager() {
+                public void checkClientTrusted(java.security.cert.X509Certificate[] c, String a) throws java.security.cert.CertificateException { d.checkClientTrusted(c, a); }
+                public java.security.cert.X509Certificate[] getAcceptedIssuers() { return d.getAcceptedIssuers(); }
+                public void checkServerTrusted(java.security.cert.X509Certificate[] c, String a) throws java.security.cert.CertificateException {
+                    try { d.checkServerTrusted(c, a); }
+                    catch (java.security.cert.CertificateException ce) {
+                        java.security.cert.X509Certificate[] ext = aiaComplete(c);
+                        if (ext == null) throw ce;
+                        d.checkServerTrusted(ext, a);
+                    }
+                }
+            };
+            javax.net.ssl.SSLContext ctx = javax.net.ssl.SSLContext.getInstance("TLS");
+            ctx.init(null, new javax.net.ssl.TrustManager[]{tm}, null);
+            javax.net.ssl.HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
+        } catch (Exception ignored) { }
+    }
+    private static final Map<String, java.security.cert.X509Certificate> AIA_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static java.security.cert.X509Certificate[] aiaComplete(java.security.cert.X509Certificate[] chain) {
+        try {
+            List<java.security.cert.X509Certificate> l = new ArrayList<>(Arrays.asList(chain));
+            for (int i = 0; i < 3; i++) {
+                java.security.cert.X509Certificate last = l.get(l.size() - 1);
+                if (last.getSubjectX500Principal().equals(last.getIssuerX500Principal())) break;   // schon bei der Wurzel
+                byte[] ext = last.getExtensionValue("1.3.6.1.5.5.7.1.1"); if (ext == null) break;
+                String u = aiaIssuerUrl(ext); if (u == null) break;
+                java.security.cert.X509Certificate ic = AIA_CACHE.get(u);
+                if (ic == null) {
+                    // einfache HTTP-Abfrage über einen Socket (Android sperrt http für HttpURLConnection); Inhalt wird unten kryptografisch geprüft
+                    byte[] body = rawHttpGet(u);
+                    if (body == null) break;
+                    java.util.Collection<? extends java.security.cert.Certificate> cs = java.security.cert.CertificateFactory.getInstance("X.509").generateCertificates(new java.io.ByteArrayInputStream(body));
+                    for (java.security.cert.Certificate x : cs) { ic = (java.security.cert.X509Certificate) x; break; }
+                    if (ic == null) break;
+                    AIA_CACHE.put(u, ic);
+                }
+                last.verify(ic.getPublicKey());   // passt das nachgeladene Zertifikat wirklich?
+                l.add(ic);
+            }
+            return l.size() > chain.length ? l.toArray(new java.security.cert.X509Certificate[0]) : null;
+        } catch (Exception e) { return null; }
+    }
+
+    /** Adresse des ausstellenden Zertifikats (caIssuers, OID 1.3.6.1.5.5.7.48.2) aus der AIA-Erweiterung */
+    static String aiaIssuerUrl(byte[] ext) {
+        byte[] oid = {0x06, 0x08, 0x2B, 0x06, 0x01, 0x05, 0x05, 0x07, 0x30, 0x02};
+        for (int i = 0; i + oid.length + 2 < ext.length; i++) {
+            boolean ok = true; for (int j = 0; j < oid.length; j++) if (ext[i + j] != oid[j]) { ok = false; break; }
+            if (!ok) continue;
+            int p = i + oid.length; if ((ext[p] & 0xff) != 0x86) continue;
+            int len = ext[p + 1] & 0xff, off = p + 2;
+            if (len == 0x81) { len = ext[p + 2] & 0xff; off = p + 3; }
+            if (off + len > ext.length) return null;
+            String u = new String(ext, off, len, StandardCharsets.ISO_8859_1);
+            return u.startsWith("http://") ? u : null;
+        }
+        return null;
+    }
+    private static byte[] rawHttpGet(String url) {
+        try {
+            URL u = new URL(url);
+            try (java.net.Socket so = new java.net.Socket()) {
+                so.connect(new java.net.InetSocketAddress(u.getHost(), u.getPort() > 0 ? u.getPort() : 80), 10000); so.setSoTimeout(15000);
+                String path = u.getFile().isEmpty() ? "/" : u.getFile();
+                so.getOutputStream().write(("GET " + path + " HTTP/1.0\r\nHost: " + u.getHost() + "\r\nUser-Agent: MissionKitzrettung\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.ISO_8859_1));
+                byte[] all = readBytes(so.getInputStream());
+                for (int i = 0; i + 3 < all.length; i++)
+                    if (all[i] == '\r' && all[i + 1] == '\n' && all[i + 2] == '\r' && all[i + 3] == '\n') {
+                        String head = new String(all, 0, i, StandardCharsets.ISO_8859_1);
+                        if (!head.startsWith("HTTP/1.") || !head.substring(9, 12).equals("200")) return null;
+                        return Arrays.copyOfRange(all, i + 4, all.length);
+                    }
+            }
+        } catch (Exception ignored) { }
+        return null;
+    }
+
     private static List<String> csvLine(String line) {
         List<String> out = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
@@ -3544,7 +3702,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             writeFileAtomic(notamFile(), data.toString());
             prefs.edit().putLong("notam_fetched", System.currentTimeMillis()).remove("notam_err").apply();
         } catch (Exception ex) {
-            prefs.edit().putString("notam_err", "Abruf fehlgeschlagen: " + ex.getMessage()).apply();
+            boolean noNet = ex instanceof java.net.UnknownHostException || ex instanceof java.net.ConnectException || ex instanceof java.net.SocketTimeoutException
+                    || String.valueOf(ex.getMessage()).contains("resolve host");
+            prefs.edit().putString("notam_err", noNet ? "Keine Internetverbindung beim letzten Versuch – neuer Versuch automatisch, sobald die RC online ist" : "Abruf fehlgeschlagen: " + ex.getMessage()).apply();
         }
     }
 
