@@ -2676,7 +2676,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             long varint() { long r = 0; int s = 0; while (true) { byte x = b[p++]; r |= (long) (x & 0x7f) << s; if (x >= 0) return r; s += 7; } }
             long sint() { long v = varint(); return (v >>> 1) ^ -(v & 1); }
             int len() { return (int) varint(); }
-            void skip(int wt) { switch (wt) { case 0: varint(); break; case 1: p += 8; break; case 2: p += len(); break; case 5: p += 4; break; default: throw new RuntimeException("PBF: unbekannter Feldtyp " + wt); } }
+            void skip(int wt) { switch (wt) { case 0: varint(); break; case 1: p += 8; break; case 2: { int L = len(); p += L; } break; case 5: p += 4; break; default: throw new RuntimeException("PBF: unbekannter Feldtyp " + wt); } }
         }
         static final Set<String> MM = new java.util.HashSet<>(Arrays.asList("mast", "tower", "chimney", "communications_tower"));
         static final Set<String> AERO = new java.util.HashSet<>(Arrays.asList("aerodrome", "heliport", "airstrip", "helipad"));
@@ -3720,6 +3720,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             boolean fresh = System.currentTimeMillis() - prefs.getLong("reg_fetched", 0) < 60 * DAY;   // Grenzen ändern sich kaum
             if (!force && fresh && covers && regionFile().isFile()) return;
             catSt("orte", "load");
+            // 1. Wahl: amtliche Grenzen vom BKG (zuverlässig) – Overpass nur noch als Ausweg
+            try { if (regionSyncBkg(n, s, e, w)) { catSt("orte", "ok"); return; } } catch (Exception ignored) { }
             // Schnell: nur Grenzstücke im Gebiet + Zugehörigkeit der Gebietsmitte (statt kompletter Landesgrenzen)
             String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
             double clat = (n + s) / 2, clon = (e + w) / 2;

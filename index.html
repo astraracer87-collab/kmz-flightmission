@@ -530,7 +530,6 @@
       <div class="roots" id="osmStates"></div></div>
     <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
     <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div><div class="v">Auch über ⓘ → „Felder“ schaltbar</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Die Rose steht mit Norden oben wie die Karte, der Windsack zeigt die Windrichtung (schwarze Marke = woher der Wind kommt). Mit Kompassnadel: die rote Nadelspitze zeigt, wohin die RC schaut · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt ebenfalls die Blickrichtung.</div></div><div class="seg"><button data-rose="dev">Mit Kompassnadel</button><button data-rose="north">Ohne Nadel</button><button data-rose="off">Aus</button></div></div>
     <div class="set"><div class="l"><div class="t">Hindernisse aus OpenStreetMap</div><div class="v">Windräder (grün, mit Gesamthöhe), Masten/Türme/Schornsteine (braunes Dreieck), Bahnstrecken (schwarz-weiß) und alle Freileitungen nach Spannung: violett dick = Höchstspannung (220/380 kV), violett = Hochspannung (110 kV), orange = Mittelspannung, grau gestrichelt = Nieder-/unbekannte Spannung. Auch Leitungen ohne dipul-Geozone – Hindernis beim Start und Tiefflug. <span class="lnk" id="bLineGuide">Strommasten &amp; Leitungen erkennen</span></div></div><label class="sw"><input type="checkbox" id="sOsmPower"><span></span></label></div>
     <h3 class="setcat" id="sc-luft">Luftraum &amp; Regeln</h3>
     <div class="set"><div class="l"><div class="t">Fernpilotenzeugnis</div><div class="v" id="vLic"></div></div><div class="seg"><button data-lic="A1A3">A1/A3</button><button data-lic="A2">A2</button></div></div>
@@ -561,6 +560,7 @@
     <div class="set"><div class="l"><div class="t">5D-Knopf der Fernsteuerung</div><div class="v" id="vRcKey">Karte: hoch/runter = zoomen · links/rechts = Feld für Feld · drücken = Feld markieren (ohne Feld: Standort). Seiten: hoch/runter = blättern · links = zurück.</div></div><button class="b-sec" id="bRcKey">Tasten-Test</button></div>
     <div class="set"><div class="l"><div class="t">Regeln &amp; Auflagen</div><div class="v">Übersicht: Allgemeinverfügung, Allgemeinerlaubnis, was gilt wo</div></div><button class="b-sec" id="bRules">Ansehen</button></div>
     <h3 class="setcat" id="sc-wetter">Wetter</h3>
+    <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Die Rose steht mit Norden oben wie die Karte, der Windsack zeigt die Windrichtung (schwarze Marke = woher der Wind kommt). Mit Kompassnadel: die rote Nadelspitze zeigt, wohin die RC schaut · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt ebenfalls die Blickrichtung.</div></div><div class="seg"><button data-rose="dev">Mit Kompassnadel</button><button data-rose="north">Ohne Nadel</button><button data-rose="off">Aus</button></div></div>
     <div class="set"><div class="l"><div class="t">Wetter</div><div class="v">Tagesgang, Sonnenlauf und Einsatzwetter – auch per Tipp auf die Windanzeige</div></div><button class="b-sec" id="bWxSet">Wetter öffnen</button></div>
     <div class="set"><div class="l"><div class="t">Wetter: Höhen anzeigen bis</div><div class="v">Nur die Höhen, in denen ihr fliegt – Wind, Temperatur und Böen in der Wettertabelle</div></div><div class="seg" id="sWxMax"><button data-wxmax="50">50 m</button><button data-wxmax="100">100 m</button><button data-wxmax="250">alle</button></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzbeginn bei Mähdatum ohne Uhrzeit</div><div class="v">Für das Wetter-Einsatzfenster (1 h vorher bis 1 h nachher)</div></div><input id="sWxStart" class="inp" type="time" style="flex:none;width:130px;min-width:0"></div>
@@ -728,9 +728,12 @@ function catRefetch(id) {
   if (id === 'windraeder') {
     const wb = einsatzBox(30); let stc = wb ? statesInBox(wb) : [];
     if (!stc.length) stc = [...new Set(S.files.filter(f => f.center).map(f => regionAt(f.center[0], f.center[1]).st).filter(Boolean))];
+    if (!stc.length) stc = (P.osmStates || P.aeStates || '').split(',').filter(Boolean);   // Landesgrenzen noch nicht geladen: Einstellung nehmen
     const sts = stc.map(k => MASTR_STATE[k]).filter(Boolean);
-    if (A.mastrSync && sts.length && wb) A.mastrSync(JSON.stringify({ states: sts, box: wb }));
-    return toast('Windräder werden neu geholt.');
+    if (!wb) return toast('Erst Wiesen laden – das Gebiet ergibt sich aus den Wiesen.', true);
+    if (!sts.length) return toast('Bundesland unbekannt – bitte unter „Einsatz-Bundesländer“ das Land wählen.', true);
+    if (A.mastrSync) A.mastrSync(JSON.stringify({ states: sts, box: wb }));
+    return toast('Windräder werden neu geholt (' + stc.map(stateName).join(', ') + ').');
   }
   geoSyncNow(false, true);   // Feldwege, Hindernisse, Orte, Flugplätze, OSM-Rohdaten: nur was fehlt wird geholt
   toast('Wird neu geholt – nur dieser Bereich.');
@@ -2794,7 +2797,7 @@ function einsatzRun(de, fresh, auto, full) {
   if (fresh && A.dipulClear) { A.dipulClear(); GEOR.reset(); }
   geoSyncNow(fresh, true);   // Zonendaten, Hindernisse, Flugplätze, Orte, NOTAM
   const wb = einsatzBox(30); let stc = wb ? statesInBox(wb) : [];
-  if (!stc.length) stc = [...new Set(S.files.filter(f => f.center).map(f => regionAt(f.center[0], f.center[1]).st).filter(Boolean).concat((P.aeStates || '').split(',').filter(Boolean)))];
+  if (!stc.length) stc = [...new Set(S.files.filter(f => f.center).map(f => regionAt(f.center[0], f.center[1]).st).filter(Boolean).concat((P.osmStates || P.aeStates || '').split(',').filter(Boolean)))];
   const sts = stc.map(k => MASTR_STATE[k]).filter(Boolean);
   if (A.mastrSync && sts.length) A.mastrSync(JSON.stringify({ states: sts, box: wb }));   // Windräder fürs eigene Gebiet
   try { metarLoad(null, true).then(metarApply).catch(() => { }); wxPrefetch(); } catch (e) { }
