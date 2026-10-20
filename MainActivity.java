@@ -2461,6 +2461,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     // Overpass-Server sind oft überlastet; Geofabrik bietet dieselben Daten als fertige Datei je Bundesland bzw. Regierungsbezirk.
     // Die RC lädt die Datei einmal (am besten im WLAN), wertet sie selbst aus und behält sie für spätere Gebietsänderungen.
     private static final String GF = "https://download.geofabrik.de/europe/germany/";
+    private final Object pbfLock = new Object();
+    private volatile String pbfWait = null;   // Hinweis, wenn der große Download aufs WLAN wartet
+    private volatile boolean pbfForceOnce = false;   // „Neu holen“: großen Download auch über mobile Daten erlauben
+    private File pbfDir() { File d = new File(dataDir(), isExt() ? "OSM-Rohdaten" : "osmraw"); d.mkdirs(); return d; }
+    private File pbfFile(String path) { return new File(pbfDir(), path.replace('/', '_') + ".osm.pbf"); }
     @SuppressWarnings("deprecation")
     private boolean metered() {
         try { android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE); return cm != null && cm.isActiveNetworkMetered(); }
