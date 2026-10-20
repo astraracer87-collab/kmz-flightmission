@@ -531,7 +531,7 @@
     <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
     <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div><div class="v">Auch über ⓘ → „Felder“ schaltbar</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Die Rose steht mit Norden oben wie die Karte, der Windsack zeigt die Windrichtung (schwarze Marke = woher der Wind kommt). Mit Kompassnadel: die rote Nadelspitze zeigt, wohin die RC schaut · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt ebenfalls die Blickrichtung.</div></div><div class="seg"><button data-rose="dev">Mit Kompassnadel</button><button data-rose="north">Ohne Nadel</button><button data-rose="off">Aus</button></div></div>
-    <div class="set"><div class="l"><div class="t">Hindernisse aus OpenStreetMap</div><div class="v">Windräder (grün, mit Gesamthöhe), Masten/Türme/Schornsteine (braunes Dreieck), Bahnstrecken (schwarz-weiß) und alle Freileitungen nach Spannung: violett dick = Höchstspannung (220/380 kV), violett = Hochspannung (110 kV), orange = Mittelspannung, grau gestrichelt = Nieder-/unbekannte Spannung. Auch Leitungen ohne dipul-Geozone – Hindernis beim Start und Tiefflug.</div></div><label class="sw"><input type="checkbox" id="sOsmPower"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Hindernisse aus OpenStreetMap</div><div class="v">Windräder (grün, mit Gesamthöhe), Masten/Türme/Schornsteine (braunes Dreieck), Bahnstrecken (schwarz-weiß) und alle Freileitungen nach Spannung: violett dick = Höchstspannung (220/380 kV), violett = Hochspannung (110 kV), orange = Mittelspannung, grau gestrichelt = Nieder-/unbekannte Spannung. Auch Leitungen ohne dipul-Geozone – Hindernis beim Start und Tiefflug. <span class="lnk" id="bLineGuide">Strommasten &amp; Leitungen erkennen</span></div></div><label class="sw"><input type="checkbox" id="sOsmPower"><span></span></label></div>
     <h3 class="setcat" id="sc-luft">Luftraum &amp; Regeln</h3>
     <div class="set"><div class="l"><div class="t">Fernpilotenzeugnis</div><div class="v" id="vLic"></div></div><div class="seg"><button data-lic="A1A3">A1/A3</button><button data-lic="A2">A2</button></div></div>
     <div class="set" id="aeBox" style="flex-direction:column;align-items:stretch"><div class="t">Allgemeinerlaubnis (§ 21h LuftVO) liegt vor für</div>
@@ -716,11 +716,30 @@ function cacheProg() {
 }
 let cacheInfoT = 0;
 let cacheBusy = null;
+/** „Neu holen“ bei einem Bereich: genau diesen Bereich wieder laden – nicht das ganze Einsatzgebiet */
+function catRefetch(id) {
+  if (!isOnline()) return toast('Dafür wird Internet gebraucht (am besten WLAN).', true);
+  const tileJob = { karte: j => !j.layers.includes('dop') && !j.layers[0].startsWith('geo:'), luftbild: j => j.layers.includes('dop'), geokacheln: j => j.layers[0].startsWith('geo:') }[id];
+  if (tileJob) {   // Kacheln: nur die Kartenart dieses Bereichs
+    const j = einsatzJobs(false); if (!j || !A.prefetchStart) return toast('Erst Wiesen laden – das Gebiet ergibt sich aus den Wiesen.', true);
+    A.prefetchStart(JSON.stringify({ jobs: j.jobs.filter(tileJob) })); return toast('Wird neu geholt – nur dieser Bereich.');
+  }
+  if (id === 'zonendaten') { geoSyncNow(true, true, true); return toast('Geozonen-Daten werden neu geholt.'); }
+  if (id === 'windraeder') {
+    const wb = einsatzBox(30); let stc = wb ? statesInBox(wb) : [];
+    if (!stc.length) stc = [...new Set(S.files.filter(f => f.center).map(f => regionAt(f.center[0], f.center[1]).st).filter(Boolean))];
+    const sts = stc.map(k => MASTR_STATE[k]).filter(Boolean);
+    if (A.mastrSync && sts.length && wb) A.mastrSync(JSON.stringify({ states: sts, box: wb }));
+    return toast('Windräder werden neu geholt.');
+  }
+  geoSyncNow(false, true);   // Feldwege, Hindernisse, Orte, Flugplätze, OSM-Rohdaten: nur was fehlt wird geholt
+  toast('Wird neu geholt – nur dieser Bereich.');
+}
 window.onCacheCleared = id => {
   const tilesCat = ['karte', 'luftbild', 'geokacheln'].includes(id);
   if (tilesCat) { tiles.clear(); tlReset(); draw(); }
   if (id === 'zonendaten') { S.geo = []; loadGeoVectors(); }
-  if (cacheBusy === id) { cacheBusy = null; if (S.files.length && A.prefetchStart) einsatzRun(false, false, true); else geoSyncNow(true, true); }
+  if (cacheBusy === id) { cacheBusy = null; catRefetch(id); }
   else toast('Gelöscht.');
   if ($('pgSet').classList.contains('open') && A.cacheInfoAsync) A.cacheInfoAsync();
 };
@@ -2891,7 +2910,10 @@ function einsatzBox(km) {
   const dLa = km / 111.2, dLo = km / (111.2 * Math.cos(b.n * Math.PI / 180));
   return [b.w - dLo, b.s - dLa, b.e + dLo, b.n + dLa];
 }
-$('bGeoNow').onclick = startPrefetch;
+$('bGeoNow').onclick = () => {   // nur die Geozonen-Daten neu – Karte, Luftbild usw. bleiben, wie sie sind
+  if (!isOnline()) return toast('Dafür wird Internet gebraucht.', true);
+  geoSyncNow(true, true, true); toast('Geozonen-Daten werden neu geholt – sonst nichts.');
+};
 
 // ================= Geozonen: Regeln =================
 const GEO_ALL = ['flughaefen','flugplaetze','kontrollzonen','flugbeschraenkungsgebiete','temporaere_betriebseinschraenkungen','modellflugplaetze',
@@ -3078,6 +3100,7 @@ function fillRules() {
 }
 document.querySelectorAll('[data-lic]').forEach(b => b.onclick = () => { setP('lic', b.dataset.lic); fillRules(); applyGeoConfig(); });
 $('sOsmPower').onchange = e => { setP('osmPower', e.target.checked ? 1 : 0); draw(); };
+$('bLineGuide').onclick = e => { e.preventDefault(); e.stopPropagation(); showLineGuide(''); };
 $('sPower').onchange = e => { setP('power', e.target.checked ? 1 : 0); fillRules(); applyGeoConfig(); };
 /** Allgemeinverfügung bearbeiten/anlegen */
 function avEdit(i) {
@@ -3285,6 +3308,7 @@ function openInfoPage(title, html, icon) {
   $('iTitle').innerHTML = (icon || '') + esc(title); $('iBody').innerHTML = html; $('pgInfo').classList.add('open'); $('iBody').scrollTop = 0;
   $('iBody').querySelectorAll('[data-url]').forEach(a => a.onclick = () => A.openUrl ? A.openUrl(a.dataset.url) : window.open(a.dataset.url));
   $('iBody').querySelectorAll('[data-rules]').forEach(a => a.onclick = showRules);
+  $('iBody').querySelectorAll('[data-lg]').forEach(a => a.onclick = () => showLineGuide(a.dataset.lg));
 }
 function geoInfoAt(px, py) {
   const [lat, lon] = fromScreen(px, py);
@@ -3373,8 +3397,10 @@ window.onGeoInfo = raw => {
   const wz = (r.features || []).some(f => f.layer === 'windkraftanlagen') ? [] : windZonesAt(r.lat, r.lon);
   if (wz.length) { const k = covKind('windkraftanlagen', reg);
     rows += `<div class="gbr"><span style="background:${COL[k] || COL.off}"></span><div><b>Windrad-Schutzabstand 100 m</b><em>§ 21h Abs. 3 Nr. 3 LuftVO · nicht in dipul verzeichnet, gilt trotzdem · ${k === 'off' ? 'nur mit Zustimmung des Betreibers' : '1:1-Regel – Abstand ≥ Flughöhe'}</em></div></div>`; }
-  const obl = obstaclesNear(r.lat, r.lon);
-  if (!rows) rows = `<div class="gbr"><span style="background:#8a93a6"></span><div><b>Keine Geozone in dipul</b><em>${obl.length ? 'Keine Geozone verzeichnet – aber Hindernis in der Nähe (siehe unten)' : 'Allgemeine Regeln gelten (Abstände, max. 120 m)'}</em></div></div>`;
+  const obl = obstaclesNear(r.lat, r.lon), lnN = P.osmPower !== '0' ? osmLinesNear(r.lat, r.lon, tapTolM(r.lat)) : [];
+  if (!rows) rows = `<div class="gbr"><span style="background:#8a93a6"></span><div><b>Keine Geozone in dipul</b><em>${lnN.length ? 'Keine Geozone verzeichnet – aber Stromleitung (Hindernis, siehe unten)' : obl.length ? 'Keine Geozone verzeichnet – aber Hindernis in der Nähe (siehe unten)' : 'Allgemeine Regeln gelten (Abstände, max. 120 m)'}</em></div></div>`;
+  rows += lnN.slice(0, 2).map(l => { const c = lineClass(l.kv, l.p), v = lineVolt(l), h = l.kv ? typicalHeight(l.kv) : c.h;
+    return `<div class="gbr"><span style="background:${c.c}"></span><div><b>${l.p === 'cable' || l.loc === 'underground' ? 'Erdkabel' : 'Stromleitung'} · ${esc(v.t)}</b><em>${esc(c.name.replace(/^Spannung unbekannt \((.*)\)$/, '$1'))}${l.n ? ' · ' + esc(l.n) : l.ref ? ' · ' + esc(l.ref) : ''}${l.o ? ' · ' + esc(l.o) : ''}${l.p === 'cable' ? '' : ` · Masten ca. ${h[0]}–${h[1]} m (typisch)`}</em></div></div>`; }).join('');
   const ob = obstaclesNear(r.lat, r.lon).slice(0, 1).map(({ o, d }) => `<div class="gbr"><span style="background:#00695c"></span><div><b>${esc(OBS_NAME[o.t] || 'Hindernis')}${o.top ? ' · ' + (o.est ? 'ca. ' : '') + Math.round(o.top) + ' m hoch' : ''}</b><em>${Math.round(d)} m entfernt${o.op ? ' · ' + esc(o.op) : ''}</em></div></div>`).join('');
   let el = $('geoBub');
   if (!el) { el = document.createElement('div'); el.id = 'geoBub'; document.body.appendChild(el); }   // ganz vorne – über Wind, Kompass, Knöpfen
@@ -3423,13 +3449,13 @@ function geoInfoPage(raw) {
     if (here.length) html = `<div class="zone" style="border-left:5px solid #1e7bff"><h4>Feld${here.length > 1 ? 'er' : ''} an dieser Stelle</h4>${here.map(f => `<div>${esc(f.title)}${f.height ? ' · ' + f.height + ' m' : ''}${f.drone ? ' · ' + f.drone : ''}${f.areaM2 ? ' · ' + (f.areaM2 / 10000).toFixed(2).replace('.', ',') + ' ha' : ''}</div>`).join('')}</div>` + html;
   }
   // Stromleitung aus OpenStreetMap ohne dipul-Geozone: trotzdem anzeigen (Hindernis)
-  const osmNear = osmLinesNear(r.lat, r.lon, 35);
+  const osmNear = osmLinesNear(r.lat, r.lon, tapTolM(r.lat));
   if (osmNear.length && !feats.some(f => f.layer === 'stromleitungen')) {
     html += osmNear.slice(0, 3).map(l => { const c = lineClass(l.kv, l.p);
-      return `<div class="zone" style="border-left:5px solid ${c.c}"><h4>Stromleitung · ${l.kv ? l.kv + ' kV' : 'Spannung unbekannt'} <span class="chip grey">keine dipul-Geozone</span></h4>
-        <div class="meta">${c.name}${l.n ? ' · ' + esc(l.n) : ''}${l.o ? ' · ' + esc(l.o) : ''} · typische Masthöhe ca. ${c.h[0]}–${c.h[1]} m (Schätzwert)</div>
+      return `<div class="zone" style="border-left:5px solid ${c.c}"><h4>Stromleitung · ${esc(lineVolt(l).t)} <span class="chip grey">keine dipul-Geozone</span></h4>
+        <div class="meta">${c.name}${l.n ? ' · ' + esc(l.n) : ''}${l.ref ? ' · Ref. ' + esc(l.ref) : ''}${l.o ? ' · Betreiber ' + esc(l.o) : ''}${l.cab ? ' · ' + esc(l.cab) + ' Leiterseile' : ''}${l.ci ? ' · ' + esc(l.ci) + ' Stromkreise' : ''} · typische Masthöhe ca. ${c.h[0]}–${c.h[1]} m (Schätzwert)</div>
         <div>Keine Geozone nach § 21h LuftVO, aber ein Hindernis: Seile sind aus der Luft schlecht zu sehen – beim Start, bei der Landung und im Tiefflug Abstand halten.</div>
-        <div class="meta" style="margin-top:4px">Daten © OpenStreetMap-Mitwirkende</div></div>`; }).join('');
+        <div class="meta" style="margin-top:4px">Daten © OpenStreetMap-Mitwirkende · <span class="lnk" data-lg="${lineGuideKey(l)}">Wie sieht so eine Leitung aus?</span></div></div>`; }).join('');
   }
   // Hindernisse aus OSM an der Stelle
   const fhm = flightHeight();
@@ -3472,7 +3498,7 @@ function loadOsmLines() {
     S.osm = JSON.parse(A.osmLines() || '[]').map(l => {
       const pts = toLatLon(l.g); let n = -90, s = 90, e = -180, w = 180;
       pts.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); });
-      return { kv: l.kv, p: l.p, n: l.n, o: l.o, pts, bb: { n, s, e, w } };
+      return { kv: l.kv, p: l.p, n: l.n, o: l.o, ref: l.r || '', cab: l.c || '', fr: l.f || '', ci: l.ci || '', loc: l.loc || '', pts, bb: { n, s, e, w } };
     });
   } catch (e) { S.osm = []; }
   draw();
@@ -3625,13 +3651,114 @@ function paintOsmLines() {
     if (V.z >= 15 && l.pts.length > 1) {   // Spannung an der Linie
       const m = l.pts[Math.floor(l.pts.length / 2)], [x, y] = toScreen(m[0], m[1]);
       if (x > 0 && y > 0 && x < W && y < H) {
-        const t = l.kv ? l.kv + ' kV' : '? kV'; ctx.setLineDash([]);
+        const gm = l.kv ? null : /(\d+)(\/\d+)? kV/.exec(lineVolt(l).t), t = l.kv ? l.kv + ' kV' : gm ? '~' + gm[1] + ' kV?' : '? kV'; ctx.setLineDash([]);
         ctx.font = '700 11px Roboto,system-ui,sans-serif'; const tw = ctx.measureText(t).width + 8;
         ctx.fillStyle = c.c; ctx.fillRect(x - tw / 2, y - 8, tw, 16); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y + .5);
       }
     }
   }
   ctx.restore();
+}
+/** Spannung einer Leitung als Text – ist sie in OSM nicht eingetragen, vorsichtige Einschätzung aus Frequenz, Betreiber und Seilzahl */
+function lineVolt(l) {
+  if (l.kv) return { t: l.kv + ' kV', sure: true };
+  const fr = String(l.fr || ''), op = String(l.o || ''), cab = (String(l.cab || '').split(';').map(x => parseInt(x, 10)).filter(x => x > 0));
+  if (/^16[.,]7/.test(fr) || /DB Energie|Bahnstrom/i.test(op + ' ' + (l.n || ''))) return { t: 'vermutlich 110 kV Bahnstrom (16,7 Hz)', sure: false };
+  if (cab.length && Math.max(...cab) >= 6 && l.p === 'line') return { t: 'vermutlich Hochspannung (≥ 110 kV)', sure: false };
+  if (/Amprion|TenneT|50Hertz|TransnetBW/i.test(op)) return { t: 'vermutlich Höchstspannung (220/380 kV)', sure: false };
+  if (/Westnetz|Syna|Avacon|Bayernwerk|E\.DIS|Netze BW|Mitnetz|EAM|ovag|Süwag|EnergieNetz Mitte|Netze ODR|Pfalzwerke/i.test(op) && l.p === 'line') return { t: 'Spannung nicht erfasst – Verteilnetz (meist 20 kV oder 110 kV)', sure: false };
+  return { t: l.p === 'minor_line' ? 'Spannung nicht erfasst – kleine Leitung (meist 0,4–20 kV)' : 'Spannung nicht erfasst', sure: false };
+}
+/** Fangradius für Antippen: mind. 25 m, sonst ca. 18 Bildpunkte – Leitungen sind dünn */
+function tapTolM(lat) { return Math.max(25, 18 * 40075016 * Math.cos(lat * Math.PI / 180) / (256 * Math.pow(2, V.z))); }
+// ---------- Wissen: Strommasten und Leitungen erkennen (Zeichnungen schematisch, Werte typisch) ----------
+function lgSvg(k) {
+  const G = 205, fh = flightHeight();
+  const sc = { hoes: 190 / 85, hs: 190 / 50, bahn: 190 / 50, ms: 190 / 16, ns: 190 / 16 }[k];
+  const y = m => G - m * sc, H = { hoes: 70, hs: 36, bahn: 27, ms: 12, ns: 8 }[k];
+  let g = '';
+  const lat = (x0, x1, yT, x0t, x1t) => { let l = `<polygon points="${x0},${G} ${x0t},${yT} ${x1t},${yT} ${x1},${G}" fill="none" stroke="currentColor" stroke-width="1.6"/>`;
+    for (let i = 0, n = 8; i < n; i++) { const ya = G - (G - yT) * i / n, yb = G - (G - yT) * (i + 1) / n, f = t => [x0 + (x0t - x0) * t, x1 + (x1t - x1) * t];
+      const [la, ra] = f(i / n), [lb, rb] = f((i + 1) / n); l += `<path d="M${la},${ya} L${rb},${yb} M${ra},${ya} L${lb},${yb}" stroke="currentColor" stroke-width=".7" fill="none"/>`; } return l; };
+  const wire = (x, yy, n) => { let l = ''; for (let i = 0; i < (n || 1); i++) { const dx = (i % 2) * 3 - (n > 1 ? 1.5 : 0), dy = Math.floor(i / 2) * 3 - (n > 2 ? 1.5 : 0);
+    l += `<circle cx="${x + dx}" cy="${yy + dy}" r="1.6" fill="#8e24aa"/>`; } return l + `<path d="M${x},${yy} Q${x < 100 ? x - 30 : x + 30},${yy + 12} ${x < 100 ? 0 : 200},${yy + 4}" stroke="#8e24aa" stroke-width="1" fill="none" opacity=".7"/>`; };
+  const ins = (x, y0, len) => `<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0 + len}" stroke="#2e7d32" stroke-width="2.4" stroke-dasharray="2 1"/>`;
+  if (k === 'hoes') {
+    g += lat(84, 116, y(H), 97, 103) + `<line x1="100" y1="${y(H)}" x2="100" y2="${y(H) - 7}" stroke="currentColor" stroke-width="1.5"/>`;
+    const a1 = y(46), a2 = y(58);
+    g += `<line x1="36" y1="${a1}" x2="164" y2="${a1}" stroke="currentColor" stroke-width="3"/><line x1="58" y1="${a2}" x2="142" y2="${a2}" stroke="currentColor" stroke-width="3"/>`;
+    [[42, a1], [70, a1], [130, a1], [158, a1], [62, a2], [138, a2]].forEach(([x, yy]) => { g += ins(x, yy, 4.5 * sc) + wire(x, yy + 4.5 * sc + 2, 4); });
+    g += `<path d="M100,${y(H) - 7} Q60,${y(H) + 2} 0,${y(H) - 3} M100,${y(H) - 7} Q140,${y(H) + 2} 200,${y(H) - 3}" stroke="currentColor" stroke-width=".6" fill="none"/>`;
+  } else if (k === 'hs' || k === 'bahn') {
+    const bahn = k === 'bahn';
+    g += lat(bahn ? 94 : 88, bahn ? 106 : 112, y(H), 97.5, 102.5) + `<line x1="100" y1="${y(H)}" x2="100" y2="${y(H) - 6}" stroke="currentColor" stroke-width="1.5"/>`;
+    const a1 = y(H - 12), a2 = y(H - 6);
+    if (bahn) { g += `<line x1="56" y1="${a1}" x2="144" y2="${a1}" stroke="currentColor" stroke-width="3"/>`; [[62, a1], [82, a1], [118, a1], [138, a1]].forEach(([x, yy]) => { g += ins(x, yy, 1.4 * sc) + wire(x, yy + 1.4 * sc + 2, 1); }); }
+    else { g += `<line x1="50" y1="${a1}" x2="150" y2="${a1}" stroke="currentColor" stroke-width="3"/><line x1="66" y1="${a2}" x2="134" y2="${a2}" stroke="currentColor" stroke-width="3"/>`;
+      [[56, a1], [80, a1], [120, a1], [144, a1], [72, a2], [128, a2]].forEach(([x, yy]) => { g += ins(x, yy, 1.3 * sc) + wire(x, yy + 1.3 * sc + 2, 1); }); }
+    g += `<path d="M100,${y(H) - 6} Q60,${y(H) + 2} 0,${y(H) - 2} M100,${y(H) - 6} Q140,${y(H) + 2} 200,${y(H) - 2}" stroke="currentColor" stroke-width=".6" fill="none"/>`;
+  } else if (k === 'ms') {
+    g += `<polygon points="96,${G} 98,${y(H)} 102,${y(H)} 104,${G}" fill="#9e9e9e" stroke="currentColor" stroke-width="1"/>`;
+    const a = y(H - 1.2);
+    g += `<line x1="70" y1="${a}" x2="130" y2="${a}" stroke="currentColor" stroke-width="3"/>`;
+    [[74, a], [126, a], [100, y(H)]].forEach(([x, yy]) => { g += `<line x1="${x}" y1="${yy}" x2="${x}" y2="${yy - .35 * sc}" stroke="#2e7d32" stroke-width="3"/>` + wire(x, yy - .35 * sc - 1, 1); });
+  } else {
+    g += `<polygon points="97,${G} 98.5,${y(H)} 101.5,${y(H)} 103,${G}" fill="#8d6e63" stroke="currentColor" stroke-width="1"/>`;
+    [0, 1, 2, 3].forEach(i => { const yy = y(H - .4 - i * .45); g += `<line x1="101" y1="${yy}" x2="108" y2="${yy}" stroke="currentColor" stroke-width="1.5"/><circle cx="108" cy="${yy}" r="2" fill="#eee" stroke="currentColor" stroke-width=".8"/>` + wire(108, yy, 1); });
+  }
+  // Mensch zum Größenvergleich, Höhenmaß, Missionshöhe
+  const pH = 1.8 * sc;
+  g += `<g stroke="currentColor" stroke-width="1.2" fill="none"><circle cx="22" cy="${G - pH * .87}" r="${Math.max(1, pH * .12)}"/><line x1="22" y1="${G - pH * .75}" x2="22" y2="${G - pH * .4}"/><line x1="22" y1="${G - pH * .4}" x2="${22 - pH * .15}" y2="${G}"/><line x1="22" y1="${G - pH * .4}" x2="${22 + pH * .15}" y2="${G}"/></g>`;
+  g += `<line x1="186" y1="${G}" x2="186" y2="${y(H)}" stroke="currentColor" stroke-width=".8"/><line x1="182" y1="${y(H)}" x2="190" y2="${y(H)}" stroke="currentColor"/><text x="183" y="${y(H) - 4}" font-size="10" text-anchor="end" fill="currentColor" stroke="none">ca. ${H} m</text>`;
+  if (fh && fh * sc < 200) g += `<line x1="0" y1="${y(fh)}" x2="200" y2="${y(fh)}" stroke="#1e7bff" stroke-width="1.2" stroke-dasharray="5 3"/><text x="4" y="${y(fh) - 3}" font-size="9" fill="#1e7bff" stroke="none">eure Missionshöhe ${fh} m</text>`;
+  else if (fh) g += `<text x="4" y="12" font-size="9" fill="#1e7bff" stroke="none">↑ eure Missionshöhe ${fh} m (weit darüber)</text>`;
+  return `<svg viewBox="0 0 200 212" width="200" height="212" style="width:200px;height:212px;min-width:200px;flex:none;color:var(--txt);background:var(--card2,rgba(127,127,127,.08));border-radius:10px"><line x1="0" y1="${G}" x2="200" y2="${G}" stroke="#6d8b4e" stroke-width="2"/>${g}</svg>`;
+}
+const LINE_GUIDE = [
+  { k: 'hoes', t: 'Höchstspannung · 220 / 380 kV', c: '#6a1b9a', rows: [['Masthöhe', 'meist 50–80 m, an Querungen auch über 100 m'], ['Mastabstand', 'ca. 300–450 m'], ['Mast', 'großer Stahlgittermast, oft „Donaumast“ (zwei Querträger übereinander) oder „Tonnenmast“'],
+    ['Leiterseile', 'Bündelleiter: 2–4 Seile je Phase dicht nebeneinander, mit Abstandhaltern – das sicherste Erkennungszeichen'], ['Isolatoren', 'lange Ketten, ca. 3–5 m'], ['Stromstärke', 'je Stromkreis bis ca. 2.000–4.000 A'], ['Betreiber', 'Übertragungsnetz: Amprion, TenneT, 50Hertz, TransnetBW']] },
+  { k: 'hs', t: 'Hochspannung · 110 kV', c: '#8e24aa', rows: [['Masthöhe', 'meist 25–45 m'], ['Mastabstand', 'ca. 250–350 m'], ['Mast', 'Stahlgittermast, deutlich schlanker als 380 kV; manchmal Betonmast'],
+    ['Leiterseile', 'einzelne Seile, meist 2 Stromkreise = 6 Seile, dazu ein dünnes Erdseil ganz oben'], ['Isolatoren', 'ca. 1–1,5 m'], ['Stromstärke', 'ca. 400–1.000 A'], ['Betreiber', 'Verteilnetz, z. B. Westnetz, Syna, Avacon, Bayernwerk']] },
+  { k: 'bahn', t: 'Bahnstrom · 110 kV, 16,7 Hz', c: '#8e24aa', rows: [['Masthöhe', 'meist 20–35 m'], ['Mast', 'schlanke Gittermaste – oft quer übers Land, nicht nur an Gleisen'],
+    ['Leiterseile', '2 oder 4 Seile (statt 3 oder 6) – daran erkennt man Bahnstrom'], ['Isolatoren', 'ca. 1–1,5 m'], ['Stromstärke', 'ca. 300–700 A'], ['Betreiber', 'DB Energie'],
+    ['Nicht verwechseln', 'Die Oberleitung direkt über den Gleisen ist 15 kV und hängt nur ca. 5,5–6 m hoch']] },
+  { k: 'ms', t: 'Mittelspannung · 10–30 kV (meist 20 kV)', c: '#ef6c00', rows: [['Masthöhe', 'meist 10–15 m'], ['Mastabstand', 'ca. 80–150 m'], ['Mast', 'Beton-, Stahl- oder Holzmast, auch kleine Gittermaste'],
+    ['Leiterseile', '3 Seile, oft nebeneinander auf einer Querstange, eines manchmal auf der Spitze'], ['Isolatoren', 'kurz, ca. 20–40 cm, oft aufrecht stehend'], ['Stromstärke', 'ca. 100–400 A'],
+    ['Achtung', 'führt meist zu Trafostationen am Ortsrand und Aussiedlerhöfen – oft ohne dipul-Geozone und mitten durch Wiesen']] },
+  { k: 'ns', t: 'Niederspannung · 230 / 400 V', c: '#6d7a86', rows: [['Masthöhe', 'ca. 6–10 m'], ['Mastabstand', 'ca. 30–50 m'], ['Mast', 'Holz- oder Betonmast'],
+    ['Leiterseile', '4 Drähte übereinander an kleinen Porzellan-Isolatoren – oder ein dickes schwarzes Kabelbündel'], ['Stromstärke', 'bis ca. 250 A'],
+    ['Achtung', 'zu Höfen, Scheunen und Pumpen – sehr dünn und tief, auf dem Wärmebild kaum zu sehen; Telefonleitungen sehen ähnlich aus']] }];
+function lineGuideKey(l) {
+  if (!l) return '';
+  const v = lineVolt(l).t, kv = l.kv;
+  if (/Bahnstrom/.test(v)) return 'bahn';
+  if (kv >= 220 || /Höchstspannung/.test(v)) return 'hoes';
+  if (kv >= 60 || /≥ 110/.test(v)) return 'hs';
+  if (kv >= 6) return 'ms';
+  if (kv > 0) return 'ns';
+  return l.p === 'minor_line' ? 'ms' : '';
+}
+function showLineGuide(key) {
+  const order = key ? [...LINE_GUIDE.filter(x => x.k === key), ...LINE_GUIDE.filter(x => x.k !== key)] : LINE_GUIDE;
+  let h = `<div class="meta" style="margin-bottom:10px">Zeichnungen schematisch, Werte typisch für Deutschland – im Einzelfall abweichend. Grün = Isolatoren, violett = Leiterseile, links ein Mensch (1,8 m) zum Größenvergleich${flightHeight() ? ', blau gestrichelt eure Missionshöhe' : ''}.</div>`;
+  order.forEach((x, i) => {
+    h += `<div class="zone" style="border-left:5px solid ${x.c};${key && i === 0 ? 'outline:2px solid ' + x.c + ';' : ''}"><h4>${esc(x.t)}${key && i === 0 ? ' <span class="chip">diese Leitung (vermutlich)</span>' : ''}</h4>
+      <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">${lgSvg(x.k)}<div style="flex:1;min-width:220px">${x.rows.map(([a, b]) => `<div style="margin-bottom:3px"><b>${esc(a)}:</b> ${esc(b)}</div>`).join('')}</div></div></div>`;
+  });
+  h += `<div class="zone"><h4>So schätzt du die Spannung ein</h4><ul>
+    <li><b>Isolatorlänge:</b> Faustregel ca. 1 m je 100 kV.</li>
+    <li><b>Mehrere Seile dicht nebeneinander</b> (Bündel) → 220 oder 380 kV.</li>
+    <li><b>2 oder 4 Seile</b> statt 3 oder 6 → Bahnstrom (110 kV).</li>
+    <li><b>Holzmast</b> → Nieder- oder Mittelspannung.</li>
+    <li>Die Masthöhe allein täuscht: am Hang oder im Tal hängt die Leitung über dem Startpunkt deutlich höher oder tiefer.</li></ul></div>
+  <div class="zone" style="border-left:5px solid #b3131b"><h4>Worauf beim Drohnenflug achten</h4><ul>
+    <li>Das <b>dünne Erdseil an der Mastspitze</b> ist das höchste und am schlechtesten sichtbare Seil.</li>
+    <li>Seile <b>hängen zwischen den Masten durch</b> – in der Mitte mehrere Meter tiefer, bei Hitze und hoher Last noch mehr.</li>
+    <li>Seile sind für die <b>Hinderniserkennung der Drohne</b> oft zu dünn und auf dem <b>Wärmebild</b> kaum zu sehen.</li>
+    <li>Starke Ströme erzeugen <b>Magnetfelder</b>: Kompass-Warnungen sind in der Nähe möglich. Nicht direkt unter Leitungen starten oder den Kompass kalibrieren.</li>
+    <li>Mittel- und Niederspannung haben meist <b>keine dipul-Geozone</b>. Die App zeigt sie aus OpenStreetMap – aber nicht jede Leitung ist dort erfasst. Vor Ort immer selbst schauen.</li></ul>
+    <div class="meta">Maßgeblich für Abstände sind die Geozonen in dipul und eure Genehmigung.</div></div>`;
+  openInfoPage('Strommasten & Leitungen erkennen', h);
 }
 function osmLinesNear(lat, lon, m) {
   return S.osm.filter(l => lat <= l.bb.n + .002 && lat >= l.bb.s - .002 && lon <= l.bb.e + .003 && lon >= l.bb.w - .003)
@@ -3689,8 +3816,10 @@ window.onPowerInfo = raw => {
   if (top != null && top > 105) html += `<div style="margin-top:6px;padding:8px 10px;border-radius:8px;background:#e7eef7;color:var(--txt)"><b>Mast über 105 m:</b> Im Auftrag des Betreibers darf bis 50 m horizontal an den Mast heran und bis 15 m über die Mastspitze geflogen werden (EU 2019/947) – auch über 120 m.</div>`;
   let stamp = r.cached ? `gespeichert, Stand ${fmtDate(r.fetched)}` : 'live abgefragt';
   if (r.cached && Date.now() - r.fetched > 7 * 86400000) stamp = `<b style="color:#b3131b">⚠ veraltet – Stand ${fmtDate(r.fetched)}</b>`;
-  html += `<div style="font-size:12px;margin-top:4px">Daten © OpenStreetMap-Mitwirkende · ${stamp} · ohne Gewähr</div>`;
+  const kvMax = kvs.length ? Math.max(...kvs) : 0, lgk = kvMax >= 220 ? 'hoes' : kvMax >= 60 ? 'hs' : kvMax >= 6 ? 'ms' : kvMax > 0 ? 'ns' : '';
+  html += `<div style="font-size:12px;margin-top:4px">Daten © OpenStreetMap-Mitwirkende · ${stamp} · ohne Gewähr · <span class="lnk" data-lg="${lgk}">Wie sieht so eine Leitung aus?</span></div>`;
   box.innerHTML = html;
+  box.querySelectorAll('[data-lg]').forEach(a => a.onclick = () => showLineGuide(a.dataset.lg));
 };
 function showRules() {
   const act = avgiActive(), reg = regionAt(V.lat, V.lon);
@@ -5618,11 +5747,12 @@ function geoArea() {
   if (!boxes.length) boxes.push(grow(V.lat, V.lat, V.lon, V.lon, 8));
   return { n: Math.max(...boxes.map(x => x.n)), s: Math.min(...boxes.map(x => x.s)), e: Math.max(...boxes.map(x => x.e)), w: Math.min(...boxes.map(x => x.w)) };
 }
-function geoSyncNow(force, wide) {
+function geoSyncNow(force, wide, onlyZones) {
   if (!A.geoSync || P.geo !== '1') return;
   if (!isOnline()) { if (force) toast('Offline – Geozonen werden aktualisiert, sobald wieder Internet da ist.'); return; }
   const a = geoArea(), eb = wide ? einsatzBox(25) : null;   // Einsatzgebiet: Zonendaten so weit wie das Kartenbild
   if (eb) a.vec = { w: eb[0], s: eb[1], e: eb[2], n: eb[3] };
+  if (onlyZones) a.onlyZones = true;
   A.geoSync(JSON.stringify(a), !!force);
 }
 function fmtDate(ms) {

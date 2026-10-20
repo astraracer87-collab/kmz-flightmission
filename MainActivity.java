@@ -1201,7 +1201,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     int kv = 0;
                     for (String v : t.optString("voltage").split(";")) { try { kv = Math.max(kv, Integer.parseInt(v.trim()) / 1000); } catch (Exception ignored) { } }
                     out.put(new JSONObject().put("kv", kv).put("p", t.optString("power")).put("n", t.optString("name", t.optString("ref", "")))
-                            .put("o", t.optString("operator")).put("g", pts));
+                            .put("o", t.optString("operator")).put("r", t.optString("ref")).put("c", t.optString("cables")).put("f", t.optString("frequency"))
+                            .put("ci", t.optString("circuits")).put("loc", t.optString("location")).put("g", pts));
                 }
             } catch (Exception ignored) { }
             return out.toString();
@@ -2383,20 +2384,30 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (!force && fresh && !oldFormat && osmCovers(n, s, e, w) && osmFile().isFile() && osmWaysFile().isFile() && prefs.getLong("pbf_t", 0) > 0) return;
         // 1. Wahl: Geofabrik-Datei (zuverlässig) – Overpass nur noch als Ausweg
         Exception pbfErr = null;
-        try { if (pbfSync(n, s, e, w, force)) return; } catch (Exception px) { pbfErr = px; }
+        try { if (pbfSync(n, s, e, w, force)) return; }
+        catch (Throwable px) {   // auch Speichermangel abfangen – und den Grund sichtbar machen
+            pbfErr = px instanceof Exception ? (Exception) px : new Exception(px instanceof OutOfMemoryError ? "zu wenig Arbeitsspeicher beim Auswerten" : px.toString());
+            try { java.io.StringWriter sw = new java.io.StringWriter(); px.printStackTrace(new java.io.PrintWriter(sw));
+                writeFileAtomic(new File(pbfDir(), "fehler.txt"), new java.util.Date() + "\n" + sw); } catch (Throwable ignored) { }
+        }
+        ovLoad = pbfErr != null ? "load:OpenStreetMap-Datei fehlgeschlagen (" + pbfMsg(pbfErr) + ") – versuche Ausweg Overpass…"
+                : pbfWait != null ? "load:Wartet auf WLAN für die OpenStreetMap-Datei – versuche solange Overpass…" : "load";
         try { osmSyncOverpass(n, s, e, w); } finally {
+            ovLoad = "load";
             for (String cat : new String[]{"hindernisse", "feldwege"}) {
                 String st = catStatus.get(cat); if (st != null && st.startsWith("ok")) continue;
                 boolean have = "feldwege".equals(cat) ? osmWaysFile().isFile() : osmFile().isFile();
                 if (pbfWait != null) catSt(cat, "wlan:" + pbfWait);
-                else if (pbfErr != null) catSt(cat, (have ? "alt:" : "") + "OpenStreetMap-Datei: " + errTxt(pbfErr));
+                else if (pbfErr != null) catSt(cat, (have ? "alt:" : "") + "OpenStreetMap-Datei: " + pbfMsg(pbfErr));
             }
         }
     }
 
     /** Alter Weg über Overpass – nur noch, wenn die Geofabrik-Datei (noch) nicht da ist */
+    private volatile String ovLoad = "load";   // Statustext, während Overpass als Ausweg läuft
+    private static String pbfMsg(Throwable t) { String m = t.getMessage(); return t.getClass().getSimpleName().replace("Exception", "") + (m == null ? "" : ": " + (m.length() > 120 ? m.substring(0, 120) : m)); }
     private void osmSyncOverpass(double n, double s, double e, double w) {
-        catSt("hindernisse", "load"); catSt("feldwege", "load");
+        catSt("hindernisse", ovLoad); catSt("feldwege", ovLoad);
         try {
             // Hindernisse, Leitungen, Bahn und Ortsnamen in Kacheln von ca. 20 km (große Einzelanfrage lief in Zeitüberschreitung)
             final String[] OBS = {
@@ -2432,7 +2443,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         int iy = t[0], ix = t[1];
                         double ts = s + (n - s) * iy / k, tn = s + (n - s) * (iy + 1) / k, tw = w + (e - w) * ix / k, te = w + (e - w) * (ix + 1) / k;
                         String tb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", ts, tw, tn, te);
-                        catSt("feldwege", "load");
+                        catSt("feldwege", ovLoad);
                         try {
                             JSONArray part = new JSONObject(overpass("[out:json][timeout:90];(way[\"highway\"~\"^(track|path|service|unclassified|tertiary|bridleway|cycleway|footway)$\"](" + tb + "););out tags geom;", 120000)).getJSONArray("elements");
                             for (int q2 = 0; q2 < part.length(); q2++) { JSONObject el = part.getJSONObject(q2); if (seenW.add(el.optLong("id"))) wys.put(el); }
@@ -2614,7 +2625,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private void pbfExtract(List<File> files, List<String> names, double n, double s, double e, double w) throws Exception {
         double mLa = 3 / 111.2, mLo = 3 / (111.2 * Math.cos(Math.toRadians((n + s) / 2)));
         double pLa = 25 / 111.2, pLo = 25 / (111.2 * Math.cos(Math.toRadians((n + s) / 2)));
-        OsmPbf x = new OsmPbf(pbfDir());
+        OsmPbf x = new OsmPbf(getCacheDir());   // Hilfsdatei im internen Speicher (mmap auf dem freigegebenen Speicher ist unzuverlässig)
         x.nN = OsmPbf.d7(n + mLa); x.nS = OsmPbf.d7(s - mLa); x.nE = OsmPbf.d7(e + mLo); x.nW = OsmPbf.d7(w - mLo);
         x.pN = OsmPbf.d7(n + pLa); x.pS = OsmPbf.d7(s - pLa); x.pE = OsmPbf.d7(e + pLo); x.pW = OsmPbf.d7(w - pLo);
         File tp = new File(osmFile().getPath() + ".neu"), tw = new File(osmWaysFile().getPath() + ".neu"), ta = new File(afFile().getPath() + ".neu");
@@ -3137,11 +3148,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             case "zonendaten": e.remove("geo_vec_bbox").remove("geo_vec_fetched"); break;
             case "feldwege": case "hindernisse": e.remove("osm_fetched").remove("osm_bbox").remove("pbf_t"); break;
             case "osmroh": e.remove("pbf_t").remove("pbf_src"); break;
-            case "orte": e.remove("place_fetched").remove("place_bbox").remove("reg_fetched"); break;
-            case "flugplaetze": e.remove("af_fetched").remove("af_bbox").remove("dulv_t"); break;
+            case "orte": e.remove("place_fetched").remove("place_bbox").remove("reg_fetched").remove("pbf_t"); break;
+            case "flugplaetze": e.remove("af_fetched").remove("af_bbox").remove("dulv_t").remove("pbf_t"); break;
             case "wiesen": e.remove("uave_outlines_fetched"); break;
         }
-        e.remove("esBox5").putString("cacheRefetch", "1").apply();   // App holt beim nächsten Mal mit Internet automatisch neu
+        e.apply();   // nur dieser Bereich – das gespeicherte Einsatzgebiet bleibt gültig (sonst würde die App beim nächsten Start alles neu laden)
     }
     private static void sizeOf(File f, long[] r) {
         if (f == null || !f.exists()) return;
@@ -4200,7 +4211,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 StringBuilder q = new StringBuilder("[out:json][timeout:90];(");
                 for (String f : filters) q.append(f).append("(").append(tb).append(");");
                 q.append(");out tags geom;");
-                if (cat != null) catSt(cat, "load");
+                if (cat != null) catSt(cat, ovLoad);
                 try {
                     JSONArray part = new JSONObject(overpass(q.toString(), 120000)).getJSONArray("elements");
                     for (int i = 0; i < part.length(); i++) { JSONObject el = part.getJSONObject(i); if (seen.add(el.optString("type") + el.optLong("id"))) out.put(el); }
@@ -4641,7 +4652,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             JSONObject b = new JSONObject(areaJson);
             double n = b.getDouble("n"), s = b.getDouble("s"), e = b.getDouble("e"), w = b.getDouble("w");
             final double fn = n, fs = s, fe = e, fw = w;
-            new Thread(() -> {
+            if (!b.optBoolean("onlyZones")) new Thread(() -> {   // „Geozonen neu holen“: nur die Zonendaten, nichts anderes
                 regionSync(fn, fs, fe, fw, force);
                 js("window.onRegions && window.onRegions()");
                 osmSync(fn, fs, fe, fw, force);   // zuerst: liefert aus der Geofabrik-Datei auch Orte und Flugplätze
