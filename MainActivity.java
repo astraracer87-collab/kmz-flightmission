@@ -505,6 +505,14 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public boolean hasAccess() { return hasFileAccess(); }
 
+        /** Einstellungen nach Neuinstallation schon aus der Sicherung zurückgeholt? (vorher keine automatischen Downloads) */
+        @JavascriptInterface
+        public boolean prefsReady() { return hasFileAccess() && prefs.getBoolean("prefs_restored", false); }
+
+        /** Größe des Cache-Ordners laut letzter Zählung (Bytes) – schnell, ohne neu zu zählen */
+        @JavascriptInterface
+        public double cacheBytes() { try { File f = cacheCountFile(); return f.isFile() ? new JSONObject(readFile(f)).optDouble("total", 0) : 0; } catch (Exception e) { return 0; } }
+
         /** true, wenn eine Internetverbindung besteht */
         @JavascriptInterface
         public boolean isOnline() { return online(); }
@@ -999,6 +1007,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 t.add(new String[]{"DULV Flugplätze", "https://dulv.de/fmwebphp/Flugplatz/show_all.php", "get"});
                 t.add(new String[]{"BKG Landesgrenzen", "https://sgx.geodatenzentrum.de/wfs_vg2500?SERVICE=WFS&REQUEST=GetCapabilities", "get"});
                 t.add(new String[]{"dipul", "https://uas-betrieb.de/geoservices/dipul/wms?SERVICE=WMS&REQUEST=GetCapabilities", "get"});
+                t.add(new String[]{"Geofabrik (OpenStreetMap-Dateien)", "https://download.geofabrik.de/europe/germany/bremen.poly", "get"});
                 t.add(new String[]{"GitHub (Vergleich)", "https://raw.githubusercontent.com/", "get"});
                 for (String[] x : t) {
                     long t0 = System.currentTimeMillis(); String res;
@@ -1055,11 +1064,21 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     double lon = el.has("lon") ? el.optDouble("lon") : el.optJSONObject("center") != null ? el.optJSONObject("center").optDouble("lon") : Double.NaN;
                     if (Double.isNaN(lat) || Double.isNaN(lon)) continue;
                     String icao = t.optString("icao", "");
+                    boolean pad = "helipad".equals(t.optString("aeroway"));   // einzelne Landefläche (z. B. Klinik) – wie ein Hubschrauberlandeplatz behandeln
+                    if (pad) {   // liegt sie auf einem schon erfassten Flugplatz/Landeplatz: nicht doppelt zeigen
+                        boolean dup = false;
+                        for (int q = 0; q < list.length() && !dup; q++) { JSONObject o = list.optJSONObject(q); JSONObject ot = o == null ? null : o.optJSONObject("tags");
+                            if (ot == null || "helipad".equals(ot.optString("aeroway"))) continue;
+                            double ola = o.has("lat") ? o.optDouble("lat") : o.optJSONObject("center") != null ? o.optJSONObject("center").optDouble("lat") : Double.NaN;
+                            double olo = o.has("lon") ? o.optDouble("lon") : o.optJSONObject("center") != null ? o.optJSONObject("center").optDouble("lon") : Double.NaN;
+                            if (!Double.isNaN(ola) && Math.hypot((ola - lat) * 111.2, (olo - lon) * 111.2 * Math.cos(Math.toRadians(lat))) < ("heliport".equals(ot.optString("aeroway")) ? 0.4 : 1.5)) dup = true; }
+                        if (dup) continue;
+                    }
                     out.put(new JSONObject()
                             .put("id", el.optString("type") + "/" + el.optLong("id"))
-                            .put("name", t.optString("name", t.optString("short_name", "Flugplatz")))
+                            .put("name", t.optString("name", t.optString("short_name", pad ? "Hubschrauberlandeplatz" : "Flugplatz")))
                             .put("icao", icao)
-                            .put("kind", t.optString("aeroway"))
+                            .put("kind", pad ? "heliport" : t.optString("aeroway"))
                             .put("type", t.optString("aerodrome:type", t.optString("aerodrome", "")))
                             .put("ele", t.optString("ele", ""))
                             .put("phone", t.optString("phone", t.optString("contact:phone", "")))
@@ -1132,6 +1151,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
 
         /** Einen Datenbereich löschen (wird beim nächsten Speichern/Abgleich neu geholt). Ergebnis über window.onCacheCleared */
+        @JavascriptInterface
+        public void pbfForce() { pbfForceOnce = true; }
+
         @JavascriptInterface
         public void cacheClear(String id) {
             new Thread(() -> {
@@ -1270,6 +1292,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 js("window.onNotams && window.onNotams()");
             }).start();
         }
+
 
         @JavascriptInterface
         public void openUrl(String url) {
@@ -2308,6 +2331,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     /** Orts- und Flurnamen für die Suche: Gebiet der Felder + 25 km, alle 60 Tage oder wenn das Gebiet größer wird */
     private void placeSync(double n, double s, double e, double w, boolean force) {
         double dLa = 25 / 111.2, dLo = 25 / (111.2 * Math.cos(Math.toRadians((n + s) / 2)));
+        if (!force && pbfCovers(n, s, e, w) && placeFile().isFile()) return;   // kommt aus der Geofabrik-Datei
         n += dLa; s -= dLa; e += dLo; w -= dLo;
         try {
             JSONObject b = new JSONObject(prefs.getString("place_bbox", "{}"));
@@ -2355,8 +2379,23 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         } catch (Exception ignored) { }
         long fetched = prefs.getLong("osm_fetched", 0);
         boolean fresh = System.currentTimeMillis() - fetched < 7 * DAY;   // Leitungen ändern sich selten
-        boolean oldFormat = prefs.getInt("osm_ver", 1) < 5;   // ältere Daten ohne Hindernisse/Ortsnamen: einmal neu laden
-        if (!force && fresh && !oldFormat && osmCovers(n, s, e, w) && osmFile().isFile() && osmWaysFile().isFile()) return;
+        boolean oldFormat = prefs.getInt("osm_ver", 1) < 6;   // ältere Daten ohne Hindernisse/Ortsnamen: einmal neu laden
+        if (!force && fresh && !oldFormat && osmCovers(n, s, e, w) && osmFile().isFile() && osmWaysFile().isFile() && prefs.getLong("pbf_t", 0) > 0) return;
+        // 1. Wahl: Geofabrik-Datei (zuverlässig) – Overpass nur noch als Ausweg
+        Exception pbfErr = null;
+        try { if (pbfSync(n, s, e, w, force)) return; } catch (Exception px) { pbfErr = px; }
+        try { osmSyncOverpass(n, s, e, w); } finally {
+            for (String cat : new String[]{"hindernisse", "feldwege"}) {
+                String st = catStatus.get(cat); if (st != null && st.startsWith("ok")) continue;
+                boolean have = "feldwege".equals(cat) ? osmWaysFile().isFile() : osmFile().isFile();
+                if (pbfWait != null) catSt(cat, "wlan:" + pbfWait);
+                else if (pbfErr != null) catSt(cat, (have ? "alt:" : "") + "OpenStreetMap-Datei: " + errTxt(pbfErr));
+            }
+        }
+    }
+
+    /** Alter Weg über Overpass – nur noch, wenn die Geofabrik-Datei (noch) nicht da ist */
+    private void osmSyncOverpass(double n, double s, double e, double w) {
         catSt("hindernisse", "load"); catSt("feldwege", "load");
         try {
             // Hindernisse, Leitungen, Bahn und Ortsnamen in Kacheln von ca. 20 km (große Einzelanfrage lief in Zeitüberschreitung)
@@ -2411,11 +2450,457 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 catSt("feldwege", bad == 0 ? "ok" : (osmWaysFile().isFile() ? "alt:" : "") + bad + " von " + (k * k) + " Teilen fehlen – " + errTxt(wErr));
             } catch (Exception we) { catSt("feldwege", (osmWaysFile().isFile() ? "alt:" : "") + errTxt(we)); }
             if (obBad == 0) {   // nur bei vollständigem Erfolg als „aktuell“ merken – sonst beim nächsten Mal erneut versuchen
-                prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 5)
+                prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 6)
                         .putString("osm_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             }
             if (obBad < obAll) { osmCache = els; osmCacheLoaded = System.currentTimeMillis(); }
         } catch (Exception ex) { catSt("hindernisse", (osmFile().isFile() ? "alt:" : "") + errTxt(ex)); if ("load".equals(catStatus.get("feldwege"))) catSt("feldwege", (osmWaysFile().isFile() ? "alt:" : "") + errTxt(ex)); }
+    }
+
+    // ---------- OpenStreetMap-Daten aus der Geofabrik-Datei (statt Overpass) ----------
+    // Overpass-Server sind oft überlastet; Geofabrik bietet dieselben Daten als fertige Datei je Bundesland bzw. Regierungsbezirk.
+    // Die RC lädt die Datei einmal (am besten im WLAN), wertet sie selbst aus und behält sie für spätere Gebietsänderungen.
+    private static final String GF = "https://download.geofabrik.de/europe/germany/";
+    @SuppressWarnings("deprecation")
+    private boolean metered() {
+        try { android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE); return cm != null && cm.isActiveNetworkMetered(); }
+        catch (Exception e) { return false; }
+    }
+    private boolean pbfCovers(double n, double s, double e, double w) {
+        try {
+            if (prefs.getLong("pbf_t", 0) == 0) return false;
+            JSONObject b = new JSONObject(prefs.getString("pbf_bbox", "{}"));
+            return b.has("n") && b.getDouble("n") >= n && b.getDouble("s") <= s && b.getDouble("e") >= e && b.getDouble("w") <= w;
+        } catch (Exception ex) { return false; }
+    }
+    private void pbfSt(String txt, int pct) { String v = "load:" + txt + "|" + pct; catSt("hindernisse", v); catSt("feldwege", v); }
+
+    /** Geofabrik-Gebiete: Pfad, Bundesland, Name, grober Rahmen (W, S, O, N). In NRW, Baden-Württemberg und Bayern die Regierungsbezirke (kleinere Dateien).
+     *  Die genaue Grenze kommt als .poly-Datei ebenfalls von Geofabrik – alles aus einer Quelle. */
+    private static final Object[][] GF_REG = {
+            {"schleswig-holstein", "SH", "Schleswig-Holstein", 7.8, 53.3, 11.4, 55.1}, {"hamburg", "HH", "Hamburg", 8.4, 53.35, 10.35, 54.0},
+            {"niedersachsen", "NI", "Niedersachsen", 6.6, 51.25, 11.65, 53.95}, {"bremen", "HB", "Bremen", 8.45, 53.0, 9.0, 53.65},
+            {"hessen", "HE", "Hessen", 7.75, 49.35, 10.25, 51.7}, {"rheinland-pfalz", "RP", "Rheinland-Pfalz", 6.1, 48.95, 8.55, 50.95},
+            {"saarland", "SL", "Saarland", 6.35, 49.1, 7.45, 49.65}, {"berlin", "BE", "Berlin", 13.05, 52.3, 13.8, 52.7},
+            {"brandenburg", "BB", "Brandenburg", 11.25, 51.35, 14.8, 53.6}, {"mecklenburg-vorpommern", "MV", "Mecklenburg-Vorpommern", 10.55, 53.1, 14.45, 54.7},
+            {"sachsen", "SN", "Sachsen", 11.85, 50.15, 15.05, 51.7}, {"sachsen-anhalt", "ST", "Sachsen-Anhalt", 10.55, 50.9, 13.2, 53.05},
+            {"thueringen", "TH", "Thüringen", 9.85, 50.2, 12.7, 51.65},
+            {"nordrhein-westfalen/duesseldorf-regbez", "NW", "RB Düsseldorf", 5.9, 50.95, 7.4, 51.9}, {"nordrhein-westfalen/koeln-regbez", "NW", "RB Köln", 5.85, 50.3, 7.8, 51.2},
+            {"nordrhein-westfalen/muenster-regbez", "NW", "RB Münster", 6.35, 51.4, 8.35, 52.4}, {"nordrhein-westfalen/detmold-regbez", "NW", "RB Detmold", 7.9, 51.4, 9.5, 52.55},
+            {"nordrhein-westfalen/arnsberg-regbez", "NW", "RB Arnsberg", 6.85, 50.7, 9.0, 51.8},
+            {"baden-wuerttemberg/stuttgart-regbez", "BW", "RB Stuttgart", 8.6, 48.35, 10.55, 49.8}, {"baden-wuerttemberg/karlsruhe-regbez", "BW", "RB Karlsruhe", 7.85, 48.25, 9.65, 49.65},
+            {"baden-wuerttemberg/freiburg-regbez", "BW", "RB Freiburg", 7.45, 47.5, 9.05, 48.5}, {"baden-wuerttemberg/tuebingen-regbez", "BW", "RB Tübingen", 8.35, 47.5, 10.3, 48.75},
+            {"bayern/unterfranken", "BY", "Unterfranken", 8.95, 49.45, 10.95, 50.6}, {"bayern/oberfranken", "BY", "Oberfranken", 10.35, 49.55, 12.3, 50.6},
+            {"bayern/mittelfranken", "BY", "Mittelfranken", 9.85, 48.85, 11.6, 49.85}, {"bayern/oberpfalz", "BY", "Oberpfalz", 11.2, 48.75, 13.1, 50.05},
+            {"bayern/niederbayern", "BY", "Niederbayern", 11.55, 48.1, 13.9, 49.25}, {"bayern/oberbayern", "BY", "Oberbayern", 10.7, 47.35, 13.15, 49.15},
+            {"bayern/schwaben", "BY", "Schwaben", 9.9, 47.25, 11.3, 49.05}};
+
+    /** Genaue Grenze eines Gebiets (Geofabrik .poly, lon/lat-Ringe; Löcher weggelassen) – einmal laden, dann gespeichert */
+    private List<double[]> gfPoly(String path) {
+        File f = new File(pbfDir(), path.replace('/', '_') + ".poly");
+        String t = null;
+        try { if (f.isFile() && f.length() > 50) t = readFile(f); } catch (Exception ignored) { }
+        if (t == null && online()) {
+            try { t = httpText(GF + path + ".poly", 30000); if (t.contains("END")) writeFileAtomic(f, t); else t = null; } catch (Exception ignored) { t = null; }
+        }
+        if (t == null) return null;
+        List<double[]> rings = new ArrayList<>(); List<Double> cur = null; boolean hole = false; boolean first = true;
+        for (String ln : t.split("\\r?\\n")) {
+            String x = ln.trim(); if (x.isEmpty()) continue;
+            if (first) { first = false; continue; }   // erste Zeile: Name
+            if (cur == null) { if (x.equals("END")) break; cur = new ArrayList<>(); hole = x.startsWith("!"); continue; }
+            if (x.equals("END")) { if (!hole && cur.size() >= 6) { double[] r = new double[cur.size()]; for (int i = 0; i < r.length; i++) r[i] = cur.get(i); rings.add(r); } cur = null; continue; }
+            String[] v = x.split("\\s+"); if (v.length < 2) continue;
+            try { cur.add(Double.parseDouble(v[0])); cur.add(Double.parseDouble(v[1])); } catch (Exception ignored) { }
+        }
+        return rings.isEmpty() ? null : rings;
+    }
+
+    /** Welche Geofabrik-Dateien decken das Gebiet (+3 km) ab? Erst grober Rahmen, dann genaue Grenze */
+    private List<String[]> pbfRegions(double n, double s, double e, double w) {
+        double m = 3 / 111.2, mo = 3 / (111.2 * Math.cos(Math.toRadians((n + s) / 2)));
+        double bn = n + m, bs = s - m, be = e + mo, bw = w - mo;
+        List<String[]> l = new ArrayList<>();
+        Set<String> only = new java.util.HashSet<>(); for (String x : prefs.getString("osmStates", "").split(",")) if (!x.trim().isEmpty()) only.add(x.trim());
+        for (Object[] g : GF_REG) {
+            if (!only.isEmpty() && !only.contains((String) g[1])) continue;   // in den Einstellungen festgelegte Bundesländer
+            double gw = (Double) g[3], gs = (Double) g[4], ge = (Double) g[5], gn = (Double) g[6];
+            if (gw > be || ge < bw || gs > bn || gn < bs) continue;   // Rahmen berühren sich nicht
+            List<double[]> rings = gfPoly((String) g[0]);
+            boolean hit = rings == null;   // Grenze nicht ladbar: Rahmen reicht (lieber eine Datei zu viel)
+            if (rings != null) for (double[] a : rings) {
+                int np = a.length / 2;
+                for (int q = 0; q < np && !hit; q++) { double x = a[2 * q], y = a[2 * q + 1]; if (y <= bn && y >= bs && x <= be && x >= bw) hit = true; }
+                for (int gy = 0; gy <= 4 && !hit; gy++) for (int gx = 0; gx <= 4 && !hit; gx++) {
+                    double py = bs + (bn - bs) * gy / 4, px = bw + (be - bw) * gx / 4; boolean c = false;
+                    for (int q = 0, r = np - 1; q < np; r = q++) { double xi = a[2 * q], yi = a[2 * q + 1], xj = a[2 * r], yj = a[2 * r + 1];
+                        if ((yi > py) != (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) c = !c; }
+                    if (c) hit = true;
+                }
+                if (hit) break;
+            }
+            if (hit) l.add(new String[]{(String) g[0], (String) g[2]});
+        }
+        return l;
+    }
+
+    /** Geofabrik-Datei laden – setzt abgebrochene Downloads fort */
+    private void pbfDownload(String path, String name, File f) throws Exception {
+        File part = new File(f.getPath() + ".part");
+        long have = part.isFile() ? part.length() : 0;
+        if (have > 0 && System.currentTimeMillis() - part.lastModified() > 2 * DAY) { part.delete(); have = 0; }   // Geofabrik erneuert täglich
+        String etag = prefs.getString("pbf_etag_" + path, "");
+        HttpURLConnection c = (HttpURLConnection) new URL(GF + path + "-latest.osm.pbf").openConnection();
+        try {
+            c.setConnectTimeout(15000); c.setReadTimeout(60000);
+            c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Android; Kitzrettung, ehrenamtlich, nicht-kommerziell)");
+            if (have > 0 && !etag.isEmpty()) { c.setRequestProperty("Range", "bytes=" + have + "-"); c.setRequestProperty("If-Range", etag); }
+            int code = c.getResponseCode();
+            if (code == 200) have = 0; else if (code != 206) throw new Exception("Geofabrik antwortet mit HTTP " + code);
+            long total = have + c.getContentLengthLong();
+            String et = c.getHeaderField("ETag"); if (et != null) prefs.edit().putString("pbf_etag_" + path, et).apply();
+            if (pbfDir().getUsableSpace() < total - have + 300L * 1024 * 1024) throw new Exception("Zu wenig freier Speicher auf der RC (nötig ca. " + ((total - have) >> 20) + " MB)");
+            byte[] buf = new byte[1 << 16]; long got = have; int lastPct = -1;
+            try (InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(part, have > 0)) {
+                int k; while ((k = in.read(buf)) > 0) { out.write(buf, 0, k); got += k;
+                    int pct = total > 0 ? (int) (got * 100 / total) : 0;
+                    if (pct != lastPct) { lastPct = pct; pbfSt("OpenStreetMap " + name + " wird geladen · " + (got >> 20) + " von " + (total >> 20) + " MB", pct); } }
+            }
+            if (total > 0 && part.length() < total) throw new Exception("Download unterbrochen – wird beim nächsten Mal fortgesetzt");
+        } finally { c.disconnect(); }
+        f.delete();
+        if (!part.renameTo(f)) throw new Exception("Datei konnte nicht gespeichert werden");
+        f.setLastModified(System.currentTimeMillis());
+    }
+
+    /** true = Daten kommen aus der Geofabrik-Datei (aktuell oder gerade neu ausgewertet); false = Overpass als Ausweg */
+    private boolean pbfSync(double n, double s, double e, double w, boolean force) throws Exception {
+        synchronized (pbfLock) {
+            pbfWait = null;
+            if (pbfForceOnce) { force = true; pbfForceOnce = false; }
+            List<String[]> regs = pbfRegions(n, s, e, w);
+            if (regs.isEmpty()) return false;
+            boolean met = metered();
+            List<File> files = new ArrayList<>(); List<String> names = new ArrayList<>(); long newest = 0, need = 0;
+            StringBuilder src = new StringBuilder();
+            for (String[] r : regs) {
+                File f = pbfFile(r[0]);
+                long age = f.isFile() ? System.currentTimeMillis() - f.lastModified() : Long.MAX_VALUE;
+                boolean want = !f.isFile() || age > 60 * DAY || (force && age > 3 * DAY);
+                if (want && online() && (!met || force)) {
+                    try { pbfDownload(r[0], r[1], f); }
+                    catch (Exception ex) { if (!f.isFile()) throw ex; }   // alte Datei bleibt nutzbar
+                }
+                if (!f.isFile()) { need++; continue; }
+                files.add(f); names.add(r[1]); newest = Math.max(newest, f.lastModified()); src.append(r[0]).append(';');
+            }
+            if (need > 0) {
+                if (met && !force) pbfWait = regs.size() == 1 ? regs.get(0)[1] : regs.size() + " Gebiete";
+                return false;
+            }
+            boolean same = src.toString().equals(prefs.getString("pbf_src", "")) && prefs.getLong("pbf_t", 0) >= newest;
+            if (same && prefs.getInt("osm_ver", 1) >= 6 && pbfCovers(n, s, e, w) && osmFile().isFile() && osmWaysFile().isFile()) return true;
+            pbfExtract(files, names, n, s, e, w);
+            prefs.edit().putString("pbf_src", src.toString()).putLong("pbf_t", newest).apply();
+            return true;
+        }
+    }
+
+    private void pbfExtract(List<File> files, List<String> names, double n, double s, double e, double w) throws Exception {
+        double mLa = 3 / 111.2, mLo = 3 / (111.2 * Math.cos(Math.toRadians((n + s) / 2)));
+        double pLa = 25 / 111.2, pLo = 25 / (111.2 * Math.cos(Math.toRadians((n + s) / 2)));
+        OsmPbf x = new OsmPbf(pbfDir());
+        x.nN = OsmPbf.d7(n + mLa); x.nS = OsmPbf.d7(s - mLa); x.nE = OsmPbf.d7(e + mLo); x.nW = OsmPbf.d7(w - mLo);
+        x.pN = OsmPbf.d7(n + pLa); x.pS = OsmPbf.d7(s - pLa); x.pE = OsmPbf.d7(e + pLo); x.pW = OsmPbf.d7(w - pLo);
+        File tp = new File(osmFile().getPath() + ".neu"), tw = new File(osmWaysFile().getPath() + ".neu"), ta = new File(afFile().getPath() + ".neu");
+        for (File t : new File[]{tp, tw, ta}) t.getParentFile().mkdirs();
+        long sum = 0; for (File f : files) sum += f.length();
+        final long all = sum;
+        try {
+            x.power = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new FileOutputStream(tp), StandardCharsets.UTF_8), 1 << 16);
+            x.ways = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new FileOutputStream(tw), StandardCharsets.UTF_8), 1 << 16);
+            x.af = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new FileOutputStream(ta), StandardCharsets.UTF_8), 1 << 16);
+            final long[] base = {0};
+            for (int i = 0; i < files.size(); i++) {
+                final String nm = names.get(i);
+                x.process(files.get(i), d -> { int pct = all > 0 ? (int) ((base[0] + d) * 100 / all) : 0; pbfSt("OpenStreetMap " + nm + " wird ausgewertet", pct); });
+                base[0] += files.get(i).length();
+            }
+            x.power.write(x.pF ? "[]" : "]"); x.ways.write(x.wF ? "[]" : "]"); x.af.write(x.aF ? "[]" : "]");
+        } finally {
+            for (java.io.Writer wr : new java.io.Writer[]{x.power, x.ways, x.af}) try { if (wr != null) wr.close(); } catch (Exception ignored) { }
+        }
+        if (x.cntPower + x.cntWays == 0) { tp.delete(); tw.delete(); ta.delete(); throw new Exception("In der OpenStreetMap-Datei nichts für dieses Gebiet gefunden"); }
+        if (!tp.renameTo(osmFile()) && !(osmFile().delete() && tp.renameTo(osmFile()))) throw new Exception("Speichern fehlgeschlagen");
+        if (!tw.renameTo(osmWaysFile()) && !(osmWaysFile().delete() && tw.renameTo(osmWaysFile()))) throw new Exception("Speichern fehlgeschlagen");
+        if (!ta.renameTo(afFile())) { afFile().delete(); ta.renameTo(afFile()); }
+        StringBuilder pl = new StringBuilder("["); for (int i = 0; i < x.places.size(); i++) { if (i > 0) pl.append(','); pl.append(x.places.get(i)); } pl.append(']');
+        if (!x.places.isEmpty()) writeFileAtomic(placeFile(), pl.toString());
+        long now = System.currentTimeMillis();
+        JSONObject bb = new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w);
+        SharedPreferences.Editor ed = prefs.edit().putLong("osm_fetched", now).putInt("osm_ver", 6).putString("osm_bbox", bb.toString()).putString("pbf_bbox", bb.toString())
+                .putLong("af_fetched", now).putString("af_bbox", bb.toString());
+        if (!x.places.isEmpty()) ed.putLong("place_fetched", now).putString("place_bbox", new JSONObject().put("n", n + pLa).put("s", s - pLa).put("e", e + pLo).put("w", w - pLo).toString());
+        ed.apply();
+        osmCache = null;
+        String stand = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).format(new java.util.Date(files.get(0).lastModified()));
+        cacheMarkTouch("hindernisse"); cacheMarkTouch("feldwege");
+        catSt("hindernisse", "ok, " + x.cntPower + " Objekte · OpenStreetMap-Stand " + stand);
+        catSt("feldwege", "ok, " + x.cntWays + " Wege · OpenStreetMap-Stand " + stand);
+    }
+
+    /** OpenStreetMap-Rohdaten (Geofabrik, Format PBF) lesen und nur das für die Kitzrettung Wichtige im Gebiet herausfiltern –
+     *  ohne Zusatzbibliothek. Ergebnis im selben Format wie bisher von Overpass (type/id/tags/geometry bzw. lat/lon/center). */
+    static final class OsmPbf {
+        interface Progress { void on(long bytesDone); }
+        static final class Pb {
+            final byte[] b; int p; final int end;
+            Pb(byte[] b, int off, int len) { this.b = b; p = off; end = off + len; }
+            boolean more() { return p < end; }
+            long varint() { long r = 0; int s = 0; while (true) { byte x = b[p++]; r |= (long) (x & 0x7f) << s; if (x >= 0) return r; s += 7; } }
+            long sint() { long v = varint(); return (v >>> 1) ^ -(v & 1); }
+            int len() { return (int) varint(); }
+            void skip(int wt) { switch (wt) { case 0: varint(); break; case 1: p += 8; break; case 2: p += len(); break; case 5: p += 4; break; default: throw new RuntimeException("PBF: unbekannter Feldtyp " + wt); } }
+        }
+        static final Set<String> MM = new java.util.HashSet<>(Arrays.asList("mast", "tower", "chimney", "communications_tower"));
+        static final Set<String> AERO = new java.util.HashSet<>(Arrays.asList("aerodrome", "heliport", "airstrip", "helipad"));
+        static final Set<String> PLACE = new java.util.HashSet<>(Arrays.asList("city", "town", "village", "hamlet", "suburb", "quarter", "neighbourhood", "isolated_dwelling", "farm", "locality"));
+        static final Set<String> HW = new java.util.HashSet<>(Arrays.asList("track", "path", "service", "unclassified", "tertiary", "bridleway", "cycleway", "footway"));
+        static final Set<String> HWKEEP = new java.util.HashSet<>(Arrays.asList("highway", "name", "ref", "surface", "tracktype", "access", "motor_vehicle", "agricultural", "service"));
+        static final Set<String> NKEYS = new java.util.HashSet<>(Arrays.asList("power", "man_made", "place", "aeroway"));
+        static final Set<String> WKEYS = new java.util.HashSet<>(Arrays.asList("power", "man_made", "aeroway", "railway", "highway"));
+
+        java.io.Writer power, ways, af; boolean pF = true, wF = true, aF = true;
+        final List<String> places = new ArrayList<>();
+        final java.util.HashSet<Long> seen = new java.util.HashSet<>();
+        int nN, nS, nE, nW, pN, pS, pE, pW;   // Gebiet für Knoten / für Ortsnamen (1e-7 Grad)
+        int cntPower, cntWays, cntAf;
+        final File tmpDir;
+        // Knotenspeicher (Datei, nach ID sortiert) – damit auch große Gebiete wenig Arbeitsspeicher brauchen
+        File nsFile; java.io.DataOutputStream nsOut; long nsCount, nsLast = Long.MIN_VALUE, nsMin = Long.MAX_VALUE, nsMax = Long.MIN_VALUE;
+        java.io.RandomAccessFile nsRaf; java.nio.MappedByteBuffer nsMap; boolean stop;
+        // je Block
+        String[] st; boolean[] kN, kW; long latOff, lonOff; int gran;
+        long[] refs = new long[2048];
+
+        OsmPbf(File tmpDir) { this.tmpDir = tmpDir; }
+
+        static int d7(double deg) { return (int) Math.round(deg * 1e7); }
+        static String c6(int v) { return Double.toString(Math.round(v / 10.0) / 1e6); }
+
+        void process(File f, Progress pr) throws Exception {
+            stop = false; nsCount = 0; nsLast = Long.MIN_VALUE; nsMin = Long.MAX_VALUE; nsMax = Long.MIN_VALUE; nsMap = null; nsRaf = null;
+            nsFile = new File(tmpDir, "knoten.tmp"); nsFile.delete();
+            nsOut = new java.io.DataOutputStream(new java.io.BufferedOutputStream(new FileOutputStream(nsFile), 1 << 16));
+            java.util.zip.Inflater inf = new java.util.zip.Inflater();
+            long done = 0, lastRep = 0;
+            try (java.io.DataInputStream in = new java.io.DataInputStream(new java.io.BufferedInputStream(new FileInputStream(f), 1 << 17))) {
+                while (!stop) {
+                    int hl;
+                    try { hl = in.readInt(); } catch (java.io.EOFException eof) { break; }
+                    if (hl <= 0 || hl > 64 * 1024) throw new Exception("OSM-Datei beschädigt (Kopf)");
+                    byte[] hb = new byte[hl]; in.readFully(hb);
+                    String type = null; int ds = 0;
+                    Pb p = new Pb(hb, 0, hl);
+                    while (p.more()) { int t = (int) p.varint(), fn = t >>> 3, wt = t & 7;
+                        if (fn == 1 && wt == 2) { int L = p.len(); type = new String(hb, p.p, L, StandardCharsets.UTF_8); p.p += L; }
+                        else if (fn == 3 && wt == 0) ds = (int) p.varint(); else p.skip(wt); }
+                    if (ds <= 0 || ds > 64 * 1024 * 1024) throw new Exception("OSM-Datei beschädigt (Block)");
+                    byte[] bb = new byte[ds]; in.readFully(bb);
+                    done += 4 + hl + ds;
+                    if (pr != null && done - lastRep > (4 << 20)) { lastRep = done; pr.on(done); }
+                    if (!"OSMData".equals(type)) continue;
+                    byte[] raw = null; int rawSize = 0, zOff = -1, zLen = 0;
+                    Pb q = new Pb(bb, 0, ds);
+                    while (q.more()) { int t = (int) q.varint(), fn = t >>> 3, wt = t & 7;
+                        if (fn == 1 && wt == 2) { int L = q.len(); raw = Arrays.copyOfRange(bb, q.p, q.p + L); rawSize = L; q.p += L; }
+                        else if (fn == 2 && wt == 0) rawSize = (int) q.varint();
+                        else if (fn == 3 && wt == 2) { zLen = q.len(); zOff = q.p; q.p += zLen; }
+                        else if (wt == 2 && fn >= 4) throw new Exception("OSM-Datei mit unbekannter Kompression");
+                        else q.skip(wt); }
+                    if (zOff >= 0) {
+                        raw = new byte[rawSize]; inf.reset(); inf.setInput(bb, zOff, zLen);
+                        int got = 0; while (got < rawSize) { int k = inf.inflate(raw, got, rawSize - got); if (k == 0 && (inf.finished() || inf.needsInput())) break; got += k; }
+                        if (got != rawSize) throw new Exception("OSM-Datei beschädigt (Entpacken)");
+                    }
+                    if (raw != null) block(raw, rawSize);
+                }
+            } finally {
+                inf.end();
+                try { if (nsOut != null) nsOut.close(); } catch (Exception ignored) { }
+                nsOut = null; nsMap = null;
+                try { if (nsRaf != null) nsRaf.close(); } catch (Exception ignored) { }
+                nsRaf = null; nsFile.delete();
+            }
+            if (pr != null) pr.on(f.length());
+        }
+
+        void nodesDone() throws Exception {
+            if (nsOut == null) return;
+            nsOut.close(); nsOut = null;
+            if (nsCount * 16 > Integer.MAX_VALUE) throw new Exception("Gebiet zu groß für die Auswertung");
+            if (nsCount > 0) { nsRaf = new java.io.RandomAccessFile(nsFile, "r"); nsMap = nsRaf.getChannel().map(java.nio.channels.FileChannel.MapMode.READ_ONLY, 0, nsCount * 16); }
+        }
+        int find(long id) {
+            if (nsMap == null || id < nsMin || id > nsMax) return -1;
+            long lo = 0, hi = nsCount - 1;
+            while (lo <= hi) { long mid = (lo + hi) >>> 1; long v = nsMap.getLong((int) (mid * 16)); if (v < id) lo = mid + 1; else if (v > id) hi = mid - 1; else return (int) mid; }
+            return -1;
+        }
+
+        void block(byte[] b, int len) throws Exception {
+            Pb p = new Pb(b, 0, len); List<int[]> groups = new ArrayList<>(); int stS = -1, stL = 0;
+            gran = 100; latOff = 0; lonOff = 0;
+            while (p.more()) { int t = (int) p.varint(), fn = t >>> 3, wt = t & 7;
+                if (fn == 1 && wt == 2) { stL = p.len(); stS = p.p; p.p += stL; }
+                else if (fn == 2 && wt == 2) { int L = p.len(); groups.add(new int[]{p.p, L}); p.p += L; }
+                else if (fn == 17 && wt == 0) gran = (int) p.varint();
+                else if (fn == 19 && wt == 0) latOff = p.varint();
+                else if (fn == 20 && wt == 0) lonOff = p.varint();
+                else p.skip(wt); }
+            List<String> sl = new ArrayList<>();
+            if (stS >= 0) { Pb ps = new Pb(b, stS, stL); while (ps.more()) { int t = (int) ps.varint(); if ((t >>> 3) == 1 && (t & 7) == 2) { int L = ps.len(); sl.add(new String(b, ps.p, L, StandardCharsets.UTF_8)); ps.p += L; } else ps.skip(t & 7); } }
+            st = sl.toArray(new String[0]); kN = new boolean[st.length]; kW = new boolean[st.length];
+            for (int i = 0; i < st.length; i++) { kN[i] = NKEYS.contains(st[i]); kW[i] = WKEYS.contains(st[i]); }
+            for (int[] g : groups) {
+                Pb pg = new Pb(b, g[0], g[1]);
+                while (pg.more()) { int t = (int) pg.varint(), fn = t >>> 3, wt = t & 7;
+                    if (wt != 2) { pg.skip(wt); continue; }
+                    int L = pg.len(), s0 = pg.p; pg.p += L;
+                    if (fn == 2) dense(b, s0, L);
+                    else if (fn == 1) node(b, s0, L);
+                    else if (fn == 3) { nodesDone(); way(b, s0, L); }
+                    else if (fn == 4) { stop = true; return; }   // Relationen kommen zuletzt – brauchen wir nicht
+                }
+            }
+        }
+
+        void storeNode(long id, int la, int lo) throws Exception {
+            if (nsOut == null) return;   // Knoten nach Wegen: Datei nicht sortiert – ignorieren
+            if (id <= nsLast) throw new Exception("OSM-Datei nicht nach ID sortiert");
+            nsLast = id; if (id < nsMin) nsMin = id; if (id > nsMax) nsMax = id;
+            nsOut.writeLong(id); nsOut.writeInt(la); nsOut.writeInt(lo); nsCount++;
+        }
+        boolean inN(int la, int lo) { return la <= nN && la >= nS && lo <= nE && lo >= nW; }
+        boolean inP(int la, int lo) { return la <= pN && la >= pS && lo <= pE && lo >= pW; }
+
+        void dense(byte[] b, int off, int len) throws Exception {
+            int idS = -1, idE = 0, laS = -1, laE = 0, loS = -1, loE = 0, kvS = -1, kvE = 0;
+            Pb p = new Pb(b, off, len);
+            while (p.more()) { int t = (int) p.varint(), fn = t >>> 3, wt = t & 7;
+                if (wt == 2) { int L = p.len(), s0 = p.p; p.p += L;
+                    if (fn == 1) { idS = s0; idE = s0 + L; } else if (fn == 8) { laS = s0; laE = s0 + L; } else if (fn == 9) { loS = s0; loE = s0 + L; } else if (fn == 10) { kvS = s0; kvE = s0 + L; } }
+                else p.skip(wt); }
+            if (idS < 0 || laS < 0 || loS < 0) return;
+            Pb pi = new Pb(b, idS, idE - idS), pa = new Pb(b, laS, laE - laS), po = new Pb(b, loS, loE - loS), pk = kvS >= 0 ? new Pb(b, kvS, kvE - kvS) : null;
+            long id = 0, la = 0, lo = 0;
+            while (pi.more()) {
+                id += pi.sint(); la += pa.sint(); lo += po.sint();
+                int lat7 = (int) ((latOff + gran * la) / 100), lon7 = (int) ((lonOff + gran * lo) / 100);
+                boolean in = inN(lat7, lon7);
+                if (in) storeNode(id, lat7, lon7);
+                if (pk == null || !pk.more()) continue;
+                int k0 = pk.p; boolean any = false;
+                while (pk.more()) { int k = (int) pk.varint(); if (k == 0) break; pk.varint(); if (k < kN.length && kN[k]) any = true; }
+                if (!any || !(in || inP(lat7, lon7))) continue;
+                Map<String, String> tg = new java.util.LinkedHashMap<>();
+                Pb pt = new Pb(b, k0, kvE - k0);
+                while (pt.more()) { int k = (int) pt.varint(); if (k == 0) break; int v = (int) pt.varint(); if (k < st.length && v < st.length) tg.put(st[k], st[v]); }
+                nodeOut(id, lat7, lon7, tg, in);
+            }
+        }
+        void node(byte[] b, int off, int len) throws Exception {
+            long id = 0, la = 0, lo = 0; int kS = -1, kE = 0, vS = -1, vE = 0;
+            Pb p = new Pb(b, off, len);
+            while (p.more()) { int t = (int) p.varint(), fn = t >>> 3, wt = t & 7;
+                if (fn == 1 && wt == 0) id = p.sint(); else if (fn == 8 && wt == 0) la = p.sint(); else if (fn == 9 && wt == 0) lo = p.sint();
+                else if (fn == 2 && wt == 2) { int L = p.len(); kS = p.p; kE = p.p + L; p.p += L; }
+                else if (fn == 3 && wt == 2) { int L = p.len(); vS = p.p; vE = p.p + L; p.p += L; }
+                else p.skip(wt); }
+            int lat7 = (int) ((latOff + gran * la) / 100), lon7 = (int) ((lonOff + gran * lo) / 100);
+            boolean in = inN(lat7, lon7);
+            if (in) storeNode(id, lat7, lon7);
+            if (kS < 0 || vS < 0 || !(in || inP(lat7, lon7))) return;
+            Map<String, String> tg = new java.util.LinkedHashMap<>(); boolean any = false;
+            Pb pk = new Pb(b, kS, kE - kS), pv = new Pb(b, vS, vE - vS);
+            while (pk.more() && pv.more()) { int k = (int) pk.varint(), v = (int) pv.varint(); if (k < st.length && v < st.length) { tg.put(st[k], st[v]); if (kN[k]) any = true; } }
+            if (any) nodeOut(id, lat7, lon7, tg, in);
+        }
+
+        void nodeOut(long id, int la, int lo, Map<String, String> t, boolean in) throws Exception {
+            String pw = t.get("power"), mm = t.get("man_made"), ae = t.get("aeroway"), pl = t.get("place");
+            boolean obs = pw != null && (pw.equals("tower") || pw.equals("portal") || (pw.equals("pole") && t.containsKey("height")) || (pw.equals("generator") && "wind".equals(t.get("generator:source"))))
+                    || mm != null && MM.contains(mm);
+            boolean place = pl != null && PLACE.contains(pl) && t.containsKey("name");
+            boolean air = ae != null && AERO.contains(ae);
+            if (!seen.add(id * 4)) return;
+            if (place) {
+                places.add("{\"n\":" + JSONObject.quote(t.get("name")) + ",\"t\":" + JSONObject.quote(pl) + ",\"lat\":" + Math.round(la / 100.0) / 1e5 + ",\"lon\":" + Math.round(lo / 100.0) / 1e5 + "}");
+            }
+            if (!in) return;
+            if (obs || place) { StringBuilder sb = new StringBuilder(); sb.append("{\"type\":\"node\",\"id\":").append(id).append(",\"lat\":").append(c6(la)).append(",\"lon\":").append(c6(lo)).append(','); tags(sb, t, false); sb.append('}'); power.write(pF ? "[" : ","); power.write(sb.toString()); pF = false; cntPower++; }
+            if (air) { StringBuilder sb = new StringBuilder(); sb.append("{\"type\":\"node\",\"id\":").append(id).append(",\"lat\":").append(c6(la)).append(",\"lon\":").append(c6(lo)).append(','); tags(sb, t, false); sb.append('}'); af.write(aF ? "[" : ","); af.write(sb.toString()); aF = false; cntAf++; }
+        }
+
+        static void tags(StringBuilder sb, Map<String, String> t, boolean hw) {
+            sb.append("\"tags\":{"); boolean f = true;
+            for (Map.Entry<String, String> e : t.entrySet()) {
+                if (hw && !HWKEEP.contains(e.getKey())) continue;
+                if (!hw && (e.getKey().startsWith("source") || e.getKey().startsWith("note") || e.getKey().startsWith("fixme") || e.getKey().startsWith("FIXME"))) continue;
+                if (!f) sb.append(','); f = false;
+                sb.append(JSONObject.quote(e.getKey())).append(':').append(JSONObject.quote(e.getValue()));
+            }
+            sb.append('}');
+        }
+
+        void way(byte[] b, int off, int len) throws Exception {
+            long id = 0; int kS = -1, kE = 0, vS = -1, vE = 0, rS = -1, rE = 0;
+            Pb p = new Pb(b, off, len);
+            while (p.more()) { int t = (int) p.varint(), fn = t >>> 3, wt = t & 7;
+                if (fn == 1 && wt == 0) id = p.varint();
+                else if (wt == 2 && (fn == 2 || fn == 3 || fn == 8)) { int L = p.len(); if (fn == 2) { kS = p.p; kE = p.p + L; } else if (fn == 3) { vS = p.p; vE = p.p + L; } else { rS = p.p; rE = p.p + L; } p.p += L; }
+                else p.skip(wt); }
+            if (kS < 0 || vS < 0 || rS < 0 || nsMap == null) return;
+            Pb pk = new Pb(b, kS, kE - kS); boolean any = false;
+            while (pk.more()) { int k = (int) pk.varint(); if (k < kW.length && kW[k]) { any = true; break; } }
+            if (!any) return;
+            Map<String, String> t = new java.util.LinkedHashMap<>();
+            pk = new Pb(b, kS, kE - kS); Pb pv = new Pb(b, vS, vE - vS);
+            while (pk.more() && pv.more()) { int k = (int) pk.varint(), v = (int) pv.varint(); if (k < st.length && v < st.length) t.put(st[k], st[v]); }
+            String pw = t.get("power"), mm = t.get("man_made"), ae = t.get("aeroway"), rw = t.get("railway"), hw = t.get("highway");
+            int kind = 0;   // 1 = Hindernis/Leitung/Bahn, 3 = Flugplatz, 4 = Weg
+            if (pw != null && (pw.equals("line") || pw.equals("minor_line") || pw.equals("cable") || (pw.equals("generator") && "wind".equals(t.get("generator:source"))))) kind = 1;
+            else if (mm != null && MM.contains(mm)) kind = 1;
+            else if (rw != null && (rw.equals("rail") || rw.equals("light_rail"))) kind = 1;
+            else if (ae != null && AERO.contains(ae)) kind = 3;
+            else if (hw != null && HW.contains(hw)) kind = 4;
+            if (kind == 0) return;
+            int n = 0; long r = 0; Pb pr = new Pb(b, rS, rE - rS);
+            while (pr.more()) { r += pr.sint(); if (n == refs.length) refs = Arrays.copyOf(refs, n * 2); refs[n++] = r; }
+            if (n == 0) return;
+            if (kind == 4) {   // Wege sind kurz: erst Stichprobe, ob sie überhaupt im Gebiet liegen
+                boolean hit = false; for (int i = 0; i < n && !hit; i += 4) hit = find(refs[i]) >= 0; if (!hit) hit = find(refs[n - 1]) >= 0;
+                if (!hit) return;
+            }
+            StringBuilder g = new StringBuilder(); int cnt = 0; long sla = 0, slo = 0;
+            for (int i = 0; i < n; i++) {
+                int ix = find(refs[i]); if (ix < 0) continue;
+                int la = nsMap.getInt(ix * 16 + 8), lo = nsMap.getInt(ix * 16 + 12);
+                sla += la; slo += lo;
+                if (kind != 3) { if (cnt > 0) g.append(','); g.append("{\"lat\":").append(c6(la)).append(",\"lon\":").append(c6(lo)).append('}'); }
+                cnt++;
+            }
+            if (kind == 3 ? cnt == 0 : cnt < 2) return;
+            if (!seen.add(id * 4 + 1)) return;
+            StringBuilder sb = new StringBuilder(); sb.append("{\"type\":\"way\",\"id\":").append(id).append(',');
+            if (kind == 3) sb.append("\"center\":{\"lat\":").append(c6((int) (sla / cnt))).append(",\"lon\":").append(c6((int) (slo / cnt))).append("},");
+            tags(sb, t, kind == 4);
+            if (kind != 3) sb.append(",\"geometry\":[").append(g).append(']');
+            sb.append('}');
+            if (kind == 1) { power.write(pF ? "[" : ","); power.write(sb.toString()); pF = false; cntPower++; }
+            else if (kind == 3) { af.write(aF ? "[" : ","); af.write(sb.toString()); aF = false; cntAf++; }
+            else { ways.write(wF ? "[" : ","); ways.write(sb.toString()); wF = false; cntWays++; }
+        }
     }
 
     // ---------- Kartenkacheln dauerhaft auf der RC speichern + Einsatzgebiet vorab laden ----------
@@ -2615,13 +3100,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private static final String[][] CACHE_CATS = {
             {"karte", "Karte (Grau/Farbe)"}, {"luftbild", "Luftbild"}, {"geokacheln", "Geozonen-Bilder (dipul)"}, {"zonendaten", "Geozonen-Daten (zum Antippen)"},
             {"feldwege", "Feldwege"}, {"hindernisse", "Hindernisse & Leitungen"}, {"windraeder", "Windräder"}, {"orte", "Orte & Landesgrenzen"},
-            {"flugplaetze", "Flugplätze"}, {"wiesen", "Feldgrenzen der Wiesen"}};
+            {"flugplaetze", "Flugplätze"}, {"wiesen", "Feldgrenzen der Wiesen"}, {"osmroh", "OpenStreetMap-Rohdaten (Geofabrik)"}};
     /** Version je Bereich: erhöhen, wenn sich das gespeicherte Format/der Umfang ändert – dann räumt die App diesen Bereich beim Start auf und holt ihn neu */
     private static final Map<String, Integer> CACHE_VER = new HashMap<>();
     static {
         CACHE_VER.put("karte", 1); CACHE_VER.put("luftbild", 1); CACHE_VER.put("geokacheln", 1); CACHE_VER.put("zonendaten", 2);
         CACHE_VER.put("feldwege", 1); CACHE_VER.put("hindernisse", 1); CACHE_VER.put("windraeder", 1); CACHE_VER.put("orte", 1);
-        CACHE_VER.put("flugplaetze", 1); CACHE_VER.put("wiesen", 1);
+        CACHE_VER.put("flugplaetze", 1); CACHE_VER.put("wiesen", 1); CACHE_VER.put("osmroh", 1);
     }
     private List<File> catFiles(String id) {
         List<File> l = new ArrayList<>();
@@ -2636,6 +3121,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             case "orte": l.add(placeFile()); l.add(regionFile()); break;
             case "flugplaetze": l.add(afFile()); l.add(afFreqFile()); l.add(dulvFile()); break;
             case "wiesen": l.add(outlineFile()); l.add(outlineFileByKmz()); l.add(dataFile("uave_katalog.json")); break;
+            case "osmroh": l.add(pbfDir()); break;
         }
         return l;
     }
@@ -2644,7 +3130,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         SharedPreferences.Editor e = prefs.edit();
         switch (id) {
             case "zonendaten": e.remove("geo_vec_bbox").remove("geo_vec_fetched"); break;
-            case "feldwege": case "hindernisse": e.remove("osm_fetched").remove("osm_bbox"); break;
+            case "feldwege": case "hindernisse": e.remove("osm_fetched").remove("osm_bbox").remove("pbf_t"); break;
+            case "osmroh": e.remove("pbf_t").remove("pbf_src"); break;
             case "orte": e.remove("place_fetched").remove("place_bbox").remove("reg_fetched"); break;
             case "flugplaetze": e.remove("af_fetched").remove("af_bbox").remove("dulv_t"); break;
             case "wiesen": e.remove("uave_outlines_fetched"); break;
@@ -2724,7 +3211,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private static final Map<String, String> DATA_CAT = new HashMap<>();
     static {
         String[][] m = {{"mastr_wind.json", "Windraeder"}, {"field_outlines.json", "Wiesen"}, {"field_outlines_kmz.json", "Wiesen"}, {"osm_power.json", "Hindernisse"},
-                {"osm_places.json", "Orte"}, {"osm_ways.json", "Feldwege"}, {"regions.json", "Orte"}, {"airfields.json", "Flugplaetze"}, {"airfield_freqs.json", "Flugplaetze"}, {"dulv_airfields.json", "Flugplaetze"}, {"notams.json", "Geozonen"}, {"lfa.kml", "Geozonen"}, {"uave_katalog.json", "Wiesen"}};
+                {"osm_places.json", "Orte"}, {"osm_ways.json", "Feldwege"}, {"regions.json", "Orte"}, {"airfields.json", "Flugplaetze"}, {"airfield_freqs.json", "Flugplaetze"}, {"dulv_airfields.json", "Flugplaetze"}, {"notams.json", "Geozonen"}, {"lfa.kml", "Geozonen"}, {"uave_katalog.json", "Wiesen"}, {"geofabrik_regionen.json", "Orte"}};
         for (String[] x : m) DATA_CAT.put(x[0], x[1]);
     }
     private boolean isExt() { return !dataDir().equals(super.getFilesDir()); }
@@ -3746,15 +4233,21 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 JSONObject b = new JSONObject(prefs.getString("af_bbox", "{}"));
                 covers = b.has("n") && b.getDouble("n") >= n && b.getDouble("s") <= s && b.getDouble("e") >= e && b.getDouble("w") <= w;
             } catch (Exception ignored) { }
-            if (!force && fresh && covers && afFile().isFile()) return;
-            catSt("flugplaetze", "load");
-            String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
-            String txt = overpass("[out:json][timeout:60];(nwr[\"aeroway\"~\"^(aerodrome|heliport|airstrip)$\"](" + bb + "););out tags center;", 90000);
-            JSONArray els = new JSONObject(txt).getJSONArray("elements");
-            writeFileAtomic(afFile(), els.toString());
-            catSt("flugplaetze", "ok");
-            prefs.edit().putLong("af_fetched", System.currentTimeMillis())
-                    .putString("af_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
+            JSONArray els;
+            if (pbfCovers(n, s, e, w) && afFile().isFile()) {   // aus der Geofabrik-Datei – kein Overpass nötig
+                els = new JSONArray(readFile(afFile()));
+                if (!"load".equals(catStatus.get("flugplaetze"))) catSt("flugplaetze", "ok");
+            } else {
+                if (!force && fresh && covers && afFile().isFile()) return;
+                catSt("flugplaetze", "load");
+                String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
+                String txt = overpass("[out:json][timeout:60];(nwr[\"aeroway\"~\"^(aerodrome|heliport|airstrip|helipad)$\"](" + bb + "););out tags center;", 90000);
+                els = new JSONObject(txt).getJSONArray("elements");
+                writeFileAtomic(afFile(), els.toString());
+                catSt("flugplaetze", "ok");
+                prefs.edit().putLong("af_fetched", System.currentTimeMillis())
+                        .putString("af_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
+            }
 
             // Frequenzen höchstens wöchentlich aus OurAirports holen, nur für die gefundenen ICAO-Codes
             Set<String> icaos = new java.util.HashSet<>();
@@ -3938,6 +4431,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             prefs.edit().putString("notam_err", noNet ? "Keine Internetverbindung beim letzten Versuch – neuer Versuch automatisch, sobald die RC online ist" : "Abruf fehlgeschlagen: " + ex.getMessage()).apply();
         }
     }
+
 
     // ---------- Marktstammdatenregister (Bundesnetzagentur): Windenergieanlagen je Bundesland, gefiltert auf das Gebiet ----------
     private void mastrSyncImpl(String json) {
@@ -4145,10 +4639,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             new Thread(() -> {
                 regionSync(fn, fs, fe, fw, force);
                 js("window.onRegions && window.onRegions()");
+                osmSync(fn, fs, fe, fw, force);   // zuerst: liefert aus der Geofabrik-Datei auch Orte und Flugplätze
+                js("window.onOsmLines && window.onOsmLines()");
                 placeSync(fn, fs, fe, fw, force);
                 js("window.onPlaces && window.onPlaces()");
-                osmSync(fn, fs, fe, fw, force);
-                js("window.onOsmLines && window.onOsmLines()");
                 airfieldSync(fn, fs, fe, fw, force);
                 dulvSyncImpl(false);   // läuft selbst im Hintergrund, nur alle 90 Tage
                 notamSyncImpl(fn, fs, fe, fw, force);

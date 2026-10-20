@@ -525,6 +525,9 @@
       <div class="v" id="vCache" style="margin-bottom:6px">Wird gezählt…</div>
       <div class="cacherow pfrow"><div class="l"><b>Einsatzgebiet speichern</b><em id="vPrefetch">Holt Karte, Luftbild, dipul-Geozonen, Zonendaten, Hindernisse und Wetter für das Gebiet eurer Wiesen auf die RC – danach läuft alles ohne Internet, online nur noch für „UAV Editor“.</em></div><button class="b-ok" id="bPrefetch">Speichern</button></div>
       <div id="cacheList"></div></div>
+    <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Einsatz-Bundesländer (OpenStreetMap-Daten)</div>
+      <div class="v" id="vOsmSt" style="margin-bottom:8px"></div>
+      <div class="roots" id="osmStates"></div></div>
     <div class="set"><div class="l"><div class="t">Tag- / Nachtmodus</div><div class="v" id="vTheme"></div></div><div class="seg"><button data-theme="auto">Auto (Sonne)</button><button data-theme="day">Tag</button><button data-theme="night">Nacht</button></div></div>
     <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div><div class="v">Auch über ⓘ → „Felder“ schaltbar</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Die Rose steht mit Norden oben wie die Karte, der Windsack zeigt die Windrichtung (schwarze Marke = woher der Wind kommt). Mit Kompassnadel: die rote Nadelspitze zeigt, wohin die RC schaut · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt ebenfalls die Blickrichtung.</div></div><div class="seg"><button data-rose="dev">Mit Kompassnadel</button><button data-rose="north">Ohne Nadel</button><button data-rose="off">Aus</button></div></div>
@@ -628,7 +631,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -676,6 +679,7 @@ window.onCacheInfo = raw => {
 
   $('cacheList').querySelectorAll('[data-cnew]').forEach(b => b.onclick = () => {
     if (!isOnline()) return toast('Dafür wird Internet gebraucht (am besten WLAN).', true);
+    if (['osmroh', 'hindernisse', 'feldwege'].includes(b.dataset.cnew) && A.pbfForce) A.pbfForce();   // OpenStreetMap-Datei auch ohne WLAN laden
     cacheBusy = b.dataset.cnew; A.cacheClear(b.dataset.cnew); toast('Wird neu geholt…');
   });
   cacheProg();
@@ -684,7 +688,7 @@ window.onCacheInfo = raw => {
 let pfLast = null;
 let cacheSt = {};
 window.onCacheStatus = raw => { try { cacheSt = JSON.parse(raw) || {}; } catch (e) { } cacheProg();
-  if (Object.values(cacheSt).every(v => v !== 'load') && $('pgSet').classList.contains('open') && A.cacheInfoAsync) A.cacheInfoAsync(); };
+  if (Object.values(cacheSt).every(v => !/^load/.test(String(v))) && $('pgSet').classList.contains('open') && A.cacheInfoAsync) A.cacheInfoAsync(); };
 function cacheProg() {
   const box = $('cacheList'); if (!box) return;
   const r = pfLast, has = r && r.cats;
@@ -700,6 +704,9 @@ function cacheProg() {
       return;
     }
     if (st === 'load') { row.classList.add('loading'); el.innerHTML = '<span>wird geladen…</span><i class="indet"></i>'; return; }
+    if (st && /^load:/.test(st)) { const m = /^load:(.*)\|(\d+)$/.exec(st) || [0, st.slice(5), '']; row.classList.add('loading');
+      el.innerHTML = `<span>${esc(m[1])}${m[2] !== '' ? ' · ' + m[2] + ' %' : ''}</span>` + (m[2] !== '' ? `<i style="width:${Math.min(100, +m[2])}%"></i>` : '<i class="indet"></i>'); return; }
+    if (st && /^wlan:/.test(st)) { row.classList.add('warn'); el.innerHTML = `<span>📶 Wartet auf WLAN: die OpenStreetMap-Datei für ${esc(st.slice(5))} (einige hundert MB) wird im WLAN automatisch geladen – „Neu holen“ lädt sofort, auch über mobile Daten</span><i style="width:100%"></i>`; return; }
     if (st && /^alt:/.test(st)) { row.classList.add('warn'); el.innerHTML = `<span>⚠ Aktualisierung fehlgeschlagen – die gespeicherten Daten bleiben aktiv (${esc(st.slice(4))})</span><i style="width:100%"></i>`; return; }
     if (st && st !== 'ok' && !/^ok/.test(st)) { row.classList.add('err'); el.innerHTML = `<span>⚠ Nicht geladen: ${esc(st)} – „Neu holen“ versucht es nochmal</span><i style="width:100%"></i>`; return; }
     if (st && /^ok,/.test(st)) { el.innerHTML = `<span>✓ geladen (${esc(st.slice(4))})</span><i style="width:100%"></i>`; return; }
@@ -2651,8 +2658,28 @@ $('dYes').onclick = () => { $('dlg').classList.remove('open'); dlgOnCancel = nul
 $('permGo').onclick = () => A.requestAccess();
 
 // ================= Einstellungen =================
+/** Bundesländer, für die Feldwege, Leitungen, Masten, Orte und Flugplätze (Geofabrik) geladen werden – leer = automatisch nach den Feldern */
+function osmStatesUi() {
+  const box = $('osmStates'); if (!box) return;
+  const sel = (P.osmStates || '').split(',').filter(Boolean);
+  $('vOsmSt').textContent = sel.length
+    ? `Nur für ${sel.map(stateName).join(', ')} wird die OpenStreetMap-Datei geladen (je Land bzw. Regierungsbezirk einige hundert MB, einmalig im WLAN). Felder in anderen Ländern bekommen keine Feldwege und Leitungen.`
+    : 'Automatisch: Die App lädt die Datei für die Länder, in denen eure Felder liegen – bei Feldern an einer Landesgrenze auch das Nachbarland. Wähle Länder aus, um das festzulegen.';
+  box.innerHTML = '';
+  const auto = document.createElement('button'); auto.className = sel.length ? 'b-sec' : 'b-ok'; auto.textContent = 'Automatisch';
+  auto.onclick = () => { setP('osmStates', ''); osmStatesUi(); osmStatesChanged(); };
+  box.appendChild(auto);
+  STATES.forEach(([k, n]) => {
+    const b = document.createElement('button'); b.className = sel.includes(k) ? 'b-ok' : 'b-sec'; b.textContent = n;
+    b.onclick = () => { const s2 = new Set(sel); s2.has(k) ? s2.delete(k) : s2.add(k); setP('osmStates', [...s2].join(',')); osmStatesUi(); osmStatesChanged(); };
+    box.appendChild(b);
+  });
+}
+let osmStT = 0;
+function osmStatesChanged() { clearTimeout(osmStT); osmStT = setTimeout(() => { if (isOnline()) geoSyncNow(false, true); }, 4000); }   // nach kurzer Pause neu abgleichen
 function fillSettings() {
   try { catFilterUi(); } catch (e) { }
+  try { osmStatesUi(); } catch (e) { }
   try { applyTheme(); } catch (e) { }
   $('vSrc').textContent = P.src; $('vDst').textContent = P.dst; $('vRcDir').textContent = rcDir(); srcUi();
   $('sMove').checked = P.move === '1'; $('sClear').checked = P.clear === '1'; $('sLabels').checked = P.labels === '1';
@@ -2762,7 +2789,15 @@ let esPending = null, esPendingNames = null;
 /** Automatisch speichern, sobald Wiesen da sind und Internet: beim ersten Mal und wenn neue Wiesen außerhalb des gespeicherten Gebiets liegen */
 function einsatzAuto() {
   if (!A.prefetchStart || !isOnline() || !S.files.length || (A.prefetchRunning && A.prefetchRunning()) || esPending) return;
+  // nach Neuinstallation: erst Speicherfreigabe + zurückgeholte Einstellungen abwarten – sonst würde alles neu geladen
+  if ((A.hasAccess && !A.hasAccess()) || (A.prefsReady && !A.prefsReady())) { setTimeout(einsatzAuto, 5000); return; }
   const need = einsatzBox(1); if (!need) return;
+  // keine Merker (z. B. alte Sicherung ohne sie), aber der Cache-Ordner ist schon gut gefüllt: am Datenstand orientieren statt neu laden
+  if (!A.getPref('esSpots1', '') && !A.getPref('esBox5', '') && A.cacheBytes && A.cacheBytes() > 50 * 1048576) {
+    setP('esBox5', JSON.stringify(need));
+    setP('esSpots1', JSON.stringify(S.files.filter(f => !f.dup && f.center).map(f => [Math.round(f.center[0] * 500) / 500, Math.round(f.center[1] * 500) / 500])));
+    return;
+  }
   let have = null; try { have = JSON.parse(A.getPref('esBox5', 'null') || 'null'); } catch (e) { }
   // schon gespeicherte Wiesen nach ORT merken (nicht nach Namen) – UAV-E und RC haben für dieselbe Wiese andere Dateinamen
   let done = []; try { done = JSON.parse(A.getPref('esSpots1', '[]') || '[]'); } catch (e) { }
@@ -5537,12 +5572,12 @@ function showNotams() {
     const p = n.props;
     const rows = Object.keys(p).filter(k => p[k] != null && p[k] !== '' && typeof p[k] !== 'object')
       .map(k => `<div><b>${esc(NOTAM_LABEL[k] || k)}:</b> ${isDateStr(p[k]) ? esc(fmtDate(new Date(p[k]).getTime())) : /^https?:/.test(p[k]) ? `<span class="lnk" data-url="${esc(p[k])}">${esc(p[k])}</span>` : esc(p[k])}</div>`).join('');
-    const nf = S.files.length ? S.files.map(f => ({ f, d: Math.min(...geomRings(n.geom).flat().map(c => fieldDistTo(f, c[1], c[0]))) })).sort((a, b) => a.d - b.d)[0] : null;
+    const nf = S.files.length ? S.files.map(f => ({ f, d: notamFieldDist(f, n) })).sort((a, b) => a.d - b.d)[0] : null;
     if (i === nNear && i < sorted.length) html += `<h3 class="sec">Weiter entfernt in Deutschland (${sorted.length - nNear})</h3>`;
     else if (i < nNear && (i === 0 || sorted[i - 1].active !== n.active)) html += `<h3 class="sec">${n.active ? 'Aktuell aktiv' : 'Demnächst / geplant'} – im Umkreis von ${nKm()} km</h3>`;
     html += `<div class="zone" data-ni="${i}"><h4><span class="nnum ${n.active ? '' : 'in'}">${i + 1}</span>${esc(notamTitle(n))} <span class="chip ${n.active ? (n.recur ? 'dist' : '') : 'grey'}">${n.active ? (n.recur ? 'Aktiv zu bestimmten Zeiten' : 'Aktiv') : n.soon ? 'Demnächst ab ' + esc(fmtDate(n.start)) : 'Geplant / inaktiv'}</span></h4>
       ${n.end ? `<div class="meta">Gültig ${n.start ? 'vom ' + esc(fmtDate(n.start)) + ' ' : ''}bis ${esc(fmtDate(n.end))} (Ortszeit)${n.recur ? ' · <b>nur in den Aktivierungszeiten</b>' : ''}</div>` : ''}
-      ${nf && nf.d < 1e8 ? `<div class="meta">Nächstes Feld: ${esc(nf.f.title)} – ${nf.d < 1000 ? Math.round(nf.d) + ' m' : (nf.d / 1000).toFixed(1).replace('.', ',') + ' km'}</div>` : ''}
+      ${nf && nf.d < 1e8 ? `<div class="meta">${nf.d === 0 ? 'Feld liegt drin: ' + esc(nf.f.title) : `Nächstes Feld: ${esc(nf.f.title)} – ${nf.d < 1000 ? Math.round(nf.d) + ' m' : (nf.d / 1000).toFixed(1).replace('.', ',') + ' km'}`}</div>` : ''}
       <div style="margin-top:6px">${rows || '<span class="meta">Keine Details</span>'}</div>
       ${!geomRings(n.geom).flat().length ? `<div class="meta" style="color:#a85d00;margin-top:4px">Keine Fläche erkannt – auf der Karte nicht darstellbar.${n.rawGeo ? `<details><summary>Rohdaten (für die Fehlersuche)</summary><code style="word-break:break-all;font-size:11px">${esc(n.rawGeo)}</code></details>` : ''}</div>` : ''}
       <div style="margin-top:8px;display:flex;gap:18px;flex-wrap:wrap"><span class="lnk" data-focus="${i}">Auf der Karte zeigen</span>
