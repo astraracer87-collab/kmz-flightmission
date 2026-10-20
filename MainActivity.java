@@ -990,6 +990,42 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
         /** DULV-Flugplatzdatenbank (ganz Deutschland, Telefon/PPR, Zeiten, Funk) */
         @JavascriptInterface
+        /** Verbindungstest: jeden Datenserver kurz anfragen und Ergebnis (ok/Fehler, Zeit) melden */
+        public void netTest() {
+            new Thread(() -> {
+                JSONArray out = new JSONArray();
+                List<String[]> t = new ArrayList<>();
+                for (String ep : OVERPASS) t.add(new String[]{"OpenStreetMap " + ep.replaceAll("https://([^/]+)/.*", "$1"), ep, "post"});
+                t.add(new String[]{"DULV Flugplätze", "https://dulv.de/fmwebphp/Flugplatz/show_all.php", "get"});
+                t.add(new String[]{"BKG Landesgrenzen", "https://sgx.geodatenzentrum.de/wfs_vg2500?SERVICE=WFS&REQUEST=GetCapabilities", "get"});
+                t.add(new String[]{"dipul", "https://uas-betrieb.de/geoservices/dipul/wms?SERVICE=WMS&REQUEST=GetCapabilities", "get"});
+                t.add(new String[]{"GitHub (Vergleich)", "https://raw.githubusercontent.com/", "get"});
+                for (String[] x : t) {
+                    long t0 = System.currentTimeMillis(); String res;
+                    try {
+                        HttpURLConnection c = (HttpURLConnection) new URL(x[1]).openConnection();
+                        c.setConnectTimeout(8000); c.setReadTimeout(15000);
+                        c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Kitzrettung, nicht-kommerziell)");
+                        if ("post".equals(x[2])) {
+                            c.setRequestMethod("POST"); c.setDoOutput(true);
+                            c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                            try (OutputStream o = c.getOutputStream()) { o.write(("data=" + URLEncoder.encode("[out:json][timeout:10];node(50.38,8.06,50.39,8.07);out 1;", "UTF-8")).getBytes(StandardCharsets.UTF_8)); }
+                        }
+                        int code = c.getResponseCode(); c.disconnect();
+                        res = code < 400 ? "ok" : "HTTP " + code;
+                    } catch (Exception e) {
+                        String m = String.valueOf(e.getMessage());
+                        res = e instanceof javax.net.ssl.SSLException || m.contains("CertPath") || m.contains("Trust anchor") ? "Zertifikat: " + m
+                                : e instanceof java.net.UnknownHostException ? "Name nicht auflösbar (DNS)" : e instanceof java.net.SocketTimeoutException ? "Zeitüberschreitung" : m;
+                    }
+                    try { out.put(new JSONObject().put("name", x[0]).put("res", res).put("ms", System.currentTimeMillis() - t0)); } catch (Exception ignored) { }
+                    js("window.onNetTest && window.onNetTest(" + JSONObject.quote(out.toString()) + ",false)");
+                }
+                js("window.onNetTest && window.onNetTest(" + JSONObject.quote(out.toString()) + ",true)");
+            }).start();
+        }
+
+        @JavascriptInterface
         public String uaveCatalog() { try { File f = dataFile("uave_katalog.json"); return f.isFile() ? readFile(f) : ""; } catch (Exception e) { return ""; } }
 
         @JavascriptInterface

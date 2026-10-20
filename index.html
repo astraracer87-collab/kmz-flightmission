@@ -554,6 +554,7 @@
     <div class="set" id="setRcKeys" style="display:none"><div class="l"><div class="t">Bedienung mit L/R-Tasten (DJI RC Plus 2)</div><div class="v">L1 = Zoom +, L2 = Zoom −, L3 = alles zeigen · R1 = Karte (Grau → Karte → Luftbild), R2 = Info (Felder → Geozonen → beides → aus), R3 = Standort. Die Leiste wandert nach oben, die Knöpfe rechts entfallen.</div>
       <div class="v" style="margin-top:6px">Hinweise am Rand verschieben: <button class="b-sec" data-rkoff="-12">▲</button> <button class="b-sec" data-rkoff="12">▼</button> <span id="vRkOff"></span></div></div>
       <div class="seg"><button data-rckeys="0">Aus</button><button data-rckeys="1">An</button></div></div>
+    <div class="set"><div class="l"><div class="t">Verbindungstest Datenserver</div><div class="v" id="vNet">Prüft, welche Server (OpenStreetMap, DULV, BKG, dipul) von dieser Fernsteuerung aus erreichbar sind.</div></div><button class="b-sec" id="bNet">Testen</button></div>
     <div class="set"><div class="l"><div class="t">5D-Knopf der Fernsteuerung</div><div class="v" id="vRcKey">Karte: hoch/runter = zoomen · links/rechts = Feld für Feld · drücken = Feld markieren (ohne Feld: Standort). Seiten: hoch/runter = blättern · links = zurück.</div></div><button class="b-sec" id="bRcKey">Tasten-Test</button></div>
     <div class="set"><div class="l"><div class="t">Regeln &amp; Auflagen</div><div class="v">Übersicht: Allgemeinverfügung, Allgemeinerlaubnis, was gilt wo</div></div><button class="b-sec" id="bRules">Ansehen</button></div>
     <h3 class="setcat" id="sc-wetter">Wetter</h3>
@@ -1079,9 +1080,15 @@ function paintLive() {
     const at2 = at + (P.geo === '1' ? ' · Geozonen © DFS dipul' : '') + (P.osmPower === '1' ? ' · Hindernisse © OpenStreetMap' : '');
     ctx.font = '11px Roboto,system-ui,sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
     const tw = ctx.measureText(at2).width;
-    const ax = W - 80;   // links neben den Kartenknöpfen
-    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(ax - tw - 4, H - 92, tw + 8, 15);
-    ctx.fillStyle = '#334'; ctx.fillText(at2, ax, H - 78);
+    if (barTop()) {   // Leiste oben: ganz unten mittig zwischen den Tasten-Knöpfen
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(W / 2 - tw / 2 - 4, H - 16, tw + 8, 15);
+      ctx.fillStyle = '#334'; ctx.fillText(at2, W / 2, H - 2);
+    } else {
+      const ax = W - 80;   // links neben den Kartenknöpfen
+      ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(ax - tw - 4, H - 92, tw + 8, 15);
+      ctx.fillStyle = '#334'; ctx.fillText(at2, ax, H - 78);
+    }
   }
   if (S.placePin) {   // gesuchter Ort: rote Nadel mit Namen
     const [x, y] = toScreen(S.placePin.lat, S.placePin.lon);
@@ -1588,7 +1595,7 @@ function drawOutline(f) {
   ctx.fillStyle = f.selected ? FC.fillSel : FC.fill; ctx.fill();
   ctx.lineJoin = 'round';
   ctx.lineWidth = f.selected ? 3 : 2; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.stroke();   // weiße Kante: Grenze zum Nachbarfeld sichtbar
-  ctx.setLineDash([6, 4]); ctx.lineWidth = f.selected ? 2 : 1.5; ctx.strokeStyle = f.selected ? FC.routeSel : FC.route; ctx.stroke(); ctx.setLineDash([]);
+  ctx.lineWidth = f.selected ? 2.5 : 2; ctx.strokeStyle = f.selected ? FC.routeSel : FC.route; ctx.stroke();
 }
 /** Abstand der Bahnen einer Mäander-Route in m (Median der kurzen Verbindungsstücke) */
 function trackSpacing(pts) {
@@ -1607,6 +1614,7 @@ function fieldOnScreen(f) {
 }
 function drawField(f) {
   FC = f.cat || f.ue ? FCC : FC0;
+  if (f.outline && !f.selected && !f.cat) return;   // nicht markiert: nur die Fläche (drawOutline), Flugroute erst beim Markieren
   ctx.lineJoin = 'round';
   for (const s of f.shapes) {
     const pp = projPath(s, [s.pts], false, s.type === 'poly'), k = usePath(pp);
@@ -1962,6 +1970,17 @@ let loading = false;
 // Feldkonturen aus UAV Editor zuordnen: über die Datei, sonst über den Namen, sonst über die Lage der Route
 const normName = t => String(t || '').replace(/\.km[lz]$/i, '').replace(/_[\d.,]+\s*ha(_\d+\s*WP)?$/i, '')
   .toLowerCase().replace(/ß/g, 'ss').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+/** konvexe Hülle (Monotone Chain) für [lat, lon]-Punkte */
+function hullOf(pts) {
+  if (!pts || pts.length < 3) return null;
+  const P2 = pts.map(p => [p[1], p[0]]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const p of P2) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (let i = P2.length - 1; i >= 0; i--) { const p = P2[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  const h = lo.slice(0, -1).concat(up.slice(0, -1));
+  return h.length > 2 ? h.map(p => [p[1], p[0]]) : null;
+}
 function applyOutlines() {
   let d = {}; try { d = A.uaveOutlines ? JSON.parse(A.uaveOutlines() || '{}') : {}; } catch (e) { }
   const all = (d._all || []).map(o => { const r = toLatLon(o.r); let n = -90, s = 90, e = -180, w = 180;
@@ -1988,6 +2007,8 @@ function applyOutlines() {
     const b = f.bounds; f.areaM2 = f.outline ? ringArea(f.outline) : (b.n - b.s) * 111200 * (b.e - b.w) * 71000;
   });
   S.outlineCount = n;
+  // ohne Feldgrenze: Umriss der Route (konvexe Hülle) als Fläche – so sehen alle Felder gleich aus (Fläche statt Linien)
+  S.files.forEach(f => { if (f.cat || f.outline) return; const h = hullOf(f.shapes.flatMap(sh => sh.pts)); if (h && h.length > 2) { f.outline = h; f.hullOnly = true; } });
   return n;
 }
 // Datenquelle: Felder aus dem UAV Editor (Download-Ordner) oder die Missionen, die schon in DJI Pilot 2 auf der Fernsteuerung liegen
@@ -1997,11 +2018,10 @@ const srcHas = k => P.fsrc === k || P.fsrc === 'mix';
 function setSource(v) {
   let u = srcHas('uave'), r = srcHas('rc');
   if (v === 'uave') u = !u; else if (v === 'rc') r = !r;
-  if (!u && !r) { if (v === 'uave') r = true; else u = true; }   // eine Seite bleibt immer an
-  const nv = u && r ? 'mix' : u ? 'uave' : 'rc';
+  const nv = u && r ? 'mix' : u ? 'uave' : r ? 'rc' : 'none';   // beide aus = keine Felder
   if (nv === P.fsrc) return;
   setP('fsrc', nv); S.files = []; update();
-  toast(nv === 'rc' ? 'Zeige Missionen auf der Fernsteuerung (DJI Pilot 2)' : nv === 'uave' ? 'Zeige Felder aus dem UAV Editor (heruntergeladen)'
+  toast(nv === 'none' ? 'Keine Felder angezeigt – UAV-Editor oder Fernsteuerung antippen zum Einblenden' : nv === 'rc' ? 'Zeige Missionen auf der Fernsteuerung (DJI Pilot 2)' : nv === 'uave' ? 'Zeige Felder aus dem UAV Editor (heruntergeladen)'
     : 'Gemischt: Missionen der Fernsteuerung (blau) + was im UAV-Editor noch fehlt (türkis)', false, 3500);
   srcUi(); load(true);
   if (nv === 'mix') catRefresh(false);
@@ -2015,6 +2035,7 @@ function srcUi() {
 }
 async function load(keepView) {
   if (loading) return;
+  if (P.fsrc === 'none') { S.files = []; update(); return; }   // beide Feldarten ausgeblendet
   if (!A.hasAccess()) { $('perm').classList.add('open'); return; }
   $('perm').classList.remove('open');
   ensureFolders();   // nach der Freigabe: fehlende Standardordner anlegen
@@ -2955,22 +2976,19 @@ function covFor(layer, reg, lic) {
 /** Plaketten je Führerschein: „A1/A3 ✗ · A2 ✓“ + wodurch („Allgemeinerlaubnis“ bzw. „AV Wildtierrettung“); das eigene Zeugnis ist umrandet */
 function covBadges(layer, reg) {
   reg = reg || regionAt(V.lat, V.lon);
+  const mine = P.lic === 'A2' ? 'A2' : 'A1A3';
+  // nur zeigen, womit es erlaubt ist: „A2 + Allgemeinerlaubnis ✓“ – Zeugnisse mit gleicher Grundlage zusammengefasst
+  const badge = (lics, basis, title) => `<i class="cbadge lic y${lics.includes(mine) ? ' mine' : ''}" title="${esc(title || '')}">${lics.map(k => k === 'A2' ? 'A2' : 'A1/A3').join(' · ')}${basis ? ' + ' + basis : ''} ✓</i>`;
   // Stromleitung mit Überfluggenehmigung des Netzbetreibers: gilt unabhängig vom Fernpilotenzeugnis (Auflagen laut Genehmigung)
-  if (P.power === '1' && layer === 'stromleitungen') {
-    const mine0 = P.lic === 'A2' ? 'A2' : 'A1A3';
-    const lb0 = (k, t) => `<i class="cbadge lic y${mine0 === k ? ' mine' : ''}">${t} ✓</i>`;
-    return lb0('A1A3', 'A1/A3') + lb0('A2', 'A2') + '<i class="cbadge a2" style="background:#6a1b9a" title="Überfluggenehmigung des Netzbetreibers – deren Auflagen gelten">über Genehmigung Netzbetreiber</i>';
-  }
+  if (P.power === '1' && layer === 'stromleitungen') return badge(['A1A3', 'A2'], 'Genehmigung Netzbetreiber', 'Überfluggenehmigung des Netzbetreibers – deren Auflagen gelten');
   const c1 = covFor(layer, reg, 'A1A3'), c2 = covFor(layer, reg, 'A2');
+  const basisOf = c => c.av ? 'AV ' + (/wildtier|kitz/i.test(c.av.name || '') ? 'Wildtierrettung' : (c.av.name || '').slice(0, 24)) : c.ae ? 'Allgemeinerlaubnis' : '';
+  const titleOf = c => c.av ? (c.av.name || 'Allgemeinverfügung') : c.ae ? 'Allgemeinerlaubnis der Landesluftfahrtbehörde – nur mit A2-Fernpilotenzeugnis' : '';
   const ok1 = !!(c1.ae || c1.av), ok2 = !!(c2.ae || c2.av);
   if (!ok1 && !ok2) return '';
-  const mine = P.lic === 'A2' ? 'A2' : 'A1A3';
-  const lb = (k, t, ok) => `<i class="cbadge lic ${ok ? 'y' : 'n'}${mine === k ? ' mine' : ''}" title="${mine === k ? 'In den Einstellungen gewählt' : ''}">${t} ${ok ? '✓' : '✗'}</i>`;
-  let h = lb('A1A3', 'A1/A3', ok1) + lb('A2', 'A2', ok2);
-  const av = c2.av || c1.av;
-  if (c2.ae) h += '<i class="cbadge a2" title="Allgemeinerlaubnis der Landesluftfahrtbehörde – nur mit A2-Fernpilotenzeugnis">über Allgemeinerlaubnis</i>';
-  if (av) h += `<i class="cbadge av" title="${esc(av.name || 'Allgemeinverfügung')}">über AV ${/wildtier|kitz/i.test(av.name || '') ? 'Wildtierrettung' : esc((av.name || '').slice(0, 24))}</i>`;
-  return h;
+  const b1 = ok1 ? basisOf(c1) : null, b2 = ok2 ? basisOf(c2) : null;
+  if (ok1 && ok2 && b1 === b2) return badge(['A1A3', 'A2'], b1, titleOf(c2));
+  return (ok1 ? badge(['A1A3'], b1, titleOf(c1)) : '') + (ok2 ? badge(['A2'], b2, titleOf(c2)) : '');
 }
 // Erlaubt, aber nur mit seitlichem Abstand (1:1-Regel bzw. kein direkter Überflug) → orange statt grün
 const AE_DIST = ['kraftwerke', 'umspannwerke', 'stromleitungen', 'windkraftanlagen', 'industrieanlagen', 'behoerden', 'polizei'];
@@ -3905,6 +3923,11 @@ function showAirfieldList() {
   $('iBody').querySelectorAll('[data-af]').forEach(el => el.onclick = () => showAirfield(S.airfields.find(a => a.id === el.dataset.af)));
 }
 document.querySelectorAll('[data-rose]').forEach(b => b.onclick = () => { const v = b.dataset.rose; setP('rose', v === 'off' ? 0 : 1); if (v !== 'off') setP('compass', v === 'dev' ? 1 : 0); fillSettings(); windWidget(); draw(); });
+$('bNet').onclick = () => { if (!A.netTest) return toast('In dieser Version nicht verfügbar.', true); $('vNet').innerHTML = 'Teste… (dauert bis zu 1 Minute)'; A.netTest(); };
+window.onNetTest = (raw, done) => {
+  let r = []; try { r = JSON.parse(raw); } catch (e) { }
+  $('vNet').innerHTML = r.map(x => `<div>${x.res === 'ok' ? '✅' : '❌'} <b>${esc(x.name)}</b> – ${esc(x.res)} <span style="opacity:.6">(${(x.ms / 1000).toFixed(1).replace('.', ',')} s)</span></div>`).join('') + (done ? '' : '<div>… teste weiter</div>');
+};
 $('bRcKey').onclick = () => { rcKeyTest = !rcKeyTest; $('bRcKey').textContent = rcKeyTest ? 'Test beenden' : 'Tasten-Test';
   if (rcKeyTest) rcKeyShow('jetzt eine Taste drücken oder den 5D-Knopf in alle Richtungen kippen…' + (RC_MODEL ? ' · Gerät: ' + RC_MODEL.split('|')[0] : '')); };
 document.querySelectorAll('[data-notamkm]').forEach(b => b.onclick = () => { setP('notamKm', b.dataset.notamkm);
