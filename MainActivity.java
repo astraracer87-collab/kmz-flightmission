@@ -647,6 +647,25 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             } catch (Exception e) { return err(e.getMessage()).toString(); }
         }
 
+        /** Missionen von DJI Pilot 2 löschen – samt ihrem Ordner (DJI/Mission/KML/<ID>/). Nur Ordner direkt im Missionsordner. */
+        @JavascriptInterface
+        public String deleteRcMission(String pathsJson, String rcDir) {
+            int ok = 0; JSONArray err = new JSONArray();
+            try {
+                File base = new File(rcDir).getCanonicalFile();
+                JSONArray a = new JSONArray(pathsJson);
+                for (int i = 0; i < a.length(); i++) {
+                    File f = new File(a.getString(i)).getCanonicalFile(), d = f.getParentFile();
+                    if (!f.isFile() || !isKmz(f.getName()) || d == null) { err.put(f.getName() + ": nicht gefunden"); continue; }
+                    if (d.equals(base)) { if (f.delete()) ok++; else err.put(f.getName() + ": lässt sich nicht löschen"); continue; }   // liegt direkt im Ordner
+                    if (!base.equals(d.getParentFile())) { err.put(f.getName() + ": nicht im Missionsordner"); continue; }
+                    deleteTree(d);
+                    if (!d.exists()) ok++; else err.put(f.getName() + ": Ordner lässt sich nicht (ganz) löschen");
+                }
+                return new JSONObject().put("ok", ok).put("errors", err).toString();
+            } catch (Exception e) { return err(e.getMessage()).toString(); }
+        }
+
         /** Missionen von DJI Pilot 2 auf der Fernsteuerung (DJI/Mission/KML/<ID>/<Name>.kmz) – je Unterordner eine Mission */
         @JavascriptInterface
         public String listKmzDeep(String path) {
@@ -1003,7 +1022,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             new Thread(() -> {
                 JSONArray out = new JSONArray();
                 List<String[]> t = new ArrayList<>();
-                for (String ep : OVERPASS) t.add(new String[]{"OpenStreetMap " + ep.replaceAll("https://([^/]+)/.*", "$1"), ep, "post"});
+                t.add(new String[]{"OpenStreetMap-Abfrage (nur beim Antippen außerhalb des Gebiets)", OVERPASS[0], "post"});
                 t.add(new String[]{"DULV Flugplätze", "https://dulv.de/fmwebphp/Flugplatz/show_all.php", "get"});
                 t.add(new String[]{"BKG Landesgrenzen", "https://sgx.geodatenzentrum.de/wfs_vg2500?SERVICE=WFS&REQUEST=GetCapabilities", "get"});
                 t.add(new String[]{"dipul", "https://uas-betrieb.de/geoservices/dipul/wms?SERVICE=WMS&REQUEST=GetCapabilities", "get"});
@@ -2332,7 +2351,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     /** Orts- und Flurnamen für die Suche: Gebiet der Felder + 25 km, alle 60 Tage oder wenn das Gebiet größer wird */
     private void placeSync(double n, double s, double e, double w, boolean force) {
         double dLa = 25 / 111.2, dLo = 25 / (111.2 * Math.cos(Math.toRadians((n + s) / 2)));
-        if (!force && pbfCovers(n, s, e, w) && placeFile().isFile()) return;   // kommt aus der Geofabrik-Datei
+        if (pbfCovers(n, s, e, w) || placeFile().isFile() || n == n) return;   // Orte kommen aus der Geofabrik-Datei – keine Overpass-Abfrage mehr
         n += dLa; s -= dLa; e += dLo; w -= dLo;
         try {
             JSONObject b = new JSONObject(prefs.getString("place_bbox", "{}"));
@@ -2390,16 +2409,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             try { java.io.StringWriter sw = new java.io.StringWriter(); px.printStackTrace(new java.io.PrintWriter(sw));
                 writeFileAtomic(new File(pbfDir(), "fehler.txt"), new java.util.Date() + "\n" + sw); } catch (Throwable ignored) { }
         }
-        ovLoad = pbfErr != null ? "load:OpenStreetMap-Datei fehlgeschlagen (" + pbfMsg(pbfErr) + ") – versuche Ausweg Overpass…"
-                : pbfWait != null ? "load:Wartet auf WLAN für die OpenStreetMap-Datei – versuche solange Overpass…" : "load";
-        try { osmSyncOverpass(n, s, e, w); } finally {
-            ovLoad = "load";
-            for (String cat : new String[]{"hindernisse", "feldwege"}) {
-                String st = catStatus.get(cat); if (st != null && st.startsWith("ok")) continue;
-                boolean have = "feldwege".equals(cat) ? osmWaysFile().isFile() : osmFile().isFile();
-                if (pbfWait != null) catSt(cat, "wlan:" + pbfWait);
-                else if (pbfErr != null) catSt(cat, (have ? "alt:" : "") + "OpenStreetMap-Datei: " + pbfMsg(pbfErr));
-            }
+        // Keine Massenabfragen mehr an die öffentlichen OpenStreetMap-Server (Overpass) – laut OSM-Nutzungsregeln für große Mengen
+        // nicht gedacht und derzeit überlastet. Ohne Geofabrik-Datei bleiben die gespeicherten Daten aktiv.
+        for (String cat : new String[]{"hindernisse", "feldwege"}) {
+            boolean have = "feldwege".equals(cat) ? osmWaysFile().isFile() : osmFile().isFile();
+            if (pbfWait != null) catSt(cat, "wlan:" + pbfWait);
+            else if (pbfErr != null) catSt(cat, (have ? "alt:" : "") + "OpenStreetMap-Datei: " + pbfMsg(pbfErr));
+            else catSt(cat, (have ? "alt:" : "") + "OpenStreetMap-Datei für dieses Gebiet nicht verfügbar");
         }
     }
 
@@ -3718,10 +3734,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 covers = b.has("n") && b.getDouble("n") >= n && b.getDouble("s") <= s && b.getDouble("e") >= e && b.getDouble("w") <= w;
             } catch (Exception ignored) { }
             boolean fresh = System.currentTimeMillis() - prefs.getLong("reg_fetched", 0) < 60 * DAY;   // Grenzen ändern sich kaum
-            if (!force && fresh && covers && regionFile().isFile()) return;
+            boolean hasLand = false;   // früherer Fehler: BKG-Daten ohne Bundesländer gespeichert – dann neu holen
+            try { hasLand = regionFile().isFile() && readFile(regionFile()).contains("\"lvl\":\"4\""); } catch (Exception ignored) { }
+            if (!force && fresh && covers && hasLand) return;
             catSt("orte", "load");
-            // 1. Wahl: amtliche Grenzen vom BKG (zuverlässig) – Overpass nur noch als Ausweg
-            try { if (regionSyncBkg(n, s, e, w)) { catSt("orte", "ok"); return; } } catch (Exception ignored) { }
+            // amtliche Grenzen vom BKG – keine Overpass-Abfrage mehr
+            boolean bkgOk;
+            try { bkgOk = regionSyncBkg(n, s, e, w); }
+            catch (Exception bx) { catSt("orte", (regionFile().isFile() ? "alt:" : "") + "Landesgrenzen (BKG): " + errTxt(bx)); return; }
+            if (bkgOk) { catSt("orte", "ok"); return; }
+            if (n == n) { catSt("orte", (regionFile().isFile() ? "alt:" : "") + "Landesgrenzen (BKG): keine Daten"); return; }
             // Schnell: nur Grenzstücke im Gebiet + Zugehörigkeit der Gebietsmitte (statt kompletter Landesgrenzen)
             String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
             double clat = (n + s) / 2, clon = (e + w) / 2;
@@ -3843,13 +3865,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         List<double[]> rings = new ArrayList<>();
                         JSONArray co = g.optJSONArray("coordinates");
                         if ("Polygon".equals(g.optString("type"))) addRings(co, rings); else if ("MultiPolygon".equals(g.optString("type"))) for (int k = 0; k < co.length(); k++) addRings(co.getJSONArray(k), rings);
-                        res.add(new Object[]{p.optString("GEN", p.optString("gen", "")), p.optString("RS", p.optString("rs", p.optString("AGS", ""))), rings});
+                        res.add(new Object[]{p.optString("GEN", p.optString("gen", "")), p.optString("RS", p.optString("rs", p.optString("ARS", p.optString("ars", p.optString("AGS", p.optString("ags", "")))))), rings});
                     }
                 } else if (t.contains("posList") || t.contains("coordinates")) {   // GML: Mitglieder einzeln lesen
                     Matcher mm = Pattern.compile("(?s)<(?:wfs:member|gml:featureMember)>(.*?)</(?:wfs:member|gml:featureMember)>").matcher(t);
                     while (mm.find()) {
                         String b = mm.group(1);
-                        Matcher gn = Pattern.compile("<[\\w]+:GEN>([^<]*)<").matcher(b), rs = Pattern.compile("<[\\w]+:(?:RS|AGS)>([^<]*)<").matcher(b);
+                        Matcher gn = Pattern.compile("(?i)<[\\w]+:gen>([^<]*)<").matcher(b), rs = Pattern.compile("(?i)<[\\w]+:(?:rs|ars|ags)>([^<]*)<").matcher(b);
                         List<double[]> rings = new ArrayList<>();
                         Matcher pl = Pattern.compile("<gml:posList[^>]*>([^<]+)<").matcher(b);
                         while (pl.find()) {
@@ -4126,8 +4148,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     try { d.checkServerTrusted(c, a); }
                     catch (java.security.cert.CertificateException ce) {
                         java.security.cert.X509Certificate[] ext = aiaComplete(c);
-                        if (ext == null) throw ce;
-                        d.checkServerTrusted(ext, a);
+                        try { if (ext == null) throw ce; d.checkServerTrusted(ext, a); }
+                        catch (java.security.cert.CertificateException ce2) {
+                            // Stammzertifikat fehlt in älteren Android-Versionen (z. B. Certum bei dulv.de auf Android 11): gegen mitgelieferte Wurzel prüfen
+                            javax.net.ssl.X509TrustManager x = extraRoots();
+                            if (x == null) throw ce;
+                            x.checkServerTrusted(ext != null ? ext : c, a);
+                        }
                     }
                 }
             };
@@ -4135,6 +4162,23 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             ctx.init(null, new javax.net.ssl.TrustManager[]{tm}, null);
             javax.net.ssl.HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
         } catch (Exception ignored) { }
+    }
+    /** Mitgelieferte Stammzertifikate, die auf Android 11 fehlen können. Certum Trusted Root CA (gültig bis 2043),
+     *  SHA-256 FE:76:96:57:38:55:77:3E:37:A9:5E:7A:D4:D9:CC:96:C3:01:57:C1:5D:31:76:5B:A9:B1:57:04:E1:AE:78:FD */
+    private static final String[] EXTRA_ROOTS = {"MIIFwDCCA6igAwIBAgIQHr9ZULjJgDdMBvfrVU+17TANBgkqhkiG9w0BAQ0FADB6MQswCQYDVQQGEwJQTDEhMB8GA1UEChMYQXNzZWNvIERhdGEgU3lzdGVtcyBTLkEuMScwJQYDVQQLEx5DZXJ0dW0gQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxHzAdBgNVBAMTFkNlcnR1bSBUcnVzdGVkIFJvb3QgQ0EwHhcNMTgwMzE2MTIxMDEzWhcNNDMwMzE2MTIxMDEzWjB6MQswCQYDVQQGEwJQTDEhMB8GA1UEChMYQXNzZWNvIERhdGEgU3lzdGVtcyBTLkEuMScwJQYDVQQLEx5DZXJ0dW0gQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxHzAdBgNVBAMTFkNlcnR1bSBUcnVzdGVkIFJvb3QgQ0EwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDRLY67tzbqbTeRn06TpwXkKQMlzhyC93yZn0EGze2jusDbCSzBfN8pfktlL5On1AFrAygYo9idBcEq2EXxkd7fO9CAAozPOA/qp1x4EaTByIVcJdPTsuclzxFUl6s1wB52HO8AU5853BSlLCIls3Jy/I2z5T4IHhQqNwuIPMqw9MjCoa68wb4pZ1Xi/K1ZXP69VyywkI3C7Te2fJmItdUDmj0VDT06qKhF8JVOJVkdzZhpu9PMMsmN74H+rX2Ju7pgE8pllWeg8xn2A1bUatMn4qGtg/BKEiJ3HAVz4hlxQsDsdUaakFjgao4rpUYwBI4Zshfjvqm6f1bxJAPXsiEodg42MEx51UGamqi4NboMOvJEGyCI98Ul1z3G4z5D3Yf+xOr1Uz5MZf87Sst4WmsXXw3Hw09Omiqi7VdNIuJGmj8PkTQkfVXjjJU30xrwCSss0smNtA0Aq2cpKNgB9RkEth2+dv5yXMSFytKAQd8FqKPVhJBPC/PgP5sZ0jeJP/J7UhyM9uH3PAeXjA6iWYEMspA90+NZRu0PqafegGtaqge2Gcu8V/OXIXoMsSt0Puvap2ctTMSYnjYJdmZm/Bo/6khUHL4wvYBQv3y1zgD2DGHZ5yQD4OMBgQ692IU0iL2yNqh7XAjlRICMb/gv1SHKHRzQ+8S1h9E6Tsd2tTVItQIDAQABo0IwQDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSM+xx1vALTn04uSNn5YFSqxLNP+jAOBgNVHQ8BAf8EBAMCAQYwDQYJKoZIhvcNAQENBQADggIBAEii1QALLtA/vBzVtVRJHlpr9OTy4EA34MwUe7nJ+jW1dReTagVphZzNTxl4WxmB82M+w85bj/UvXgF2Ez8sALnNllI5SW0ETsXpD4YN4fqzX4IS8TrOZgYkNCvozMrnadyHncI013nR03e4qllY/p0m+jiGPp2Kh2RX5Rc64vmNueMzeMGQ2Ljdt4NR5MTMI9UGfOZR0800McD2RrsLrfw9EAUqO0qRJe6M1ISHgCq8CYyqOhNf6DR5UMEQGfnTKB7U0VEwKbOukGfWHwpjscWpxkIxYxeU72nLL/qMFH3EQxiJ2fAyQOaA4kZf5ePBAFmo+eggvIksDkc0C+pXwlM2/KfUrzHN/gLldfq5Jwn58/U7yn2fqSLLiMmq0Uc9NneoWWRrJ8/vJ8HjJLWG965+Mk2weWjROeiQWMODvA8s1pfrzgzhIMfatz7DP78v3DSk+yshzWePS/Tj6tQ/50+6uaWTRRxmHyH6ZF5v4HaUMst19W7l9o/HuKTMqJZ9ZPskWkoDbGs4xugDQ5r3V7mzKWmTOPQD8rv7gmsHINFSH5pkAnuYZttcTVoP0ISVoDwUQwbKytu4QTbaakRnh6+v40URFWkIsr4WOZckbxJF0WddCajJFdr60qZfE2Efv4WstK2tBZQIgx51F9NxO5NQI1mg7TyRVJ12AMXDuDjb"};
+    private static volatile javax.net.ssl.X509TrustManager extraTm = null;
+    private static javax.net.ssl.X509TrustManager extraRoots() {
+        if (extraTm != null) return extraTm;
+        try {
+            java.security.KeyStore ks = java.security.KeyStore.getInstance(java.security.KeyStore.getDefaultType()); ks.load(null, null);
+            java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509");
+            for (int i = 0; i < EXTRA_ROOTS.length; i++)
+                ks.setCertificateEntry("extra" + i, cf.generateCertificate(new java.io.ByteArrayInputStream(android.util.Base64.decode(EXTRA_ROOTS[i], android.util.Base64.DEFAULT))));
+            javax.net.ssl.TrustManagerFactory f = javax.net.ssl.TrustManagerFactory.getInstance(javax.net.ssl.TrustManagerFactory.getDefaultAlgorithm());
+            f.init(ks);
+            for (javax.net.ssl.TrustManager t : f.getTrustManagers()) if (t instanceof javax.net.ssl.X509TrustManager) { extraTm = (javax.net.ssl.X509TrustManager) t; break; }
+        } catch (Exception ignored) { }
+        return extraTm;
     }
     private static final Map<String, java.security.cert.X509Certificate> AIA_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
     private static java.security.cert.X509Certificate[] aiaComplete(java.security.cert.X509Certificate[] chain) {
@@ -4256,7 +4300,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 els = new JSONArray(readFile(afFile()));
                 if (!"load".equals(catStatus.get("flugplaetze"))) catSt("flugplaetze", "ok");
             } else {
-                if (!force && fresh && covers && afFile().isFile()) return;
+                return;   // ohne Geofabrik-Datei: bisheriger Stand bleibt – keine Overpass-Abfrage mehr
+            }
+            if (els == null) {
                 catSt("flugplaetze", "load");
                 String bb = String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f", s, w, n, e);
                 String txt = overpass("[out:json][timeout:60];(nwr[\"aeroway\"~\"^(aerodrome|heliport|airstrip|helipad)$\"](" + bb + "););out tags center;", 90000);

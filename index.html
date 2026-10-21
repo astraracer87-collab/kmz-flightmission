@@ -48,6 +48,9 @@
   .b2l{display:inline-block;text-align:left;line-height:1.05}
   .b2l small{font-size:.82em;font-weight:700;opacity:.92}
   #bar .srcseg button[data-fsrc="uave"].on{background:#00a99d}
+  #bar .srcseg button.lp{transform:scale(.94);box-shadow:0 0 0 3px #fff inset}
+  #bar .srcseg button.busy{background-image:linear-gradient(90deg,rgba(255,255,255,.0),rgba(255,255,255,.35),rgba(255,255,255,0));background-size:200% 100%;animation:segbusy 1.2s linear infinite}
+  @keyframes segbusy{from{background-position:200% 0}to{background-position:-200% 0}}
   .srcseg button.on{background:#1e7bff;color:#fff}
   #count small{display:block;font-weight:400;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #bar{overflow:hidden}
@@ -299,7 +302,8 @@
   #tour{position:fixed;inset:0;z-index:70;display:none}
   #tour .thole{position:absolute;box-shadow:0 0 0 9999px rgba(0,0,0,.7);border:3px solid #7fb2ff;transition:all .25s ease;pointer-events:none}
   #tour .tbox{position:absolute;background:var(--card);color:var(--txt);border-radius:16px;padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.45)}
-  #tour .tbox h3{margin:2px 0 6px;font-size:19px}#tour .tbox p{margin:0 0 12px;font-size:15px;line-height:1.4;color:var(--muted)}
+  #tour .tbox h3{margin:2px 0 6px;font-size:19px}#tour .tbox .tp{margin:0 0 12px;font-size:15px;line-height:1.45;color:var(--muted)}#tour .tbox .tp b{color:var(--txt)}#tour .tbox .tp ul,#tour .tbox .tp ol{margin:6px 0 0;padding-left:20px}#tour .tbox .tp li{margin:3px 0}
+  #tour .tbox{max-height:calc(100vh - 24px);overflow-y:auto}
   #tour .tn{font-size:12px;color:var(--muted);font-weight:700}#tour .tbt{display:flex;gap:8px;align-items:center}#tour .tbt button{height:42px;padding:0 14px}
   .cprog{position:relative;margin-top:5px;min-height:22px;border-radius:6px;background:var(--line2);overflow:hidden;display:none}
   .cprog:not(:empty){display:block}
@@ -469,13 +473,13 @@
 <div id="bar">
   <img class="logo" data-logo alt="Kitzrettung Limburg">
   <div id="count">0 markiert<small>0 Felder</small></div>
-  <div class="srcseg" title="Datenquelle der Felder: UAV Editor oder Missionen auf der Fernsteuerung (DJI Pilot 2)"><button data-fsrc="uave">UAV-Editor</button><button data-fsrc="rc">Fernsteuerung</button></div>
+  <div class="srcseg" title="Datenquelle der Felder: UAV Editor oder Missionen auf der Fernsteuerung (DJI Pilot 2)"><button data-fsrc="uave" id="bUaveSeg" title="Tippen: UAV-Editor-Felder ein/aus · lange drücken: Felder aus dem UAV Editor laden">UAV-Editor</button><button data-fsrc="rc">Fernsteuerung</button></div>
   <button id="bPlan" class="b-sec" style="display:none" title="Einsatzplan"><svg viewBox="0 0 24 24"><path d="M5 19l5-6 4 3 5-9"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="7" r="1.8"/></svg>Plan</button>
   <button id="bNone" class="b-sec" style="display:none" title="Alle abwählen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Abwählen</button>
   <div class="sp"></div>
+  <button id="bSync" class="b-sec" style="display:none" title="Wiesen aus dem UAV Editor holen">UAV Editor</button>
+  <button id="bDl" class="b-ok" disabled title="Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen"><span id="bDlT" class="b2l">Pre-Check &amp;<br><small>Download</small></span></button>
   <button id="bSearch" class="b-sec" title="Feld suchen"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button>
-  <button id="bSync" class="b-sec" title="Wiesen aus dem UAV Editor holen">UAV Editor</button>
-  <button id="bDl" class="b-ok" disabled title="Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen"><svg viewBox="0 0 24 24" style="width:32px;height:32px"><path d="M1.5 4.5h7M15.5 4.5h7"/><path d="M5 4.5l3.5 5M19 4.5l-3.5 5"/><rect x="8" y="8" width="8" height="5" rx="2" fill="currentColor"/><path d="M12 14.5v7M9 18.5l3 3 3-3"/></svg><span id="bDlT" class="b2l">Pre-Check &amp;<br><small>Download</small></span></button>
   <button id="bSet" class="b-sec" title="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </div>
 
@@ -493,12 +497,12 @@
 <div class="page" id="pgSet">
   <header><img class="logo" data-logo alt=""><h2 class="brand"><span><b>Mission Kitzrettung</b> · Einstellungen</span></h2><button class="b-sec" id="setBack">Zurück zur Karte</button></header>
   <div class="body">
-    <nav class="setnav"><button data-sc="drohne">Drohne &amp; Dateien</button><button data-sc="karte">Karte</button><button data-sc="luft">Luftraum &amp; Regeln</button><button data-sc="wetter">Wetter</button><button data-sc="info">Über die App</button></nav>
+    <nav class="setnav"><button data-sc="drohne">Drohne &amp; Dateien</button><button data-sc="karte">Karte</button><button data-sc="luft">Luftraum &amp; Regeln</button><button data-sc="notam">NOTAMs</button><button data-sc="wetter">Wetter</button><button data-sc="info">Über die App</button></nav>
     <h3 class="setcat" id="sc-drohne">Drohne &amp; Dateien</h3>
     <div class="set"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Gibt es ein Feld als M3T und M4T, zeigt die Karte nur die passende Version; Felder, die es nur einmal gibt, immer (sie werden beim Download bei Bedarf umgerechnet).</div></div><div class="seg"><button data-rcdrone="">Keine</button><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzplan</div><div class="v">Zeigt für die markierten Wiesen eine sinnvolle Reihenfolge (kürzeste Wege), Flugzeit, Akku-Bedarf und das voraussichtliche Ende – im Vergleich dazu, ab wann es wärmer wird und das Wärmebild nachlässt. Knopf „Plan“ unten, sobald Wiesen markiert sind.</div></div><input id="sPlanBatt" class="inp" style="width:90px" type="number" min="10" max="60" placeholder="Min/Akku"><label class="sw"><input type="checkbox" id="sPlan"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Quellordner (KMZ aus UAV Editor)</div><div class="v" id="vSrc"></div></div><button class="b-sec" data-pick="src">Ordner wählen</button></div>
-    <div class="set"><div class="l"><div class="t">Heruntergeladene Felder löschen</div><div class="v" id="vKmzDel">Löscht KMZ-Dateien aus dem Quellordner (UAV Editor) – Felder in DJI Pilot 2 bleiben unberührt.</div></div><button class="b-sec" id="bKmzDelSel">Markierte</button><button class="b-sec" id="bKmzDelAll">Alle</button></div>
+    <div class="set"><div class="l"><div class="t">Felder löschen</div><div class="v" id="vKmzDel">Markierte Felder auf der Karte löschen: UAV-Editor-Felder aus dem Ordner „UAV-Editor“ (wieder holbar), Missionen der Fernsteuerung samt Ordner aus DJI Pilot 2 (endgültig). Es wird vorher nachgefragt.</div></div><button class="b-sec" id="bKmzDelSel">Markierte</button><button class="b-sec" id="bKmzDelAll">Alle</button></div>
     <div class="set"><div class="l"><div class="t">Datenquelle der Felder</div><div class="v">UAV-Editor = heruntergeladene Planungen (türkis) · Fernsteuerung = Missionen, die schon in DJI Pilot 2 gespeichert sind (blau) · beide an = gemischt: es fehlen nur die türkisen</div></div><div class="seg"><button data-fsrc="uave">UAV-Editor</button><button data-fsrc="rc">Fernsteuerung</button></div></div>
     <div class="set"><div class="l"><div class="t">UAV-Editor-Felder auf der Karte (gemischte Ansicht)</div><div class="v" id="vCatF">Welche Planungen aus dem UAV-Editor auf der Hauptkarte erscheinen</div>
       <div class="catf" id="catF"></div></div></div>
@@ -551,14 +555,14 @@
       <div class="v" id="vReg"></div>
     </div>
     <div class="set"><div class="l"><div class="t">Flugplätze anzeigen</div><div class="v" id="vAf">Flugplätze, Segel-/UL-Plätze und Hubschrauberlandeplätze im Gebiet der Felder (+3 km)</div></div><button class="b-sec" id="bAfList">Liste</button><label class="sw"><input type="checkbox" id="sAf"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">NOTAM / temporäre Betriebseinschränkungen</div><div class="v" id="vNotam"></div></div><button class="b-sec" id="bNotamList">Anzeigen</button></div>
-    <div class="set"><div class="l"><div class="t">NOTAM-Umkreis</div><div class="v">So weit prüft die App automatisch auf NOTAMs und Tieffluggebiete – gemessen von deinem aktuellen Standort (ohne GPS: von den Feldern)</div></div><div class="seg"><button data-notamkm="5">5 km</button><button data-notamkm="10">10 km</button><button data-notamkm="25">25 km</button><button data-notamkm="50">50 km</button><button data-notamkm="100">100 km</button></div></div>
     <div class="set" id="setRcKeys" style="display:none"><div class="l"><div class="t">Bedienung mit L/R-Tasten (DJI RC Plus 2)</div><div class="v">L1 = Zoom +, L2 = Zoom −, L3 = alles zeigen · R1 = Karte (Grau → Karte → Luftbild), R2 = Info (Felder → Geozonen → beides → aus), R3 = Standort. Die Leiste wandert nach oben, die Knöpfe rechts entfallen.</div>
-      <div class="v" style="margin-top:6px">Hinweise am Rand verschieben: <button class="b-sec" data-rkoff="-12">▲</button> <button class="b-sec" data-rkoff="12">▼</button> <span id="vRkOff"></span></div></div>
+</div>
       <div class="seg"><button data-rckeys="0">Aus</button><button data-rckeys="1">An</button></div></div>
     <div class="set"><div class="l"><div class="t">Verbindungstest Datenserver</div><div class="v" id="vNet">Prüft, welche Server (OpenStreetMap, DULV, BKG, dipul) von dieser Fernsteuerung aus erreichbar sind.</div></div><button class="b-sec" id="bNet">Testen</button></div>
-    <div class="set"><div class="l"><div class="t">5D-Knopf der Fernsteuerung</div><div class="v" id="vRcKey">Karte: hoch/runter = zoomen · links/rechts = Feld für Feld · drücken = Feld markieren (ohne Feld: Standort). Seiten: hoch/runter = blättern · links = zurück.</div></div><button class="b-sec" id="bRcKey">Tasten-Test</button></div>
     <div class="set"><div class="l"><div class="t">Regeln &amp; Auflagen</div><div class="v">Übersicht: Allgemeinverfügung, Allgemeinerlaubnis, was gilt wo</div></div><button class="b-sec" id="bRules">Ansehen</button></div>
+    <h3 class="setcat" id="sc-notam">NOTAMs &amp; Tiefflug</h3>
+    <div class="set"><div class="l"><div class="t">NOTAM / temporäre Betriebseinschränkungen</div><div class="v" id="vNotam"></div></div><button class="b-sec" id="bNotamList">Anzeigen</button></div>
+    <div class="set"><div class="l"><div class="t">NOTAM-Umkreis</div><div class="v">So weit prüft die App automatisch auf NOTAMs und Tieffluggebiete – gemessen von deinem aktuellen Standort (ohne GPS: von den Feldern)</div></div><div class="seg"><button data-notamkm="5">5 km</button><button data-notamkm="10">10 km</button><button data-notamkm="25">25 km</button><button data-notamkm="50">50 km</button><button data-notamkm="100">100 km</button></div></div>
     <h3 class="setcat" id="sc-wetter">Wetter</h3>
     <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Die Rose steht mit Norden oben wie die Karte, der Windsack zeigt die Windrichtung (schwarze Marke = woher der Wind kommt). Mit Kompassnadel: die rote Nadelspitze zeigt, wohin die RC schaut · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt ebenfalls die Blickrichtung.</div></div><div class="seg"><button data-rose="dev">Mit Kompassnadel</button><button data-rose="north">Ohne Nadel</button><button data-rose="off">Aus</button></div></div>
     <div class="set"><div class="l"><div class="t">Wetter</div><div class="v">Tagesgang, Sonnenlauf und Einsatzwetter – auch per Tipp auf die Windanzeige</div></div><button class="b-sec" id="bWxSet">Wetter öffnen</button></div>
@@ -567,7 +571,7 @@
     <div class="set"><div class="l"><div class="t">METAR-Wetter der Flughäfen auf der Karte</div><div class="v">Alle deutschen Flughäfen mit Wettermeldung als Kennung mit Farbpunkt (grün/orange/rot nach Sicht, Nebel, Regen, Böen) – antippen zeigt die aktuelle Meldung auf Deutsch · NOAA Aviation Weather Center, alle 20 min neu</div></div><label class="sw"><input type="checkbox" id="sMetar"><span></span></label></div>
     <h3 class="setcat" id="sc-info">Über die App</h3>
     <div class="set"><div class="l"><div class="t">Einrichtung</div><div class="v">Drohne, Genehmigungen, Allgemeinverfügungen, UAV Editor und Ordner Schritt für Schritt einstellen</div></div><button class="b-sec" id="bSetup">Erneut starten</button></div>
-    <div class="set"><div class="l"><div class="t">Einführung</div><div class="v">Kurzer Rundgang: wo was ist und was die Knöpfe machen</div></div><button class="b-sec" id="bTour">Starten</button></div>
+    <div class="set"><div class="l"><div class="t">Einführung</div><div class="v">Rundgang durch die App: Ablauf eines Einsatzes, alle Knöpfe, Kartenfarben, Pre-Check, Offline-Daten und Einstellungen</div></div><button class="b-sec" id="bTour">Starten</button></div>
     <div class="set"><img class="logo" data-logo alt="" style="width:64px;height:64px;border-radius:50%"><div class="l"><div class="t">Mission Kitzrettung</div><div class="v">Version 2.0 · Kitzrettung Limburg e. V.</div></div></div>
   </div>
 </div>
@@ -734,6 +738,10 @@ function catRefetch(id) {
     if (!sts.length) return toast('Bundesland unbekannt – bitte unter „Einsatz-Bundesländer“ das Land wählen.', true);
     if (A.mastrSync) A.mastrSync(JSON.stringify({ states: sts, box: wb }));
     return toast('Windräder werden neu geholt (' + stc.map(stateName).join(', ') + ').');
+  }
+  if (id === 'wiesen') {   // Feldgrenzen kommen vom UAV Editor – nur dort neu abgleichen
+    if (!(A.uaveUser && A.uaveUser())) return toast('Feldgrenzen kommen aus dem UAV Editor – dort erst anmelden.', true);
+    catRefresh(true); return toast('Feldgrenzen werden aus dem UAV Editor neu geholt.');
   }
   geoSyncNow(false, true);   // Feldwege, Hindernisse, Orte, Flugplätze, OSM-Rohdaten: nur was fehlt wird geholt
   toast('Wird neu geholt – nur dieser Bereich.');
@@ -1471,11 +1479,13 @@ function paintLfa(g, l, P2, big) {
   g.save(); path(); g.clip(); path(); g.lineWidth = big ? 14 : 10; g.strokeStyle = 'rgba(190,110,190,.45)'; g.stroke(); g.restore();   // Innenband
   path(); g.lineWidth = big ? 2.5 : 2; g.strokeStyle = LFA_COL; g.stroke();
   // Beschriftung nur, wenn die Fläche auf dem Bildschirm groß genug ist (sonst stapeln sich die Kästen)
-  let bx0 = 1e9, bx1 = -1e9; rs[0].forEach((c, j) => { if (j % 4) return; const [x] = P2(c[1], c[0]); bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); });
-  if (l.lbl && bx1 - bx0 > (big ? 120 : 45)) {
+  let bx0 = 1e9, bx1 = -1e9; rs[0].forEach((c, j) => { const [x] = P2(c[1], c[0]); bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); });
+  g.font = (big ? '800 14px' : '800 12px') + ' Roboto,system-ui,sans-serif';
+  const short = lfaLabel(l), sw = g.measureText(short).width + (big ? 16 : 12);
+  if (l.lbl && bx1 - bx0 > sw * .9) {   // auch kleine Sektoren (LFA 8 a–d) beschriften, sobald der Name hineinpasst
     const [x, y] = P2(l.lbl[1], l.lbl[0]);
-    const t = (big && bx1 - bx0 > 220 ? 'Tieffluggebiet ' : '') + lfaLabel(l);
-    g.font = (big ? '800 14px' : '800 12px') + ' Roboto,system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const t = (big && bx1 - bx0 > 220 ? 'Tieffluggebiet ' : '') + short;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
     const w = g.measureText(t).width + (big ? 16 : 12), h = big ? 24 : 20;
     g.fillStyle = '#fff'; g.strokeStyle = LFA_COL; g.lineWidth = 2;
     g.beginPath(); g.roundRect ? g.roundRect(x - w / 2, y - h / 2, w, h, 4) : g.rect(x - w / 2, y - h / 2, w, h); g.fill(); g.stroke();
@@ -2169,7 +2179,15 @@ window.onLocation = (lat, lon, acc, last, ageMin) => {
 };
 window.onLocationStatus = m => { gpsBusy(true); if (/GPS aus/.test(m)) toast('GPS ist aus – nur ungenaue Netzwerkortung.', 'warn', 4000); };
 window.onLocationError = m => { gpsBusy(false); toast(m, true); };
-document.querySelectorAll('[data-fsrc]').forEach(b => b.onclick = () => setSource(b.dataset.fsrc));
+document.querySelectorAll('[data-fsrc]').forEach(b => b.onclick = () => { if (b._long) { b._long = false; return; } setSource(b.dataset.fsrc); });
+// Lange drücken auf „UAV-Editor“ in der Leiste: Felder aus dem UAV Editor laden (statt eigener Taste – spart Platz)
+(() => {
+  const b = $('bUaveSeg'); if (!b) return; let t = 0;
+  const start = () => { clearTimeout(t); b._long = false; t = setTimeout(() => { b._long = true; b.classList.add('lp'); setTimeout(() => b.classList.remove('lp'), 300); $('bSync').onclick(); }, 650); };
+  const stop = () => clearTimeout(t);
+  b.addEventListener('pointerdown', start); ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, stop));
+  b.addEventListener('contextmenu', e => e.preventDefault());
+})();
 setTimeout(srcUi, 0);
 $('bNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); toast('Alle Felder abgewählt.'); };
 // Suche: Lupe in der Leiste öffnet ein Suchfeld unten mittig über der Karte
@@ -2884,17 +2902,21 @@ window.onPrefetch = raw => {
     esPending = null; }
 };
 function kmzDelete(files, what) {
-  if (P.fsrc !== 'uave') return toast('Nur in der Ansicht „Editor“ – Missionen auf der RC bitte in DJI Pilot 2 löschen.', true, 5000);
-  if (!files.length) return toast(what === 'sel' ? 'Keine Felder markiert – erst auf der Karte markieren.' : 'Keine heruntergeladenen Felder vorhanden.', true);
-  if (!A.deleteKmz) return toast('Diese App-Version kann noch nicht löschen.', true);
-  deleteDlg(what === 'sel' ? `${files.length} markierte${files.length > 1 ? '' : 's'} Feld${files.length > 1 ? 'er' : ''} löschen?` : `Alle ${files.length} heruntergeladenen Felder löschen?`,
-    (files.length <= 8 ? files.map(f => '• ' + f.title).join('\n') + '\n\n' : '') + 'Die KMZ-Dateien werden aus dem Quellordner gelöscht. Über „UAV Editor“ lassen sie sich jederzeit wieder herunterladen.',
-    'Löschen', () => {
-      const r = JSON.parse(A.deleteKmz(JSON.stringify(files.map(f => f.path)), P.src) || '{}');
-      if (r.error) return toast('Löschen fehlgeschlagen: ' + r.error, true, 6000);
-      toast(`${r.ok} Feld${r.ok === 1 ? '' : 'er'} gelöscht${(r.errors || []).length ? ' · ' + r.errors.length + ' Fehler' : ''}.`, (r.errors || []).length ? true : 'ok', 5000);
-      load(true);
-    });
+  files = files.filter(f => f.path && !f.cat);   // Felder nur aus dem Katalog (nicht heruntergeladen) haben keine Datei
+  if (!files.length) return toast(what === 'sel' ? 'Keine gespeicherten Felder markiert – erst auf der Karte markieren.' : 'Keine gespeicherten Felder vorhanden.', true);
+  const rc = files.filter(f => f.ue === false), ue = files.filter(f => f.ue !== false);
+  if (rc.length && !A.deleteRcMission) return toast('Diese App-Version kann Missionen der Fernsteuerung noch nicht löschen.', true);
+  const list = files.length <= 8 ? files.map(f => '• ' + f.title + (f.ue === false ? ' (Fernsteuerung)' : ' (UAV-Editor)')).join('\n') + '\n\n' : '';
+  const txt = (ue.length ? `${ue.length} UAV-Editor-Feld${ue.length > 1 ? 'er' : ''}: Die KMZ-Datei wird aus dem Ordner „UAV-Editor“ gelöscht – über „UAV Editor“ jederzeit wieder holbar.\n` : '')
+    + (rc.length ? `${rc.length} Mission${rc.length > 1 ? 'en' : ''} der Fernsteuerung: wird samt Ordner aus DJI Pilot 2 gelöscht (DJI/Mission/KML/…) – das lässt sich nicht rückgängig machen. DJI Pilot 2 danach neu öffnen, damit die Liste stimmt.` : '');
+  deleteDlg(what === 'sel' ? `${files.length} markierte${files.length > 1 ? '' : 's'} Feld${files.length > 1 ? 'er' : ''} löschen?` : `Alle ${files.length} gespeicherten Felder löschen?`, list + txt, 'Löschen', () => {
+    let ok = 0, errs = [];
+    if (ue.length) { const r = JSON.parse(A.deleteKmz(JSON.stringify(ue.map(f => f.path)), P.src) || '{}'); if (r.error) errs.push(r.error); ok += r.ok || 0; errs.push(...(r.errors || [])); }
+    if (rc.length) { const r = JSON.parse(A.deleteRcMission(JSON.stringify(rc.map(f => f.path)), rcDir()) || '{}'); if (r.error) errs.push(r.error); ok += r.ok || 0; errs.push(...(r.errors || [])); }
+    toast(`${ok} Feld${ok === 1 ? '' : 'er'} gelöscht${errs.length ? ' · ' + errs.length + ' Fehler: ' + errs.slice(0, 2).join('; ') : ''}.`, errs.length ? true : 'ok', 6000);
+    S.files.forEach(f => f.selected = false);
+    load(true);
+  });
 }
 $('bKmzDelSel').onclick = () => kmzDelete(S.files.filter(f => f.selected), 'sel');
 $('bKmzDelAll').onclick = () => kmzDelete(S.files.slice(), 'all');
@@ -4095,7 +4117,7 @@ window.onNetTest = (raw, done) => {
   let r = []; try { r = JSON.parse(raw); } catch (e) { }
   $('vNet').innerHTML = r.map(x => `<div>${x.res === 'ok' ? '✅' : '❌'} <b>${esc(x.name)}</b> – ${esc(x.res)} <span style="opacity:.6">(${(x.ms / 1000).toFixed(1).replace('.', ',')} s)</span></div>`).join('') + (done ? '' : '<div>… teste weiter</div>');
 };
-$('bRcKey').onclick = () => { rcKeyTest = !rcKeyTest; $('bRcKey').textContent = rcKeyTest ? 'Test beenden' : 'Tasten-Test';
+if ($('bRcKey')) $('bRcKey').onclick = () => { rcKeyTest = !rcKeyTest; $('bRcKey').textContent = rcKeyTest ? 'Test beenden' : 'Tasten-Test';
   if (rcKeyTest) rcKeyShow('jetzt eine Taste drücken oder den 5D-Knopf in alle Richtungen kippen…' + (RC_MODEL ? ' · Gerät: ' + RC_MODEL.split('|')[0] : '')); };
 document.querySelectorAll('[data-notamkm]').forEach(b => b.onclick = () => { setP('notamKm', b.dataset.notamkm);
   document.querySelectorAll('[data-notamkm]').forEach(x => x.classList.toggle('on', x === b)); S.notamSig = null; notamChip(); });
@@ -5709,15 +5731,12 @@ function showNotams() {
     else if (i < nNear && (i === 0 || sorted[i - 1].active !== n.active)) html += `<h3 class="sec">${n.active ? 'Aktuell aktiv' : 'Demnächst / geplant'} – im Umkreis von ${nKm()} km</h3>`;
     html += `<div class="zone" data-ni="${i}"><h4><span class="nnum ${n.active ? '' : 'in'}">${i + 1}</span>${esc(notamTitle(n))} <span class="chip ${n.active ? (n.recur ? 'dist' : '') : 'grey'}">${n.active ? (n.recur ? 'Aktiv zu bestimmten Zeiten' : 'Aktiv') : n.soon ? 'Demnächst ab ' + esc(fmtDate(n.start)) : 'Geplant / inaktiv'}</span></h4>
       ${n.end ? `<div class="meta">Gültig ${n.start ? 'vom ' + esc(fmtDate(n.start)) + ' ' : ''}bis ${esc(fmtDate(n.end))} (Ortszeit)${n.recur ? ' · <b>nur in den Aktivierungszeiten</b>' : ''}</div>` : ''}
-      ${nf && nf.d < 1e8 ? `<div class="meta">${nf.d === 0 ? 'Feld liegt drin: ' + esc(nf.f.title) : `Nächstes Feld: ${esc(nf.f.title)} – ${nf.d < 1000 ? Math.round(nf.d) + ' m' : (nf.d / 1000).toFixed(1).replace('.', ',') + ' km'}`}</div>` : ''}
+      ${nf && nf.d <= NOTAM_NEAR ? `<div class="meta">${nf.d === 0 ? 'Feld liegt drin: ' + esc(nf.f.title) : `Nächstes Feld: ${esc(nf.f.title)} – ${nf.d < 1000 ? Math.round(nf.d) + ' m' : (nf.d / 1000).toFixed(1).replace('.', ',') + ' km'}`}</div>` : ''}
       <div style="margin-top:6px">${rows || '<span class="meta">Keine Details</span>'}</div>
       ${!geomRings(n.geom).flat().length ? `<div class="meta" style="color:#a85d00;margin-top:4px">Keine Fläche erkannt – auf der Karte nicht darstellbar.${n.rawGeo ? `<details><summary>Rohdaten (für die Fehlersuche)</summary><code style="word-break:break-all;font-size:11px">${esc(n.rawGeo)}</code></details>` : ''}</div>` : ''}
       <div style="margin-top:8px;display:flex;gap:18px;flex-wrap:wrap"><span class="lnk" data-focus="${i}">Auf der Karte zeigen</span>
         ${(() => { const dl = notamLink(n);
         let h = dl ? `<span class="lnk" data-url="${esc(dl)}">Details auf dipul</span>` : `<span class="lnk" data-url="${LINK_TBE}">Alle Einschränkungen auf dipul</span>`;
-        const pts = geomRings(n.geom).flat();
-        if (pts.length) { const lo = pts.reduce((a, c) => a + c[0], 0) / pts.length, la = pts.reduce((a, c) => a + c[1], 0) / pts.length;
-          h += `<span class="lnk" data-url="https://maptool-dipul.dfs.de/@${lo.toFixed(5)},${la.toFixed(5)},14z?language=de">Auf dipul-Karte zeigen</span>`; }
         return h; })()}</div></div>`;
   });
   if (!sorted.length) html += `<div class="zone"><h4>Keine temporären Einschränkungen</h4><div class="meta">In Deutschland ist laut dipul derzeit nichts eingetragen. Vor dem Flug trotzdem kurz in der dipul-Karte prüfen.</div></div>`;
@@ -5824,7 +5843,7 @@ $('bSync').onclick = () => {
   if (!online) return toast('Offline – Abgleich mit UAV Editor gerade nicht möglich. Alles Vorhandene bleibt nutzbar.', true, 5000);
   if (!A.uaveCheck) return toast('In dieser Version nicht verfügbar.', true);
   if (!A.uaveUser() || !A.uaveHasPassword()) { toast('Bitte zuerst den UAV-Editor-Zugang eintragen.', true); $('bSet').onclick(); return; }
-  syncing = true; syncStop = false; $('bSync').disabled = true;
+  syncing = true; syncStop = false; $('bSync').disabled = true; if ($('bUaveSeg')) $('bUaveSeg').classList.add('busy');
   busy('Verbinde mit UAV Editor…', { cancel: syncAbort });
   A.uaveCheck(P.src);
 };
@@ -5998,7 +6017,7 @@ function pickMap(el, items, shown, toggle) {
   cv.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, e.deltaY < 0 ? .5 : -.5); }, { passive: false });
   return { fit, paint, zoom: d => zoomAt(Wm / 2, Hm / 2, d) };
 }
-function syncEnd() { syncing = false; $('bSync').disabled = false; busy(''); }
+function syncEnd() { syncing = false; $('bSync').disabled = false; if ($('bUaveSeg')) $('bUaveSeg').classList.remove('busy'); busy(''); }
 window.onUave = raw => {
   const ev = JSON.parse(raw);
   if (syncStop && ev.type !== 'done' && ev.type !== 'droneDone') { if (ev.type === 'list' || ev.type === 'error') syncEnd(); return; }
@@ -6133,19 +6152,54 @@ function addPwEyes(root) {
 addPwEyes();
 // ================= Einführung (Rundgang über die Bedienelemente) =================
 const TOUR = [
-  [null, 'Willkommen bei Mission Kitzrettung', 'Ein kurzer Rundgang zeigt dir, wo was ist. Du kannst jederzeit abbrechen – in den Einstellungen unter „Einführung“ startest du ihn wieder.'],
-  ['#bSync', 'UAV Editor', 'Holt eure Wiesen aus dem UAV Editor – neue, geänderte und gelöschte. Danach speichert die App das Einsatzgebiet automatisch für offline.'],
-  ['#map', 'Wiesen markieren', 'Tippe Wiesen auf der Karte an, um sie zu markieren. Markierte Wiesen kannst du dann an Pilot 2 übergeben.'],
-  ['#bDl', 'Pre-Check', 'Flugvorbereitung: zeigt NOTAMs, Geozonen, Hindernisse und Wetter der markierten Wiesen und kopiert sie danach in den Importordner von Pilot 2. Kopiert die markierten Wiesen in den Importordner – in Pilot 2 unter „Route importieren“. Vorher siehst du Geozonen, Hindernisse und Wetter der Wiesen.'],
-  ['#bSearch', 'Suchen', 'Wiese oder Ort per Namen finden – funktioniert auch offline.'],
-  ['#bInfo', 'Infos auf der Karte', 'Hier schaltest du den Info-Modus ein: dann zeigt ein Tipp auf die Karte Geozonen, Regeln, Hindernisse und Windräder an dieser Stelle.'],
-  ['#bLayer', 'Kartenart & Zonen', 'Grau, Karte oder Luftbild – und welche Geozonen-Gruppen eingeblendet sind (Luftfahrt, Natur, Verkehr …).'],
-  ['#bLoc', 'Mein Standort', 'Springt zu deinem GPS-Standort.'],
-  ['#wind', 'Wind & Wetter', 'Wind in 10/50/100 m und Kompass. Antippen öffnet das Wetter: Bewertung des Einsatzfensters am Morgen, Tageslauf, 8-Tage-Vorschau.'],
-  ['#net', 'Online / Offline', 'Zeigt, ob Internet da ist. Ohne Internet läuft alles aus dem Speicher – nur „UAV Editor“ braucht Netz.'],
-  ['#notam', 'NOTAMs', 'Erscheint, wenn es etwas zu beachten gibt: rot = aktive Flugbeschränkung im eingestellten Umkreis um deinen Standort, orange = geplant, lila = militärisches Tieffluggebiet in der Nähe. Antippen zeigt die Karte mit allen NOTAMs in Deutschland.'],
-  ['#bPlan', 'Einsatzplan', 'Reihenfolge der markierten Wiesen, Fahrt, Akkus, gemeinsamer Standort für Pilot + Spotter (in den Einstellungen einschaltbar).'],
-  ['#bSet', 'Einstellungen', 'Drohne, Fernpilotenzeugnis, Allgemeinerlaubnis/-verfügungen, UAV-Editor-Zugang, Ordner, Offline-Speicher – und diese Einführung.']
+  [null, 'Willkommen bei Mission Kitzrettung', `Die App ist euer Werkzeug für die Flugvorbereitung auf der Fernsteuerung:<ul>
+    <li><b>Felder</b> aus dem UAV Editor und die Missionen aus DJI Pilot 2 auf einer Karte</li>
+    <li><b>Pre-Check</b> für die markierten Wiesen: Geozonen, NOTAMs, Tiefflug, Hindernisse, Flugplätze, Wetter</li>
+    <li><b>Übergabe an DJI Pilot 2</b> mit einem Knopfdruck</li>
+    <li>läuft nach dem ersten Laden <b>komplett offline</b> – auch draußen ohne Netz</li></ul>
+    Dieser Rundgang dauert ein paar Minuten. Mit „Weiter“ / „Zurück“ blätterst du, „Beenden“ bricht ab – wieder starten unter Einstellungen → Über die App → Einführung.`],
+  [null, 'So läuft ein Einsatz', `<ol>
+    <li><b>Felder laden</b> – lange auf „UAV-Editor“ drücken (am besten zu Hause im WLAN).</li>
+    <li><b>Offline speichern</b> – passiert danach automatisch: Karte, Luftbild, Geozonen, Leitungen, Feldwege, Windräder, Wetter. Fortschritt unter Einstellungen → Karte → Offline-Daten.</li>
+    <li><b>Am Einsatzmorgen</b> die Wiesen auf der Karte antippen, die heute geflogen werden.</li>
+    <li><b>„Pre-Check &amp; Download“</b> – prüft alles und kopiert die Wiesen in den Ordner „Kitzrettung Import“.</li>
+    <li>In <b>DJI Pilot 2</b>: Flugroute → Importieren → Ordner „Kitzrettung Import“.</li>
+    <li><b>Fliegen</b> – vor Ort trotzdem selbst schauen: Leitungen, Bäume, Menschen, Wetter.</li></ol>`],
+  ['#bUaveSeg', 'UAV-Editor', `<b>Kurz tippen:</b> die Felder aus dem UAV Editor (türkis) auf der Karte ein- oder ausblenden.<br><b>Lange drücken:</b> „Felder aus UAV Editor laden“ – zeigt neue und geänderte Felder, mit Suche nach Namen, Filter (Drohne, Jahr, aktiv/Archiv) und Kartenansicht.<br>Gibt es ein Feld für beide Drohnen, nimmt die App die in den Einstellungen gewählte Drohne, sonst die andere, dann das neueste Jahr. Den UAV-Editor-Zugang trägst du einmal in den Einstellungen ein.`],
+  ['#bar .srcseg [data-fsrc="rc"]', 'Fernsteuerung', `Zeigt die Missionen, die schon in DJI Pilot 2 auf dieser Fernsteuerung gespeichert sind – <b>blau</b>.<br>Beide Tasten an = gemischt: blau ist schon auf der RC, türkis fehlt noch. Felder, die es in beiden gibt, erscheinen nur einmal (blau). Beide aus = keine Felder, nur Karte.`],
+  ['#map', 'Karte & Wiesen', `<b>Antippen</b> markiert eine Wiese, nochmal tippen hebt die Markierung auf. Ziehen verschiebt, zwei Finger zoomen.<br>Ab mittlerem Zoom stehen die Feldnamen dran. Bei markierten Wiesen erscheint unten „Abwählen“ (✕).<br>Ist der <b>Info-Modus</b> an (i-Knopf rechts), zeigt ein Tipp stattdessen, was an dieser Stelle gilt.`],
+  [null, 'Was auf der Karte zu sehen ist', `<ul>
+    <li><b>Türkis / blau</b> – Wiesen aus UAV Editor / Fernsteuerung</li>
+    <li><b>Farbige Flächen</b> – dipul-Geozonen (Naturschutz, Wohngebiete, Straßen, Flugplätze …)</li>
+    <li><b>Rot gestrichelt</b> – aktive NOTAMs / temporäre Flugbeschränkungen, <b>grau gestrichelt</b> geplante</li>
+    <li><b>Lila mit „LFA“</b> – militärische Tieffluggebiete (immer sichtbar)</li>
+    <li><b>Stromleitungen</b>: dunkelviolett 220/380 kV, violett 110 kV, orange Mittelspannung, grau gestrichelt klein bzw. unbekannt</li>
+    <li><b>Grüne Windräder</b> mit Gesamthöhe, <b>braune Dreiecke</b> Masten/Türme/Schornsteine, <b>schwarz-weiß</b> Bahnstrecken</li>
+    <li><b>✈ / H</b> – Flugplätze und Hubschrauberlandeplätze</li></ul>`],
+  ['#bDl', 'Pre-Check & Download', `Für die markierten Wiesen prüft die App:<ul>
+    <li><b>Geozonen</b> – bewertet mit eurer Genehmigung (A1/A3 oder A2, Allgemeinerlaubnis, Allgemeinverfügungen): gesperrt, nur mit Abstand oder erlaubt</li>
+    <li><b>NOTAMs</b> – nur was an der Wiese selbst gilt</li>
+    <li><b>Tiefflug</b> – liegt die Wiese in einem Tieffluggebiet: Betriebszeiten heute</li>
+    <li><b>Hindernisse</b> gegen eure Missionshöhe, <b>Flugplätze</b> und Hubschrauberlandeplätze in der Nähe</li>
+    <li><b>Wetter</b> – Wind in Flughöhe, Böen, Regen, Kp-Index, Sonnenaufgang</li></ul>
+    Danach werden die Wiesen in „Kitzrettung Import“ kopiert – der Ordner wird vorher geleert, damit keine alten Felder drinliegen. Bei „Fernsteuerung“ gibt es nur den Pre-Check.`],
+  ['#bSearch', 'Suchen', `Wiese per Name oder einen Ort (Dorf, Ortsteil, Hof) finden – auch offline. Die Treffer werden auf der Karte gezeigt, mit „Los“ springst du hin.`],
+  ['#bInfo', 'Info-Modus', `Einschalten, dann auf die Karte tippen: eine Blase zeigt, was an dieser Stelle gilt – <b>Geozonen</b> (mit Bewertung für eure Genehmigung), <b>Stromleitungen</b> mit Spannung, <b>Windräder</b>, Masten, Bahn, Flugplätze.<br>„Details“ öffnet alles ausführlich: Regeln, Auflagen, Ansprechpartner, Masthöhen – und „Wie sieht so eine Leitung aus?“ mit Zeichnungen der Masttypen.`],
+  ['#bLayer', 'Kartenart & Ebenen', `<b>Grau</b> (ruhig, Zonen gut lesbar), <b>Karte</b> (farbig) oder <b>Luftbild</b>.<br>Darunter: welche Geozonen-Gruppen eingeblendet sind (Luftfahrt, Natur, Verkehr, Energie, Sicherheit) und „NOTAMs &amp; Tiefflug“ ein/aus.`],
+  ['#bFit', 'Alles zeigen', `Zoomt so, dass alle Wiesen zu sehen sind. Darüber: hinein- und herauszoomen.`],
+  ['#bLoc', 'Mein Standort', `Springt zu deinem GPS-Standort. Während gesucht wird, dreht sich die Anzeige im Knopf. Der blaue Kegel auf der Karte zeigt die Blickrichtung der Fernsteuerung.`],
+  ['#wind', 'Wind & Wetter', `Wind in 10 m, Böen und Wind in 50/80/100/120 m, dazu Kp-Index (Störung von GPS/Kompass) und die Quelle.<br><b>Antippen</b> öffnet das Wetter: Einsatzfenster am Morgen bewertet, Stunde für Stunde, Sonnenlauf, Vorschau für die nächsten Tage – bei markierten Wiesen für genau diese.`],
+  ['#notam', 'NOTAMs & Tiefflug', `Erscheint nur, wenn es etwas zu beachten gibt: <b>rot</b> = aktive Flugbeschränkung im Umkreis um deinen Standort (Umkreis in den Einstellungen, Standard 10 km), <b>orange</b> = geplant, <b>lila</b> = Tieffluggebiet in der Nähe.<br>Antippen zeigt die Liste mit Karte, Zeiten, Höhen und Link zu dipul.`],
+  ['#net', 'Online / Offline', `Zeigt, ob Internet da ist. Ohne Netz läuft alles aus dem Speicher der Fernsteuerung – nur „Felder laden“ und das Auffrischen brauchen Internet.`],
+  ['#bPlan', 'Einsatzplan', `Reihenfolge der markierten Wiesen, Fahrtwege, Akku-Planung und gemeinsamer Treffpunkt für Pilot und Läufer (in den Einstellungen einschaltbar).`],
+  [null, 'Offline-Daten', `Alles Geladene liegt im Ordner <b>„Kitzrettung Cache“</b> und bleibt bei Updates und Neuinstallation erhalten.<br>Unter Einstellungen → Karte → <b>Offline-Daten</b> siehst du jeden Bereich mit Größe und Stand. „Löschen“ und „Neu holen“ wirken nur auf diesen einen Bereich.<br>Feldwege, Leitungen, Masten, Orte und Flugplätze kommen aus der <b>OpenStreetMap-Datei von Geofabrik</b> (einige hundert MB je Bundesland, einmal im WLAN). Unter „Einsatz-Bundesländer“ legst du fest, für welche Länder sie geladen wird.`],
+  [null, 'Tasten der Fernsteuerung', `Auf der <b>DJI RC Plus 2</b> lassen sich die Tasten L1–L3 und R1–R3 belegen (Einstellungen → Drohne &amp; Dateien): L1/L2 zoomen, L3 alles zeigen, R1 Kartenart, R2 Info-Modus, R3 Standort. Die Leiste wandert dann nach oben.<br>Auf Seiten wie dem Pre-Check blättern L1/L2 nach oben und unten.`],
+  ['#bSet', 'Einstellungen – einmal einrichten', `<ul>
+    <li><b>Drohne</b> dieser Fernsteuerung (Mavic 3T / Matrice 4T) – bestimmt Feldvariante und Missionshöhe</li>
+    <li><b>Fernpilotenzeugnis</b> A1/A3 oder A2, <b>Allgemeinerlaubnis</b> je Bundesland, <b>Allgemeinverfügungen</b> – davon hängt ab, welche Geozonen grün werden</li>
+    <li><b>UAV-Editor-Zugang</b>, Ordner, Filter für die Felder auf der Karte</li>
+    <li><b>NOTAM-Umkreis</b>, Einsatz-Bundesländer, Verbindungstest der Datenserver</li></ul>`],
+  [null, 'Wichtig', `Die App ist eine <b>Hilfe zur Orientierung</b>. Maßgeblich sind dipul.de, eure Genehmigungen und der Blick vor Ort. Nicht jede Leitung und jedes Hindernis ist in OpenStreetMap erfasst – Seile sind dünn und hängen durch.<br><br>Gute und sichere Einsätze!`]
 ];
 let tourI = 0;
 function tourShow(i) {
@@ -6155,14 +6209,14 @@ function tourShow(i) {
   if (!o) { o = document.createElement('div'); o.id = 'tour'; document.body.appendChild(o); }
   const [sel, t, txt] = steps[tourI], el = sel && document.querySelector(sel);
   const r = el ? el.getBoundingClientRect() : null, big = r && r.width > innerWidth * .6;
-  o.innerHTML = `<div class="thole"></div><div class="tbox"><div class="tn">${tourI + 1} / ${steps.length}</div><h3>${esc(t)}</h3><p>${esc(txt)}</p>
+  o.innerHTML = `<div class="thole"></div><div class="tbox"><div class="tn">${tourI + 1} / ${steps.length}</div><h3>${esc(t)}</h3><div class="tp">${txt}</div>
     <div class="tbt"><button class="b-sec" id="tEnd">Beenden</button><span style="flex:1"></span>${tourI ? '<button class="b-sec" id="tBack">Zurück</button>' : ''}<button class="b-ok" id="tNext">${tourI === steps.length - 1 ? 'Fertig' : 'Weiter'}</button></div></div>`;
   const hole = o.querySelector('.thole'), box = o.querySelector('.tbox');
   if (r && !big) { const pd = 6; Object.assign(hole.style, { left: r.left - pd + 'px', top: r.top - pd + 'px', width: r.width + 2 * pd + 'px', height: r.height + 2 * pd + 'px', borderRadius: '14px' }); }
   else Object.assign(hole.style, { left: innerWidth / 2 + 'px', top: innerHeight / 2 + 'px', width: '0px', height: '0px' });
   o.style.display = 'block';
   // Erklärkasten neben das Element, sonst mittig
-  const bw = Math.min(420, innerWidth - 32); box.style.width = bw + 'px';
+  const bw = Math.min(r && !big ? 440 : 560, innerWidth - 32); box.style.width = bw + 'px';
   const bh = box.offsetHeight;
   let x = innerWidth / 2 - bw / 2, y = innerHeight / 2 - bh / 2;
   if (r && !big) {
