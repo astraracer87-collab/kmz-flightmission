@@ -1016,6 +1016,34 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
 
         /** DULV-Flugplatzdatenbank (ganz Deutschland, Telefon/PPR, Zeiten, Funk) */
+        // ---------- Einsatz-Wächter ----------
+        @JavascriptInterface
+        public void watchStart(String cfg) {
+            runOnUiThread(() -> {
+                try {
+                    if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED)
+                        requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 77);
+                    Intent i = new Intent(MainActivity.this, Watch.class).putExtra("cfg", cfg);
+                    if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
+                } catch (Exception e) { js("window.onWatch && window.onWatch(" + JSONObject.quote("Start fehlgeschlagen: " + e.getMessage()) + ")"); }
+            });
+        }
+        @JavascriptInterface
+        public void watchStop() { try { startService(new Intent(MainActivity.this, Watch.class).setAction("stop")); } catch (Exception ignored) { } }
+        @JavascriptInterface
+        public boolean watchRunning() { Thread t = Watch.th; return t != null && t.isAlive(); }
+        @JavascriptInterface
+        public String watchLast() { return Watch.lastInfo; }
+        /** Probe: Benachrichtigung nach ein paar Sekunden – zum Wechseln in DJI Pilot 2 */
+        @JavascriptInterface
+        public void notifyTest(int sec) {
+            if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED)
+                runOnUiThread(() -> requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 77));
+            final Context c = getApplicationContext();
+            new Thread(() -> { try { Thread.sleep(Math.max(1, sec) * 1000L); } catch (InterruptedException ignored) { }
+                alert(c, 4711, "Test: Mission Kitzrettung", "So sieht eine Warnung des Einsatz-Wächters aus – z. B. „Regen ab 07:15“. Wenn du das über DJI Pilot 2 siehst, funktioniert es."); }).start();
+        }
+
         @JavascriptInterface
         /** Verbindungstest: jeden Datenserver kurz anfragen und Ergebnis (ok/Fehler, Zeit) melden */
         public void netTest() {
@@ -2482,6 +2510,150 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             }
             if (obBad < obAll) { osmCache = els; osmCacheLoaded = System.currentTimeMillis(); }
         } catch (Exception ex) { catSt("hindernisse", (osmFile().isFile() ? "alt:" : "") + errTxt(ex)); if ("load".equals(catStatus.get("feldwege"))) catSt("feldwege", (osmWaysFile().isFile() ? "alt:" : "") + errTxt(ex)); }
+    }
+
+
+    // ---------- Einsatz-Wächter: Warnungen als Benachrichtigung – auch wenn DJI Pilot 2 im Vordergrund ist ----------
+    static final String CH_ALERT = "einsatz_warn", CH_RUN = "einsatz_lauf";
+    static void ensureChannels(Context c) {
+        if (Build.VERSION.SDK_INT < 26) return;
+        android.app.NotificationManager nm = (android.app.NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        android.app.NotificationChannel a = new android.app.NotificationChannel(CH_ALERT, "Einsatz-Warnungen", android.app.NotificationManager.IMPORTANCE_HIGH);
+        a.setDescription("Regen, Böen, Wind in Flughöhe, Scherwind, Kp, NOTAM, Tiefflug"); a.enableVibration(true);
+        nm.createNotificationChannel(a);
+        nm.createNotificationChannel(new android.app.NotificationChannel(CH_RUN, "Einsatz-Wächter läuft", android.app.NotificationManager.IMPORTANCE_LOW));
+    }
+    @SuppressWarnings("deprecation")
+    static android.app.Notification.Builder nb(Context c, String ch) { return Build.VERSION.SDK_INT >= 26 ? new android.app.Notification.Builder(c, ch) : new android.app.Notification.Builder(c); }
+    static android.app.PendingIntent openApp(Context c) {
+        Intent i = new Intent(c, MainActivity.class); i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        return android.app.PendingIntent.getActivity(c, 0, i, android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+    }
+    @SuppressWarnings("deprecation")
+    static void alert(Context c, int id, String title, String text) {
+        try {
+            ensureChannels(c);
+            android.app.Notification.Builder b = nb(c, CH_ALERT).setSmallIcon(android.R.drawable.stat_sys_warning).setContentTitle(title).setContentText(text)
+                    .setStyle(new android.app.Notification.BigTextStyle().bigText(text)).setAutoCancel(true).setContentIntent(openApp(c))
+                    .setCategory(android.app.Notification.CATEGORY_ALARM).setWhen(System.currentTimeMillis()).setShowWhen(true);
+            if (Build.VERSION.SDK_INT < 26) b.setPriority(android.app.Notification.PRIORITY_HIGH).setDefaults(android.app.Notification.DEFAULT_ALL);
+            ((android.app.NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(id, b.build());
+        } catch (Exception ignored) { }
+    }
+
+    public static class Watch extends android.app.Service {
+        static volatile Thread th; static volatile String cfg; static volatile String lastInfo = "";
+        @Override public android.os.IBinder onBind(Intent i) { return null; }
+        @SuppressWarnings("deprecation")
+        @Override public int onStartCommand(Intent in, int flags, int startId) {
+            if (in != null && "stop".equals(in.getAction())) { Thread t = th; th = null; if (t != null) t.interrupt(); lastInfo = "beendet"; stopForeground(true); stopSelf(); return START_NOT_STICKY; }
+            if (in != null && in.getStringExtra("cfg") != null) cfg = in.getStringExtra("cfg");
+            if (cfg == null) { stopSelf(); return START_NOT_STICKY; }
+            ensureChannels(this);
+            String names = "", until = "";
+            try { JSONObject c = new JSONObject(cfg); names = c.optString("names"); until = new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new java.util.Date(c.optLong("until"))); } catch (Exception ignored) { }
+            android.app.PendingIntent ps = android.app.PendingIntent.getService(this, 1, new Intent(this, Watch.class).setAction("stop"),
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+            android.app.Notification n = nb(this, CH_RUN).setSmallIcon(android.R.drawable.ic_menu_compass).setContentTitle("Einsatz-Wächter aktiv bis " + until)
+                    .setContentText("Prüft alle 5 Minuten Regen, Wind, Scherwind, Kp" + (names.isEmpty() ? "" : " · " + names)).setOngoing(true)
+                    .setContentIntent(openApp(this)).addAction(new android.app.Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Beenden", ps).build()).build();
+            try { if (Build.VERSION.SDK_INT >= 29) startForeground(77, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC); else startForeground(77, n); }
+            catch (Exception e) { stopSelf(); return START_NOT_STICKY; }
+            Thread t = th;
+            if (t == null || !t.isAlive()) { th = new Thread(this::loop); th.start(); }
+            return START_STICKY;
+        }
+        @SuppressWarnings("deprecation")
+        void loop() {
+            Map<String, Long> sent = new HashMap<>();
+            Thread me = Thread.currentThread();
+            while (th == me) {
+                try {
+                    JSONObject c = new JSONObject(cfg);
+                    if (System.currentTimeMillis() > c.optLong("until")) break;
+                    check(c, sent);
+                    lastInfo = "zuletzt geprüft " + new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new java.util.Date());
+                } catch (Exception e) { lastInfo = "Prüfung fehlgeschlagen: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()); }
+                try { Thread.sleep(5 * 60000L); } catch (InterruptedException e) { break; }
+            }
+            if (th == me) { th = null; lastInfo = "abgelaufen"; stopForeground(true); stopSelf(); }
+        }
+        /** Einmal melden – dieselbe Warnung frühestens nach „pause“ wieder */
+        void once(Map<String, Long> sent, String key, String title, String text, long pause) {
+            long now = System.currentTimeMillis(); Long t = sent.get(key);
+            if (t != null && now - t < pause) return;
+            sent.put(key, now);
+            alert(this, 1000 + Math.abs(key.hashCode() % 500), title, text);
+        }
+        static String dir(double d) { String[] n = {"N", "NO", "O", "SO", "S", "SW", "W", "NW"}; return n[(int) Math.round(((d % 360) + 360) % 360 / 45) % 8]; }
+        static String f1(double v) { return String.format(Locale.GERMANY, "%.1f", v); }
+        static String get(String url) throws Exception {
+            HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+            try { c.setConnectTimeout(15000); c.setReadTimeout(30000); c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Kitzrettung, ehrenamtlich)");
+                if (c.getResponseCode() != 200) throw new Exception("HTTP " + c.getResponseCode());
+                try (InputStream in = c.getInputStream()) { return readAll(in); } } finally { c.disconnect(); }
+        }
+        void check(JSONObject c, Map<String, Long> sent) throws Exception {
+            long now = System.currentTimeMillis();
+            SimpleDateFormat hm = new SimpleDateFormat("HH:mm", Locale.GERMANY);
+            // feste Zeitpunkte aus der App (Beginn Tiefflug-Betriebszeit, NOTAM an einer Wiese): ca. 10 Minuten vorher melden
+            JSONArray ev = c.optJSONArray("ev");
+            if (ev != null) for (int i = 0; i < ev.length(); i++) {
+                JSONObject e = ev.getJSONObject(i); long t = e.optLong("t");
+                if (t - now <= 11 * 60000L && t - now > -10 * 60000L) once(sent, "ev" + t + e.optString("k"), e.optString("title"), e.optString("txt"), 24 * 3600000L);
+            }
+            double la = c.getDouble("lat"), lo = c.getDouble("lon"); int h = c.optInt("h", 80) >= 100 ? 120 : 80;
+            String url = String.format(Locale.ROOT, "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f", la, lo)
+                    + "&minutely_15=precipitation,wind_gusts_10m&hourly=wind_speed_10m,wind_direction_10m,wind_speed_" + h + "m,wind_direction_" + h + "m"
+                    + "&forecast_days=2&wind_speed_unit=ms&timeformat=unixtime&timezone=GMT";
+            JSONObject j = new JSONObject(get(url));
+            JSONObject m = j.optJSONObject("minutely_15");
+            if (m != null) {
+                JSONArray t = m.getJSONArray("time"), pr = m.optJSONArray("precipitation"), g = m.optJSONArray("wind_gusts_10m");
+                boolean wetNow = false, rainDone = false, gustDone = false;
+                for (int k = 0; k < t.length(); k++) {
+                    long ts = t.getLong(k) * 1000;
+                    if (ts + 15 * 60000L <= now || ts > now + 30 * 60000L) continue;
+                    double p = pr != null ? pr.optDouble(k, 0) : 0, gu = g != null ? g.optDouble(k, 0) : 0;
+                    boolean cur = ts <= now;
+                    if (c.optBoolean("rain", true) && !rainDone && p >= c.optDouble("rainMin", 0.1)) {
+                        rainDone = true;
+                        if (cur) wetNow = true;
+                        else if (!wetNow) once(sent, "regen", "🌧 Regen ab " + hm.format(new java.util.Date(ts)), "Laut Kurzfrist-Vorhersage (DWD) " + f1(p) + " mm in 15 Minuten – Drohne rechtzeitig zurückholen und landen.", 45 * 60000L);
+                    }
+                    if (!gustDone && gu >= c.optDouble("gust", 10)) { gustDone = true;
+                        once(sent, "boeen", "💨 Böen " + f1(gu) + " m/s " + (cur ? "jetzt" : "ab " + hm.format(new java.util.Date(ts))), "Böen in 10 m über eurem Grenzwert von " + f1(c.optDouble("gust", 10)) + " m/s.", 60 * 60000L); }
+                }
+            }
+            JSONObject hr = j.optJSONObject("hourly");
+            if (hr != null) {
+                JSONArray t = hr.getJSONArray("time"), w10 = hr.optJSONArray("wind_speed_10m"), d10 = hr.optJSONArray("wind_direction_10m"), wh = hr.optJSONArray("wind_speed_" + h + "m"), dh = hr.optJSONArray("wind_direction_" + h + "m");
+                for (int k = 0; k < t.length(); k++) {
+                    long ts = t.getLong(k) * 1000;
+                    if (ts + 3600000L <= now || ts > now + 3600000L) continue;   // jetzige und nächste Stunde
+                    double a = w10 != null ? w10.optDouble(k, 0) : 0, b = wh != null ? wh.optDouble(k, 0) : 0, da = d10 != null ? d10.optDouble(k, 0) : 0, db = dh != null ? dh.optDouble(k, 0) : 0;
+                    String when = ts <= now ? "jetzt" : "ab " + hm.format(new java.util.Date(ts));
+                    if (b >= c.optDouble("wind", 12)) once(sent, "windh", "💨 Wind in " + h + " m: " + f1(b) + " m/s (" + when + ")", "Über eurem Grenzwert von " + f1(c.optDouble("wind", 12)) + " m/s – Rückflug gegen den Wind einplanen, Akku früher zurück.", 60 * 60000L);
+                    double dd = Math.abs(((da - db) % 360 + 540) % 360 - 180), dv = Math.abs(b - a);
+                    if (c.optBoolean("shearOn", true) && (dv >= c.optDouble("shear", 5) || (dd >= 60 && Math.min(a, b) >= 3)))
+                        once(sent, "scher", "🌀 Scherwind " + when, "10 m: " + f1(a) + " m/s aus " + dir(da) + " · " + h + " m: " + f1(b) + " m/s aus " + dir(db)
+                                + (dv >= c.optDouble("shear", 5) ? " – " + f1(dv) + " m/s Unterschied" : " – Richtung dreht um " + Math.round(dd) + "°") + ". Beim Steigen und Sinken mit Böen und Versatz rechnen.", 90 * 60000L);
+                }
+            }
+            if (c.optBoolean("kp", true)) {
+                try {
+                    JSONArray rows = new JSONArray(get("https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json"));
+                    SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT); f.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    double mx = 0;
+                    for (int i = 0; i < rows.length(); i++) {   // Zeilen als [Zeit, Kp, …] oder als {time_tag, kp}
+                        try { JSONArray r = rows.optJSONArray(i); JSONObject o = rows.optJSONObject(i);
+                            String tt = r != null ? r.getString(0) : o != null ? o.optString("time_tag") : ""; String kv = r != null ? r.getString(1) : o != null ? o.optString("kp", o.optString("Kp")) : "";
+                            long ts = f.parse(tt.replace('T', ' ').replaceAll("Z$", "")).getTime(); if (ts + 3 * 3600000L < now || ts > now + 3 * 3600000L) continue;
+                            mx = Math.max(mx, Double.parseDouble(kv)); } catch (Exception ignored) { } }
+                    if (mx >= c.optDouble("kpMin", 5)) once(sent, "kp", "🧭 Kp-Index " + f1(mx), "Starke geomagnetische Störung – GPS und Kompass können ungenau werden. Drohne im Blick behalten, ATTI-Modus beherrschen.", 3 * 3600000L);
+                } catch (Exception ignored) { }
+            }
+        }
     }
 
     // ---------- OpenStreetMap-Daten aus der Geofabrik-Datei (statt Overpass) ----------

@@ -565,6 +565,15 @@
     <div class="set"><div class="l"><div class="t">NOTAM-Umkreis</div><div class="v">So weit prüft die App automatisch auf NOTAMs und Tieffluggebiete – gemessen von deinem aktuellen Standort (ohne GPS: von den Feldern)</div></div><div class="seg"><button data-notamkm="5">5 km</button><button data-notamkm="10">10 km</button><button data-notamkm="25">25 km</button><button data-notamkm="50">50 km</button><button data-notamkm="100">100 km</button></div></div>
     <h3 class="setcat" id="sc-wetter">Wetter</h3>
     <div class="set"><div class="l"><div class="t">Windrose mit Windsack</div><div class="v">Die Rose steht mit Norden oben wie die Karte, der Windsack zeigt die Windrichtung (schwarze Marke = woher der Wind kommt). Mit Kompassnadel: die rote Nadelspitze zeigt, wohin die RC schaut · Aus: Windrose ausgeblendet. Der blaue Kegel auf der Karte zeigt ebenfalls die Blickrichtung.</div></div><div class="seg"><button data-rose="dev">Mit Kompassnadel</button><button data-rose="north">Ohne Nadel</button><button data-rose="off">Aus</button></div></div>
+    <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Einsatz-Wächter (Benachrichtigungen)</div>
+      <div class="v" style="margin-bottom:8px">Prüft im Hintergrund alle 5 Minuten die markierten Wiesen und meldet sich – auch wenn gerade DJI Pilot 2 offen ist: <b>Regen in der nächsten halben Stunde</b>, <b>Böen</b>, <b>Wind in Flughöhe</b>, <b>Scherwind</b> (Wind dreht oder wird mit der Höhe deutlich stärker), <b>Kp-Index ab 5</b>, Beginn der <b>Tiefflug-Betriebszeit</b> und <b>NOTAMs</b> an den Wiesen. Braucht Internet (z. B. Handy-Hotspot). <span id="vWatch"></span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><div class="seg"><button data-watch="0">Aus</button><button data-watch="1">Nach Pre-Check starten</button></div>
+        <button class="b-sec" id="bWatchTest">Test in 30 s</button><button class="b-sec" id="bWatchGo">Jetzt starten</button><button class="b-sec" id="bWatchStop">Stoppen</button></div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center" class="meta">
+        <span>Böen ab</span><div class="seg"><button data-wgust="8">8</button><button data-wgust="10">10</button><button data-wgust="12">12 m/s</button></div>
+        <span>Wind in Flughöhe ab</span><div class="seg"><button data-wwind="10">10</button><button data-wwind="12">12</button><button data-wwind="14">14 m/s</button></div>
+        <span>Scherwind ab</span><div class="seg"><button data-wshear="4">4</button><button data-wshear="5">5</button><button data-wshear="7">7 m/s</button></div>
+        <span>Dauer</span><div class="seg"><button data-wdur="2">2</button><button data-wdur="4">4</button><button data-wdur="6">6 h</button></div></div></div>
     <div class="set"><div class="l"><div class="t">Wetter</div><div class="v">Tagesgang, Sonnenlauf und Einsatzwetter – auch per Tipp auf die Windanzeige</div></div><button class="b-sec" id="bWxSet">Wetter öffnen</button></div>
     <div class="set"><div class="l"><div class="t">Wetter: Höhen anzeigen bis</div><div class="v">Nur die Höhen, in denen ihr fliegt – Wind, Temperatur und Böen in der Wettertabelle</div></div><div class="seg" id="sWxMax"><button data-wxmax="50">50 m</button><button data-wxmax="100">100 m</button><button data-wxmax="250">alle</button></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzbeginn bei Mähdatum ohne Uhrzeit</div><div class="v">Für das Wetter-Einsatzfenster (1 h vorher bis 1 h nachher)</div></div><input id="sWxStart" class="inp" type="time" style="flex:none;width:130px;min-width:0"></div>
@@ -635,7 +644,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -2482,6 +2491,7 @@ function briefingHtml(b, sel) {
 }
 $('bDl').onclick = () => {
   const sel = S.files.filter(f => f.selected);
+  if (P.watch === '1' && sel.length && A.watchStart) try { watchStart(sel, true); } catch (e) { }   // Einsatz-Wächter für diese Wiesen
   const b = flightBriefing(sel);
   const afNear = S.airfields.some(a => sel.some(f => f.center && distM(f.center[0], f.center[1], a.lat, a.lon) < 5000));
   const rcMode = P.fsrc === 'rc' || (P.fsrc === 'mix' && !sel.some(f => f.cat));
@@ -2719,6 +2729,7 @@ let osmStT = 0;
 function osmStatesChanged() { clearTimeout(osmStT); osmStT = setTimeout(() => { if (isOnline()) geoSyncNow(false, true); }, 4000); }   // nach kurzer Pause neu abgleichen
 function fillSettings() {
   try { catFilterUi(); } catch (e) { }
+  try { watchUi(); } catch (e) { }
   try { osmStatesUi(); } catch (e) { }
   try { applyTheme(); } catch (e) { }
   $('vSrc').textContent = P.src; $('vDst').textContent = P.dst; $('vRcDir').textContent = rcDir(); srcUi();
@@ -6150,6 +6161,52 @@ function addPwEyes(root) {
   });
 }
 addPwEyes();
+
+// ================= Einsatz-Wächter: Warnungen als Benachrichtigung, auch wenn DJI Pilot 2 vorne ist =================
+const hhmm = t => new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+function watchCfg(sel) {
+  const fs = (sel && sel.length ? sel : S.files.filter(f => f.selected)).filter(f => f.center && !f.dup);
+  const pts = fs.length ? fs.map(f => f.center) : S.me ? [S.me] : [[V.lat, V.lon]];
+  const lat = pts.reduce((a, p) => a + p[0], 0) / pts.length, lon = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+  const until = Date.now() + (+P.wDur || 4) * 3600000, ev = [];
+  try {   // Beginn der Tiefflug-Betriebszeit, wenn eine Wiese in einem Tieffluggebiet liegt (Mo–Fr 09:00 und 13:30)
+    const lf = lfaNear(pts, 0).filter(x => x.d === 0);
+    if (lf.length) for (let day = 0; day < 2; day++) [[9, 0], [13, 30]].forEach(([h, m]) => {
+      const d = new Date(); d.setDate(d.getDate() + day); d.setHours(h, m, 0, 0); const wd = d.getDay();
+      if (wd >= 1 && wd <= 5 && d.getTime() > Date.now() && d.getTime() < until)
+        ev.push({ t: d.getTime(), k: 'lfa', title: '✈ Tiefflug ab ' + hhmm(d.getTime()), txt: lfaShort(lf[0].l.name) + ' an euren Wiesen: militärischer Tiefflug bis 250 ft (ca. 76 m) möglich. Luftraum beobachten, bei Jet-Lärm sofort tief gehen.' });
+    });
+  } catch (e) { }
+  try {   // NOTAMs, die an einer der Wiesen beginnen
+    (S.notams || []).forEach(n => { if (!n.start || n.start <= Date.now() || n.start > until) return;
+      const hit = fs.find(f => notamFieldDist(f, n) === 0);
+      if (hit) ev.push({ t: n.start, k: 'notam' + (n.props.ext_ref || n.props.name || ''), title: '⚠ NOTAM ab ' + hhmm(n.start), txt: notamTitle(n) + ' – betrifft ' + hit.title + '. Flug dort nur mit Zustimmung der genannten Stelle.' }); });
+  } catch (e) { }
+  return { lat, lon, until, h: flightHeight() || 80, gust: +P.wGust || 10, wind: +P.wWind || 12, shear: +P.wShear || 5, shearOn: true, rain: true, rainMin: 0.1, kp: true, kpMin: 5, ev,
+    names: fs.length ? fs.length + ' Wiese' + (fs.length > 1 ? 'n' : '') : S.me ? 'Standort' : 'Kartenmitte' };
+}
+function watchStart(sel, quiet) {
+  if (!A.watchStart) return toast('Diese App-Version kann noch keine Benachrichtigungen.', true);
+  if (!isOnline()) toast('Hinweis: Ohne Internet kann der Einsatz-Wächter das Wetter nicht prüfen – er versucht es alle 5 Minuten.', true, 5000);
+  const c = watchCfg(sel);
+  A.watchStart(JSON.stringify(c));
+  if (!quiet) toast('Einsatz-Wächter läuft bis ' + hhmm(c.until) + ' – Warnungen kommen auch, wenn DJI Pilot 2 offen ist.', 'ok', 5000);
+  setTimeout(watchUi, 1500);
+}
+function watchUi() {
+  document.querySelectorAll('[data-watch]').forEach(b => b.classList.toggle('on', b.dataset.watch === (P.watch || '1')));
+  [['wgust', 'wGust'], ['wwind', 'wWind'], ['wshear', 'wShear'], ['wdur', 'wDur']].forEach(([a, k]) => document.querySelectorAll(`[data-${a}]`).forEach(b => b.classList.toggle('on', b.dataset[a] === String(P[k]))));
+  const v = $('vWatch'); if (!v) return;
+  const on = A.watchRunning && A.watchRunning();
+  v.innerHTML = on ? `<b style="color:#13a538">● läuft</b>${A.watchLast && A.watchLast() ? ' · ' + esc(A.watchLast()) : ''}` : '<b>● aus</b>';
+}
+window.onWatch = msg => { toast(msg, true, 6000); watchUi(); };
+document.querySelectorAll('[data-watch]').forEach(b => b.onclick = () => { setP('watch', b.dataset.watch); watchUi(); });
+[['wgust', 'wGust'], ['wwind', 'wWind'], ['wshear', 'wShear'], ['wdur', 'wDur']].forEach(([a, k]) => document.querySelectorAll(`[data-${a}]`).forEach(b => b.onclick = () => { setP(k, b.dataset[a]); watchUi(); }));
+if ($('bWatchTest')) $('bWatchTest').onclick = () => { if (!A.notifyTest) return toast('Diese App-Version kann noch keine Benachrichtigungen.', true); A.notifyTest(30); toast('Test kommt in 30 Sekunden – jetzt zu DJI Pilot 2 wechseln.', 'ok', 6000); };
+if ($('bWatchGo')) $('bWatchGo').onclick = () => watchStart(null, false);
+if ($('bWatchStop')) $('bWatchStop').onclick = () => { if (A.watchStop) A.watchStop(); toast('Einsatz-Wächter gestoppt.'); setTimeout(watchUi, 800); };
+setInterval(() => { if ($('pgSet').classList.contains('open')) watchUi(); }, 20000);
 // ================= Einführung (Rundgang über die Bedienelemente) =================
 const TOUR = [
   [null, 'Willkommen bei Mission Kitzrettung', `Die App ist euer Werkzeug für die Flugvorbereitung auf der Fernsteuerung:<ul>
@@ -6189,6 +6246,10 @@ const TOUR = [
   ['#bFit', 'Alles zeigen', `Zoomt so, dass alle Wiesen zu sehen sind. Darüber: hinein- und herauszoomen.`],
   ['#bLoc', 'Mein Standort', `Springt zu deinem GPS-Standort. Während gesucht wird, dreht sich die Anzeige im Knopf. Der blaue Kegel auf der Karte zeigt die Blickrichtung der Fernsteuerung.`],
   ['#wind', 'Wind & Wetter', `Wind in 10 m, Böen und Wind in 50/80/100/120 m, dazu Kp-Index (Störung von GPS/Kompass) und die Quelle.<br><b>Antippen</b> öffnet das Wetter: Einsatzfenster am Morgen bewertet, Stunde für Stunde, Sonnenlauf, Vorschau für die nächsten Tage – bei markierten Wiesen für genau diese.`],
+  [null, 'Einsatz-Wächter', `Nach dem Pre-Check passt die App im Hintergrund auf eure Wiesen auf – auch wenn DJI Pilot 2 vorne ist. Alle 5 Minuten prüft sie und meldet sich per Benachrichtigung bei:<ul>
+    <li><b>Regen</b> in der nächsten halben Stunde (Kurzfrist-Vorhersage des DWD)</li><li><b>Böen</b> und <b>Wind in Flughöhe</b> über eurem Grenzwert</li>
+    <li><b>Scherwind</b> – der Wind dreht oder wird mit der Höhe deutlich stärker</li><li><b>Kp-Index ab 5</b>, Beginn der <b>Tiefflug-Zeit</b>, <b>NOTAMs</b> an den Wiesen</li></ul>
+    Grenzwerte, Dauer und ein Test unter Einstellungen → Wetter. Braucht Internet, z. B. über den Handy-Hotspot.`],
   ['#notam', 'NOTAMs & Tiefflug', `Erscheint nur, wenn es etwas zu beachten gibt: <b>rot</b> = aktive Flugbeschränkung im Umkreis um deinen Standort (Umkreis in den Einstellungen, Standard 10 km), <b>orange</b> = geplant, <b>lila</b> = Tieffluggebiet in der Nähe.<br>Antippen zeigt die Liste mit Karte, Zeiten, Höhen und Link zu dipul.`],
   ['#net', 'Online / Offline', `Zeigt, ob Internet da ist. Ohne Netz läuft alles aus dem Speicher der Fernsteuerung – nur „Felder laden“ und das Auffrischen brauchen Internet.`],
   ['#bPlan', 'Einsatzplan', `Reihenfolge der markierten Wiesen, Fahrtwege, Akku-Planung und gemeinsamer Treffpunkt für Pilot und Läufer (in den Einstellungen einschaltbar).`],
