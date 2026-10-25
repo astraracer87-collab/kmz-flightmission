@@ -359,6 +359,8 @@ body.bartop #trafWarn{top:84px}
 #trafWarn .twt{display:flex;flex-direction:column;gap:2px;min-width:0}#trafWarn .twt b{font-size:16px}#trafWarn .twt span{font-size:14px;color:#dfe6ee}#trafWarn small{font-size:11px;color:#9fb0c0}
 #trafWarn .twr{display:inline-block;font-size:11px;font-weight:800;padding:2px 6px;border-radius:5px;margin-right:6px;vertical-align:2px;color:#fff;text-transform:uppercase}
 #trafWarn .twx{font-size:18px;padding:6px 4px 6px 10px;color:#9fb0c0;align-self:flex-start}
+#trafWarn.tw-near{background:rgba(179,19,27,.95);border:3px solid #fff;animation:twn 1s ease infinite}@keyframes twn{50%{box-shadow:0 0 0 10px rgba(255,60,60,.6)}}
+#trafWarn.tw-near .twt small{color:#ffd5d5}#trafWarn.tw-near .twx{color:#fff}
 #trafWarn.tw-new{animation:twp 1s ease 3}@keyframes twp{50%{box-shadow:0 0 0 8px rgba(255,208,0,.55)}}
 .tdbs{margin-left:auto;display:flex;gap:10px}.tdb{display:flex;flex-direction:column;align-items:center;gap:3px;width:74px;padding:8px 4px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--acc);font-weight:700;font-size:12px}
 .tdb svg{width:30px;height:30px}.tdb:active{background:var(--line2)}
@@ -636,7 +638,10 @@ body.bartop #trafWarn{top:84px}
           <input type="range" id="rTkm" min="0" max="13" step="1"></div>
         <div class="trow"><span class="tl">wenn tiefer als</span><button data-tstep="tAlt:-1">−</button><b id="vTalt"></b><button data-tstep="tAlt:1">+</button>
           <input type="range" id="rTalt" min="0" max="23" step="1"></div>
-        <div class="trow"><span class="tl">Warnton</span><div class="seg"><button data-tsnd="0">Aus</button><button data-tsnd="1">Hinweiston</button><button data-tsnd="2">Alarmton</button></div>
+        <div class="trow"><span class="tl">Daueralarm im Nahbereich</span><div class="seg"><button data-tnear="0">Aus</button><button data-tnear="0.5">0,5</button><button data-tnear="1">1</button><button data-tnear="1.5">1,5</button><button data-tnear="2">2</button><button data-tnear="3">3 km</button></div>
+          <button class="tbtn" id="bNearTest" style="width:auto;padding:0 12px;font-size:14px">Daueralarm anhören</button></div>
+        <div class="v" style="margin-top:-4px">Ist ein Luftfahrzeug (unter der Warnhöhe) näher als dieser Abstand und kommt weiter näher, ertönt alle 2 s ein Alarm und das Warnfenster wird rot – bis es den nächsten Punkt passiert hat und sich wieder entfernt. „🔊✕“ schaltet den Ton für 60 s stumm. Bei anderen Drohnen gilt höchstens 300 m.</div>
+        <div class="trow"><span class="tl">Warnton</span><div class="seg"><button data-tsnd="0">Aus</button><button data-tsnd="1">Warnton</button><button data-tsnd="2">Alarm (lang)</button></div>
           <button class="tbtn" id="bTrafTest" style="width:auto;padding:0 12px;font-size:14px">Test in 3 s</button></div>
         <div class="trow"><span class="tl">Warnfenster über allen Apps</span><div class="seg"><button data-tovl="0">Aus</button><button data-tovl="1">An</button></div>
           <button class="tbtn" id="bOvlPerm" style="width:auto;padding:0 12px;font-size:14px;display:none">Erlauben …</button><span class="meta" id="vOvl"></span></div>
@@ -736,7 +741,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -6328,7 +6333,7 @@ function watchCfg(sel) {
       const hit = fs.find(f => notamFieldDist(f, n) === 0);
       if (hit) ev.push({ t: n.start, k: 'notam' + (n.props.ext_ref || n.props.name || ''), title: '⚠ NOTAM ab ' + hhmm(n.start), txt: notamTitle(n) + ' – betrifft ' + hit.title + '. Flug dort nur mit Zustimmung der genannten Stelle.' }); });
   } catch (e) { }
-  return { ovl: P.tOvl !== '0', traffic: P.traffic === '1', rid: P.rid === '1', rKm: +P.rKm || 1, ridOwn: P.ridOwn || '', tSnd: +P.tSnd, tKm: +P.tKm || 3, tAlt: +P.tAlt || 500, lat, lon, until, h: flightHeight() || 80, gust: +P.wGust || 10, wind: +P.wWind || 12, shear: +P.wShear || 5, shearOn: true, rain: true, rainMin: 0.1, kp: true, kpMin: 5, ev,
+  return { tNear: +P.tNear, ovl: P.tOvl !== '0', traffic: P.traffic === '1', rid: P.rid === '1', rKm: +P.rKm || 1, ridOwn: P.ridOwn || '', tSnd: +P.tSnd, tKm: +P.tKm || 3, tAlt: +P.tAlt || 500, lat, lon, until, h: flightHeight() || 80, gust: +P.wGust || 10, wind: +P.wWind || 12, shear: +P.wShear || 5, shearOn: true, rain: true, rainMin: 0.1, kp: true, kpMin: 5, ev,
     names: fs.length ? fs.length + ' Wiese' + (fs.length > 1 ? 'n' : '') : S.me ? 'Standort' : 'Kartenmitte' };
 }
 function watchStart(sel, quiet) {
@@ -6433,16 +6438,19 @@ function trafEnsure(force) {
   const moved = !trafSvcCenter || distM(la, lo, trafSvcCenter[0], trafSvcCenter[1]) > 1500;
   if (run && !moved && !force && Date.now() - trafSvcT < 3 * 3600000) return;
   trafSvcCenter = [la, lo]; trafSvcT = Date.now();
-  A.watchStart(JSON.stringify({ trafOnly: true, ovl: P.tOvl !== '0', traffic: P.traffic === '1', rid: P.rid === '1', rKm: +P.rKm || 1, ridOwn: P.ridOwn || '', tSnd: +P.tSnd, tKm: +P.tKm || 3, tAlt: +P.tAlt || 300, lat: la, lon: lo, until: Date.now() + 12 * 3600000, names: 'Luftverkehr' }));
+  A.watchStart(JSON.stringify({ trafOnly: true, tNear: +P.tNear, ovl: P.tOvl !== '0', traffic: P.traffic === '1', rid: P.rid === '1', rKm: +P.rKm || 1, ridOwn: P.ridOwn || '', tSnd: +P.tSnd, tKm: +P.tKm || 3, tAlt: +P.tAlt || 300, lat: la, lon: lo, until: Date.now() + 12 * 3600000, names: 'Luftverkehr' }));
 }
 /** Warn-Anzeige mit Richtungspfeil: zeigt zum nächsten Luftfahrzeug im Warnumkreis – mit Kompass bezogen auf die Blickrichtung der Fernsteuerung */
-let trafPanelId = null, trafPanelHide = {};
+let trafPanelId = null, trafPanelHide = {}; const trafMinD = {};
 function trafPanel() {
   let el = $('trafWarn');
   if (!el) {
     el = document.createElement('div'); el.id = 'trafWarn'; document.body.appendChild(el);
     el.innerHTML = '<canvas class="twa" width="220" height="220"></canvas><div class="twt"><b></b><span></span><small></small></div><span class="twx">✕</span>';
-    el.onclick = e => { if (e.target.closest('.twx')) { trafPanelHide[trafPanelId] = Date.now(); el.style.display = 'none'; return; } const a = S.traf.find(x => x.id === trafPanelId); if (a) trafDetail(a); };
+    el.onclick = e => { if (e.target.closest('.twx')) {
+        if (el.classList.contains('tw-near')) { if (A.trafMute) A.trafMute(60); trafPanel(); return; }   // Nahbereich: nur Ton 60 s stumm
+        trafPanelHide[trafPanelId] = Date.now(); el.style.display = 'none'; return; }
+      const a = S.traf.find(x => x.id === trafPanelId); if (a) trafDetail(a); };
   }
   if (!trafData() || !S.traf.length || document.querySelector('[id^="pg"].open, #dlg.open')) { el.style.display = 'none'; return; }
   const [la, lo] = trafCenter(), km = +P.tKm || 3, mx = +P.tAlt || 300, now = Date.now();
@@ -6454,11 +6462,18 @@ function trafPanel() {
     else if (!(was && now - trafIn[a.id] < 8000 && d < lim * 1.3)) return;   // kurze Aussetzer (fehlende Höhe, Datenlücke) überbrücken
     const brg = (Math.atan2((plo - lo) * Math.cos(la * Math.PI / 180), pla - la) * 180 / Math.PI + 360) % 360;
     const h = { a, d, agl, brg, f: Math.min(1, d / lim) }; hits.push(h);
-    if (trafPanelHide[a.id] && Date.now() - trafPanelHide[a.id] < 3 * 60000) return;
+    if (trafPanelHide[a.id] && Date.now() - trafPanelHide[a.id] < 3 * 60000 && !(+P.tNear && d <= +P.tNear)) return;   // im Nahbereich nie ausgeblendet
     if (!best || d < best.d) best = h;
   });
   if (!best) { el.style.display = 'none'; trafPanelId = null; return; }
   const { a, d, agl, brg } = best;
+  // Nahbereich: kommt es noch näher? (kleinste Entfernung merken – nach dem Vorbeiflug >100 m wieder weg → kein Alarm mehr)
+  const nk = +P.tNear || 0;
+  let nearAny = false;
+  hits.forEach(h => { const lim = h.a.rid ? Math.min(0.3, nk) : nk, k = h.a.id;
+    if (!nk || h.d > lim) { delete trafMinD[k]; return; }
+    if (trafMinD[k] == null || h.d < trafMinD[k]) { trafMinD[k] = h.d; nearAny = true; } else if (h.d <= trafMinD[k] + 0.1) nearAny = true; });
+  el.classList.toggle('tw-near', nearAny);
   if (trafPanelId !== a.id) {   // neues Luftfahrzeug: kurz aufblinken
     trafPanelId = a.id;
     if (!trafWarned[a.id] || Date.now() - trafWarned[a.id] > 5 * 60000) { trafWarned[a.id] = Date.now(); el.classList.remove('tw-new'); void el.offsetWidth; el.classList.add('tw-new'); }
@@ -6466,10 +6481,11 @@ function trafPanel() {
   const hasH = typeof heading === 'number' && isFinite(heading);
   const near = a.trk >= 0 ? Math.cos(((a.trk - (brg + 180)) % 360) * Math.PI / 180) > 0.5 : false;   // fliegt ungefähr auf uns zu
   const role = a.role ? `<span class="twr" style="background:${TRAF_ROLE_COL[a.role]}">${TRAF_ROLE[a.role]}</span>` : '';
-  const t1 = `${role}${esc(a.rid ? 'Andere Drohne' : trafName(a))} · ${d < 1 ? Math.round(d * 1000) + ' m' : n2(d) + ' km'}`;
-  const t2 = `${agl != null ? 'ca. ' + Math.max(0, Math.round(agl)) + (a.rid && !a.hRef ? ' m über ihrem Start' : ' m über Grund') : 'Höhe unbekannt'}${a.kmh > 0 ? ' · ' + Math.round(a.kmh) + ' km/h' : ''}${near ? ' · <b>kommt näher</b>' : ''}${hits.length > 1 ? ' · +' + (hits.length - 1) + ' weitere' : ''}`;
+  const t1 = `${nearAny ? '‼ NAH – KOMMT NÄHER · ' : ''}${role}${esc(a.rid ? 'Andere Drohne' : trafName(a))}`;
+  const t2 = `<b>${d < 1 ? Math.round(d * 1000) + ' m' : n2(d) + ' km'}</b> · ${agl != null ? 'ca. ' + Math.max(0, Math.round(agl)) + (a.rid && !a.hRef ? ' m über ihrem Start' : ' m über Grund') : 'Höhe unbekannt'}${a.kmh > 0 ? ' · ' + Math.round(a.kmh) + ' km/h' : ''}${near ? ' · <b>kommt näher</b>' : ''}${hits.length > 1 ? ' · +' + (hits.length - 1) + ' weitere' : ''}`;
   const t3 = `Warnt bis ${a.rid ? String(+P.rKm || 1).replace('.', ',') + ' km (Drohnen)' : String(km).replace('.', ',') + ' km und unter ' + mx + ' m über Grund'} (Einstellungen → Flugradar) · Radarrand = Umkreis · ${hasH ? 'oben = deine Blickrichtung' : 'oben = Norden'}`;
   const [b1, s1, m1] = el.querySelectorAll('.twt > *');
+  const xs = el.querySelector('.twx'), xt = nearAny ? (A.trafMuted && A.trafMuted() ? '🔇' : '🔊✕') : '✕'; if (xs.textContent !== xt) xs.textContent = xt;
   if (b1.innerHTML !== t1) b1.innerHTML = t1; if (s1.innerHTML !== t2) s1.innerHTML = t2; if (m1.textContent !== t3) m1.textContent = t3;
   trafRadar(el.querySelector('canvas'), hits, best, hasH ? heading : 0, hasH);
   el.style.display = 'flex';
@@ -6499,11 +6515,23 @@ function trafRadar(cv, hits, best, hd, hasH) {
   g.fillStyle = '#4da3ff'; g.beginPath(); g.moveTo(c, c - 14); g.lineTo(c + 10, c + 10); g.lineTo(c, c + 4); g.lineTo(c - 10, c + 10); g.closePath(); g.fill();
   hits.forEach(h => {
     const r = (h.brg - hd) * Math.PI / 180, rr = Math.max(22, Math.sqrt(h.f) * R)   /* Wurzel-Maßstab: Nahes weiter auseinander */, x = c + Math.sin(r) * rr, y = c - Math.cos(r) * rr, isB = h === best;
+    const k = trafKind(h.a.typ), rot = k !== 'balloon' && k !== 'drone';
     g.save(); g.translate(x, y);
     if (isB) { g.strokeStyle = '#fff'; g.lineWidth = 2.5; g.beginPath(); g.arc(0, 0, 24, 0, 7); g.stroke(); }
-    if (h.a.trk >= 0 && trafKind(h.a.typ) !== 'drone' && trafKind(h.a.typ) !== 'balloon') g.rotate((h.a.trk - hd) * Math.PI / 180);
-    const sc = isB ? 1.3 : 0.95; g.scale(sc, sc); g.translate(-16, -16);
-    const pth = trafPath(trafKind(h.a.typ)); g.lineJoin = 'round'; g.lineWidth = 2; g.strokeStyle = '#111'; g.stroke(pth); g.fillStyle = '#ffd000'; g.fill(pth);
+    if (h.a.trk >= 0 && rot) g.rotate((h.a.trk - hd) * Math.PI / 180);
+    // gleiche Darstellung wie auf der Karte: weißer Rand, dunkle Kontur, Füllung, Heli-Rotor, Para-Leinen
+    const bsc = isB ? 1.15 : 0.85, tsc = k === 'jet' ? 1.25 : k === 'heli' ? 1.35 : k === 'glider' ? 1.15 : 1.05;
+    g.scale(bsc * tsc, bsc * tsc); g.translate(-16, -16);
+    const pth = trafPath(k); g.lineJoin = 'round';
+    g.lineWidth = 4; g.strokeStyle = 'rgba(255,255,255,.9)'; g.stroke(pth);
+    g.lineWidth = 1.4; g.strokeStyle = '#111'; g.stroke(pth);
+    g.fillStyle = '#ffd000'; g.fill(pth);
+    if (k === 'heli') {
+      g.lineCap = 'round'; g.beginPath(); g.moveTo(5, 5); g.lineTo(27, 20); g.moveTo(27, 5); g.lineTo(5, 20);
+      g.lineWidth = 2.5; g.strokeStyle = 'rgba(255,255,255,.85)'; g.stroke(); g.lineWidth = 1.1; g.strokeStyle = 'rgba(17,17,17,.8)'; g.stroke();
+      g.fillStyle = '#ffd000'; g.fill(pth); g.lineWidth = 1.4; g.strokeStyle = '#111'; g.stroke(pth);
+    }
+    if (k === 'para') { g.beginPath(); g.moveTo(4, 13.5); g.lineTo(15, 22); g.moveTo(28, 13.5); g.lineTo(17, 22); g.lineWidth = 1; g.strokeStyle = '#111'; g.stroke(); }
     g.restore();
   });
 }
@@ -6687,6 +6715,7 @@ function trafUi() {
   const ts = $('trafSet'); if (ts) ts.classList.toggle('off', P.traffic !== '1');
   document.querySelectorAll('[data-tsnd]').forEach(b => b.classList.toggle('on', b.dataset.tsnd === String(P.tSnd)));
   document.querySelectorAll('[data-tovl]').forEach(b => b.classList.toggle('on', b.dataset.tovl === (P.tOvl || '1')));
+  document.querySelectorAll('[data-tnear]').forEach(b => b.classList.toggle('on', +b.dataset.tnear === +P.tNear));
   const can = A.canOverlay ? A.canOverlay() : false, bp = $('bOvlPerm'), vo = $('vOvl');
   if (bp) bp.style.display = P.tOvl !== '0' && A.overlayPerm && !can ? '' : 'none';
   if (vo) vo.textContent = P.tOvl === '0' ? 'nur Benachrichtigung' : !A.canOverlay ? 'App-Version zu alt' : can ? 'erlaubt – bleibt sichtbar, solange die Gefahr besteht (auch über DJI Pilot 2)' : 'Android-Erlaubnis fehlt – „Erlauben …“ tippen und „Über anderen Apps einblenden“ einschalten';
@@ -6699,6 +6728,8 @@ document.querySelectorAll('[data-traf]').forEach(b => b.onclick = () => { setP('
 /** geänderte Einstellungen an den laufenden Dienst geben (Einsatz-Wächter oder reiner Luftverkehr-Dienst) */
 function trafRestart() { const run = trafSvcRunning(); if (run && !run.trafOnly) watchStart(null, true); else trafEnsure(true); }
 document.querySelectorAll('[data-tsnd]').forEach(b => b.onclick = () => { setP('tSnd', b.dataset.tsnd); trafUi(); trafRestart(); });
+if ($('bNearTest')) $('bNearTest').onclick = () => { if (!A.sirenTest) return toast('Diese App-Version kann das noch nicht.', true); A.sirenTest(3); toast('So klingt der Daueralarm (wiederholt sich, solange es näher kommt). Lautstärke: Wecker/Alarm.', 'ok', 4000); };
+document.querySelectorAll('[data-tnear]').forEach(b => b.onclick = () => { setP('tNear', b.dataset.tnear); trafUi(); trafRestart(); });
 document.querySelectorAll('[data-tovl]').forEach(b => b.onclick = () => { setP('tOvl', b.dataset.tovl); trafUi(); trafRestart(); if (b.dataset.tovl === '1' && A.canOverlay && !A.canOverlay() && A.overlayPerm) A.overlayPerm(); });
 if ($('bOvlPerm')) $('bOvlPerm').onclick = () => A.overlayPerm && A.overlayPerm();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) try { trafUi(); } catch (e) { } });

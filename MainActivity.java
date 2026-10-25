@@ -99,7 +99,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         try { Traffic.roleFile = new File(super.getFilesDir(), "einsatzflieger.txt"); if (!metered()) Traffic.roleUpdate(this, false); } catch (Exception ignored) { }
         dopCleanup();   // einmalig: Luftbilder mit grauem Fleck entfernen
         cacheVersionCheck();   // geänderte Datenbereiche aufräumen
-        new Thread(this::uaveBackupRestore).start();   // UAV-Editor-Zugang aus „Kitzrettung Cache“ zurückholen (nach Neuinstallation)
+        new Thread(this::uaveBackupRestore).start();   // UAV-Editor-Zugang aus „Kitzrettung Cache" zurückholen (nach Neuinstallation)
         if (prefs.getInt("osm_ver", 1) == 4) new Thread(() -> {   // einmalig: Wege aus der OSM-Datei auslagern (sonst liest die App beim Start sehr lange)
             try {
                 JSONArray all = new JSONArray(readFile(osmFile())), els = new JSONArray(), wys = new JSONArray();
@@ -193,7 +193,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 web.evaluateJavascript("window.onRcKey && window.onRcKey(" + k + "," + e.getRepeatCount() + ")", null);
             return true;
         }
-        // Enter-Taste: Felder umschalten (UAV-Editor / Fernsteuerung) – abfangen, damit die Webansicht nichts „anklickt“
+        // Enter-Taste: Felder umschalten (UAV-Editor / Fernsteuerung) – abfangen, damit die Webansicht nichts „anklickt"
         if ((k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_NUMPAD_ENTER) && web != null && !inApp && e.getDeviceId() != android.view.KeyCharacterMap.VIRTUAL_KEYBOARD) {   // nicht die Bildschirmtastatur
             if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) web.evaluateJavascript("window.onRcKeyOther && window.onRcKeyOther(" + k + ")", null);
             return true;
@@ -230,10 +230,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     @Override
     protected void onResume() {
         super.onResume(); appFg = true;
-        // Zugriff gerade (wieder) erteilt, z. B. nach Neuinstallation: ab jetzt den Ordner „Kitzrettung Cache“ benutzen und Karte neu laden
+        // Zugriff gerade (wieder) erteilt, z. B. nach Neuinstallation: ab jetzt den Ordner „Kitzrettung Cache" benutzen und Karte neu laden
         try { File dc = dataDirCache; if (hasFileAccess() && dc != null && dc.equals(super.getFilesDir())) { dataDirCache = null; if (web != null && prefs.getBoolean("prefs_restored", false)) web.reload(); } } catch (Exception ignored) { }
         try { if (hasFileAccess() && !prefs.getBoolean("prefs_restored", false) && prefsRestore() && web != null) { web.reload(); } } catch (Exception ignored) { }
-        try { if (hasFileAccess()) dataMigrate(); } catch (Exception ignored) { }   // Daten in „Kitzrettung Cache“ umziehen (einmalig)
+        try { if (hasFileAccess()) dataMigrate(); } catch (Exception ignored) { }   // Daten in „Kitzrettung Cache" umziehen (einmalig)
         try { if (hasFileAccess() && !prefs.contains("uave_pw")) new Thread(() -> { uaveBackupRestore(); if (prefs.contains("uave_pw")) js("window.onUaveRestored && window.onUaveRestored()"); }).start(); } catch (Exception ignored) { }
         try {
             if (sensorManager == null) sensorManager = (android.hardware.SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -750,7 +750,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             try { File d = new File(path); return d.isDirectory() || d.mkdirs(); } catch (Exception e) { return false; }
         }
 
-        /** Ordner umbenennen bzw. Inhalt verschieben (z. B. „KMZ Mission“ → „UAV-Editor“); vorhandene Dateien im Ziel bleiben */
+        /** Ordner umbenennen bzw. Inhalt verschieben (z. B. „KMZ Mission" → „UAV-Editor"); vorhandene Dateien im Ziel bleiben */
         @JavascriptInterface
         public String moveDir(String from, String to) {
             try {
@@ -1045,7 +1045,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public String watchCfg() { Thread t = Watch.th; return t != null && t.isAlive() && Watch.cfg != null ? Watch.cfg : ""; }
         /** Luftverkehr für die Karte: Umkreis um lat/lon (km) – läuft, bis trafficStop() */
         @JavascriptInterface
-        public void elevPrefetch(String pts) {   // Geländehöhen der Wiesen einmalig holen und dauerhaft merken (für „über Grund“ beim Luftverkehr)
+        public void elevPrefetch(String pts) {   // Geländehöhen der Wiesen einmalig holen und dauerhaft merken (für „über Grund" beim Luftverkehr)
             new Thread(() -> { try { JSONArray a = new JSONArray(pts); List<double[]> l = new ArrayList<>();
                 for (int i = 0; i < a.length(); i++) { JSONArray q = a.optJSONArray(i); if (q != null) l.add(new double[]{q.optDouble(0), q.optDouble(1)}); }
                 Elev.fetch(l); } catch (Exception ignored) { } }).start();
@@ -1066,6 +1066,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         @JavascriptInterface
         public void ridStop() { Rid.uiOn = false; Rid.stopIfIdle(); }
+        @JavascriptInterface
+        public void trafMute(int sec) { Watch.nearMuteUntil = System.currentTimeMillis() + sec * 1000L; }   // Daueralarm aus der App stumm schalten
+        @JavascriptInterface
+        public boolean trafMuted() { return System.currentTimeMillis() < Watch.nearMuteUntil; }
         @JavascriptInterface
         public String roleInfo() {   // Stand der Liste Polizei/Rettung
             Traffic.roleDbGet("000000");
@@ -1090,20 +1094,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 alert(c, 4712, "✈ Test: Hubschrauber 1,2 km NW – kommt näher", "ca. 150 m über Grund · 180 km/h. So sieht die Luftverkehr-Warnung aus.", CH_TRAF[Math.max(0, Math.min(2, snd))]);
                 testBeep(snd); }).start();
         }
-        void testBeep(int snd) {
-            android.media.ToneGenerator tg = null;
-            try { if (snd <= 0) return; tg = new android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100);
-                if (snd >= 2) { for (int i = 0; i < 3; i++) { tg.startTone(android.media.ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 900); Thread.sleep(1000); } }
-                else { tg.startTone(android.media.ToneGenerator.TONE_PROP_BEEP2, 400); Thread.sleep(700); tg.startTone(android.media.ToneGenerator.TONE_PROP_BEEP2, 400); Thread.sleep(600); }
-            } catch (Exception ignored) { } finally { if (tg != null) try { tg.release(); } catch (Exception ignored) { } }
-        }
+        void testBeep(int snd) { if (snd > 0) siren(snd >= 2 ? 2 : 1); }
+        @JavascriptInterface
+        public void sirenTest(int kind) { new Thread(() -> siren(kind)).start(); }
         @JavascriptInterface
         public void notifyTest(int sec) {
             if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED)
                 runOnUiThread(() -> requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 77));
             final Context c = getApplicationContext();
             new Thread(() -> { try { Thread.sleep(Math.max(1, sec) * 1000L); } catch (InterruptedException ignored) { }
-                alert(c, 4711, "Test: Mission Kitzrettung", "So sieht eine Warnung des Einsatz-Wächters aus – z. B. „Regen ab 07:15“. Wenn du das über DJI Pilot 2 siehst, funktioniert es."); }).start();
+                alert(c, 4711, "Test: Mission Kitzrettung", "So sieht eine Warnung des Einsatz-Wächters aus – z. B. „Regen ab 07:15“. Wenn du das über DJI Pilot 2 siehst, funktioniert es."); }).start();
         }
 
         @JavascriptInterface
@@ -1528,10 +1528,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return ((KeyStore.SecretKeyEntry) ks.getEntry("uave", null)).getSecretKey();
     }
 
-    // ---------- Zugang UAV Editor zusätzlich im Ordner „Kitzrettung Cache“ sichern – übersteht Neuinstallation/App-Wechsel ----------
+    // ---------- Zugang UAV Editor zusätzlich im Ordner „Kitzrettung Cache" sichern – übersteht Neuinstallation/App-Wechsel ----------
     // Verschlüsselt (AES-GCM) mit einem festen App-Schlüssel: schützt vor Mitlesen im Dateimanager, ist aber kein Tresor –
     // wer die App zerlegt, könnte ihn ermitteln. Der eigentliche Speicher bleibt der Android-Keystore.
-    // ---------- Einstellungen zusätzlich als Datei in „Kitzrettung Cache“ – übersteht Neuinstallation ----------
+    // ---------- Einstellungen zusätzlich als Datei in „Kitzrettung Cache" – übersteht Neuinstallation ----------
     private File prefsBackupFile() { return new File(hasFileAccess() ? extDataDir() : dataDir(), "Sonstiges/einstellungen.json"); }
     private static final java.util.Set<String> PREFS_SKIP = new java.util.HashSet<>(Arrays.asList("uave_pw", "uave_restored", "prefs_restored", "geoTapCache"));
     private final android.os.Handler prefsH = new android.os.Handler(Looper.getMainLooper());
@@ -2133,7 +2133,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         if (entries.isEmpty()) throw new Exception("Export-Archiv ohne KMZ");
         // Zuordnung über den Namen: Datei = "<Feldname>_<Fläche>ha_<n>WP.kmz". Längster passender Feldname gewinnt,
-        // damit „Egenolf-3-“ und „Egenolf-3-M3T“ nicht verwechselt werden.
+        // damit „Egenolf-3-" und „Egenolf-3-M3T" nicht verwechselt werden.
         List<String> order = new ArrayList<>(ids);
         java.util.Collections.sort(order, (a, b) -> nameOf(b).length() - nameOf(a).length());
         Map<String, String> out = new HashMap<>();
@@ -2230,7 +2230,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             File of = new File(dir, old.optString("file"));
             if (of.isFile()) of.delete();
         }
-        // Stand merken: Änderungszeit laut UAV Editor (nicht nur die Uhr der RC – die kann falsch gehen, dann wäre jedes Feld immer „geändert“)
+        // Stand merken: Änderungszeit laut UAV Editor (nicht nur die Uhr der RC – die kann falsch gehen, dann wäre jedes Feld immer „geändert")
         JSONObject uf = uaveFields.get(id);
         long srv = uf != null ? Math.max(parseIso(uf.optString("lastModified", null)), parseIso(uf.optString("createdAt", null))) : 0;
         man.put(id, withMeta(new JSONObject().put("file", file).put("mod", Math.max(System.currentTimeMillis(), srv)).put("srv", srv), uf));
@@ -2394,7 +2394,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     String body;
                     try (InputStream in = c.getInputStream()) { body = readAll(in); }
                     if (body.trim().startsWith("{")) feats = new JSONObject(body).optJSONArray("features");
-                    else if (!body.contains("ServiceException")) text = body;   // dipul erlaubt JSON nicht mehr („ForbiddenFormat“) – dann GML
+                    else if (!body.contains("ServiceException")) text = body;   // dipul erlaubt JSON nicht mehr („ForbiddenFormat") – dann GML
                 }
                 c.disconnect();
             } catch (Exception ignored) { }
@@ -2605,7 +2605,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 if (wys.length() > 0) writeFileAtomic(osmWaysFile(), wys.toString());
                 catSt("feldwege", bad == 0 ? "ok" : (osmWaysFile().isFile() ? "alt:" : "") + bad + " von " + (k * k) + " Teilen fehlen – " + errTxt(wErr));
             } catch (Exception we) { catSt("feldwege", (osmWaysFile().isFile() ? "alt:" : "") + errTxt(we)); }
-            if (obBad == 0) {   // nur bei vollständigem Erfolg als „aktuell“ merken – sonst beim nächsten Mal erneut versuchen
+            if (obBad == 0) {   // nur bei vollständigem Erfolg als „aktuell" merken – sonst beim nächsten Mal erneut versuchen
                 prefs.edit().putLong("osm_fetched", System.currentTimeMillis()).putInt("osm_ver", 7)
                         .putString("osm_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
             }
@@ -2616,6 +2616,34 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     // ---------- Einsatz-Wächter: Warnungen als Benachrichtigung – auch wenn DJI Pilot 2 im Vordergrund ist ----------
     static final String CH_ALERT = "einsatz_warn", CH_RUN = "einsatz_lauf", CH_SVC = "luftverkehr_dienst";
+    /** Warnsignal selbst erzeugt (über die Wecker-Lautstärke, volle Lautstärke):
+     *  kind 1 = Warnung: 3× schneller, ansteigender Heulton (ca. 1,5 s)
+     *  kind 2 = Alarm: 6× Heulton (ca. 3 s)
+     *  kind 3 = Nahbereich: schneller Wechselton hoch/tief (ca. 1,6 s, wird wiederholt) */
+    static void siren(int kind) {
+        android.media.AudioTrack at = null;
+        try {
+            int sr = 22050; int n; short[] buf;
+            if (kind == 3) {
+                n = sr * 16 / 10; buf = new short[n]; double ph = 0;
+                for (int i = 0; i < n; i++) { double t = (double) i / sr; double f = ((int) (t / 0.2) % 2 == 0) ? 1450 : 950;
+                    ph += 2 * Math.PI * f / sr; double env = Math.min(1, Math.min(i, n - i) / 200.0);
+                    buf[i] = (short) (Math.signum(Math.sin(ph)) * 0.55 * 32767 * env + Math.sin(ph) * 0.35 * 32767 * env); }
+            } else {
+                int rep = kind == 2 ? 6 : 3; double sweep = 0.45, gap = 0.05; n = (int) (sr * rep * (sweep + gap)); buf = new short[n]; double ph = 0;
+                for (int i = 0; i < n; i++) { double t = (double) i / sr, u = t % (sweep + gap);
+                    if (u > sweep) { buf[i] = 0; continue; }
+                    double f = 700 + 900 * (u / sweep); ph += 2 * Math.PI * f / sr; double env = Math.min(1, Math.min(u, sweep - u) * 200);
+                    buf[i] = (short) ((Math.sin(ph) * 0.6 + Math.signum(Math.sin(ph)) * 0.3) * 32767 * env); }
+            }
+            at = new android.media.AudioTrack.Builder()
+                    .setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+                    .setAudioFormat(new android.media.AudioFormat.Builder().setEncoding(android.media.AudioFormat.ENCODING_PCM_16BIT).setSampleRate(sr).setChannelMask(android.media.AudioFormat.CHANNEL_OUT_MONO).build())
+                    .setTransferMode(android.media.AudioTrack.MODE_STATIC).setBufferSizeInBytes(n * 2).build();
+            at.write(buf, 0, n); at.play();
+            Thread.sleep(n * 1000L / sr + 100);
+        } catch (Exception ignored) { } finally { if (at != null) try { at.release(); } catch (Exception ignored) { } }
+    }
     static volatile boolean appFg;   // App gerade im Vordergrund (dann kein Warnfenster über allen Apps – die App zeigt ihren eigenen Hinweis)
     /** Luftverkehr: je Ton-Einstellung ein eigener Kanal (Android erlaubt keinen Tonwechsel an einem bestehenden Kanal) */
     static final String[] CH_TRAF = {"luftverkehr_still", "luftverkehr_ton", "luftverkehr_alarm"};
@@ -2660,7 +2688,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     // ---------- Luftverkehr live: OGN (FLARM/OGN-Tracker, glidernet.org) + ADS-B (adsb.lol / airplanes.live) ----------
     /** Hält die Flugzeuge im Umkreis aktuell – für die Karte und den Einsatz-Wächter. Daten nur im Speicher, nichts wird gespeichert.
-     *  OGN-Regeln: Geräte mit „kein Tracking“/„Stealth“ werden verworfen, angezeigt wird nur die Art, keine Kennung. */
+     *  OGN-Regeln: Geräte mit „kein Tracking"/„Stealth" werden verworfen, angezeigt wird nur die Art, keine Kennung. */
     /** Geländehöhen (Copernicus DEM 90 m über Open-Meteo), dauerhaft im App-Speicher gemerkt – ein Raster von ca. 110 × 70 m */
     static final class Elev {
         static File f; static JSONObject c = new JSONObject();
@@ -2810,7 +2838,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         if (d.length < 6) continue;
                         int oui = ((d[0] & 0xFF) << 16) | ((d[1] & 0xFF) << 8) | (d[2] & 0xFF);
                         if (oui == 0xFA0BBC && (d[3] & 0xFF) == 0x0D) { wifiHits++; parse(r.BSSID, d, 5, 1); }
-                        else if (oui == 0x60601F || oui == 0x481CB9 || oui == 0x34D262 || oui == 0x263712) { if (dji(r.BSSID, d)) wifiHits++; }   // DJI-eigenes „DroneID“ (ältere Modelle)
+                        else if (oui == 0x60601F || oui == 0x481CB9 || oui == 0x34D262 || oui == 0x263712) { if (dji(r.BSSID, d)) wifiHits++; }   // DJI-eigenes „DroneID" (ältere Modelle)
                     }
                 } catch (Throwable ignored) { }
             }
@@ -2960,21 +2988,20 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (dest.startsWith("OGADSB")) key = "A" + key;
             ac.put(key, new double[]{la, lo, alt, trk, kmh, climb, typ, System.currentTimeMillis(), dest.startsWith("OGADSB") ? 1 : 0});
         }
+        /** ADS-B-Daten aus den offenen Quellen UND FlightRadar24 (inoffizielle Web-Schnittstelle) einlesen */
         static void adsbLoop() {
             Thread me = Thread.currentThread();
-            // drei freie Dienste mit gleichem Datenformat; wer „zu viele Anfragen“ (HTTP 429) meldet, bekommt eine Pause und der nächste ist dran
-            // Reihenfolge = Vorrang: adsb.lol (Grenze nach Serverlast), adsb.fi (1/s), airplanes.live (1/s, kostenlos nur ca. 500 Abfragen/Tag → nur Notreserve)
-            String[] hosts = {"https://api.adsb.lol/v2/point/%.4f/%.4f/%d", "https://opendata.adsb.fi/api/v3/lat/%.4f/lon/%.4f/dist/%d", "https://api.airplanes.live/v2/point/%.4f/%.4f/%d"};
-            String[] names = {"adsb.lol", "adsb.fi", "airplanes.live"};
-            long[] pause = new long[hosts.length], wait = new long[hosts.length];
+            // vier Dienste; die ersten drei liefern offene ADS-B-Daten im gleichen Format, FR24 liefert zusätzlich MLAT und hat ein eigenes Array-Format
+            // Reihenfolge = Vorrang: adsb.lol → adsb.fi → airplanes.live (400/Tag) → FlightRadar24 (inoffiziell, Fallback)
+            String[] names = {"adsb.lol", "adsb.fi", "airplanes.live", "flightradar24"};
+            long[] pause = new long[4], wait = new long[4];
             int hi = 0;
             while (adsb == me && active()) {
                 long now0 = System.currentTimeMillis();
-                // immer der vorrangigste freie Dienst (nicht reihum – so verteilt sich nichts unnötig); airplanes.live nur bis 400 Abfragen am Tag
                 String day = new SimpleDateFormat("yyyyMMdd", Locale.ROOT).format(new java.util.Date());
                 if (!day.equals(apDay)) { apDay = day; apCount = 0; }
-                int pick = -1; for (int h = 0; h < hosts.length; h++) { if (now0 < pause[h]) continue; if (h == 2 && apCount >= 400) continue; pick = h; break; }
-                if (pick < 0) {   // alle drei pausieren: bis zum frühesten Ende warten
+                int pick = -1; for (int h = 0; h < 4; h++) { if (now0 < pause[h]) continue; if (h == 2 && apCount >= 400) continue; pick = h; break; }
+                if (pick < 0) {   // alle vier pausieren: bis zum frühesten Ende warten
                     long t = Long.MAX_VALUE; for (long pz : pause) t = Math.min(t, pz);
                     try { Thread.sleep(Math.max(1000, Math.min(60000, t - now0))); } catch (InterruptedException ie) { break; }
                     continue;
@@ -2982,11 +3009,20 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 hi = pick;
                 if (hi == 2) apCount++;
                 try {
-                    String url = String.format(Locale.ROOT, hosts[hi], cLat, cLon, (int) Math.max(5, Math.min(100, Math.round(cKm / 1.852))));
+                    String url;
+                    if (hi == 3) {
+                        // FlightRadar24 – Bounds-Format (N,S,W,E); Radius → Bounding Box
+                        double dLat = cKm / 111.32, dLon = cKm / (111.32 * Math.cos(Math.toRadians(cLat)));
+                        url = String.format(Locale.ROOT, "https://data-live.flightradar24.com/zones/fcgi/feed.js?bounds=%.4f,%.4f,%.4f,%.4f&adsb=1&mlat=1&faa=1&flarm=1&estimated=1&air=1&gnd=0&gliders=1&vehicles=0",
+                                cLat + dLat, cLat - dLat, cLon - dLon, cLon + dLon);
+                    } else {
+                        String[] hosts = {"https://api.adsb.lol/v2/point/%.4f/%.4f/%d", "https://opendata.adsb.fi/api/v3/lat/%.4f/lon/%.4f/dist/%d", "https://api.airplanes.live/v2/point/%.4f/%.4f/%d"};
+                        url = String.format(Locale.ROOT, hosts[hi], cLat, cLon, (int) Math.max(5, Math.min(100, Math.round(cKm / 1.852))));
+                    }
                     HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
                     c.setConnectTimeout(10000); c.setReadTimeout(15000); c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Kitzrettung, ehrenamtlich)");
                     int code = c.getResponseCode();
-                    if (code == 429 || code == 503) {   // zu viele Anfragen: Pause (Retry-After beachten), bei Wiederholung länger
+                    if (code == 429 || code == 503) {
                         long ra = 0; try { ra = Long.parseLong(c.getHeaderField("Retry-After").trim()) * 1000; } catch (Exception ignored) { }
                         wait[hi] = Math.min(10 * 60000L, Math.max(ra, wait[hi] == 0 ? 60000 : wait[hi] * 2)); pause[hi] = System.currentTimeMillis() + wait[hi];
                         c.disconnect(); throw new Exception("HTTP " + code + " – Pause " + wait[hi] / 1000 + " s");
@@ -2994,35 +3030,65 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     if (code != 200) { c.disconnect(); pause[hi] = System.currentTimeMillis() + 30000; throw new Exception("HTTP " + code); }
                     String txt; try (InputStream in = c.getInputStream()) { txt = readAll(in); } finally { c.disconnect(); }
                     wait[hi] = 0;
-                    JSONObject jo = new JSONObject(txt);
-                    JSONArray a = jo.has("ac") ? jo.optJSONArray("ac") : jo.optJSONArray("aircraft"); long now = System.currentTimeMillis();
-                    if (a != null) for (int i = 0; i < a.length(); i++) {
-                        JSONObject o = a.optJSONObject(i); if (o == null || !o.has("lat")) continue;
-                        Object ab = o.opt("alt_baro"); if ("ground".equals(String.valueOf(ab))) continue;
-                        // Höhe über NN: bevorzugt GPS-Höhe (alt_geom, bezogen auf das WGS84-Ellipsoid – in Deutschland liegt der Meeresspiegel (Geoid) ca. 47 m darüber),
-                        // sonst barometrische Höhe (bezogen auf 1013,25 hPa) mit dem aktuellen Luftdruck (QNH) korrigiert: ca. 8,3 m je hPa
-                        double alt = o.has("alt_geom") ? o.optDouble("alt_geom") * 0.3048 - 47
-                                : ab instanceof Number ? ((Number) ab).doubleValue() * 0.3048 + (Double.isNaN(qnh) ? 0 : (qnh - 1013.25) * 8.3) : Double.NaN;
-                        String cat = o.optString("category", ""); String t = o.optString("t", "");
-                        boolean heli = cat.equals("A7") || t.matches("(?i)(EC|H1|H6|BK|AS3|AS5|AS6|R44|R22|R66|B06|B407|B412|B429|NH90|UH|CH|S76|A109|A119|A139|A169|AW|EXPL|MD52|MD60|G2CA|CABR)\\w*");
-                        // Jets auch in der „kleinen“ Kategorie A2: Geschäftsreisejets nach Typcode, sonst alles über ca. 9,5 km Höhe
-                        boolean jet = cat.startsWith("A") && cat.compareTo("A2") > 0
-                                || t.matches("(?i)(C25|C5|C6|C7|CL3|CL6|CL30|CL35|CL60|GLF|GLEX|GL5T|GL6T|GL7T|GALX|G150|G280|FA|F2TH|F900|E35L|E50P|E55P|E545|E550|LJ|H25|HDJT|SF50|PC24|PRM1|BE40|ASTR|J328|CRJ|E1|E2|E7|A3|B7|B3|A2)\\w*")
-                                || (alt > 9500 && !heli);
-                        int typ = heli ? 3 : cat.equals("B1") ? 1 : jet ? 9 : 8;
-                        String key = "A" + o.optString("hex").toUpperCase(Locale.ROOT);
-                        double[] old = ac.get(key);
-                        if (old != null && old[8] == 0 && now - old[7] < 20000) continue;   // OGN-Meldung ist frischer
-                        ac.put(key, new double[]{o.optDouble("lat"), o.optDouble("lon"), alt, o.optDouble("track", -1), o.has("gs") ? o.optDouble("gs") * 1.852 : -1, o.optDouble("baro_rate", 0) * 0.00508, typ, now, 1});
-                        // öffentliche ADS-B-Angaben: Rufzeichen | Typcode | Kennzeichen | Typbezeichnung | ICAO-Adresse (keine Halter-/Betreiberdaten)
-                        String fl = o.optString("flight", "").trim(), op = o.optString("ownOp", "").trim();
-                        Object[] ro = roleOf(o.optString("hex", ""), fl, o.optString("r", "").trim(), op, o.optInt("dbFlags", 0), typ == 3);
-                        int role = (Integer) ro[0];
-                        // Betreiber nur bei Behörden/Rettung/Militär weitergeben – nie bei Privatleuten
-                        label.put(key, fl + "|" + t + "|" + o.optString("r", "").trim() + "|" + o.optString("desc", "").trim() + "|" + o.optString("hex", "").trim() + "|" + role + "|" + (role > 0 ? String.valueOf(ro[1]).replace("|", " ") : ""));
+                    long now = System.currentTimeMillis();
+                    if (hi == 3) {
+                        // --- FlightRadar24: jedes Feld im JSON-Objekt, dessen Schlüssel wie eine FR24-ID aussieht, ist ein Flug als Array ---
+                        // [0]=hex/id  [1]=lat  [2]=lon  [3]=heading  [4]=alt_ft  [5]=speed_kts  [6]=squawk  [7]=radar  [8]=type  [9]=reg  [10]=ts  [11]=orig  [12]=dest  [13]=callsign  [14]=onGround  [15]=roc_fpm  [16]=callsign2  [17]=?  [18]=airline
+                        JSONObject jo = new JSONObject(txt);
+                        Iterator<String> keys = jo.keys();
+                        while (keys.hasNext()) {
+                            String k = keys.next();
+                            if (k.equals("full_count") || k.equals("version") || k.equals("stats")) continue;
+                            JSONArray f = jo.optJSONArray(k); if (f == null || f.length() < 15) continue;
+                            double la = f.optDouble(1), lo = f.optDouble(2); if (Double.isNaN(la) || Double.isNaN(lo)) continue;
+                            int onGround = f.optInt(14, 0); if (onGround == 1) continue;
+                            double altFt = f.optDouble(4, 0); double alt = altFt * 0.3048 + (Double.isNaN(qnh) ? 0 : (qnh - 1013.25) * 8.3);
+                            double trk = f.optDouble(3, -1), spdKts = f.optDouble(5, -1), rocFpm = f.optDouble(15, 0);
+                            String t = f.optString(8, ""), reg = f.optString(9, ""), fl = f.optString(13, "").trim();
+                            boolean heli = t.matches("(?i)(EC|H1|H6|BK|AS3|AS5|AS6|R44|R22|R66|B06|B407|B412|B429|NH90|UH|CH|S76|A109|A119|A139|A169|AW|EXPL|MD52|MD60|G2CA|CABR)\\w*");
+                            boolean jet = t.matches("(?i)(C25|C5|C6|C7|CL3|CL6|CL30|CL35|CL60|GLF|GLEX|GL5T|GL6T|GL7T|GALX|G150|G280|FA|F2TH|F900|E35L|E50P|E55P|E545|E550|LJ|H25|HDJT|SF50|PC24|PRM1|BE40|ASTR|J328|CRJ|E1|E2|E7|A3|B7|B3|A2)\\w*")
+                                    || (alt > 9500 && !heli);
+                            int typ = heli ? 3 : jet ? 9 : 8;
+                            // FR24 gibt manchmal hex als erstes Array-Element, manchmal ist der Key die FR24-ID → hex suchen
+                            String hex = f.optString(0, "").trim().toUpperCase(Locale.ROOT);
+                            if (hex.isEmpty() || hex.length() > 6) hex = k.toUpperCase(Locale.ROOT);
+                            String key = "A" + hex;
+                            double[] old = ac.get(key);
+                            if (old != null && old[8] == 0 && now - old[7] < 20000) continue;   // OGN-Meldung ist frischer
+                            // Überschreibe nur, wenn kein frischerer Eintrag von den offenen Quellen da ist
+                            if (old != null && old[8] == 1 && now - old[7] < 15000) continue;
+                            ac.put(key, new double[]{la, lo, alt, trk, spdKts >= 0 ? spdKts * 1.852 : -1, rocFpm * 0.00508, typ, now, 1});
+                            Object[] ro = roleOf(hex, fl, reg, "", 0, typ == 3);
+                            int role = (Integer) ro[0];
+                            label.put(key, fl + "|" + t + "|" + reg + "|" + "" + "|" + hex + "|" + role + "|" + (role > 0 ? String.valueOf(ro[1]).replace("|", " ") : ""));
+                        }
+                    } else {
+                        // --- adsb.lol / adsb.fi / airplanes.live: offenes ADS-B-Format mit JSON-Objekten ---
+                        JSONObject jo = new JSONObject(txt);
+                        JSONArray a = jo.has("ac") ? jo.optJSONArray("ac") : jo.optJSONArray("aircraft");
+                        if (a != null) for (int i = 0; i < a.length(); i++) {
+                            JSONObject o = a.optJSONObject(i); if (o == null || !o.has("lat")) continue;
+                            Object ab = o.opt("alt_baro"); if ("ground".equals(String.valueOf(ab))) continue;
+                            double alt = o.has("alt_geom") ? o.optDouble("alt_geom") * 0.3048 - 47
+                                    : ab instanceof Number ? ((Number) ab).doubleValue() * 0.3048 + (Double.isNaN(qnh) ? 0 : (qnh - 1013.25) * 8.3) : Double.NaN;
+                            String cat = o.optString("category", ""); String t = o.optString("t", "");
+                            boolean heli = cat.equals("A7") || t.matches("(?i)(EC|H1|H6|BK|AS3|AS5|AS6|R44|R22|R66|B06|B407|B412|B429|NH90|UH|CH|S76|A109|A119|A139|A169|AW|EXPL|MD52|MD60|G2CA|CABR)\\w*");
+                            boolean jet = cat.startsWith("A") && cat.compareTo("A2") > 0
+                                    || t.matches("(?i)(C25|C5|C6|C7|CL3|CL6|CL30|CL35|CL60|GLF|GLEX|GL5T|GL6T|GL7T|GALX|G150|G280|FA|F2TH|F900|E35L|E50P|E55P|E545|E550|LJ|H25|HDJT|SF50|PC24|PRM1|BE40|ASTR|J328|CRJ|E1|E2|E7|A3|B7|B3|A2)\\w*")
+                                    || (alt > 9500 && !heli);
+                            int typ = heli ? 3 : cat.equals("B1") ? 1 : jet ? 9 : 8;
+                            String key = "A" + o.optString("hex").toUpperCase(Locale.ROOT);
+                            double[] old = ac.get(key);
+                            if (old != null && old[8] == 0 && now - old[7] < 20000) continue;
+                            ac.put(key, new double[]{o.optDouble("lat"), o.optDouble("lon"), alt, o.optDouble("track", -1), o.has("gs") ? o.optDouble("gs") * 1.852 : -1, o.optDouble("baro_rate", 0) * 0.00508, typ, now, 1});
+                            String fl = o.optString("flight", "").trim(), op = o.optString("ownOp", "").trim();
+                            Object[] ro = roleOf(o.optString("hex", ""), fl, o.optString("r", "").trim(), op, o.optInt("dbFlags", 0), typ == 3);
+                            int role = (Integer) ro[0];
+                            label.put(key, fl + "|" + t + "|" + o.optString("r", "").trim() + "|" + o.optString("desc", "").trim() + "|" + o.optString("hex", "").trim() + "|" + role + "|" + (role > 0 ? String.valueOf(ro[1]).replace("|", " ") : ""));
+                        }
                     }
-                    if (Double.isNaN(ground)) ground = Elev.at(cLat, cLon);   // Geländehöhe am Einsatzort (gemerkt bzw. einmal geholt)
-                    if (System.currentTimeMillis() - qnhT > 30 * 60000L) try {   // aktueller Luftdruck auf Meereshöhe (QNH) für die barometrischen Höhen
+                    if (Double.isNaN(ground)) ground = Elev.at(cLat, cLon);
+                    if (System.currentTimeMillis() - qnhT > 30 * 60000L) try {
                         JSONObject e = new JSONObject(Watch.get(String.format(Locale.ROOT, "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=pressure_msl", cLat, cLon)));
                         double q = e.optJSONObject("current").optDouble("pressure_msl"); if (q > 900 && q < 1100) { qnh = q; qnhT = System.currentTimeMillis(); }
                     } catch (Exception ignored) { }
@@ -3031,7 +3097,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 // alte Einträge entfernen
                 long now = System.currentTimeMillis();
                 for (Map.Entry<String, double[]> e : ac.entrySet()) if (now - (long) e.getValue()[7] > 120000) { ac.remove(e.getKey()); label.remove(e.getKey()); }
-                // App offen: alle 10 s, nur im Hintergrund (Warndienst): alle 15 s – weit unter allen Grenzen; dazwischen rechnet die Karte weiter (OGN kommt ohnehin sofort)
+                // App offen: alle 10 s, nur im Hintergrund (Warndienst): alle 15 s
                 try { Thread.sleep(uiOn ? 10000 : 15000); } catch (InterruptedException ie) { break; }
             }
         }
@@ -3106,7 +3172,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 {"D-HNW", "Polizei Nordrhein-Westfalen"}, {"D-HMT", "Polizei Nordrhein-Westfalen"}, {"D-HAIR", "Polizei Nordrhein-Westfalen"}, {"D-HMV", "Polizei Mecklenburg-Vorpommern"}, {"D-HAY", "Polizei Rheinland-Pfalz"}, {"D-HRP", "Polizei Rheinland-Pfalz"},
                 {"D-HBB", "Polizei Brandenburg"}, {"D-HPN", "Polizei Niedersachsen"}, {"D-HSN", "Polizei Sachsen"}, {"D-HSA", "Polizei Sachsen-Anhalt"}, {"D-HTH", "Polizei Thüringen"}, {"D-HARU", "Polizei Hamburg"},
                 {"D-HVB", "Bundespolizei"}, {"D-HLT", "Bundespolizei"}, {"D-HEG", "Bundespolizei"}};
-        /** Funkrufnamen der Polizeistaffeln (in ADS-B oft abgekürzt, z. B. „EDL1“ = Edelweiss 1) – nur für Hubschrauber */
+        /** Funkrufnamen der Polizeistaffeln (in ADS-B oft abgekürzt, z. B. „EDL1" = Edelweiss 1) – nur für Hubschrauber */
         static final String[][] POL_CALL = {{"IBIS", "Polizei Hessen"}, {"EDL|EDLW|EDELW\\w*|EDW", "Polizei Bayern"}, {"BUS|BUSS|BUSSARD|BUSARD", "Polizei Baden-Württemberg"}, {"HUM|HUMM|HUMMEL", "Polizei Nordrhein-Westfalen"},
                 {"PHX|PHOE|PHOEN|PHOENIX|PHONIX", "Polizei Niedersachsen"}, {"SPE|SPERB|SPERBER", "Polizei Rheinland-Pfalz"}, {"PAS|PASS|PASSAT", "Polizei Sachsen"}, {"IKA|IKAR|IKARUS", "Polizei Sachsen-Anhalt"},
                 {"LIB|LIBE|LIBEL|LIBELLE", "Polizei Hamburg"}, {"MER|MERL|MERLIN", "Polizei Mecklenburg-Vorpommern"}, {"PIR|PIRO|PIROL", "Polizei Berlin"}, {"ADL|ADLER", "Polizei Brandenburg"}, {"PHH|PPH|HBT", "Polizei"}};
@@ -3127,10 +3193,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         static int role(String fl, String op, int dbFlags) {
             String f = fl.toUpperCase(Locale.ROOT), o = op.toUpperCase(Locale.ROOT);
             if (f.startsWith("SAR") || o.contains("SEARCH AND RESCUE") || o.contains("SEENOT")) return 4;
-            // Rettung: „Christoph NN“ sendet in ADS-B „CHX“ + Nummer; dazu Rega (SAZ), Ambulanz-/HEMS-Rufzeichen und Betreiber
+            // Rettung: „Christoph NN" sendet in ADS-B „CHX" + Nummer; dazu Rega (SAZ), Ambulanz-/HEMS-Rufzeichen und Betreiber
             if (f.matches("(CHX|CHRIS|CHRISTO|CHRISTOPH|SAZ|AMB|HEMS|RESQ|RESCUE|ITH)\\d.*") || f.startsWith("CHRISTOPH") || o.contains("OAMTC") || o.contains("ÖAMTC") || o.contains("CHRISTOPHORUS") || o.contains("REGA") || o.contains("FLUGRETTUNG") || o.contains("LUFTRETTUNG") || o.contains("ADAC") || o.contains("DRF ") || o.startsWith("DRF")
                     || o.contains("JOHANNITER") || o.contains("RESCUE") || o.contains("HEMS") || o.contains("AMBULAN") || o.contains("NOTARZT") || o.contains("RETTUNG")) return 1;
-            // Polizei: Staffel-Kürzel und Funkrufnamen der Länder (Hessen „Ibis“, Bayern „Edelweiss“, BW „Bussard“, NRW „Hummel“ …)
+            // Polizei: Staffel-Kürzel und Funkrufnamen der Länder (Hessen „Ibis", Bayern „Edelweiss", BW „Bussard", NRW „Hummel" …)
             if (f.matches("(PHH|PPH|HBT)\\d.*") || f.matches("(IBIS|EDELW\\w*|EDLW\\w*|BUSSARD|BUSARD|HUMMEL|PIROL|LIBELLE|LIBEL|MERLIN|PHOENIX|PHONIX|SPERBER|PASSAT|IKARUS)\\d{0,3}")
                     || o.contains("POLIZEI") || o.contains("POLICE") || o.contains("BUNDESPOLIZEI") || o.contains("POLIS") || o.contains("GENDARM")) return 2;
             if ((dbFlags & 1) != 0 || f.startsWith("GAF") || f.startsWith("GAM") || f.startsWith("RCH") || f.startsWith("GNY") || f.startsWith("NATO") || o.contains("BUNDESWEHR") || o.contains("LUFTWAFFE")
@@ -3152,7 +3218,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 String[] L = (label.getOrDefault(e.getKey(), "") + "||||||").split("\\|", -1);
                 String lb = (L[0] + " " + L[1]).trim(); if (lb.isEmpty()) lb = L[2];
                 int role = 0; try { role = Integer.parseInt(L[5]); } catch (Exception ignored) { }
-                if (role > 0 && !L[6].isEmpty()) lb = L[6] + " · " + (L[0].isEmpty() ? L[2] : L[0]);   // z. B. „Polizei Bayern · EDL1“
+                if (role > 0 && !L[6].isEmpty()) lb = L[6] + " · " + (L[0].isEmpty() ? L[2] : L[0]);   // z. B. „Polizei Bayern · EDL1"
                 sb.append(String.format(Locale.ROOT, "{\"role\":%d,\"op\":%s,", role, JSONObject.quote(L[6])));
                 sb.append(String.format(Locale.ROOT, "\"id\":%s,\"la\":%.5f,\"lo\":%.5f,\"alt\":%s,\"trk\":%.0f,\"kmh\":%.0f,\"vs\":%.1f,\"typ\":%d,\"age\":%d,\"src\":%d,\"lb\":%s,\"fl\":%s,\"tc\":%s,\"reg\":%s,\"desc\":%s,\"hex\":%s}",
                         JSONObject.quote(e.getKey()), v[0], v[1], Double.isNaN(v[2]) ? "null" : String.valueOf(Math.round(v[2])), v[3], v[4], v[5], (int) v[6], (now - (long) v[7]) / 1000, (int) v[8],
@@ -3219,7 +3285,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (tr) { Traffic.watchOn = true; if (!Traffic.uiOn) Traffic.start(la, lo, Math.max(25, km * 4)); } else if (Traffic.watchOn) { Traffic.watchOn = false; Traffic.stopIfIdle(); }
             double g = Elev.cached(la, lo); if (Double.isNaN(g)) g = Double.isNaN(Traffic.ground) ? c.optDouble("elev", Double.NaN) : Traffic.ground;
             long now = System.currentTimeMillis(); java.util.Set<String> inZone = new java.util.HashSet<>();
-            double bD = 1e9, bBrg = 0; String bKey = null, bT = "", bS = ""; int nT = 0; boolean fresh = false;
+            double bD = 1e9, bBrg = 0; String bKey = null, bT = "", bS = ""; int nT = 0; boolean fresh = false, nearHit = false;
+            double nearKm = c.optDouble("tNear", 1.5);
             // Mit Warnfenster über allen Apps keine Einträge in der Benachrichtigungszentrale – Fenster + Warnton reichen
             noNotif = c.optBoolean("ovl", true) && (Build.VERSION.SDK_INT < 23 || android.provider.Settings.canDrawOverlays(this)); List<double[]> tg = new ArrayList<>();   // Radar: {Peilung, Anteil am Umkreis, Kurs, Art 0 Flz/1 Hubschr./2 Drohne}
             for (Map.Entry<String, double[]> e : tr ? Traffic.ac.entrySet() : Collections.<Map.Entry<String, double[]>>emptySet()) {
@@ -3247,6 +3314,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         (Double.isNaN(agl) ? "Höhe unbekannt" : "ca. " + Math.round(Math.max(0, agl)) + " m über Grund") + (v[4] > 0 ? " · " + Math.round(v[4]) + " km/h" : "") + (lb.isEmpty() ? "" : " · " + lb)
                         + ". Luftraum beobachten, Drohne tief halten bzw. landen.");
                 nT++; tg.add(new double[]{Math.toDegrees(Math.atan2(dx, dy)), Math.min(1, d / km), v[3], typ == 3 ? 1 : 0, 0});
+                if (closing(e.getKey(), d, nearKm)) nearHit = true;   // Nahbereich und kommt (noch) näher: Daueralarm
                 if (d < bD && !ovlMuted(e.getKey())) { bD = d; bKey = e.getKey(); bBrg = Math.toDegrees(Math.atan2(dx, dy));
                     bT = art + " · " + f1(d) + " km" + (near ? " · kommt näher" : "");
                     bS = (Double.isNaN(agl) ? "Höhe unbekannt" : "ca. " + Math.round(Math.max(0, agl)) + " m über Grund") + (v[4] > 0 ? " · " + Math.round(v[4]) + " km/h" : "") + (lb.isEmpty() ? "" : " · " + lb); }
@@ -3269,6 +3337,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     trafNotify(id, CH_TRAF[Math.max(0, Math.min(2, c.optInt("tSnd", 1)))], "🛸 Andere Drohne " + (d < 1 ? Math.round(d * 1000) + " m" : f1(d) + " km") + " " + dir(Math.toDegrees(Math.atan2(dx, dy))) + (near ? " – kommt näher" : ""),
                             hs + (v[5] > 0 ? " · " + Math.round(v[5] * 3.6) + " km/h" : "") + ". Abstimmen bzw. Abstand halten.");
                     nT++; tg.add(new double[]{Math.toDegrees(Math.atan2(dx, dy)), Math.min(1, d / rKm), -1, 2, 0});
+                    if (closing(k, d, Math.min(0.3, nearKm))) nearHit = true;   // andere Drohne näher als 300 m und kommt näher
                     if (d < bD && !ovlMuted(k)) { bD = d; bKey = k; bBrg = Math.toDegrees(Math.atan2(dx, dy));
                         bT = "Andere Drohne · " + (d < 1 ? Math.round(d * 1000) + " m" : f1(d) + " km") + (near ? " · kommt näher" : "");
                         bS = hs + (v[5] > 0 ? " · " + Math.round(v[5] * 3.6) + " km/h" : ""); }
@@ -3276,7 +3345,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             } else if (Rid.watchOn) { Rid.watchOn = false; Rid.stopIfIdle(); }
             // Warnfenster über allen Apps (wenn erlaubt und die App nicht selbst vorne ist – dort zeigt sie ihren eigenen Pfeil)
             for (double[] t : tg) if (Math.abs(t[0] - bBrg) < 1e-9) t[4] = 1;   // nächster = hervorgehoben
-            if (fresh) beep(c.optInt("tSnd", 1));   // neu im Warnbereich: eigener, gut hörbarer Ton (unabhängig von den Benachrichtigungs-Einstellungen)
+            nearAlarm(nearHit);
+            if (fresh && !nearHit) beep(c.optInt("tSnd", 1));   // neu im Warnbereich: eigener, gut hörbarer Ton (unabhängig von den Benachrichtigungs-Einstellungen)
             if (bKey != null && c.optBoolean("ovl", true) && !appFg) ovlShow(bKey, bT, bS + (nT > 1 ? " · +" + (nT - 1) + " weitere" : ""), tg, la, lo);
             else ovlHide();
             // aus dem Bereich heraus (oder keine Meldung mehr seit 60 s): Benachrichtigung entfernen
@@ -3287,19 +3357,33 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         final Map<String, Integer> trafActive = new HashMap<>();
         long lastBeep;
+        /** kleinste bisher gemessene Entfernung je Luftfahrzeug – daran erkennt man, ob es den nächsten Punkt schon passiert hat */
+        final Map<String, Double> minD = new HashMap<>();
+        boolean closing(String key, double d, double nearKm) {
+            if (nearKm <= 0 || d > nearKm) { minD.remove(key); return false; }   // außerhalb des Nahbereichs: von vorn
+            Double m = minD.get(key);
+            if (m == null || d < m) { minD.put(key, d); return true; }   // kommt näher (oder gerade erst erfasst)
+            return d <= m + 0.1;   // nächster Punkt passiert: sobald es sich wieder > 100 m entfernt, Alarm aus
+        }
+        static volatile long nearMuteUntil; volatile boolean nearOn; Thread nearTh;
+        /** Daueralarm, solange ein Luftfahrzeug im Nahbereich ist (auch bei Warnton „Aus" – hier geht es um Sicherheit); „Stumm" im Warnfenster/in der App für 60 s */
+            void nearAlarm(boolean on) {
+            nearOn = on;
+            if (on && (nearTh == null || !nearTh.isAlive())) {
+                nearTh = new Thread(() -> {   // Daueralarm: Wechselton, kurze Pause, wieder – bis vorbei oder stumm
+                    try { while (nearOn && th != null) { if (System.currentTimeMillis() > nearMuteUntil) siren(3); Thread.sleep(600); } } catch (Exception ignored) { }
+                });
+                nearTh.start();
+            }
+            ovlNear = on;
+        }
         /** Warnton über den Wecker-Lautstärkekanal: 1 = zwei kurze Töne, 2 = Alarm (ca. 3 s) */
         void beep(int snd) {
             if (snd <= 0 || System.currentTimeMillis() - lastBeep < 4000) return; lastBeep = System.currentTimeMillis();
-            new Thread(() -> {
-                android.media.ToneGenerator tg = null;
-                try {
-                    tg = new android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100);
-                    if (snd >= 2) { for (int i = 0; i < 3; i++) { tg.startTone(android.media.ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 900); Thread.sleep(1000); } }
-                    else { tg.startTone(android.media.ToneGenerator.TONE_PROP_BEEP2, 400); Thread.sleep(700); tg.startTone(android.media.ToneGenerator.TONE_PROP_BEEP2, 400); Thread.sleep(600); }
-                } catch (Exception ignored) { } finally { if (tg != null) try { tg.release(); } catch (Exception ignored) { } }
-            }).start();
+            new Thread(() -> siren(snd >= 2 ? 2 : 1)).start();
         }
-        // ---------- Warnfenster über allen Apps (Berechtigung „Über anderen Apps einblenden“) ----------
+        // ---------- Warnfenster über allen Apps (Berechtigung „Über anderen Apps einblenden") ----------
+        volatile boolean ovlNear; android.widget.TextView ovlX; android.graphics.drawable.GradientDrawable ovlBg;
         android.view.View ovl; android.widget.TextView ovlT, ovlS, ovlH; ArrowView ovlA; String ovlKey; final Map<String, Long> ovlMute = new java.util.concurrent.ConcurrentHashMap<>();
         volatile double hdg = Double.NaN; android.hardware.SensorEventListener sens; float decl = 2.5f;
         boolean ovlMuted(String k) { Long t = ovlMute.get(k); return t != null && System.currentTimeMillis() - t < 3 * 60000L; }
@@ -3350,7 +3434,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         col.addView(ovlT); col.addView(ovlS); col.addView(ovlH);
                         row.addView(col, new android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1));
                         android.widget.TextView x = new android.widget.TextView(this); x.setText("✕"); x.setTextColor(0xFF9FB0C0); x.setTextSize(22); x.setPadding((int) dp(12), (int) dp(4), (int) dp(10), (int) dp(4));
-                        x.setOnClickListener(v -> { if (ovlKey != null) ovlMute.put(ovlKey, System.currentTimeMillis()); ovlHide(); });
+                        x.setOnClickListener(v -> { if (ovlNear) { nearMuteUntil = System.currentTimeMillis() + 60000; ovlUpd(); return; }   // Nahbereich: nur Ton 60 s stumm, Fenster bleibt
+                            if (ovlKey != null) ovlMute.put(ovlKey, System.currentTimeMillis()); ovlHide(); });
+                        ovlX = x; ovlBg = bg;
                         row.addView(x);
                         row.setOnClickListener(v -> { try { openApp(this).send(); } catch (Exception ignored) { } ovlHide(); });
                         android.view.WindowManager.LayoutParams lp = new android.view.WindowManager.LayoutParams(
@@ -3361,13 +3447,15 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         ((android.view.WindowManager) getSystemService(WINDOW_SERVICE)).addView(row, lp); ovl = row;
                         sensOn();
                     }
-                    ovlT.setText("⚠ " + t); ovlS.setText(sub); ovlUpd();
+                    ovlT.setText((ovlNear ? "‼ NAH – KOMMT NÄHER: " : "⚠ ") + t); ovlS.setText(sub); ovlUpd();
                 } catch (Exception ignored) { ovl = null; }
             });
         }
         void ovlUpd() {
             if (ovlA == null) return;
             boolean c = !Double.isNaN(hdg); ovlA.compass = c; ovlA.hd = c ? hdg : 0; ovlA.tg = ovlTg; ovlA.invalidate();
+            if (ovlBg != null) { ovlBg.setColor(ovlNear ? 0xF0B3131B : 0xF015202B); ovlBg.setStroke((int) dp(ovlNear ? 4 : 2), ovlNear ? 0xFFFFFFFF : 0xFFFFD000); }
+            if (ovlX != null) ovlX.setText(ovlNear ? (System.currentTimeMillis() < nearMuteUntil ? "🔇" : "🔊✕") : "✕");
             if (ovlH != null) ovlH.setText("Radar: Rand = Warnumkreis · " + (c ? "oben = deine Blickrichtung" : "kein Kompass – oben = Norden") + " · antippen öffnet die App");
         }
         void ovlHide() {
@@ -3406,7 +3494,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         void sensOff() { try { if (sens != null) ((android.hardware.SensorManager) getSystemService(SENSOR_SERVICE)).unregisterListener(sens); } catch (Exception ignored) { } sens = null; hdg = Double.NaN; }
         void trafCancel(int id) { try { ((android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(id); } catch (Exception ignored) { } }
-        void trafClearAll() { for (int id : trafActive.values()) trafCancel(id); trafActive.clear(); ovlHide(); }
+        void trafClearAll() { for (int id : trafActive.values()) trafCancel(id); trafActive.clear(); ovlHide(); nearOn = false; minD.clear(); }
         @SuppressWarnings("deprecation")
         volatile boolean noNotif;
         void trafNotify(int id, String ch, String title, String text) {
@@ -3425,7 +3513,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             sent.put(key, now);
             alert(this, 1000 + Math.abs(key.hashCode() % 500), title, text, ch);
         }
-        /** Einmal melden – dieselbe Warnung frühestens nach „pause“ wieder */
+        /** Einmal melden – dieselbe Warnung frühestens nach „pause" wieder */
         void once(Map<String, Long> sent, String key, String title, String text, long pause) {
             long now = System.currentTimeMillis(); Long t = sent.get(key);
             if (t != null && now - t < pause) return;
@@ -3509,7 +3597,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private static final String GF = "https://download.geofabrik.de/europe/germany/";
     private final Object pbfLock = new Object();
     private volatile String pbfWait = null;   // Hinweis, wenn der große Download aufs WLAN wartet
-    private volatile boolean pbfForceOnce = false;   // „Neu holen“: großen Download auch über mobile Daten erlauben
+    private volatile boolean pbfForceOnce = false;   // „Neu holen": großen Download auch über mobile Daten erlauben
     private File pbfDir() { File d = new File(dataDir(), isExt() ? "OSM-Rohdaten" : "osmraw"); d.mkdirs(); return d; }
     private File pbfFile(String path) { return new File(pbfDir(), path.replace('/', '_') + ".osm.pbf"); }
     @SuppressWarnings("deprecation")
@@ -3967,7 +4055,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private android.widget.TextView pageTitle;
     @SuppressLint("SetJavaScriptEnabled")
     private android.view.View pageExt;
-    /** heller, abgerundeter Knopf wie „Zurück zur Karte“ in der App */
+    /** heller, abgerundeter Knopf wie „Zurück zur Karte" in der App */
     private android.widget.TextView pillButton(String t, float dp) {
         android.widget.TextView b = new android.widget.TextView(this);
         b.setText(t); b.setTextSize(16); b.setTextColor(0xff0b63c5); b.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
@@ -3981,7 +4069,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             pageBox = new android.widget.LinearLayout(this);
             pageBox.setOrientation(android.widget.LinearLayout.VERTICAL);
             pageBox.setBackgroundColor(0xffffffff);
-            // Kopfleiste wie in der App: Logo, Titel, rechts „Zurück zur App“ (hell, abgerundet)
+            // Kopfleiste wie in der App: Logo, Titel, rechts „Zurück zur App" (hell, abgerundet)
             android.widget.LinearLayout bar = new android.widget.LinearLayout(this);
             bar.setOrientation(android.widget.LinearLayout.HORIZONTAL);
             bar.setGravity(android.view.Gravity.CENTER_VERTICAL);
@@ -4023,7 +4111,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 public void onPageFinished(WebView v, String u) {
                     if (pageTitle == null) return;
                     String h = Uri.parse(u).getHost(), t = v.getTitle();
-                    if (h != null && (h.contains("flightradar24") || h.contains("adsb.lol") || h.contains("airplanes.live"))) {   // Flugradar: kurzer Titel, z. B. „Flugradar · D-HHEB“
+                    if (h != null && (h.contains("flightradar24") || h.contains("adsb.lol") || h.contains("airplanes.live"))) {   // Flugradar: kurzer Titel, z. B. „Flugradar · D-HHEB"
                         String k = t == null ? "" : t.split(" - | \\| ")[0].trim(); pageTitle.setText("Flugradar" + (k.isEmpty() || k.length() > 24 || k.toLowerCase(Locale.ROOT).contains("flightradar") ? "" : " · " + k));
                     } else pageTitle.setText(t != null && !t.isEmpty() ? t : u);
                 }
@@ -4036,7 +4124,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         pageBox.bringToFront();
         if (isPdfUrl(url)) { showPdf(url); return; }
         pdfUrl = null;
-        // Flugradar-Seiten (Flightradar24, adsb.lol): ohne „Im Browser“ – bleibt alles in der App
+        // Flugradar-Seiten (Flightradar24, adsb.lol): ohne „Im Browser" – bleibt alles in der App
         String host = Uri.parse(url).getHost(); boolean radar = host != null && (host.contains("flightradar24") || host.contains("adsb.lol") || host.contains("airplanes.live"));
         if (pageExt != null) pageExt.setVisibility(radar ? android.view.View.GONE : android.view.View.VISIBLE);
         pageTitle.setText(radar ? "Flugradar" : url);
@@ -4111,13 +4199,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         try { pageWeb.loadUrl("about:blank"); pageWeb.clearHistory(); } catch (Exception ignored) { }
     }
     // ---------- Ablage der heruntergeladenen Daten (Karten, Geozonen, Wetter …) ----------
-    // Sobald die Speicher-Freigabe da ist, liegen sie im Ordner „Kitzrettung Cache“ im internen Speicher (neben „UAV-Editor“) –
+    // Sobald die Speicher-Freigabe da ist, liegen sie im Ordner „Kitzrettung Cache" im internen Speicher (neben „UAV-Editor") –
     // so bleiben sie auch bei Neuinstallation der App erhalten. Vorher (und bis zum Umzug) im App-eigenen Speicher.
     private volatile File dataDirCache = null;
     private File extDataDir() { return new File(Environment.getExternalStorageDirectory(), "Kitzrettung Cache"); }
     private File dataDir() {
         File c = dataDirCache; if (c != null) return c;
-        // Sobald Dateizugriff da ist, IMMER „Kitzrettung Cache“ – auch direkt nach Neuinstallation/Update, wenn der Umzugs-Merker fehlt.
+        // Sobald Dateizugriff da ist, IMMER „Kitzrettung Cache" – auch direkt nach Neuinstallation/Update, wenn der Umzugs-Merker fehlt.
         // Alte Reste im App-Speicher zieht dataMigrate() nach.
         if (prefs != null && hasFileAccess()) {
             File e = extDataDir();
@@ -4125,7 +4213,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         return super.getFilesDir();
     }
-    /** Wohin eine Datei aus dem App-Speicher im Ordner „Kitzrettung Cache“ kommt */
+    /** Wohin eine Datei aus dem App-Speicher im Ordner „Kitzrettung Cache" kommt */
     private static String migTarget(String rel) {
         rel = rel.replace('\\', '/');
         if (rel.startsWith("tiles/")) { String k = rel.substring(6); return tileCat(k) + "/" + k; }
@@ -4134,7 +4222,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return "Sonstiges/" + rel;
     }
     private volatile boolean dataMoving = false;
-    /** Einmaliger Umzug der Daten in „Kitzrettung Cache“ (im Hintergrund, Datei für Datei, setzt nach Abbruch fort) */
+    /** Einmaliger Umzug der Daten in „Kitzrettung Cache" (im Hintergrund, Datei für Datei, setzt nach Abbruch fort) */
     private void dataMigrate() {
         if (dataMoving || prefs.getBoolean("data_ext_done", false) || !hasFileAccess()) return;
         dataMoving = true;
@@ -4219,7 +4307,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         while (!st.isEmpty()) { File[] fs = st.pop().listFiles(); if (fs == null) continue;
             for (File x : fs) { if (x.isDirectory()) st.push(x); else { r[0] += x.length(); r[1]++; } } }
     }
-    // Versions-Merker liegt IM Cache-Ordner („Versionen.json“) – bleibt bei Neuinstallation erhalten und wird bei jedem Start schnell verglichen
+    // Versions-Merker liegt IM Cache-Ordner („Versionen.json") – bleibt bei Neuinstallation erhalten und wird bei jedem Start schnell verglichen
     private volatile boolean cacheCounting = false, cacheCountAgain = false;
     private File cacheCountFile() { return new File(dataDir(), "Sonstiges/speicherstand.json"); }
     /** Alle Bereiche zählen; nach jedem Bereich Zwischenstand an die App – Fehler in einem Bereich halten den Rest nicht auf */
@@ -4237,7 +4325,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 JSONObject m = marks.optJSONObject(c[0]);
                 out.put(new JSONObject().put("id", c[0]).put("name", c[1]).put("bytes", r[0]).put("files", r[1]).put("ver", CACHE_VER.getOrDefault(c[0], 1))
                         .put("have", m != null ? m.optInt("ver", 0) : 0).put("t", m != null ? m.optLong("t", 0) : 0).put("st", catStatus.containsKey(c[0]) ? catStatus.get(c[0]) : ""));
-                // Zwischenstand: schon gezählte Bereiche neu, der Rest vom letzten Mal (markiert als „zählt noch“)
+                // Zwischenstand: schon gezählte Bereiche neu, der Rest vom letzten Mal (markiert als „zählt noch")
                 JSONArray show = new JSONArray(out.toString());
                 JSONArray pl = prev != null ? prev.optJSONArray("list") : null;
                 for (int k = i + 1; k < CACHE_CATS.length; k++) {
@@ -4281,7 +4369,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         try { JSONObject m = cacheMarks(); m.put(id, new JSONObject().put("ver", CACHE_VER.getOrDefault(id, 1)).put("t", System.currentTimeMillis()).put("app", appVer())); writeFileAtomic(cacheMarkFile(), m.toString(1)); } catch (Exception ignored) { }
     }
     private File tileDir() { return new File(dataDir(), "tiles"); }   // nur App-Speicher (alte Ablage)
-    // Ordnung im Ordner „Kitzrettung Cache“: je Art ein eigener Unterordner
+    // Ordnung im Ordner „Kitzrettung Cache": je Art ein eigener Unterordner
     private static final Map<String, String> DATA_CAT = new HashMap<>();
     static {
         String[][] m = {{"mastr_wind.json", "Windraeder"}, {"field_outlines.json", "Wiesen"}, {"field_outlines_kmz.json", "Wiesen"}, {"osm_power.json", "Hindernisse"},
@@ -4295,7 +4383,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (key.equals("dop3") || key.equals("sat") || key.startsWith("dop3/") || key.startsWith("sat/")) return "Luftbild";
         return "Karte";
     }
-    /** Kachel-Datei zu einem Schlüssel wie „bmg/14/8600/5500.png“ */
+    /** Kachel-Datei zu einem Schlüssel wie „bmg/14/8600/5500.png" */
     private File tileFile(String key) { return isExt() ? new File(dataDir(), tileCat(key) + "/" + key) : new File(tileDir(), key); }
     /** Alle Ordner mit Kacheln (für Größe, Aufräumen, Leeren) */
     private File[] tileRoots() { return isExt() ? new File[]{new File(dataDir(), "Karte"), new File(dataDir(), "Luftbild"), new File(dataDir(), "Geozonen/Kacheln")} : new File[]{tileDir()}; }
@@ -4626,7 +4714,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     }
                 } else for (int li = 0; li < layers.length(); li++) for (int[] t : list) work.add(new Object[]{layers.getString(li), t});
                 cnt[3] = work.size();
-                // Fortschritt je Datenbereich (für die Liste „Offline-Daten“ in den Einstellungen)
+                // Fortschritt je Datenbereich (für die Liste „Offline-Daten" in den Einstellungen)
                 java.util.LinkedHashMap<String, int[]> pc = new java.util.LinkedHashMap<>();
                 for (Object[] w : work) { String c = pfCat((String) w[0]); int[] a = pc.get(c); if (a == null) pc.put(c, a = new int[3]); a[0]++; }
                 pfCats = pc; pfCur = null;
@@ -4680,7 +4768,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     private volatile Map<String, int[]> pfCats = new HashMap<>();
-    /** Lade-Status der Datenbereiche (Feldwege, Hindernisse, Orte …): „load“, „ok“ oder Fehlertext – für die Liste „Offline-Daten“ */
+    /** Lade-Status der Datenbereiche (Feldwege, Hindernisse, Orte …): „load", „ok" oder Fehlertext – für die Liste „Offline-Daten" */
     private final Map<String, String> catStatus = new java.util.concurrent.ConcurrentHashMap<>();
     private void catSt(String id, String st) {
         catStatus.put(id, st == null ? "Fehler" : st);
@@ -5030,7 +5118,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         m.appendTail(sb);
         return sb.toString().replaceAll("[ \\t\\u00a0]+", " ").replaceAll("(; )+", "; ").trim().replaceAll("^;\\s*|;\\s*$", "");
     }
-    /** „50.39.39 N“ → 50.6608 */
+    /** „50.39.39 N" → 50.6608 */
     private static double dms(String v) {
         try {
             Matcher m = Pattern.compile("(\\d+)[.° ]+(\\d+)[.' ]+(\\d+(?:[.,]\\d+)?)\\D*([NSEOW])?").matcher(v.trim());
@@ -5492,12 +5580,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         try { lfaSync(false); } catch (Exception ignored) { }
         try {
             if (!force && System.currentTimeMillis() - prefs.getLong("notam_fetched", 0) < 3600000L && notamFile().isFile()) return;
-            // 1. Wahl: dipul-Dienst „affectedAreas“ (mit Aktivierungszeiten, Höhen, Kreisen); bei Fehler: WFS-Ebenen wie bisher
+            // 1. Wahl: dipul-Dienst „affectedAreas" (mit Aktivierungszeiten, Höhen, Kreisen); bei Fehler: WFS-Ebenen wie bisher
             try {
                 JSONArray areas = dipulAffectedAreas();
                 if (areas != null) {
                     JSONObject data = new JSONObject().put("areas", areas).put("src", "api");
-                    // dipul-Ebene „temporäre Betriebseinschränkungen“ (ganz Deutschland) dazu – die App ordnet die Flächen den Einträgen zu
+                    // dipul-Ebene „temporäre Betriebseinschränkungen" (ganz Deutschland) dazu – die App ordnet die Flächen den Einträgen zu
                     JSONObject wfs = new JSONObject();
                     for (String layer : new String[]{"temporaere_betriebseinschraenkungen", "inaktive_temporaere_betriebseinschraenkungen"}) {
                         try { JSONArray fs = notamWfs(layer); if (fs != null) wfs.put(layer, fs); } catch (Exception ignored) { }
@@ -5744,7 +5832,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             JSONObject b = new JSONObject(areaJson);
             double n = b.getDouble("n"), s = b.getDouble("s"), e = b.getDouble("e"), w = b.getDouble("w");
             final double fn = n, fs = s, fe = e, fw = w;
-            if (!b.optBoolean("onlyZones")) new Thread(() -> {   // „Geozonen neu holen“: nur die Zonendaten, nichts anderes
+            if (!b.optBoolean("onlyZones")) new Thread(() -> {   // „Geozonen neu holen": nur die Zonendaten, nichts anderes
                 regionSync(fn, fs, fe, fw, force);
                 js("window.onRegions && window.onRegions()");
                 osmSync(fn, fs, fe, fw, force);   // zuerst: liefert aus der Geofabrik-Datei auch Orte und Flugplätze
@@ -5758,7 +5846,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 js("window.onAirfields && window.onAirfields()");
             }).start();
 
-            // „Einsatzgebiet speichern“: Zonendaten für das ganze Einsatzgebiet (wie das Kartenbild), nicht nur direkt um die Wiesen
+            // „Einsatzgebiet speichern": Zonendaten für das ganze Einsatzgebiet (wie das Kartenbild), nicht nur direkt um die Wiesen
             final double sn = n, ss = s, se = e, sw = w;   // engeres Gebiet: für Wohngrundstücke (sehr viele kleine Flächen)
             JSONObject vec = b.optJSONObject("vec");
             if (vec != null) { n = Math.max(n, vec.getDouble("n")); s = Math.min(s, vec.getDouble("s")); e = Math.max(e, vec.getDouble("e")); w = Math.min(w, vec.getDouble("w")); }
