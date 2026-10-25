@@ -3048,7 +3048,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (tr) { Traffic.watchOn = true; Traffic.start(la, lo, Math.max(25, km * 4)); } else if (Traffic.watchOn) { Traffic.watchOn = false; Traffic.stopIfIdle(); }
             double g = Elev.cached(la, lo); if (Double.isNaN(g)) g = Double.isNaN(Traffic.ground) ? c.optDouble("elev", Double.NaN) : Traffic.ground;
             long now = System.currentTimeMillis(); java.util.Set<String> inZone = new java.util.HashSet<>();
-            double bD = 1e9, bBrg = 0; String bKey = null, bT = "", bS = ""; int nT = 0;
+            double bD = 1e9, bBrg = 0; String bKey = null, bT = "", bS = ""; int nT = 0; List<double[]> tg = new ArrayList<>();   // Radar: {Peilung, Anteil am Umkreis, Kurs, Art 0 Flz/1 Hubschr./2 Drohne}
             for (Map.Entry<String, double[]> e : tr ? Traffic.ac.entrySet() : Collections.<Map.Entry<String, double[]>>emptySet()) {
                 double[] v = e.getValue(); if (now - (long) v[7] > 60000) continue;
                 double dy = (v[0] - la) * 111.2, dx = (v[1] - lo) * 111.2 * Math.cos(Math.toRadians(la)), d = Math.hypot(dx, dy);
@@ -3071,7 +3071,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 trafNotify(id, CH_TRAF[Math.max(0, Math.min(2, c.optInt("tSnd", 1)))], (typ == 3 ? "🚁 " : "✈ ") + art + " " + f1(d) + " km " + dir + (near ? " – kommt näher" : ""),
                         (Double.isNaN(agl) ? "Höhe unbekannt" : "ca. " + Math.round(Math.max(0, agl)) + " m über Grund") + (v[4] > 0 ? " · " + Math.round(v[4]) + " km/h" : "") + (lb.isEmpty() ? "" : " · " + lb)
                         + ". Luftraum beobachten, Drohne tief halten bzw. landen.");
-                nT++;
+                nT++; tg.add(new double[]{Math.toDegrees(Math.atan2(dx, dy)), Math.min(1, d / km), v[3], typ == 3 ? 1 : 0, 0});
                 if (d < bD && !ovlMuted(e.getKey())) { bD = d; bKey = e.getKey(); bBrg = Math.toDegrees(Math.atan2(dx, dy));
                     bT = art + " · " + f1(d) + " km" + (near ? " · kommt näher" : "");
                     bS = (Double.isNaN(agl) ? "Höhe unbekannt" : "ca. " + Math.round(Math.max(0, agl)) + " m über Grund") + (v[4] > 0 ? " · " + Math.round(v[4]) + " km/h" : "") + (lb.isEmpty() ? "" : " · " + lb); }
@@ -3092,14 +3092,15 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     String hs = Double.isNaN(v[3]) ? "Höhe unbekannt" : "ca. " + Math.round(v[3]) + " m über " + (v[4] == 1 ? "Grund" : "ihrem Startpunkt");
                     trafNotify(id, CH_TRAF[Math.max(0, Math.min(2, c.optInt("tSnd", 1)))], "🛸 Andere Drohne " + (d < 1 ? Math.round(d * 1000) + " m" : f1(d) + " km") + " " + dir(Math.toDegrees(Math.atan2(dx, dy))) + (near ? " – kommt näher" : ""),
                             hs + (v[5] > 0 ? " · " + Math.round(v[5] * 3.6) + " km/h" : "") + ". Abstimmen bzw. Abstand halten.");
-                    nT++;
+                    nT++; tg.add(new double[]{Math.toDegrees(Math.atan2(dx, dy)), Math.min(1, d / rKm), -1, 2, 0});
                     if (d < bD && !ovlMuted(k)) { bD = d; bKey = k; bBrg = Math.toDegrees(Math.atan2(dx, dy));
                         bT = "Andere Drohne · " + (d < 1 ? Math.round(d * 1000) + " m" : f1(d) + " km") + (near ? " · kommt näher" : "");
                         bS = hs + (v[5] > 0 ? " · " + Math.round(v[5] * 3.6) + " km/h" : ""); }
                 }
             } else if (Rid.watchOn) { Rid.watchOn = false; Rid.stopIfIdle(); }
             // Warnfenster über allen Apps (wenn erlaubt und die App nicht selbst vorne ist – dort zeigt sie ihren eigenen Pfeil)
-            if (bKey != null && c.optBoolean("ovl", true) && !appFg) ovlShow(bKey, bT, bS + (nT > 1 ? " · +" + (nT - 1) + " weitere" : ""), bBrg, la, lo);
+            for (double[] t : tg) if (Math.abs(t[0] - bBrg) < 1e-9) t[4] = 1;   // nächster = hervorgehoben
+            if (bKey != null && c.optBoolean("ovl", true) && !appFg) ovlShow(bKey, bT, bS + (nT > 1 ? " · +" + (nT - 1) + " weitere" : ""), tg, la, lo);
             else ovlHide();
             // aus dem Bereich heraus (oder keine Meldung mehr seit 60 s): Benachrichtigung entfernen
             for (java.util.Iterator<Map.Entry<String, Integer>> it = trafActive.entrySet().iterator(); it.hasNext(); ) {
@@ -3110,25 +3111,40 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         final Map<String, Integer> trafActive = new HashMap<>();
         // ---------- Warnfenster über allen Apps (Berechtigung „Über anderen Apps einblenden“) ----------
         android.view.View ovl; android.widget.TextView ovlT, ovlS, ovlH; ArrowView ovlA; String ovlKey; final Map<String, Long> ovlMute = new java.util.concurrent.ConcurrentHashMap<>();
-        volatile double ovlBrg, hdg = Double.NaN; android.hardware.SensorEventListener sens; float decl = 2.5f;
+        volatile double hdg = Double.NaN; android.hardware.SensorEventListener sens; float decl = 2.5f;
         boolean ovlMuted(String k) { Long t = ovlMute.get(k); return t != null && System.currentTimeMillis() - t < 3 * 60000L; }
+        /** kleines Radar: Mitte = RC, oben = Blickrichtung (mit Kompass) bzw. Norden, Rand = Warnumkreis */
         static class ArrowView extends android.view.View {
-            float rot; boolean compass; final android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG); final android.graphics.Path a = new android.graphics.Path();
+            volatile List<double[]> tg = new ArrayList<>(); volatile double hd; boolean compass;
+            final android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG); final android.graphics.Path a = new android.graphics.Path();
             ArrowView(Context c) { super(c); }
             @Override protected void onDraw(android.graphics.Canvas cv) {
-                float w = getWidth(), h = getHeight(), r = Math.min(w, h) / 2f;
-                p.setStyle(android.graphics.Paint.Style.FILL); p.setColor(0xFF15202B); cv.drawCircle(w / 2, h / 2, r, p);
-                cv.save(); cv.rotate(rot, w / 2, h / 2);
-                a.reset(); a.moveTo(w / 2, h / 2 - r * .8f); a.lineTo(w / 2 + r * .48f, h / 2 + r * .3f); a.lineTo(w / 2, h / 2); a.lineTo(w / 2 - r * .48f, h / 2 + r * .3f); a.close();
-                p.setColor(0xFFFFD000); cv.drawPath(a, p); p.setStyle(android.graphics.Paint.Style.STROKE); p.setStrokeWidth(r * .07f); p.setColor(0xFFFFFFFF); cv.drawPath(a, p);
-                cv.restore();
-                if (!compass) { p.setStyle(android.graphics.Paint.Style.FILL); p.setColor(0xFFFFFFFF); p.setTextSize(r * .42f); p.setTextAlign(android.graphics.Paint.Align.CENTER); cv.drawText("N↑", w / 2, h - r * .12f, p); }
+                float w = getWidth(), c = w / 2f, R = c - w * .04f;
+                p.setStyle(android.graphics.Paint.Style.FILL); p.setColor(0xFF0D1720); cv.drawCircle(c, c, c, p);
+                p.setStyle(android.graphics.Paint.Style.STROKE); p.setStrokeWidth(w * .012f); p.setColor(0x8CFFD000); cv.drawCircle(c, c, R, p);
+                p.setColor(0x2EFFFFFF); cv.drawCircle(c, c, (float) (R * Math.sqrt(.5)), p); cv.drawLine(c - R, c, c + R, c, p); cv.drawLine(c, c - R, c, c + R, p);
+                double nr = Math.toRadians(-hd);
+                p.setStyle(android.graphics.Paint.Style.FILL); p.setColor(0xFFFF5252); p.setTextSize(w * .12f); p.setTextAlign(android.graphics.Paint.Align.CENTER); p.setFakeBoldText(true);
+                cv.drawText("N", (float) (c + Math.sin(nr) * (R - w * .08f)), (float) (c - Math.cos(nr) * (R - w * .08f)) + w * .04f, p);
+                a.reset(); a.moveTo(c, c - w * .065f); a.lineTo(c + w * .045f, c + w * .045f); a.lineTo(c, c + w * .018f); a.lineTo(c - w * .045f, c + w * .045f); a.close(); p.setColor(0xFF4DA3FF); cv.drawPath(a, p);
+                for (double[] t : tg) {
+                    double r = Math.toRadians(t[0] - hd), rr = Math.max(w * .1, Math.sqrt(t[1]) * R);
+                    float x = (float) (c + Math.sin(r) * rr), y = (float) (c - Math.cos(r) * rr), s = w * (t[4] == 1 ? .075f : .055f);
+                    cv.save(); cv.translate(x, y);
+                    if (t[4] == 1) { p.setStyle(android.graphics.Paint.Style.STROKE); p.setColor(0xFFFFFFFF); p.setStrokeWidth(w * .012f); cv.drawCircle(0, 0, s * 1.6f, p); }
+                    p.setStyle(android.graphics.Paint.Style.FILL); p.setColor(0xFFFFD000);
+                    if (t[3] == 1) { cv.drawCircle(0, 0, s * .6f, p); p.setStyle(android.graphics.Paint.Style.STROKE); p.setStrokeWidth(w * .012f); cv.drawLine(-s, -s, s, s, p); cv.drawLine(-s, s, s, -s, p); }   // Hubschrauber
+                    else if (t[3] == 2) { cv.drawRect(-s * .6f, -s * .6f, s * .6f, s * .6f, p); }   // Drohne
+                    else { if (t[2] >= 0) cv.rotate((float) (t[2] - hd)); a.reset(); a.moveTo(0, -s); a.lineTo(s * .75f, s * .8f); a.lineTo(0, s * .35f); a.lineTo(-s * .75f, s * .8f); a.close(); cv.drawPath(a, p); }
+                    cv.restore();
+                }
             }
         }
         float dp(float v) { return v * getResources().getDisplayMetrics().density; }
-        void ovlShow(String key, String t, String sub, double brg, double la, double lo) {
+        volatile List<double[]> ovlTg = new ArrayList<>();
+        void ovlShow(String key, String t, String sub, List<double[]> tg, double la, double lo) {
             if (Build.VERSION.SDK_INT >= 23 && !android.provider.Settings.canDrawOverlays(this)) return;
-            ovlBrg = (brg + 360) % 360; ovlKey = key;
+            ovlTg = tg; ovlKey = key;
             try { decl = new android.hardware.GeomagneticField((float) la, (float) lo, 0, System.currentTimeMillis()).getDeclination(); } catch (Exception ignored) { }
             new android.os.Handler(Looper.getMainLooper()).post(() -> {
                 try {
@@ -3136,7 +3152,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         android.widget.LinearLayout row = new android.widget.LinearLayout(this); row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
                         row.setGravity(android.view.Gravity.CENTER_VERTICAL); int pd = (int) dp(10); row.setPadding(pd, pd, (int) dp(6), pd);
                         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable(); bg.setColor(0xF015202B); bg.setCornerRadius(dp(16)); bg.setStroke((int) dp(2), 0xFFFFD000); row.setBackground(bg);
-                        ovlA = new ArrowView(this); row.addView(ovlA, new android.widget.LinearLayout.LayoutParams((int) dp(56), (int) dp(56)));
+                        ovlA = new ArrowView(this); row.addView(ovlA, new android.widget.LinearLayout.LayoutParams((int) dp(104), (int) dp(104)));
                         android.widget.LinearLayout col = new android.widget.LinearLayout(this); col.setOrientation(android.widget.LinearLayout.VERTICAL); col.setPadding((int) dp(12), 0, (int) dp(8), 0);
                         ovlT = new android.widget.TextView(this); ovlT.setTextColor(0xFFFFFFFF); ovlT.setTextSize(17); ovlT.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
                         ovlS = new android.widget.TextView(this); ovlS.setTextColor(0xFFDFE6EE); ovlS.setTextSize(14);
@@ -3161,8 +3177,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         void ovlUpd() {
             if (ovlA == null) return;
-            boolean c = !Double.isNaN(hdg); ovlA.compass = c; ovlA.rot = (float) (c ? ovlBrg - hdg : ovlBrg); ovlA.invalidate();
-            if (ovlH != null) ovlH.setText(c ? "Pfeil bezogen auf die Blickrichtung der Fernsteuerung · antippen öffnet die App" : "kein Kompass – Pfeil nach Norden ausgerichtet · antippen öffnet die App");
+            boolean c = !Double.isNaN(hdg); ovlA.compass = c; ovlA.hd = c ? hdg : 0; ovlA.tg = ovlTg; ovlA.invalidate();
+            if (ovlH != null) ovlH.setText("Radar: Rand = Warnumkreis · " + (c ? "oben = deine Blickrichtung" : "kein Kompass – oben = Norden") + " · antippen öffnet die App");
         }
         void ovlHide() {
             new android.os.Handler(Looper.getMainLooper()).post(() -> {
@@ -3758,30 +3774,44 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     private WebView pageWeb;
     private android.widget.TextView pageTitle;
     @SuppressLint("SetJavaScriptEnabled")
+    private android.view.View pageExt;
+    /** heller, abgerundeter Knopf wie „Zurück zur Karte“ in der App */
+    private android.widget.TextView pillButton(String t, float dp) {
+        android.widget.TextView b = new android.widget.TextView(this);
+        b.setText(t); b.setTextSize(16); b.setTextColor(0xff0b63c5); b.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        b.setPadding((int) (16 * dp), (int) (10 * dp), (int) (16 * dp), (int) (10 * dp));
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable(); bg.setColor(0xffe6effb); bg.setCornerRadius(12 * dp); b.setBackground(bg);
+        b.setClickable(true); return b;
+    }
     private void openInApp(String url) {
         if (pageBox == null) {
             float dp = getResources().getDisplayMetrics().density;
             pageBox = new android.widget.LinearLayout(this);
             pageBox.setOrientation(android.widget.LinearLayout.VERTICAL);
             pageBox.setBackgroundColor(0xffffffff);
+            // Kopfleiste wie in der App: Logo, Titel, rechts „Zurück zur App“ (hell, abgerundet)
             android.widget.LinearLayout bar = new android.widget.LinearLayout(this);
             bar.setOrientation(android.widget.LinearLayout.HORIZONTAL);
             bar.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            bar.setBackgroundColor(0xff15202b);
-            bar.setPadding((int) (8 * dp), (int) (6 * dp), (int) (8 * dp), (int) (6 * dp));
-            android.widget.Button back = new android.widget.Button(this);
-            back.setText("‹  Zurück zur App"); back.setAllCaps(false); back.setTextSize(17);
-            back.setOnClickListener(v -> closeInApp());
+            bar.setBackgroundColor(0xffffffff);
+            if (Build.VERSION.SDK_INT >= 21) bar.setElevation(3 * dp);
+            bar.setPadding((int) (12 * dp), (int) (8 * dp), (int) (12 * dp), (int) (8 * dp));
+            android.widget.ImageView logo = new android.widget.ImageView(this);
+            try { logo.setImageDrawable(getPackageManager().getApplicationIcon(getPackageName())); } catch (Exception ignored) { }
             pageTitle = new android.widget.TextView(this);
-            pageTitle.setTextColor(0xffe6edf3); pageTitle.setTextSize(15); pageTitle.setSingleLine(true);
+            pageTitle.setTextColor(0xff15202b); pageTitle.setTextSize(18); pageTitle.setTypeface(android.graphics.Typeface.DEFAULT_BOLD); pageTitle.setSingleLine(true);
             pageTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
             pageTitle.setPadding((int) (12 * dp), 0, (int) (12 * dp), 0);
-            android.widget.Button ext = new android.widget.Button(this);
-            ext.setText("Im Browser"); ext.setAllCaps(false); ext.setTextSize(15);
+            android.widget.TextView ext = pillButton("Im Browser", dp);
             ext.setOnClickListener(v -> { try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl != null ? pdfUrl : pageWeb.getUrl()))); } catch (Exception ignored) { } });
-            bar.addView(back);
+            pageExt = ext;
+            android.widget.TextView back = pillButton("Zurück zur App", dp);
+            back.setOnClickListener(v -> closeInApp());
+            bar.addView(logo, new android.widget.LinearLayout.LayoutParams((int) (40 * dp), (int) (40 * dp)));
             bar.addView(pageTitle, new android.widget.LinearLayout.LayoutParams(0, -2, 1f));
-            bar.addView(ext);
+            android.widget.LinearLayout.LayoutParams lpE = new android.widget.LinearLayout.LayoutParams(-2, -2); lpE.setMargins(0, 0, (int) (8 * dp), 0);
+            bar.addView(ext, lpE);
+            bar.addView(back);
             pageWeb = new WebView(this);
             WebSettings ws = pageWeb.getSettings();
             ws.setJavaScriptEnabled(true); ws.setDomStorageEnabled(true); ws.setLoadWithOverviewMode(true); ws.setUseWideViewPort(true);
@@ -3798,7 +3828,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     return true;
                 }
                 @Override
-                public void onPageFinished(WebView v, String u) { if (pageTitle != null) pageTitle.setText(v.getTitle() != null && !v.getTitle().isEmpty() ? v.getTitle() : u); }
+                public void onPageFinished(WebView v, String u) {
+                    if (pageTitle == null) return;
+                    String h = Uri.parse(u).getHost(), t = v.getTitle();
+                    if (h != null && (h.contains("flightradar24") || h.contains("adsb.lol") || h.contains("airplanes.live"))) {   // Flugradar: kurzer Titel, z. B. „Flugradar · D-HHEB“
+                        String k = t == null ? "" : t.split(" - | \\| ")[0].trim(); pageTitle.setText("Flugradar" + (k.isEmpty() || k.length() > 24 || k.toLowerCase(Locale.ROOT).contains("flightradar") ? "" : " · " + k));
+                    } else pageTitle.setText(t != null && !t.isEmpty() ? t : u);
+                }
             });
             pageBox.addView(bar, new android.widget.LinearLayout.LayoutParams(-1, -2));
             pageBox.addView(pageWeb, new android.widget.LinearLayout.LayoutParams(-1, 0, 1f));
@@ -3808,7 +3844,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         pageBox.bringToFront();
         if (isPdfUrl(url)) { showPdf(url); return; }
         pdfUrl = null;
-        pageTitle.setText(url);
+        // Flugradar-Seiten (Flightradar24, adsb.lol): ohne „Im Browser“ – bleibt alles in der App
+        String host = Uri.parse(url).getHost(); boolean radar = host != null && (host.contains("flightradar24") || host.contains("adsb.lol") || host.contains("airplanes.live"));
+        if (pageExt != null) pageExt.setVisibility(radar ? android.view.View.GONE : android.view.View.VISIBLE);
+        pageTitle.setText(radar ? "Flugradar" : url);
         pageWeb.loadUrl(url);
     }
     // ---------- PDFs in der App: WebView kann keine PDFs – Android-PdfRenderer macht Seitenbilder (bleiben offline gespeichert) ----------

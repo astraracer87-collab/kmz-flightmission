@@ -353,9 +353,9 @@
   .wxsh.o{border-left-color:#e8a200;background:var(--o-bg)}.wxsh.r{border-left-color:#b3131b;background:var(--r-bg)}
   .wxdays{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px}
   /* ---- Wetter „Jetzt“: dunkle Karte im Stil des Tageslaufs ---- */
-  #trafWarn{display:none;position:fixed;left:50%;transform:translateX(-50%);top:84px;z-index:40;align-items:center;gap:12px;background:rgba(21,32,43,.94);color:#fff;border-radius:16px;padding:10px 14px 10px 10px;box-shadow:0 6px 24px rgba(0,0,0,.35);max-width:min(620px,94vw);border:2px solid #ffd000}
+  #trafWarn{display:none;position:fixed;left:50%;transform:translateX(-50%);top:84px;z-index:40;min-width:min(470px,94vw);align-items:center;gap:12px;background:rgba(21,32,43,.94);color:#fff;border-radius:16px;padding:10px 14px 10px 10px;box-shadow:0 6px 24px rgba(0,0,0,.35);max-width:min(620px,94vw);border:2px solid #ffd000}
 body.bartop #trafWarn{top:84px}
-#trafWarn .twa{width:58px;height:58px;flex:none;transition:transform .4s ease}
+#trafWarn .twa{width:110px;height:110px;flex:none}
 #trafWarn .twt{display:flex;flex-direction:column;gap:2px;min-width:0}#trafWarn .twt b{font-size:16px}#trafWarn .twt span{font-size:14px;color:#dfe6ee}#trafWarn small{font-size:11px;color:#9fb0c0}
 #trafWarn .twr{display:inline-block;font-size:11px;font-weight:800;padding:2px 6px;border-radius:5px;margin-right:6px;vertical-align:2px;color:#fff;text-transform:uppercase}
 #trafWarn .twx{font-size:18px;padding:6px 4px 6px 10px;color:#9fb0c0;align-self:flex-start}
@@ -6395,37 +6395,62 @@ function trafPanel() {
   let el = $('trafWarn');
   if (!el) {
     el = document.createElement('div'); el.id = 'trafWarn'; document.body.appendChild(el);
+    el.innerHTML = '<canvas class="twa" width="220" height="220"></canvas><div class="twt"><b></b><span></span><small></small></div><span class="twx">✕</span>';
     el.onclick = e => { if (e.target.closest('.twx')) { trafPanelHide[trafPanelId] = Date.now(); el.style.display = 'none'; return; } const a = S.traf.find(x => x.id === trafPanelId); if (a) trafDetail(a); };
   }
   if (!trafData() || !S.traf.length || document.querySelector('[id^="pg"].open, #dlg.open')) { el.style.display = 'none'; return; }
   const [la, lo] = trafCenter(), km = +P.tKm || 3, mx = +P.tAlt || 300;
-  let best = null, n = 0;
+  let best = null; const hits = [];
   S.traf.forEach(a => {
-    const [pla, plo] = trafPos(a), d = distM(la, lo, pla, plo) / 1000, agl = trafAgl(a);
-    if (a.rid ? d > (+P.rKm || 1) : (d > km || (agl != null && agl > mx) || !trafShown(a))) return;
-    n++;
+    const [pla, plo] = trafPos(a), d = distM(la, lo, pla, plo) / 1000, agl = trafAgl(a), lim = a.rid ? (+P.rKm || 1) : km;
+    if (a.rid ? d > lim : (d > km || (agl != null && agl > mx) || !trafShown(a))) return;
+    const brg = (Math.atan2((plo - lo) * Math.cos(la * Math.PI / 180), pla - la) * 180 / Math.PI + 360) % 360;
+    const h = { a, d, agl, brg, f: Math.min(1, d / lim) }; hits.push(h);
     if (trafPanelHide[a.id] && Date.now() - trafPanelHide[a.id] < 3 * 60000) return;
-    if (!best || d < best.d) best = { a, d, agl, pla, plo };
+    if (!best || d < best.d) best = h;
   });
   if (!best) { el.style.display = 'none'; trafPanelId = null; return; }
-  const { a, d, agl, pla, plo } = best;
-  if (trafPanelId !== a.id) {   // neues Luftfahrzeug: kurzer Hinweis
+  const { a, d, agl, brg } = best;
+  if (trafPanelId !== a.id) {   // neues Luftfahrzeug: kurz aufblinken
     trafPanelId = a.id;
     if (!trafWarned[a.id] || Date.now() - trafWarned[a.id] > 5 * 60000) { trafWarned[a.id] = Date.now(); el.classList.remove('tw-new'); void el.offsetWidth; el.classList.add('tw-new'); }
   }
-  const brg = (Math.atan2((plo - lo) * Math.cos(la * Math.PI / 180), pla - la) * 180 / Math.PI + 360) % 360;
   const hasH = typeof heading === 'number' && isFinite(heading);
-  const rel = hasH ? brg - heading : brg;
   const near = a.trk >= 0 ? Math.cos(((a.trk - (brg + 180)) % 360) * Math.PI / 180) > 0.5 : false;   // fliegt ungefähr auf uns zu
-  const relTxt = hasH ? (() => { const r = ((rel % 360) + 540) % 360 - 180, ar = Math.abs(r); return ar < 25 ? 'vor dir' : ar > 155 ? 'hinter dir' : (r > 0 ? 'rechts' : 'links') + (ar < 70 ? ' vorne' : ar > 110 ? ' hinten' : ''); })() : D8[Math.round(brg / 45) % 8];
   const role = a.role ? `<span class="twr" style="background:${TRAF_ROLE_COL[a.role]}">${TRAF_ROLE[a.role]}</span>` : '';
-  el.innerHTML = `<svg viewBox="0 0 48 48" class="twa" style="transform:rotate(${rel.toFixed(0)}deg)"><circle cx="24" cy="24" r="22" fill="#15202b"/><path d="M24 5L35 30L24 24L13 30Z" fill="#ffd000" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
-    <div class="twt"><b>${role}${esc(a.rid ? 'Andere Drohne' : trafName(a))} · ${d < 1 ? Math.round(d * 1000) + ' m' : n2(d) + ' km'} ${esc(relTxt)}</b><span>${agl != null ? 'ca. ' + Math.max(0, Math.round(agl)) + (a.rid && !a.hRef ? ' m über ihrem Start' : ' m über Grund') : 'Höhe unbekannt'}${a.kmh > 0 ? ' · ' + Math.round(a.kmh) + ' km/h' : ''}${near ? ' · <b>kommt näher</b>' : ''}${n > 1 ? ' · +' + (n - 1) + ' weitere' : ''}</span>
-    <small>${hasH ? 'Pfeil bezogen auf die Blickrichtung der Fernsteuerung' : 'kein Kompass – Pfeil zeigt nach Norden ausgerichtet'} · antippen für Details</small></div><span class="twx">✕</span>`;
+  const t1 = `${role}${esc(a.rid ? 'Andere Drohne' : trafName(a))} · ${d < 1 ? Math.round(d * 1000) + ' m' : n2(d) + ' km'}`;
+  const t2 = `${agl != null ? 'ca. ' + Math.max(0, Math.round(agl)) + (a.rid && !a.hRef ? ' m über ihrem Start' : ' m über Grund') : 'Höhe unbekannt'}${a.kmh > 0 ? ' · ' + Math.round(a.kmh) + ' km/h' : ''}${near ? ' · <b>kommt näher</b>' : ''}${hits.length > 1 ? ' · +' + (hits.length - 1) + ' weitere' : ''}`;
+  const t3 = `Radar: Rand = Warnumkreis · ${hasH ? 'oben = deine Blickrichtung' : 'kein Kompass – oben = Norden'} · antippen für Details`;
+  const [b1, s1, m1] = el.querySelectorAll('.twt > *');
+  if (b1.innerHTML !== t1) b1.innerHTML = t1; if (s1.innerHTML !== t2) s1.innerHTML = t2; if (m1.textContent !== t3) m1.textContent = t3;
+  trafRadar(el.querySelector('canvas'), hits, best, hasH ? heading : 0, hasH);
   el.style.display = 'flex';
 }
+/** kleines Radar: Mitte = du, oben = Blickrichtung (mit Kompass) bzw. Norden; äußerer Ring = Warnumkreis */
+function trafRadar(cv, hits, best, hd, hasH) {
+  const g = cv.getContext('2d'), W2 = cv.width, R = W2 / 2 - 6, c = W2 / 2;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W2, W2);
+  g.fillStyle = '#0d1720'; g.beginPath(); g.arc(c, c, R + 4, 0, 7); g.fill();
+  g.strokeStyle = 'rgba(255,208,0,.55)'; g.lineWidth = 2; g.beginPath(); g.arc(c, c, R, 0, 7); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 1.5; g.beginPath(); g.arc(c, c, R * Math.SQRT1_2, 0, 7); g.moveTo(c - R, c); g.lineTo(c + R, c); g.moveTo(c, c - R); g.lineTo(c, c + R); g.stroke();
+  // Norden am Rand (dreht mit, wenn ein Kompass da ist)
+  const nr = -hd * Math.PI / 180;
+  g.fillStyle = '#ff5252'; g.font = '800 26px Roboto,system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('N', c + Math.sin(nr) * (R - 17), c - Math.cos(nr) * (R - 17));
+  // du in der Mitte: Blickrichtung nach oben
+  g.fillStyle = '#4da3ff'; g.beginPath(); g.moveTo(c, c - 14); g.lineTo(c + 10, c + 10); g.lineTo(c, c + 4); g.lineTo(c - 10, c + 10); g.closePath(); g.fill();
+  hits.forEach(h => {
+    const r = (h.brg - hd) * Math.PI / 180, rr = Math.max(22, Math.sqrt(h.f) * R)   /* Wurzel-Maßstab: Nahes weiter auseinander */, x = c + Math.sin(r) * rr, y = c - Math.cos(r) * rr, isB = h === best;
+    g.save(); g.translate(x, y);
+    if (isB) { g.strokeStyle = '#fff'; g.lineWidth = 2.5; g.beginPath(); g.arc(0, 0, 24, 0, 7); g.stroke(); }
+    if (h.a.trk >= 0 && trafKind(h.a.typ) !== 'drone' && trafKind(h.a.typ) !== 'balloon') g.rotate((h.a.trk - hd) * Math.PI / 180);
+    const sc = isB ? 1.3 : 0.95; g.scale(sc, sc); g.translate(-16, -16);
+    const pth = trafPath(trafKind(h.a.typ)); g.lineJoin = 'round'; g.lineWidth = 2; g.strokeStyle = '#111'; g.stroke(pth); g.fillStyle = '#ffd000'; g.fill(pth);
+    g.restore();
+  });
+}
 const n2 = v => v.toFixed(1).replace('.', ',');
-setInterval(() => { if (trafData() && S.traf.length && !document.hidden) trafPanel(); }, 500);
+setInterval(() => { if (trafData() && S.traf.length && !document.hidden) trafPanel(); }, 250);   // Radar dreht flüssig mit
 // Silhouetten (Nase oben, 32×32), damit man auf einen Blick sieht, was es ist
 const TRAF_SHAPE = {
   glider: 'M16 3L17 9L31 10.4L31 12.2L17 12.8L16.6 24L20 25L20 26.4L12 26.4L12 25L15.4 24L15 12.8L1 12.2L1 10.4L15 9Z',
