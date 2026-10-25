@@ -95,6 +95,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         installAiaTrust();   // fehlende Zwischenzertifikate (dulv.de u. a.) automatisch nachladen
         prefs = getSharedPreferences("settings", Context.MODE_PRIVATE);
+        Elev.init(super.getFilesDir());
         dopCleanup();   // einmalig: Luftbilder mit grauem Fleck entfernen
         cacheVersionCheck();   // geänderte Datenbereiche aufräumen
         new Thread(this::uaveBackupRestore).start();   // UAV-Editor-Zugang aus „Kitzrettung Cache“ zurückholen (nach Neuinstallation)
@@ -1034,6 +1035,21 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public boolean watchRunning() { Thread t = Watch.th; return t != null && t.isAlive(); }
         @JavascriptInterface
         public String watchLast() { return Watch.lastInfo; }
+        /** Luftverkehr für die Karte: Umkreis um lat/lon (km) – läuft, bis trafficStop() */
+        @JavascriptInterface
+        public void elevPrefetch(String pts) {   // Geländehöhen der Wiesen einmalig holen und dauerhaft merken (für „über Grund“ beim Luftverkehr)
+            new Thread(() -> { try { JSONArray a = new JSONArray(pts); List<double[]> l = new ArrayList<>();
+                for (int i = 0; i < a.length(); i++) { JSONArray q = a.optJSONArray(i); if (q != null) l.add(new double[]{q.optDouble(0), q.optDouble(1)}); }
+                Elev.fetch(l); } catch (Exception ignored) { } }).start();
+        }
+        @JavascriptInterface
+        public String elevAt(double lat, double lon) { double e = Elev.cached(lat, lon); return Double.isNaN(e) ? "" : String.valueOf(Math.round(e)); }
+        @JavascriptInterface
+        public void trafficStart(double lat, double lon, double km) { Traffic.uiOn = true; Traffic.start(lat, lon, km); }
+        @JavascriptInterface
+        public void trafficStop() { Traffic.uiOn = false; Traffic.stopIfIdle(); }
+        @JavascriptInterface
+        public String traffic() { return Traffic.json(); }
         /** Probe: Benachrichtigung nach ein paar Sekunden – zum Wechseln in DJI Pilot 2 */
         @JavascriptInterface
         public void notifyTest(int sec) {
@@ -2563,6 +2579,159 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         } catch (Exception ignored) { }
     }
 
+    // ---------- Luftverkehr live: OGN (FLARM/OGN-Tracker, glidernet.org) + ADS-B (adsb.lol / airplanes.live) ----------
+    /** Hält die Flugzeuge im Umkreis aktuell – für die Karte und den Einsatz-Wächter. Daten nur im Speicher, nichts wird gespeichert.
+     *  OGN-Regeln: Geräte mit „kein Tracking“/„Stealth“ werden verworfen, angezeigt wird nur die Art, keine Kennung. */
+    /** Geländehöhen (Copernicus DEM 90 m über Open-Meteo), dauerhaft im App-Speicher gemerkt – ein Raster von ca. 110 × 70 m */
+    static final class Elev {
+        static File f; static JSONObject c = new JSONObject();
+        static synchronized void init(File dir) {
+            if (f != null) return; f = new File(dir, "gelaendehoehen.json");
+            try { if (f.isFile()) c = new JSONObject(new String(java.nio.file.Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8)); } catch (Exception ignored) { }
+        }
+        static String key(double la, double lo) { return String.format(Locale.ROOT, "%.3f,%.3f", la, lo); }
+        /** gemerkte Höhe an dieser Stelle oder im Umkreis von ca. 1 km, sonst NaN */
+        static synchronized double cached(double la, double lo) {
+            double v = c.optDouble(key(la, lo), Double.NaN); if (!Double.isNaN(v)) return v;
+            double best = Double.NaN, bd = 1.0;
+            for (java.util.Iterator<String> it = c.keys(); it.hasNext(); ) {
+                String k = it.next(); int i = k.indexOf(','); if (i < 0) continue;
+                try { double d = Math.hypot((Double.parseDouble(k.substring(0, i)) - la) * 111.2, (Double.parseDouble(k.substring(i + 1)) - lo) * 71);
+                    if (d < bd) { bd = d; best = c.optDouble(k); } } catch (Exception ignored) { }
+            }
+            return best;
+        }
+        /** Höhe holen (erst aus dem Speicher, sonst online und dann merken) */
+        static double at(double la, double lo) {
+            double v = cached(la, lo); if (!Double.isNaN(v)) return v;
+            List<double[]> l = new ArrayList<>(); l.add(new double[]{la, lo}); fetch(l);
+            return cached(la, lo);
+        }
+        /** fehlende Punkte gesammelt holen (bis 100 je Abruf) */
+        static void fetch(List<double[]> pts) {
+            List<double[]> miss = new ArrayList<>(); java.util.Set<String> seen = new java.util.HashSet<>();
+            synchronized (Elev.class) { for (double[] p : pts) { String k = key(p[0], p[1]); if (!c.has(k) && seen.add(k)) miss.add(p); } }
+            boolean ch = false;
+            for (int i = 0; i < miss.size(); i += 100) {
+                StringBuilder la = new StringBuilder(), lo = new StringBuilder();
+                List<double[]> part = miss.subList(i, Math.min(miss.size(), i + 100));
+                for (double[] p : part) { if (la.length() > 0) { la.append(','); lo.append(','); } la.append(String.format(Locale.ROOT, "%.4f", p[0])); lo.append(String.format(Locale.ROOT, "%.4f", p[1])); }
+                try {
+                    JSONArray ev = new JSONObject(Watch.get("https://api.open-meteo.com/v1/elevation?latitude=" + la + "&longitude=" + lo)).optJSONArray("elevation");
+                    if (ev != null) synchronized (Elev.class) { for (int j = 0; j < part.size() && j < ev.length(); j++) { double e = ev.optDouble(j); if (!Double.isNaN(e)) { c.put(key(part.get(j)[0], part.get(j)[1]), Math.round(e)); ch = true; } } }
+                } catch (Exception ignored) { }
+            }
+            if (ch) synchronized (Elev.class) { try { if (f != null) java.nio.file.Files.write(f.toPath(), c.toString().getBytes(StandardCharsets.UTF_8)); } catch (Exception ignored) { } }
+        }
+    }
+
+    static final class Traffic {
+        static final Map<String, double[]> ac = new java.util.concurrent.ConcurrentHashMap<>();   // id -> {lat, lon, altM, trk, kmh, climb m/s, typ, t, src(0 OGN/1 ADS-B)}
+        static final Map<String, String> label = new java.util.concurrent.ConcurrentHashMap<>();   // nur ADS-B: Flugnummer/Kennzeichen (öffentlich)
+        static volatile double cLat, cLon, cKm = 30, ground = Double.NaN, qnh = Double.NaN; static volatile long qnhT;
+        static volatile boolean uiOn, watchOn; static volatile Thread ogn, adsb; static volatile String err = "";
+        static synchronized void start(double lat, double lon, double km) {
+            boolean moved = Math.hypot((lat - cLat) * 111.2, (lon - cLon) * 71) > 8 || Math.abs(km - cKm) > 1;
+            cLat = lat; cLon = lon; cKm = Math.max(5, Math.min(100, km));
+            if (moved) { ground = Elev.cached(lat, lon); qnhT = 0; }
+            if (ogn == null || !ogn.isAlive() || moved) { Thread o = ogn; ogn = new Thread(Traffic::ognLoop); if (o != null) o.interrupt(); ogn.start(); }
+            if (adsb == null || !adsb.isAlive()) { adsb = new Thread(Traffic::adsbLoop); adsb.start(); }
+        }
+        static synchronized void stopIfIdle() { if (uiOn || watchOn) return; Thread a = ogn, b = adsb; ogn = null; adsb = null; if (a != null) a.interrupt(); if (b != null) b.interrupt(); ac.clear(); label.clear(); }
+        static boolean active() { return (uiOn || watchOn); }
+        static void ognLoop() {
+            Thread me = Thread.currentThread();
+            while (ogn == me && active()) {
+                try (java.net.Socket so = new java.net.Socket()) {
+                    so.connect(new java.net.InetSocketAddress("aprs.glidernet.org", 14580), 15000); so.setSoTimeout(90000);
+                    String call = "KITZ" + (100000 + new java.util.Random().nextInt(899999));
+                    so.getOutputStream().write(String.format(Locale.ROOT, "user %s pass -1 vers MissionKitzrettung 2.1 filter r/%.4f/%.4f/%d\r\n", call, cLat, cLon, (int) Math.round(cKm)).getBytes(StandardCharsets.US_ASCII));
+                    java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(so.getInputStream(), StandardCharsets.ISO_8859_1));
+                    long lastKa = System.currentTimeMillis(); err = "";
+                    String ln;
+                    while (ogn == me && active() && (ln = br.readLine()) != null) {
+                        if (System.currentTimeMillis() - lastKa > 4 * 60000L) { so.getOutputStream().write("#keepalive\r\n".getBytes(StandardCharsets.US_ASCII)); lastKa = System.currentTimeMillis(); }
+                        if (ln.startsWith("#")) continue;
+                        try { parseOgn(ln); } catch (Exception ignored) { }
+                    }
+                } catch (Exception e) { err = "OGN: " + e.getMessage(); }
+                try { Thread.sleep(15000); } catch (InterruptedException ie) { break; }
+            }
+        }
+        static final Pattern OGN_POS = Pattern.compile("^([A-Za-z0-9-]+)>([A-Z0-9]+)[^:]*:[/@](\\d{6})h(\\d{2})(\\d{2}\\.\\d{2})([NS])(.)(\\d{3})(\\d{2}\\.\\d{2})([EW])(.)(?:(\\d{3})/(\\d{3}))?/A=(-?\\d{6})(.*)$");
+        static void parseOgn(String ln) {
+            Matcher m = OGN_POS.matcher(ln); if (!m.find()) return;
+            String dest = m.group(2), rest = m.group(15);
+            if (dest.startsWith("OGNSDR") || dest.startsWith("APRS")) return;   // Empfangsstationen
+            Matcher id = Pattern.compile("\\bid([0-9A-Fa-f]{2})([0-9A-Fa-f]{6})").matcher(rest);
+            int typ = 0; String key = m.group(1);
+            if (id.find()) { int b = Integer.parseInt(id.group(1), 16); if ((b & 0x80) != 0 || (b & 0x40) != 0) return;   // Stealth / kein Tracking
+                typ = (b >> 2) & 0x0F; key = id.group(2).toUpperCase(Locale.ROOT); }
+            else if (!dest.startsWith("OG")) return;
+            double la = Integer.parseInt(m.group(4)) + Double.parseDouble(m.group(5)) / 60, lo = Integer.parseInt(m.group(8)) + Double.parseDouble(m.group(9)) / 60;
+            Matcher w = Pattern.compile("!W(\\d)(\\d)!").matcher(rest);
+            if (w.find()) { la += Integer.parseInt(w.group(1)) * 0.001 / 60; lo += Integer.parseInt(w.group(2)) * 0.001 / 60; }
+            if ("S".equals(m.group(6))) la = -la; if ("W".equals(m.group(10))) lo = -lo;
+            double alt = Integer.parseInt(m.group(14)) * 0.3048, trk = m.group(12) != null ? Integer.parseInt(m.group(12)) : -1, kmh = m.group(13) != null ? Integer.parseInt(m.group(13)) * 1.852 : -1;
+            Matcher cl = Pattern.compile("([+-]\\d+)fpm").matcher(rest); double climb = cl.find() ? Integer.parseInt(cl.group(1)) * 0.00508 : 0;
+            if (typ == 0) { char sym = m.group(11).charAt(0); typ = sym == '\'' ? 1 : sym == 'X' ? 3 : sym == 'g' ? 7 : sym == '^' ? 8 : sym == 'O' ? 11 : 8; }
+            if (typ == 15 || typ == 14) return;   // feste Objekte / Bodenfahrzeuge
+            if (dest.startsWith("OGADSB")) key = "A" + key;
+            ac.put(key, new double[]{la, lo, alt, trk, kmh, climb, typ, System.currentTimeMillis(), dest.startsWith("OGADSB") ? 1 : 0});
+        }
+        static void adsbLoop() {
+            Thread me = Thread.currentThread();
+            String[] hosts = {"https://api.adsb.lol/v2/point/", "https://api.airplanes.live/v2/point/"};
+            int hi = 0;
+            while (adsb == me && active()) {
+                try {
+                    String url = hosts[hi] + String.format(Locale.ROOT, "%.4f/%.4f/%d", cLat, cLon, (int) Math.max(5, Math.round(cKm / 1.852)));
+                    HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+                    c.setConnectTimeout(10000); c.setReadTimeout(15000); c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Kitzrettung, ehrenamtlich)");
+                    if (c.getResponseCode() != 200) throw new Exception("HTTP " + c.getResponseCode());
+                    String txt; try (InputStream in = c.getInputStream()) { txt = readAll(in); } finally { c.disconnect(); }
+                    JSONArray a = new JSONObject(txt).optJSONArray("ac"); long now = System.currentTimeMillis();
+                    if (a != null) for (int i = 0; i < a.length(); i++) {
+                        JSONObject o = a.optJSONObject(i); if (o == null || !o.has("lat")) continue;
+                        Object ab = o.opt("alt_baro"); if ("ground".equals(String.valueOf(ab))) continue;
+                        // Höhe über NN: bevorzugt GPS-Höhe (alt_geom, bezogen auf das WGS84-Ellipsoid – in Deutschland liegt der Meeresspiegel (Geoid) ca. 47 m darüber),
+                        // sonst barometrische Höhe (bezogen auf 1013,25 hPa) mit dem aktuellen Luftdruck (QNH) korrigiert: ca. 8,3 m je hPa
+                        double alt = o.has("alt_geom") ? o.optDouble("alt_geom") * 0.3048 - 47
+                                : ab instanceof Number ? ((Number) ab).doubleValue() * 0.3048 + (Double.isNaN(qnh) ? 0 : (qnh - 1013.25) * 8.3) : Double.NaN;
+                        String cat = o.optString("category", ""); String t = o.optString("t", "");
+                        int typ = cat.equals("A7") || t.matches("(?i)(EC|H1|H6|BK|AS3|AS5|AS6|R44|R22|B06|B407|NH90|UH|CH|S76|A109|A139|A169|AW)\\w*") ? 3 : cat.equals("B1") ? 1 : cat.startsWith("A") && cat.compareTo("A2") > 0 ? 9 : 8;
+                        String key = "A" + o.optString("hex").toUpperCase(Locale.ROOT);
+                        double[] old = ac.get(key);
+                        if (old != null && old[8] == 0 && now - old[7] < 20000) continue;   // OGN-Meldung ist frischer
+                        ac.put(key, new double[]{o.optDouble("lat"), o.optDouble("lon"), alt, o.optDouble("track", -1), o.has("gs") ? o.optDouble("gs") * 1.852 : -1, o.optDouble("baro_rate", 0) * 0.00508, typ, now, 1});
+                        String lb = (o.optString("flight", "").trim() + " " + t).trim(); if (lb.isEmpty()) lb = o.optString("r", ""); label.put(key, lb);
+                    }
+                    if (Double.isNaN(ground)) ground = Elev.at(cLat, cLon);   // Geländehöhe am Einsatzort (gemerkt bzw. einmal geholt)
+                    if (System.currentTimeMillis() - qnhT > 30 * 60000L) try {   // aktueller Luftdruck auf Meereshöhe (QNH) für die barometrischen Höhen
+                        JSONObject e = new JSONObject(Watch.get(String.format(Locale.ROOT, "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=pressure_msl", cLat, cLon)));
+                        double q = e.optJSONObject("current").optDouble("pressure_msl"); if (q > 900 && q < 1100) { qnh = q; qnhT = System.currentTimeMillis(); }
+                    } catch (Exception ignored) { }
+                } catch (Exception e) { hi = (hi + 1) % hosts.length; }
+                // alte Einträge entfernen
+                long now = System.currentTimeMillis();
+                for (Map.Entry<String, double[]> e : ac.entrySet()) if (now - (long) e.getValue()[7] > 120000) { ac.remove(e.getKey()); label.remove(e.getKey()); }
+                try { Thread.sleep(12000); } catch (InterruptedException ie) { break; }
+            }
+        }
+        static final String[] TYP = {"Luftfahrzeug", "Segelflugzeug", "Schleppflugzeug", "Hubschrauber", "Fallschirmspringer", "Absetzflugzeug", "Drachen", "Gleitschirm", "Motorflugzeug", "Jet", "Luftfahrzeug", "Ballon", "Luftschiff", "Drohne", "Bodenfahrzeug", "Objekt"};
+        static String json() {
+            StringBuilder sb = new StringBuilder("{\"g\":").append(Double.isNaN(ground) ? "null" : String.valueOf(Math.round(ground))).append(",\"err\":").append(JSONObject.quote(err)).append(",\"ac\":[");
+            long now = System.currentTimeMillis(); boolean f = true;
+            for (Map.Entry<String, double[]> e : ac.entrySet()) {
+                double[] v = e.getValue(); if (now - (long) v[7] > 90000) continue;
+                if (!f) sb.append(','); f = false;
+                sb.append(String.format(Locale.ROOT, "{\"id\":%s,\"la\":%.5f,\"lo\":%.5f,\"alt\":%s,\"trk\":%.0f,\"kmh\":%.0f,\"vs\":%.1f,\"typ\":%d,\"age\":%d,\"src\":%d,\"lb\":%s}",
+                        JSONObject.quote(e.getKey()), v[0], v[1], Double.isNaN(v[2]) ? "null" : String.valueOf(Math.round(v[2])), v[3], v[4], v[5], (int) v[6], (now - (long) v[7]) / 1000, (int) v[8], JSONObject.quote(label.getOrDefault(e.getKey(), ""))));
+            }
+            return sb.append("]}").toString();
+        }
+    }
+
     public static class Watch extends android.app.Service {
         static volatile Thread th; static volatile String cfg; static volatile String lastInfo = "";
         @Override public android.os.IBinder onBind(Intent i) { return null; }
@@ -2571,7 +2740,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (in != null && "stop".equals(in.getAction())) { Thread t = th; th = null; if (t != null) t.interrupt(); lastInfo = "beendet"; stopForeground(true); stopSelf(); return START_NOT_STICKY; }
             if (in != null && in.getStringExtra("cfg") != null) cfg = in.getStringExtra("cfg");
             if (cfg == null) { stopSelf(); return START_NOT_STICKY; }
-            ensureChannels(this);
+            ensureChannels(this); Elev.init(getFilesDir());
             String names = "", until = "";
             try { JSONObject c = new JSONObject(cfg); names = c.optString("names"); until = new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new java.util.Date(c.optLong("until"))); } catch (Exception ignored) { }
             android.app.PendingIntent ps = android.app.PendingIntent.getService(this, 1, new Intent(this, Watch.class).setAction("stop"),
@@ -2587,18 +2756,47 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         @SuppressWarnings("deprecation")
         void loop() {
-            Map<String, Long> sent = new HashMap<>();
+            Map<String, Long> sent = new HashMap<>(); Map<String, Double> lastD = new HashMap<>();
             Thread me = Thread.currentThread();
+            long nextWx = 0;
             while (th == me) {
-                try {
-                    JSONObject c = new JSONObject(cfg);
-                    if (System.currentTimeMillis() > c.optLong("until")) break;
-                    check(c, sent);
-                    lastInfo = "zuletzt geprüft " + new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new java.util.Date());
-                } catch (Exception e) { lastInfo = "Prüfung fehlgeschlagen: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()); }
-                try { Thread.sleep(5 * 60000L); } catch (InterruptedException e) { break; }
+                JSONObject c = null;
+                try { c = new JSONObject(cfg); } catch (Exception ignored) { }
+                if (c == null || System.currentTimeMillis() > c.optLong("until")) break;
+                if (System.currentTimeMillis() >= nextWx) {   // Wetter alle 5 Minuten
+                    nextWx = System.currentTimeMillis() + 5 * 60000L;
+                    try { check(c, sent); lastInfo = "zuletzt geprüft " + new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new java.util.Date()); }
+                    catch (Exception e) { lastInfo = "Prüfung fehlgeschlagen: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()); }
+                }
+                if (c.optBoolean("traffic")) { try { checkTraffic(c, sent, lastD); } catch (Exception ignored) { } }   // Luftverkehr alle 15 s
+                else if (Traffic.watchOn) { Traffic.watchOn = false; Traffic.stopIfIdle(); }
+                try { Thread.sleep(15000L); } catch (InterruptedException e) { break; }
             }
+            Traffic.watchOn = false; Traffic.stopIfIdle();
             if (th == me) { th = null; lastInfo = "abgelaufen"; stopForeground(true); stopSelf(); }
+        }
+        /** Luftfahrzeuge im Warnumkreis und unter der Warnhöhe (über Grund) melden */
+        void checkTraffic(JSONObject c, Map<String, Long> sent, Map<String, Double> lastD) {
+            double la = c.optDouble("lat"), lo = c.optDouble("lon"), km = c.optDouble("tKm", 3), maxAgl = c.optDouble("tAlt", 500);
+            Traffic.watchOn = true; Traffic.start(la, lo, Math.max(25, km * 4));
+            double g = Elev.cached(la, lo); if (Double.isNaN(g)) g = Double.isNaN(Traffic.ground) ? c.optDouble("elev", Double.NaN) : Traffic.ground;
+            long now = System.currentTimeMillis();
+            for (Map.Entry<String, double[]> e : Traffic.ac.entrySet()) {
+                double[] v = e.getValue(); if (now - (long) v[7] > 60000) continue;
+                double dy = (v[0] - la) * 111.2, dx = (v[1] - lo) * 111.2 * Math.cos(Math.toRadians(la)), d = Math.hypot(dx, dy);
+                Double prev = lastD.put(e.getKey(), d);
+                if (d > km) continue;
+                // Geländehöhe nicht abrufbar: mit 600 m rechnen (höher als fast alles in Mittelgebirgslagen) → eher zu früh als zu spät warnen
+                double agl = Double.isNaN(v[2]) ? Double.NaN : v[2] - (Double.isNaN(g) ? 600 : g);   // Höhe unbekannt → sicherheitshalber warnen
+                if (!Double.isNaN(agl) && agl > maxAgl) continue;
+                int typ = (int) v[6]; String art = Traffic.TYP[Math.max(0, Math.min(15, typ))];
+                String dir = dir(Math.toDegrees(Math.atan2(dx, dy)));
+                boolean near = prev != null && d < prev - 0.05;
+                String lb = Traffic.label.getOrDefault(e.getKey(), "");
+                once(sent, "ac" + e.getKey(), (typ == 3 ? "🚁 " : "✈ ") + art + " " + f1(d) + " km " + dir + (near ? " – kommt näher" : ""),
+                        (Double.isNaN(agl) ? "Höhe unbekannt" : "ca. " + Math.round(Math.max(0, agl)) + " m über Grund") + (v[4] > 0 ? " · " + Math.round(v[4]) + " km/h" : "") + (lb.isEmpty() ? "" : " · " + lb)
+                        + ". Luftraum beobachten, Drohne tief halten bzw. landen.", 10 * 60000L);
+            }
         }
         /** Einmal melden – dieselbe Warnung frühestens nach „pause“ wieder */
         void once(Map<String, Long> sent, String key, String title, String text, long pause) {
