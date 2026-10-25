@@ -541,7 +541,7 @@ body.bartop #trafWarn{top:84px}
   <button id="bNone" class="b-sec" style="display:none" title="Alle abwählen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Abwählen</button>
   <div class="sp"></div>
   <button id="bSync" class="b-sec" style="display:none" title="Wiesen aus dem UAV Editor holen">UAV Editor</button>
-  <button id="bDl" class="b-ok" disabled title="Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen"><span id="bDlT" class="b2l">Pre-Check &amp;<br><small>Download</small></span></button>
+  <button id="bDl" class="b-ok" disabled title="Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen"><span id="bDlT" class="b2l">Pre-Check<br><small>&amp; Download</small></span></button>
   <button id="bSearch" class="b-sec" title="Feld suchen"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button>
   <button id="bSet" class="b-sec" title="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </div>
@@ -643,8 +643,11 @@ body.bartop #trafWarn{top:84px}
         <div class="trow"><span class="tl">Ausblenden über</span><button data-tstep="tShow:-1">−</button><b id="vTshow"></b><button data-tstep="tShow:1">+</button>
           <input type="range" id="rTshow" min="0" max="13" step="1"></div>
         <div class="v" style="margin-top:-4px">Luftfahrzeuge höher als dieser Wert (über Grund) werden auf der Karte und in der Warnung nicht gezeigt – z. B. Verkehrsflugzeuge in 10 km Höhe.</div>
-        <div class="v">Die Warnung erscheint oben als Benachrichtigung – auch über DJI Pilot 2. Mit „Warnfenster über allen Apps“ bleibt zusätzlich ein Fenster mit Richtungspfeil im Vordergrund, solange das Luftfahrzeug bzw. die Drohne im Warnbereich ist (✕ blendet es für 3 Minuten aus, Antippen öffnet die App). Solange Luftverkehr an ist, läuft dafür im Hintergrund ein kleiner Dienst (Symbol in der Statusleiste); in der App zeigt zusätzlich ein Pfeil, wo das Luftfahrzeug ist – mit Kompass bezogen auf deine Blickrichtung.</div>
-        <div class="v">Höhe über Grund = Höhe des Luftfahrzeugs über dem Meeresspiegel minus Geländehöhe am Einsatzort (Höhenmodell Copernicus, 90-m-Raster) – derselbe Bezug wie die Flughöhe in DJI Pilot 2 (über dem Startpunkt). Genauigkeit etwa ±30 m; bei Flugzeugen ohne GPS-Höhe wird die Luftdruckhöhe mit dem aktuellen Luftdruck umgerechnet. Die Geländehöhen aller Wiesen holt die App einmalig und merkt sie sich. Ist die Höhe eines Luftfahrzeugs unbekannt, wird immer gewarnt.</div>
+        <div class="v">Die Warnung erscheint oben als Benachrichtigung – auch über DJI Pilot 2. Mit „Warnfenster über allen Apps“ bleibt zusätzlich ein Fenster mit Richtungspfeil im Vordergrund, solange das Luftfahrzeug bzw. die Drohne im Warnbereich ist (✕ blendet es für 3 Minuten aus, Antippen öffnet die App). Solange Luftverkehr an ist, läuft dafür im Hintergrund ein kleiner Dienst (Symbol in der Statusleiste); in der App zeigt zusätzlich ein kleines Radar, wo es ist – mit Kompass bezogen auf deine Blickrichtung.</div>
+        <div class="trow"><span class="tl">Polizei / Luftrettung erkennen</span><span class="meta" id="vRole"></span>
+          <button class="tbtn" id="bRoleUpd" style="width:auto;padding:0 12px;font-size:14px">Jetzt aktualisieren</button></div>
+        <div class="v" style="margin-top:-4px">Die Liste der Polizei-, Rettungs- und SAR-Luftfahrzeuge (Deutschland und Nachbarländer, aus der offenen Datenbank plane-alert-db) holt die App alle 3 Monate automatisch neu, wenn WLAN da ist. Zusätzlich erkennt sie Polizeihubschrauber an Kennzeichen und Funkrufnamen der Länder (z. B. „Edelweiss“, „Ibis“) und Rettungshubschrauber am Rufzeichen „Christoph“.</div>
+        <div class="v">Höhe über Grund = Höhe des Luftfahrzeugs über dem Meeresspiegel minus Geländehöhe am Einsatzort (Höhenmodell Copernicus, 90-m-Raster) – derselbe Bezug wie die Flughöhe in DJI Pilot 2 (über dem Startpunkt). Genauigkeit etwa ±30 m; bei Flugzeugen ohne GPS-Höhe wird die Luftdruckhöhe mit dem aktuellen Luftdruck umgerechnet. Die Geländehöhen aller Wiesen holt die App einmalig und merkt sie sich. Ist die Höhe eines Luftfahrzeugs unbekannt, wird gewarnt – außer es fliegt schneller als 450 km/h (dann ist es ein Reiseflugzeug weit oben).</div>
       </div></div>
     <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Andere Drohnen in der Nähe (Remote ID)</div>
       <div class="v" style="margin-bottom:8px">Drohnen ab 250 g senden in der EU ihre Position per Bluetooth und WLAN (Remote ID). Die Fernsteuerung empfängt das selbst – <b>ohne Internet</b>, Reichweite je nach Gelände einige hundert Meter bis ca. 1 km. Gezeigt werden Position, Höhe, Seriennummer, Betreiber-Nummer und – falls gesendet – der Standort der steuernden Person. Die eigene Drohne kannst du per Antippen ausblenden. <span id="vRid"></span></div>
@@ -1174,7 +1177,7 @@ function paintStatic() {
   if (P.osmPower === '1' && (S.obs.length || S.rails.length) && V.z >= 11) paintObstacles();
   if (P.osmPower === '1' && S.osm.length && V.z >= 11) paintOsmLines();
   if (P.showNotam !== '0') (S.lfa || []).forEach(drawLfa);   // Tieffluggebiete – egal ob gerade Betriebszeit (Ebenen-Knopf: ein/aus)
-  if (P.showNotam !== '0' && S.notams.length) S.notams.forEach(drawNotam);
+  if (P.showNotam !== '0' && S.notams.length) drawNotams(S.notams);
   const vis = S.files.filter(visible);
   const ord = vis.filter(fieldOnScreen).sort(byAreaDesc);
   ord.forEach(f => { drawOutline(f); drawField(f); });
@@ -1233,7 +1236,7 @@ function paintLive() {
     ctx.font = '800 14px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.strokeText(S.placePin.n, x, y - 42); ctx.fillStyle = '#15202b'; ctx.fillText(S.placePin.n, x, y - 42);
   }
-  if (trafOn() && S.traf && S.traf.length) drawTraffic();
+  if (trafOn() && S.traf && S.traf.length && V.z >= 8) drawTraffic();   // weit herausgezoomt (ganz Deutschland): keine Flugzeuge
   if (infoPin) {
     const [x, y] = toScreen(infoPin[0], infoPin[1]);
     ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y - 22, 9, Math.PI * 0.75, Math.PI * 2.25); ctx.closePath();
@@ -1596,27 +1599,60 @@ function drawLfa(l) {
   const pts = geomRings(l.geom).flat(); if (!pts.length) return;
   paintLfa(ctx, l, (la, lo) => toScreen(la, lo), true);
 }
-function drawNotam(n) {
-  ctx.save();
-  ctx.setLineDash(n.active ? [14, 6] : [6, 6]);
-  ctx.lineWidth = n.active ? 4 : 2.5;
-  ctx.strokeStyle = n.active ? '#ff2d2d' : '#5d6975';
-  ctx.fillStyle = n.active ? 'rgba(255,45,45,.12)' : 'rgba(93,105,117,.08)';
-  const rs = geomRings(n.geom);
-  rs.forEach(ring => {
-    ctx.beginPath();
-    ring.forEach((c, i) => { const [x, y] = toScreen(c[1], c[0]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
-    if (ring.length > 2) { ctx.closePath(); ctx.fill(); }
-    ctx.stroke();
+/** NOTAMs zeichnen: Teilflächen mit gleichem Namen, die sich berühren, werden zu EINER Fläche zusammengefasst –
+ *  gemeinsame Füllung, nur der Außenrand, ein einziger Name (statt dreimal übereinander) */
+let notamOC = null;
+function drawNotams(list) {
+  const items = [];
+  list.forEach(n => {
+    const rs = geomRings(n.geom).filter(r => r.length); if (!rs.length) return;
+    let w = 1e9, e = -1e9, so = 1e9, no = -1e9; rs.forEach(r => r.forEach(c => { w = Math.min(w, c[0]); e = Math.max(e, c[0]); so = Math.min(so, c[1]); no = Math.max(no, c[1]); }));
+    items.push({ n, rs, bb: [w, so, e, no], k: notamTitle(n) + '|' + !!n.active, area: (e - w) * (no - so) });
   });
-  // Name mittig in der Fläche (ab mittlerem Zoom, damit es bei Deutschland-Ansicht nicht zugeschrieben ist)
-  if (rs.length && rs[0].length > 2 && V.z >= 8) {
+  // Gruppen bilden (gleicher Name + Zustand, Umrisse überlappen oder berühren sich)
+  const par = items.map((_, i) => i), f = i => par[i] === i ? i : (par[i] = f(par[i]));
+  const pad = 0.002;
+  for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+    const a = items[i], b = items[j];
+    if (a.k !== b.k) continue;
+    if (a.bb[0] - pad <= b.bb[2] && b.bb[0] - pad <= a.bb[2] && a.bb[1] - pad <= b.bb[3] && b.bb[1] - pad <= a.bb[3]) par[f(i)] = f(j);
+  }
+  const groups = {}; items.forEach((it, i) => (groups[f(i)] = groups[f(i)] || []).push(it));
+  Object.values(groups).forEach(drawNotamGroup);
+}
+function drawNotamGroup(g) {
+  const n0 = g[0].n, act = !!n0.active;
+  const closed = [], open = [];
+  g.forEach(it => it.rs.forEach(r => (r.length > 2 && it.n.geom.type !== 'LineString' && it.n.geom.type !== 'MultiLineString' ? closed : open).push(r.map(c => toScreen(c[1], c[0])))));
+  // alle Ringe gleich herum ausrichten → „nonzero“-Füllung ergibt die Vereinigung (keine dunkleren Überlappungen)
+  closed.forEach(r => { let a = 0; for (let i = 0; i < r.length; i++) { const p = r[i], q = r[(i + 1) % r.length]; a += p[0] * q[1] - q[0] * p[1]; } if (a < 0) r.reverse(); });
+  const unionPath = c => { c.beginPath(); closed.forEach(r => { r.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); }); };
+  const col = act ? '#ff2d2d' : '#5d6975', lw = act ? 4 : 2.5, dash = act ? [14, 6] : [6, 6];
+  ctx.save();
+  if (closed.length) {
+    ctx.fillStyle = act ? 'rgba(255,45,45,.12)' : 'rgba(93,105,117,.08)'; unionPath(ctx); ctx.fill('nonzero');
+    // nur der Außenrand: doppelt breit zeichnen, dann das Innere der Vereinigung wieder wegradieren
+    const cv0 = ctx.canvas;
+    if (!notamOC) notamOC = document.createElement('canvas');
+    if (notamOC.width !== cv0.width || notamOC.height !== cv0.height) { notamOC.width = cv0.width; notamOC.height = cv0.height; }
+    const o = notamOC.getContext('2d');
+    o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, notamOC.width, notamOC.height);
+    o.setTransform(ctx.getTransform());
+    o.setLineDash(dash); o.lineWidth = lw * 2; o.strokeStyle = col; o.lineJoin = 'round';
+    closed.forEach(r => { o.beginPath(); r.forEach(([x, y], i) => i ? o.lineTo(x, y) : o.moveTo(x, y)); o.closePath(); o.stroke(); });
+    o.globalCompositeOperation = 'destination-out'; unionPath(o); o.fill('nonzero'); o.globalCompositeOperation = 'source-over';
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(notamOC, 0, 0); ctx.restore();
+  }
+  if (open.length) { ctx.setLineDash(dash); ctx.lineWidth = lw; ctx.strokeStyle = col; open.forEach(r => { ctx.beginPath(); r.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); }); }
+  // ein Name pro zusammengefasster Fläche – in der größten Teilfläche
+  if (closed.length && V.z >= 8) {
+    const big = g.reduce((a, b) => b.area > a.area ? b : a), n = big.n, rs = big.rs;
     if (n.lbl === undefined) n.lbl = innerPoint(rs);
     if (n.lbl) { const [x, y] = toScreen(n.lbl[1], n.lbl[0]);
       if (x > -150 && y > -40 && x < W + 150 && y < mapH() + 40) {
-        const t = 'NOTAM · ' + notamTitle(n).slice(0, 40) + (n.active ? '' : ' (geplant)');
+        const t = 'NOTAM · ' + notamTitle(n).slice(0, 40) + (act ? '' : ' (geplant)');
         ctx.setLineDash([]); ctx.font = '800 13px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.strokeText(t, x, y); ctx.fillStyle = n.active ? '#b3131b' : '#4a5560'; ctx.fillText(t, x, y);
+        ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.strokeText(t, x, y); ctx.fillStyle = act ? '#b3131b' : '#4a5560'; ctx.fillText(t, x, y);
       } }
   }
   ctx.restore();
@@ -2173,8 +2209,8 @@ function srcUi() {
   const k = $('bSrcK');   // Anzeige an Taste L3 (wie R2 für die Info)
   if (k) { const m = { uave: ['UAV', '#0f9e94'], rc: ['RC', '#1e7bff'], mix: ['Beide', 'linear-gradient(135deg,#0f9e94 0%,#0f9e94 35%,#1e7bff 65%,#1e7bff 100%)'], none: ['Keine', '#8a96a3'] }[P.fsrc] || ['UAV', '#0f9e94'];
     k.textContent = m[0]; k.style.background = m[1]; }
-  const b = $('bDl'), bt = $('bDlT'); if (bt) bt.innerHTML = rc ? 'Pre-Check' : 'Pre-Check &amp;<br><small>Download</small>';
-  if (b) b.title = rc ? 'Flughinweise zu den markierten Missionen (sie liegen schon in DJI Pilot 2)' : 'Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen';
+  const b = $('bDl'), bt = $('bDlT'), dl = srcHas('uave'); if (bt) bt.innerHTML = dl ? 'Pre-Check<br><small>&amp; Download</small>' : 'Pre-Check';   // „Download“ nur, wenn UAV-Editor-Felder dabei sind
+  if (b) b.title = !dl ? 'Flughinweise zu den markierten Missionen (sie liegen schon in DJI Pilot 2)' : 'Markierte Felder in den Missionsordner von DJI Pilot 2 übertragen';
 }
 async function load(keepView) {
   if (loading) return;
@@ -6409,11 +6445,13 @@ function trafPanel() {
     el.onclick = e => { if (e.target.closest('.twx')) { trafPanelHide[trafPanelId] = Date.now(); el.style.display = 'none'; return; } const a = S.traf.find(x => x.id === trafPanelId); if (a) trafDetail(a); };
   }
   if (!trafData() || !S.traf.length || document.querySelector('[id^="pg"].open, #dlg.open')) { el.style.display = 'none'; return; }
-  const [la, lo] = trafCenter(), km = +P.tKm || 3, mx = +P.tAlt || 300;
+  const [la, lo] = trafCenter(), km = +P.tKm || 3, mx = +P.tAlt || 300, now = Date.now();
   let best = null; const hits = [];
   S.traf.forEach(a => {
     const [pla, plo] = trafPos(a), d = distM(la, lo, pla, plo) / 1000, agl = trafAgl(a), lim = a.rid ? (+P.rKm || 1) : km;
-    if (a.rid ? d > lim : (d > km || (agl != null && agl > mx) || !trafShown(a))) return;
+    const was = trafIn[a.id] && now - trafIn[a.id] < 10000;   // war eben noch drin: etwas großzügiger (kein Flackern am Rand)
+    if (trafThreat(a, d, agl, !!was)) trafIn[a.id] = now;
+    else if (!(was && now - trafIn[a.id] < 8000 && d < lim * 1.3)) return;   // kurze Aussetzer (fehlende Höhe, Datenlücke) überbrücken
     const brg = (Math.atan2((plo - lo) * Math.cos(la * Math.PI / 180), pla - la) * 180 / Math.PI + 360) % 360;
     const h = { a, d, agl, brg, f: Math.min(1, d / lim) }; hits.push(h);
     if (trafPanelHide[a.id] && Date.now() - trafPanelHide[a.id] < 3 * 60000) return;
@@ -6430,11 +6468,21 @@ function trafPanel() {
   const role = a.role ? `<span class="twr" style="background:${TRAF_ROLE_COL[a.role]}">${TRAF_ROLE[a.role]}</span>` : '';
   const t1 = `${role}${esc(a.rid ? 'Andere Drohne' : trafName(a))} · ${d < 1 ? Math.round(d * 1000) + ' m' : n2(d) + ' km'}`;
   const t2 = `${agl != null ? 'ca. ' + Math.max(0, Math.round(agl)) + (a.rid && !a.hRef ? ' m über ihrem Start' : ' m über Grund') : 'Höhe unbekannt'}${a.kmh > 0 ? ' · ' + Math.round(a.kmh) + ' km/h' : ''}${near ? ' · <b>kommt näher</b>' : ''}${hits.length > 1 ? ' · +' + (hits.length - 1) + ' weitere' : ''}`;
-  const t3 = `Radar: Rand = Warnumkreis · ${hasH ? 'oben = deine Blickrichtung' : 'kein Kompass – oben = Norden'} · antippen für Details`;
+  const t3 = `Warnt bis ${a.rid ? String(+P.rKm || 1).replace('.', ',') + ' km (Drohnen)' : String(km).replace('.', ',') + ' km und unter ' + mx + ' m über Grund'} (Einstellungen → Flugradar) · Radarrand = Umkreis · ${hasH ? 'oben = deine Blickrichtung' : 'oben = Norden'}`;
   const [b1, s1, m1] = el.querySelectorAll('.twt > *');
   if (b1.innerHTML !== t1) b1.innerHTML = t1; if (s1.innerHTML !== t2) s1.innerHTML = t2; if (m1.textContent !== t3) m1.textContent = t3;
   trafRadar(el.querySelector('canvas'), hits, best, hasH ? heading : 0, hasH);
   el.style.display = 'flex';
+}
+/** gehört dieses Luftfahrzeug / diese Drohne in die Warnung? – nach den Einstellungen Umkreis und Höhe */
+const trafIn = {};
+function trafThreat(a, d, agl, was) {
+  if (a.rid) { const r = +P.rKm || 1; return d <= (was ? r * 1.1 + 0.05 : r); }
+  const km = +P.tKm || 3, mx = +P.tAlt || 300;
+  if (d > (was ? km * 1.1 + 0.1 : km)) return false;
+  if (!trafShown(a)) return false;
+  if (agl == null) return !(a.kmh > 450);   // Höhe unbekannt: warnen – außer es ist so schnell, dass es nur ein Reiseflugzeug in großer Höhe sein kann
+  return agl <= mx + (was ? 50 : 0);
 }
 /** kleines Radar: Mitte = du, oben = Blickrichtung (mit Kompass) bzw. Norden; äußerer Ring = Warnumkreis */
 function trafRadar(cv, hits, best, hd, hasH) {
@@ -6528,7 +6576,7 @@ function drawTraffic() {
 
 /** Antippen eines Luftfahrzeugs → Detailseite */
 function trafHit(x, y) {
-  if (!trafOn() || !S.traf.length) return false;
+  if (!trafOn() || !S.traf.length || V.z < 8) return false;
   let best = null, bd = 30;
   S.traf.forEach(a => { if (!trafShown(a)) return; const [la, lo] = trafPos(a), [sx, sy] = toScreen(la, lo), d = Math.hypot(sx - x, sy - y); if (d < bd) { bd = d; best = a; } });
   if (!best) return false;
@@ -6571,7 +6619,7 @@ function trafDetail(a) {
     <svg viewBox="0 0 32 32" style="width:56px;height:56px;flex:none;transform:rotate(${a.trk >= 0 && k !== 'balloon' && k !== 'drone' ? a.trk : 0}deg)"><path d="${TRAF_SHAPE[k]}" fill="${c}" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/>${k === 'heli' ? `<path d="M5 5L27 20M27 5L5 20" stroke="#111" stroke-width="1.3" stroke-linecap="round"/><path d="${TRAF_SHAPE.heli}" fill="${c}" stroke="#111" stroke-width="1.4"/>` : ''}</svg>
     <div><h4 style="margin:0">${a.role ? `<span class="chip" style="background:${TRAF_ROLE_COL[a.role]};color:#fff;margin-right:6px">${TRAF_ROLE[a.role]}</span>` : ''}${esc(a.reg || a.fl || trafName(a))}</h4><div class="meta">${esc(a.desc || trafName(a))}</div></div><div class="tdbs">${btns}</div></div>
     ${rows.map(([x, y]) => `<div style="margin-bottom:4px"><b>${esc(x)}:</b> ${esc(y)}</div>`).join('')}</div>`;
-  h += `<div class="meta">${ads ? 'Info = Flightradar24, Flugweg = Live-Karte adsb.lol (öffnen in der App, brauchen Internet). ' : 'FLARM-Geräte senden keine öffentliche Kennung – deshalb keine Links. '}Stand ${new Date().toLocaleTimeString('de-DE')} · Daten: Open Glider Network, adsb.lol · Nicht jedes Luftfahrzeug sendet – Luftraum selbst beobachten.</div>`;
+  h += `<div class="meta">${ads ? 'Info = Flightradar24, Flugweg = Live-Karte adsb.lol (öffnen in der App, brauchen Internet). ' : 'FLARM-Geräte senden keine öffentliche Kennung – deshalb keine Links. '}Stand ${new Date().toLocaleTimeString('de-DE')} · Daten: Open Glider Network, adsb.lol${a.role ? ', Einsatzart: plane-alert-db (© SDR-Enthusiasts, ODbL)' : ''} · Nicht jedes Luftfahrzeug sendet – Luftraum selbst beobachten.</div>`;
   openInfoPage('Flugradar', h);
 }
 
@@ -6627,7 +6675,14 @@ function trafSet(k, i) {
   if (k === 'tShow') { draw(); trafPanel(); return; }   // nur Anzeige
   clearTimeout(trafSaveT); trafSaveT = setTimeout(() => { trafWarned = {}; trafRestart(); }, 800);   // laufenden Wächter übernehmen
 }
+function roleUi() {
+  const v = $('vRole'); if (!v) return;
+  if (!A.roleInfo) { v.textContent = 'App-Version zu alt'; return; }
+  try { const r = JSON.parse(A.roleInfo());
+    v.innerHTML = `${r.n} Luftfahrzeuge · ${r.busy ? 'wird aktualisiert …' : r.t ? 'Stand ' + new Date(r.t).toLocaleDateString('de-DE') : 'eingebaute Liste'}${r.err ? ' · <span style="color:#d42020">' + esc(r.err) + '</span>' : ''}`; } catch (e) { }
+}
 function trafUi() {
+  try { roleUi(); } catch (e) { }
   document.querySelectorAll('[data-traf]').forEach(b => b.classList.toggle('on', b.dataset.traf === (P.traffic || '0')));
   const ts = $('trafSet'); if (ts) ts.classList.toggle('off', P.traffic !== '1');
   document.querySelectorAll('[data-tsnd]').forEach(b => b.classList.toggle('on', b.dataset.tsnd === String(P.tSnd)));
@@ -6648,6 +6703,7 @@ document.querySelectorAll('[data-tovl]').forEach(b => b.onclick = () => { setP('
 if ($('bOvlPerm')) $('bOvlPerm').onclick = () => A.overlayPerm && A.overlayPerm();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) try { trafUi(); } catch (e) { } });
 $('rTshow').oninput = e => trafSet('tShow', +e.target.value);
+if ($('bRoleUpd')) $('bRoleUpd').onclick = () => { if (!A.roleUpdate) return toast('Diese App-Version kann das noch nicht.', true); if (!isOnline()) return toast('Dafür braucht es Internet.', true); A.roleUpdate(); roleUi(); toast('Liste wird aktualisiert …', 'ok'); };
 if ($('bTrafTest')) $('bTrafTest').onclick = () => { if (!A.notifyTrafTest) return toast('Diese App-Version kann das noch nicht.', true); A.notifyTrafTest(+P.tSnd); toast('Test kommt in 3 Sekunden.', 'ok'); };
 document.querySelectorAll('[data-tstep]').forEach(b => b.onclick = () => { const [k, d] = b.dataset.tstep.split(':'); trafSet(k, tIdx(k) + +d); });
 $('rTkm').oninput = e => trafSet('tKm', +e.target.value);

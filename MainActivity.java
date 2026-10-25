@@ -96,6 +96,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         installAiaTrust();   // fehlende Zwischenzertifikate (dulv.de u. a.) automatisch nachladen
         prefs = getSharedPreferences("settings", Context.MODE_PRIVATE);
         Elev.init(super.getFilesDir());
+        try { Traffic.roleFile = new File(super.getFilesDir(), "einsatzflieger.txt"); if (!metered()) Traffic.roleUpdate(this, false); } catch (Exception ignored) { }
         dopCleanup();   // einmalig: Luftbilder mit grauem Fleck entfernen
         cacheVersionCheck();   // geänderte Datenbereiche aufräumen
         new Thread(this::uaveBackupRestore).start();   // UAV-Editor-Zugang aus „Kitzrettung Cache“ zurückholen (nach Neuinstallation)
@@ -1066,6 +1067,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public void ridStop() { Rid.uiOn = false; Rid.stopIfIdle(); }
         @JavascriptInterface
+        public String roleInfo() {   // Stand der Liste Polizei/Rettung
+            Traffic.roleDbGet("000000");
+            return "{\"n\":" + Traffic.roleN + ",\"t\":" + Traffic.roleT + ",\"busy\":" + Traffic.roleBusy + ",\"err\":" + JSONObject.quote(Traffic.roleErr) + "}";
+        }
+        @JavascriptInterface
+        public void roleUpdate() { Traffic.roleUpdate(getApplicationContext(), true); }
+        @JavascriptInterface
         public String rid() { try { if (Rid.running) Rid.retryBle(); return Rid.json(); } catch (Throwable e) { return "{\"err\":" + JSONObject.quote(String.valueOf(e)) + ",\"d\":[]}"; } }
         @JavascriptInterface
         public boolean canOverlay() { return Build.VERSION.SDK_INT < 23 || android.provider.Settings.canDrawOverlays(MainActivity.this); }
@@ -1079,7 +1087,15 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public void notifyTrafTest(int snd) {   // Probe der Luftverkehr-Warnung mit gewähltem Ton
             final Context c = getApplicationContext();
             new Thread(() -> { try { Thread.sleep(3000L); } catch (InterruptedException ignored) { }
-                alert(c, 4712, "✈ Test: Hubschrauber 1,2 km NW – kommt näher", "ca. 150 m über Grund · 180 km/h. So sieht die Luftverkehr-Warnung aus.", CH_TRAF[Math.max(0, Math.min(2, snd))]); }).start();
+                alert(c, 4712, "✈ Test: Hubschrauber 1,2 km NW – kommt näher", "ca. 150 m über Grund · 180 km/h. So sieht die Luftverkehr-Warnung aus.", CH_TRAF[Math.max(0, Math.min(2, snd))]);
+                testBeep(snd); }).start();
+        }
+        void testBeep(int snd) {
+            android.media.ToneGenerator tg = null;
+            try { if (snd <= 0) return; tg = new android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100);
+                if (snd >= 2) { for (int i = 0; i < 3; i++) { tg.startTone(android.media.ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 900); Thread.sleep(1000); } }
+                else { tg.startTone(android.media.ToneGenerator.TONE_PROP_BEEP2, 400); Thread.sleep(700); tg.startTone(android.media.ToneGenerator.TONE_PROP_BEEP2, 400); Thread.sleep(600); }
+            } catch (Exception ignored) { } finally { if (tg != null) try { tg.release(); } catch (Exception ignored) { } }
         }
         @JavascriptInterface
         public void notifyTest(int sec) {
@@ -2946,16 +2962,22 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         double alt = o.has("alt_geom") ? o.optDouble("alt_geom") * 0.3048 - 47
                                 : ab instanceof Number ? ((Number) ab).doubleValue() * 0.3048 + (Double.isNaN(qnh) ? 0 : (qnh - 1013.25) * 8.3) : Double.NaN;
                         String cat = o.optString("category", ""); String t = o.optString("t", "");
-                        int typ = cat.equals("A7") || t.matches("(?i)(EC|H1|H6|BK|AS3|AS5|AS6|R44|R22|B06|B407|NH90|UH|CH|S76|A109|A139|A169|AW)\\w*") ? 3 : cat.equals("B1") ? 1 : cat.startsWith("A") && cat.compareTo("A2") > 0 ? 9 : 8;
+                        boolean heli = cat.equals("A7") || t.matches("(?i)(EC|H1|H6|BK|AS3|AS5|AS6|R44|R22|R66|B06|B407|B412|B429|NH90|UH|CH|S76|A109|A119|A139|A169|AW|EXPL|MD52|MD60|G2CA|CABR)\\w*");
+                        // Jets auch in der „kleinen“ Kategorie A2: Geschäftsreisejets nach Typcode, sonst alles über ca. 9,5 km Höhe
+                        boolean jet = cat.startsWith("A") && cat.compareTo("A2") > 0
+                                || t.matches("(?i)(C25|C5|C6|C7|CL3|CL6|CL30|CL35|CL60|GLF|GLEX|GL5T|GL6T|GL7T|GALX|G150|G280|FA|F2TH|F900|E35L|E50P|E55P|E545|E550|LJ|H25|HDJT|SF50|PC24|PRM1|BE40|ASTR|J328|CRJ|E1|E2|E7|A3|B7|B3|A2)\\w*")
+                                || (alt > 9500 && !heli);
+                        int typ = heli ? 3 : cat.equals("B1") ? 1 : jet ? 9 : 8;
                         String key = "A" + o.optString("hex").toUpperCase(Locale.ROOT);
                         double[] old = ac.get(key);
                         if (old != null && old[8] == 0 && now - old[7] < 20000) continue;   // OGN-Meldung ist frischer
                         ac.put(key, new double[]{o.optDouble("lat"), o.optDouble("lon"), alt, o.optDouble("track", -1), o.has("gs") ? o.optDouble("gs") * 1.852 : -1, o.optDouble("baro_rate", 0) * 0.00508, typ, now, 1});
                         // öffentliche ADS-B-Angaben: Rufzeichen | Typcode | Kennzeichen | Typbezeichnung | ICAO-Adresse (keine Halter-/Betreiberdaten)
                         String fl = o.optString("flight", "").trim(), op = o.optString("ownOp", "").trim();
-                        int role = role(fl, op, o.optInt("dbFlags", 0));
+                        Object[] ro = roleOf(o.optString("hex", ""), fl, o.optString("r", "").trim(), op, o.optInt("dbFlags", 0), typ == 3);
+                        int role = (Integer) ro[0];
                         // Betreiber nur bei Behörden/Rettung/Militär weitergeben – nie bei Privatleuten
-                        label.put(key, fl + "|" + t + "|" + o.optString("r", "").trim() + "|" + o.optString("desc", "").trim() + "|" + o.optString("hex", "").trim() + "|" + role + "|" + (role > 0 ? op.replace("|", " ") : ""));
+                        label.put(key, fl + "|" + t + "|" + o.optString("r", "").trim() + "|" + o.optString("desc", "").trim() + "|" + o.optString("hex", "").trim() + "|" + role + "|" + (role > 0 ? String.valueOf(ro[1]).replace("|", " ") : ""));
                     }
                     if (Double.isNaN(ground)) ground = Elev.at(cLat, cLon);   // Geländehöhe am Einsatzort (gemerkt bzw. einmal geholt)
                     if (System.currentTimeMillis() - qnhT > 30 * 60000L) try {   // aktueller Luftdruck auf Meereshöhe (QNH) für die barometrischen Höhen
@@ -2969,6 +2991,94 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 for (Map.Entry<String, double[]> e : ac.entrySet()) if (now - (long) e.getValue()[7] > 120000) { ac.remove(e.getKey()); label.remove(e.getKey()); }
                 try { Thread.sleep(5000); } catch (InterruptedException ie) { break; }   // ADS-B alle 5 s (OGN kommt ohnehin sofort)
             }
+        }
+        static final String[] ROLE_OP = {"Oyonnair", "", "Airlec Air Espace", "Gendarmerie Frankreich", "French Customs", "Unicair GmbH", "Aero-Dienst", "DRF Luftrettung", "Tyrol Air Ambulance", "Polizei Hessen", "ADAC Luftrettung", "Luftwaffe", "Polizei", "Polizei Brandenburg", "Polizei Bayern", "Johanniter Luftrettung", "Polizei Baden-Württemberg", "Bundespolizei", "Heli-Flight", "Polizei Mecklenburg-Vorpommern", "Polizei Nordrhein-Westfalen", "Polizei Niedersachsen", "Polizei Rheinland-Pfalz", "Polizei Sachsen-Anhalt", "Polizei Sachsen", "Polizei Thüringen", "Kohl Medical", "Colombian National Police", "Polizei Österreich", "ARA Flugrettung", "Belgian Coast Guard", "Service dAide Medicale dUrgence", "Föderale Polizei Belgien", "Grenzschutz Polen", "ANWB Medical Air Assistance", "Netherlands Coast Guard", "Polizei Niederlande", "Dutch Caribbean Coastguard", "Aruba Police", "Polish Medical Air Service", "Polish Medical Air Rescue", "Polizei Polen", "Polizei Tschechien", "Swiss Air Ambulance AG", "AAA Alpine Air Ambulance", "Luxembourg Air Ambulance", "Luxembourg Air Rescue", "Polizei Luxemburg"};
+        /** ICAO-Adresse (6) + Art (1) + Betreiber-Nr. (2) – aus plane-alert-db (© SDR-Enthusiasts, Open Database License), Polizei/Rettung/SAR in DE und Nachbarländern */
+        static final String ROLE_DB = "3989E410039900310139B2EB10239BA4F10239DDE61003AAC002033AAC022033AAC032033AAC042033AAC052033AAC062033AAC072033AAC082033AAC092033AAC0A2033AAC0B2033AAC0C2033AAC0E2033AAC0F2033AAC102033AAC112033AAC122033AAC132033AAC142033AAC152033AAC162033AAC172033AAC182033AAC192033AAC1A2033AAC1B2033AAC1C2033AAC1D2033AAC1E2033AAC202033AAC242033AAC252033AAC282033AAC2A2033AAC382033B7B204043B7B214043B7B224043B7B234043B7B404043B7B414043B7B804043C0E3D1053C84811063C84831063CC57D1073CC9AB1073CD50B1083CD5681053CD8031053CE64E1053D00731083DA0DC2093DD2CA1103DD2F34113DD45E2123DD4F42123DD5422123DD5762133DD5772133DD66F1103DD6CA2143DD6CB2143DD6CC2143DD6CD2143DD6CE2143DD6CF2143DD6D02143DD6D12143DD7202143DD7351153DD7872163DD7942163DD7952163DD7962163DD7972163DD7982163DD7992163DD7B52143DD7B72143DD7BB1103DDC041103DDC4B1073DDC4D1073DDC5C1073DDC611073DDC631073DDC651073DDC661073DDC6A1073DDC6B1073DDC6C1073DDC6D1073DDC6E1073DDC6F1073DDC701073DDC731073DDC741073DDC751073DDC761073DDC771073DDC781073DDC791073DDD6E1073DDDCC2173DDDCE2173DDDCF2173DDDD02173DDDD12173DDDD22173DDDD32173DDDD42173DDDD62173DDDD72173DDDD82173DDDDA2173DDDDB2173DDDDC2173DDDDD2173DDDDE2173DDDDF2173DDDE02173DDDE22173DDDE32173DDDE42173DDDE52173DE0F81183DE2051073DE4F51103DE53C1103DE5842093DE5852093DE5862093DE5FF1103DE71C1103DE8F91073DEBD71153DEDA71103DEF141103DEFEA1103DF0061103DF03F1103DF0491103DF17F2123DF19A2173DF19C2173DF19D2173DF19E2173DF19F2173DF1A02173DF1A12173DF1A22173DF1A32173DF1A42173DF1A52173DF1A72173DF1A82173DF1A92173DF1AA2173DF1AB2173DF1AC2173DF1AD2173DF3B72123DF4722193DF4812193DF73E2203DF7412203DF7422203DF7432203DF7442203DF7452203DF7462203DF81F1103DF8EE2123DF9261103DFB801103DFB8E2213DFB902213DFB922213DFB932213DFE901073E010A2223E010B2223E01731073E01741073E01751073E01771073E02282233E02292233E02351103E023A2233E023B2233E02DF2123E02E02123E02E12123E02E22123E02E32123E02E42123E02E62123E02E82123E02ED1103E02F02123E037C2243E037D2243E037E2243E05832253E05842253E05852253E07162123E09651103E0A2E2173E0A302173E0A312173E0A322173E0A332173E0A342173E0A352173E0A362173E0A372173E0A382173E0A392173E0A3A2173E0A3B2173E0A3C2173E0A3D2173E0A3E2173E0A3F2173E0A402173E0A412173E0A422173E0A432173E0A442173E0A452173E0A462173E0D411103E0F5D1103E0F5E1103E0F5F1103E0F601103E0F761103E0F771103E0F781103E0F901103E0F911103E0FDE1073E0FE01073E0FE11073E12021103E12041103E12051103E12061103E12071103E12091103E120A1103E120C1103E120D1103E120E1103E12101103E12111103E12121103E16782123E16792123E167A1073E167B2123E167C2123E167D2123E167E2123E167F2123E16802123E16812123E16822123E16832123E16841073E16852123E16862123E16872123E16882123E16892123E168A2123E37C81263FF3822274400272284400281084400D01084400E222844032722844032822844032922844041D22844041E2284404AC2284404AF2284404B22284404B52284404B62284408901084408911084409961294409A510844B5AD43044B90613144C1E123244C1E223244C1E323244C1E423244C1E523244C1E823244C1E923244C1EA2324831234334843BB1344844C2134484607435484646435484A91236484A92236484A93236484A94236484A95236484A96236484AC0236484AC1236484B58134484FD6437484FD74374850CA2384853E21344853F61344856944374856F34374857B3134485B2F236485E4913448605B13448605C134488EC0139488EC1139488EC2139488EC3139488FE8139489EC1139489EC2139489EC3139489EC4139489EC5139489EC6139489EC7139489EC8139489EC9139489ECA139489ECB139489ECC139489ECD139489ECE139489ECF139489ED0139489ED1139489ED2139489ED3139489ED4139489ED5139489ED6139489ED7139489ED813948B0DE43348B15E43348B2C813948B2CA13948B2D014048B2D113948C0DE43348C15E43348C4DE43348C65E43348F3A524148F3A624148F3A724148F3A824148F3A924148F3AB24148F3AC24148F3AD24148F3AE241498B21242498B23242498B24242498B25242498B26242498B27242498B28242498B29242498B2E242498B30242498B31242498B32242498B33242498B342424B1A001434B1A011434B1A021434B42F21444B43AA1434B43AB1434B43AC1434B43AD1434B43AF1434B43B01434B43B11434B43C71434B43CB1434B43CD1434B43CE1434B43CF1434B43D01434B43D11434B43D21434B43D41434B43D51434B43D61434B43D71434B44101444D02851454D02871464D02881464D028A1464D028E1454D028F1454D02901454D02931454D02941454D02951454D03F12474D03FB247";
+        static Map<String, Integer> roleDb; static List<String> roleOps;
+        static File roleFile; static volatile long roleT; static volatile int roleN; static volatile String roleErr = ""; static volatile boolean roleBusy;
+        /** eingebaute Liste + (falls vorhanden) die zuletzt geladene, aktuellere Liste aus dem Internet */
+        static synchronized void roleLoad() {
+            Map<String, Integer> m = new HashMap<>(); List<String> ops = new ArrayList<>(Arrays.asList(ROLE_OP));
+            for (int i = 0; i + 9 <= ROLE_DB.length(); i += 9) m.put(ROLE_DB.substring(i, i + 6), Integer.parseInt(ROLE_DB.substring(i + 6, i + 9)));
+            roleT = 0;
+            try { if (roleFile != null && roleFile.isFile()) {
+                    for (String ln : new String(java.nio.file.Files.readAllBytes(roleFile.toPath()), StandardCharsets.UTF_8).split("\n")) {
+                        String[] a = ln.split(";", -1); if (a.length < 3 || a[0].length() != 6) continue;
+                        int oi = ops.indexOf(a[2]); if (oi < 0) { ops.add(a[2]); oi = ops.size() - 1; }
+                        m.put(a[0], Integer.parseInt(a[1]) * 1000 + oi);
+                    }
+                    roleT = roleFile.lastModified(); } } catch (Exception ignored) { }
+            // eingebaute Einträge: Art*100+Nr. → einheitlich Art*1000+Nr.
+            for (Map.Entry<String, Integer> e : m.entrySet()) if (e.getValue() < 1000 && e.getValue() >= 100) e.setValue((e.getValue() / 100) * 1000 + e.getValue() % 100);
+            roleDb = m; roleOps = ops; roleN = m.size();
+        }
+        static synchronized int roleDbGet(String hex) {
+            if (roleDb == null) roleLoad();
+            Integer v = roleDb.get(hex.toUpperCase(Locale.ROOT)); return v == null ? -1 : v;
+        }
+        static final long[][] ROLE_RNG = {{0x3C0000, 0x3FFFFF}, {0x440000, 0x447FFF}, {0x4B0000, 0x4B7FFF}, {0x480000, 0x487FFF}, {0x448000, 0x44FFFF}, {0x4D0000, 0x4D03FF}, {0x380000, 0x3BFFFF}, {0x458000, 0x45FFFF}, {0x498000, 0x49FFFF}, {0x488000, 0x48FFFF}};
+        /** Liste aus plane-alert-db neu holen (Polizei, Luftrettung, SAR in DE und Nachbarländern) – automatisch alle 3 Monate, sonst per Knopf */
+        static void roleUpdate(Context c, boolean force) {
+            if (roleBusy) return;
+            if (roleFile == null) roleFile = new File(c.getFilesDir(), "einsatzflieger.txt");
+            if (!force && roleFile.isFile() && System.currentTimeMillis() - roleFile.lastModified() < 90L * 24 * 3600 * 1000) return;
+            roleBusy = true;
+            new Thread(() -> {
+                try {
+                    String csv = Watch.get("https://raw.githubusercontent.com/sdr-enthusiasts/plane-alert-db/main/plane-alert-db.csv");
+                    java.util.regex.Pattern resc = java.util.regex.Pattern.compile("(?i)ADAC|DRF|Luftrettung|Rega|Swiss Air.?Rescue|OAMTC|ÖAMTC|Christophorus|Johanniter|Ambulan|Rescue|Medical|HEMS|SAMU|Air Zermatt|Heli Austria|ANWB|Lifeliner|Tyrol Air");
+                    StringBuilder out = new StringBuilder(); int n = 0;
+                    String[] lines = csv.split("\r?\n");
+                    for (int li = 1; li < lines.length; li++) {
+                        List<String> f = csvRow(lines[li]); if (f.size() < 10) continue;
+                        String hex = f.get(0).trim().toUpperCase(Locale.ROOT); if (!hex.matches("[0-9A-F]{6}")) continue;
+                        long v = Long.parseLong(hex, 16); boolean in = false; for (long[] r : ROLE_RNG) if (v >= r[0] && v <= r[1]) in = true; if (!in) continue;
+                        String reg = f.get(1).trim(), op = f.get(2).trim(), cmpg = f.get(5).trim(), cat = f.get(9).trim();
+                        int role = cmpg.equals("Pol") ? 2 : cat.equals("Coastguard") || op.matches("(?i).*(Search and Rescue|\\bSAR\\b|Seenot).*") ? 4 : cat.equals("Flying Doctors") || resc.matcher(op).find() ? 1 : 0;
+                        if (role == 0) continue;
+                        if (role == 2) { String st = null; for (String[] p : POL_REG) if (reg.toUpperCase(Locale.ROOT).startsWith(p[0])) { st = p[1]; break; }
+                            op = st != null ? st : op.equals("Bundespolizei") && hex.startsWith("3") ? "Polizei" : op; }
+                        out.append(hex).append(';').append(role).append(';').append(op.replace(";", " ").replace("Police of Bayern", "Polizei Bayern").replace("Austrian Police", "Polizei Österreich")).append('\n'); n++;
+                    }
+                    if (n < 100) throw new Exception("Liste unvollständig (" + n + ")");   // lieber die alte behalten
+                    File tmp = new File(roleFile.getPath() + ".tmp");
+                    java.nio.file.Files.write(tmp.toPath(), out.toString().getBytes(StandardCharsets.UTF_8)); tmp.renameTo(roleFile);
+                    roleErr = ""; roleLoad();
+                } catch (Exception e) { roleErr = String.valueOf(e.getMessage()); }
+                finally { roleBusy = false; }
+            }).start();
+        }
+        /** eine CSV-Zeile mit Anführungszeichen-Feldern */
+        static List<String> csvRow(String ln) {
+            List<String> f = new ArrayList<>(); StringBuilder b = new StringBuilder(); boolean q = false;
+            for (int i = 0; i < ln.length(); i++) { char ch = ln.charAt(i);
+                if (q) { if (ch == '"') { if (i + 1 < ln.length() && ln.charAt(i + 1) == '"') { b.append('"'); i++; } else q = false; } else b.append(ch); }
+                else if (ch == '"') q = true; else if (ch == ',') { f.add(b.toString()); b.setLength(0); } else b.append(ch); }
+            f.add(b.toString()); return f;
+        }
+        /** Kennzeichen-Blöcke der Polizeihubschrauber (Länder + Bundespolizei) – gilt nur für Hubschrauber */
+        static final String[][] POL_REG = {{"D-HBP", "Polizei Bayern"}, {"D-HBY", "Polizei Bayern"}, {"D-HPB", "Polizei Bayern"}, {"D-HMU", "Polizei Bayern"}, {"D-HBSI", "Polizei Bayern"}, {"D-HBIV", "Polizei Bayern"},
+                {"D-HBW", "Polizei Baden-Württemberg"}, {"D-HBO", "Polizei Baden-Württemberg"}, {"D-HIBC", "Polizei Baden-Württemberg"}, {"D-HHEA", "Polizei Hessen"}, {"D-HHEB", "Polizei Hessen"}, {"D-HHEC", "Polizei Hessen"}, {"D-HHEL", "Polizei Hessen"}, {"D-HAMY", "Polizei Hessen"},
+                {"D-HNW", "Polizei Nordrhein-Westfalen"}, {"D-HMT", "Polizei Nordrhein-Westfalen"}, {"D-HAIR", "Polizei Nordrhein-Westfalen"}, {"D-HMV", "Polizei Mecklenburg-Vorpommern"}, {"D-HAY", "Polizei Rheinland-Pfalz"}, {"D-HRP", "Polizei Rheinland-Pfalz"},
+                {"D-HBB", "Polizei Brandenburg"}, {"D-HPN", "Polizei Niedersachsen"}, {"D-HSN", "Polizei Sachsen"}, {"D-HSA", "Polizei Sachsen-Anhalt"}, {"D-HTH", "Polizei Thüringen"}, {"D-HARU", "Polizei Hamburg"},
+                {"D-HVB", "Bundespolizei"}, {"D-HLT", "Bundespolizei"}, {"D-HEG", "Bundespolizei"}};
+        /** Funkrufnamen der Polizeistaffeln (in ADS-B oft abgekürzt, z. B. „EDL1“ = Edelweiss 1) – nur für Hubschrauber */
+        static final String[][] POL_CALL = {{"IBIS", "Polizei Hessen"}, {"EDL|EDLW|EDELW\\w*|EDW", "Polizei Bayern"}, {"BUS|BUSS|BUSSARD|BUSARD", "Polizei Baden-Württemberg"}, {"HUM|HUMM|HUMMEL", "Polizei Nordrhein-Westfalen"},
+                {"PHX|PHOE|PHOEN|PHOENIX|PHONIX", "Polizei Niedersachsen"}, {"SPE|SPERB|SPERBER", "Polizei Rheinland-Pfalz"}, {"PAS|PASS|PASSAT", "Polizei Sachsen"}, {"IKA|IKAR|IKARUS", "Polizei Sachsen-Anhalt"},
+                {"LIB|LIBE|LIBEL|LIBELLE", "Polizei Hamburg"}, {"MER|MERL|MERLIN", "Polizei Mecklenburg-Vorpommern"}, {"PIR|PIRO|PIROL", "Polizei Berlin"}, {"ADL|ADLER", "Polizei Brandenburg"}, {"PHH|PPH|HBT", "Polizei"}};
+        /** Art und Betreiber: zuerst die eingebaute Liste (ICAO-Adresse), dann Kennzeichen-Block, Rufname, Betreiberangabe, Militär-Kennung */
+        static Object[] roleOf(String hex, String fl, String reg, String op, int dbFlags, boolean heli) {
+            int v = roleDbGet(hex);
+            if (v >= 0) return new Object[]{v / 1000, roleOps.get(v % 1000)};
+            String r = reg.toUpperCase(Locale.ROOT), f = fl.toUpperCase(Locale.ROOT);
+            if (heli) {
+                for (String[] p : POL_REG) if (r.startsWith(p[0])) return new Object[]{2, p[1]};
+                for (String[] p : POL_CALL) if (f.matches("(" + p[0] + ")\\d{0,3}")) return new Object[]{2, p[1]};
+            }
+            int ro = role(fl, op, dbFlags);
+            if (ro == 1 && op.isEmpty() && f.matches("CHX\\d+")) return new Object[]{1, "Luftrettung · Christoph " + f.substring(3)};
+            return new Object[]{ro, ro > 0 ? op : ""};
         }
         /** Einsatzart: 1 Rettung, 2 Polizei, 3 Militär, 4 Such- und Rettung (SAR), 0 sonst – aus Rufzeichen, Betreiber und Militär-Kennung der ADS-B-Datenbank */
         static int role(String fl, String op, int dbFlags) {
@@ -2999,6 +3109,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 String[] L = (label.getOrDefault(e.getKey(), "") + "||||||").split("\\|", -1);
                 String lb = (L[0] + " " + L[1]).trim(); if (lb.isEmpty()) lb = L[2];
                 int role = 0; try { role = Integer.parseInt(L[5]); } catch (Exception ignored) { }
+                if (role > 0 && !L[6].isEmpty()) lb = L[6] + " · " + (L[0].isEmpty() ? L[2] : L[0]);   // z. B. „Polizei Bayern · EDL1“
                 sb.append(String.format(Locale.ROOT, "{\"role\":%d,\"op\":%s,", role, JSONObject.quote(L[6])));
                 sb.append(String.format(Locale.ROOT, "\"id\":%s,\"la\":%.5f,\"lo\":%.5f,\"alt\":%s,\"trk\":%.0f,\"kmh\":%.0f,\"vs\":%.1f,\"typ\":%d,\"age\":%d,\"src\":%d,\"lb\":%s,\"fl\":%s,\"tc\":%s,\"reg\":%s,\"desc\":%s,\"hex\":%s}",
                         JSONObject.quote(e.getKey()), v[0], v[1], Double.isNaN(v[2]) ? "null" : String.valueOf(Math.round(v[2])), v[3], v[4], v[5], (int) v[6], (now - (long) v[7]) / 1000, (int) v[8],
@@ -3065,7 +3176,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (tr) { Traffic.watchOn = true; if (!Traffic.uiOn) Traffic.start(la, lo, Math.max(25, km * 4)); } else if (Traffic.watchOn) { Traffic.watchOn = false; Traffic.stopIfIdle(); }
             double g = Elev.cached(la, lo); if (Double.isNaN(g)) g = Double.isNaN(Traffic.ground) ? c.optDouble("elev", Double.NaN) : Traffic.ground;
             long now = System.currentTimeMillis(); java.util.Set<String> inZone = new java.util.HashSet<>();
-            double bD = 1e9, bBrg = 0; String bKey = null, bT = "", bS = ""; int nT = 0; List<double[]> tg = new ArrayList<>();   // Radar: {Peilung, Anteil am Umkreis, Kurs, Art 0 Flz/1 Hubschr./2 Drohne}
+            double bD = 1e9, bBrg = 0; String bKey = null, bT = "", bS = ""; int nT = 0; boolean fresh = false; List<double[]> tg = new ArrayList<>();   // Radar: {Peilung, Anteil am Umkreis, Kurs, Art 0 Flz/1 Hubschr./2 Drohne}
             for (Map.Entry<String, double[]> e : tr ? Traffic.ac.entrySet() : Collections.<Map.Entry<String, double[]>>emptySet()) {
                 double[] v = e.getValue(); if (now - (long) v[7] > 60000) continue;
                 double dy = (v[0] - la) * 111.2, dx = (v[1] - lo) * 111.2 * Math.cos(Math.toRadians(la)), d = Math.hypot(dx, dy);
@@ -3074,7 +3185,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 double kmLim = was ? km * 1.1 + 0.1 : km;   // kleine Hysterese: Meldung flackert nicht am Rand des Umkreises
                 if (d > kmLim) continue;
                 // Geländehöhe nicht abrufbar: mit 600 m rechnen (höher als fast alles in Mittelgebirgslagen) → eher zu früh als zu spät warnen
-                double agl = Double.isNaN(v[2]) ? Double.NaN : v[2] - (Double.isNaN(g) ? 600 : g);   // Höhe unbekannt → sicherheitshalber warnen
+                double agl = Double.isNaN(v[2]) ? Double.NaN : v[2] - (Double.isNaN(g) ? 600 : g);   // Höhe unbekannt → sicherheitshalber warnen …
+                if (Double.isNaN(agl) && v[4] > 450) continue;   // … außer bei Reisefluggeschwindigkeit (dann ist es hoch oben)
                 if (!Double.isNaN(agl) && agl > maxAgl + (was ? 50 : 0)) continue;
                 int typ = (int) v[6]; String art = Traffic.TYP[Math.max(0, Math.min(15, typ))];
                 String dir = dir(Math.toDegrees(Math.atan2(dx, dy)));
@@ -3084,6 +3196,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 art = Traffic.roleName(L[5].matches("[0-4]") ? Integer.parseInt(L[5]) : 0, typ, art);
                 // Meldung bleibt stehen, solange das Luftfahrzeug im Umkreis und unter der Warnhöhe ist, und wird laufend aktualisiert (Ton nur beim ersten Mal)
                 int id = 1000 + Math.abs(e.getKey().hashCode() % 500);
+                if (!was) fresh = true;
                 inZone.add(e.getKey()); trafActive.put(e.getKey(), id);
                 trafNotify(id, CH_TRAF[Math.max(0, Math.min(2, c.optInt("tSnd", 1)))], (typ == 3 ? "🚁 " : "✈ ") + art + " " + f1(d) + " km " + dir + (near ? " – kommt näher" : ""),
                         (Double.isNaN(agl) ? "Höhe unbekannt" : "ca. " + Math.round(Math.max(0, agl)) + " m über Grund") + (v[4] > 0 ? " · " + Math.round(v[4]) + " km/h" : "") + (lb.isEmpty() ? "" : " · " + lb)
@@ -3105,6 +3218,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     if (d > (was ? rKm * 1.1 + 0.05 : rKm)) continue;
                     Double prev = lastD.put(k, d); boolean near = prev != null && d < prev - 0.02;
                     int id = 1500 + Math.abs(k.hashCode() % 400);
+                    if (!was) fresh = true;
                     inZone.add(k); trafActive.put(k, id);
                     String hs = Double.isNaN(v[3]) ? "Höhe unbekannt" : "ca. " + Math.round(v[3]) + " m über " + (v[4] == 1 ? "Grund" : "ihrem Startpunkt");
                     trafNotify(id, CH_TRAF[Math.max(0, Math.min(2, c.optInt("tSnd", 1)))], "🛸 Andere Drohne " + (d < 1 ? Math.round(d * 1000) + " m" : f1(d) + " km") + " " + dir(Math.toDegrees(Math.atan2(dx, dy))) + (near ? " – kommt näher" : ""),
@@ -3117,6 +3231,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             } else if (Rid.watchOn) { Rid.watchOn = false; Rid.stopIfIdle(); }
             // Warnfenster über allen Apps (wenn erlaubt und die App nicht selbst vorne ist – dort zeigt sie ihren eigenen Pfeil)
             for (double[] t : tg) if (Math.abs(t[0] - bBrg) < 1e-9) t[4] = 1;   // nächster = hervorgehoben
+            if (fresh) beep(c.optInt("tSnd", 1));   // neu im Warnbereich: eigener, gut hörbarer Ton (unabhängig von den Benachrichtigungs-Einstellungen)
             if (bKey != null && c.optBoolean("ovl", true) && !appFg) ovlShow(bKey, bT, bS + (nT > 1 ? " · +" + (nT - 1) + " weitere" : ""), tg, la, lo);
             else ovlHide();
             // aus dem Bereich heraus (oder keine Meldung mehr seit 60 s): Benachrichtigung entfernen
@@ -3126,6 +3241,19 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             }
         }
         final Map<String, Integer> trafActive = new HashMap<>();
+        long lastBeep;
+        /** Warnton über den Wecker-Lautstärkekanal: 1 = zwei kurze Töne, 2 = Alarm (ca. 3 s) */
+        void beep(int snd) {
+            if (snd <= 0 || System.currentTimeMillis() - lastBeep < 4000) return; lastBeep = System.currentTimeMillis();
+            new Thread(() -> {
+                android.media.ToneGenerator tg = null;
+                try {
+                    tg = new android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100);
+                    if (snd >= 2) { for (int i = 0; i < 3; i++) { tg.startTone(android.media.ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 900); Thread.sleep(1000); } }
+                    else { tg.startTone(android.media.ToneGenerator.TONE_PROP_BEEP2, 400); Thread.sleep(700); tg.startTone(android.media.ToneGenerator.TONE_PROP_BEEP2, 400); Thread.sleep(600); }
+                } catch (Exception ignored) { } finally { if (tg != null) try { tg.release(); } catch (Exception ignored) { } }
+            }).start();
+        }
         // ---------- Warnfenster über allen Apps (Berechtigung „Über anderen Apps einblenden“) ----------
         android.view.View ovl; android.widget.TextView ovlT, ovlS, ovlH; ArrowView ovlA; String ovlKey; final Map<String, Long> ovlMute = new java.util.concurrent.ConcurrentHashMap<>();
         volatile double hdg = Double.NaN; android.hardware.SensorEventListener sens; float decl = 2.5f;
