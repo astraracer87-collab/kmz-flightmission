@@ -192,6 +192,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 web.evaluateJavascript("window.onRcKey && window.onRcKey(" + k + "," + e.getRepeatCount() + ")", null);
             return true;
         }
+        // Enter-Taste: Felder umschalten (UAV-Editor / Fernsteuerung) – abfangen, damit die Webansicht nichts „anklickt“
+        if ((k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_NUMPAD_ENTER) && web != null && !inApp && e.getDeviceId() != android.view.KeyCharacterMap.VIRTUAL_KEYBOARD) {   // nicht die Bildschirmtastatur
+            if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) web.evaluateJavascript("window.onRcKeyOther && window.onRcKeyOther(" + k + ")", null);
+            return true;
+        }
         // unbekannte Tasten für den Tasten-Test in den Einstellungen melden (nicht abfangen)
         if (e.getAction() == KeyEvent.ACTION_DOWN && web != null && k != KeyEvent.KEYCODE_BACK)
             web.evaluateJavascript("window.onRcKeyOther && window.onRcKeyOther(" + k + ")", null);
@@ -1052,6 +1057,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public void trafficStop() { Traffic.uiOn = false; Traffic.stopIfIdle(); }
         @JavascriptInterface
         public String traffic() { return Traffic.json(); }
+        @JavascriptInterface
+        public void ridStart() {
+            if (Build.VERSION.SDK_INT >= 31 && checkSelfPermission("android.permission.BLUETOOTH_SCAN") != PackageManager.PERMISSION_GRANTED)
+                runOnUiThread(() -> requestPermissions(new String[]{"android.permission.BLUETOOTH_SCAN", Manifest.permission.ACCESS_FINE_LOCATION}, 78));
+            Rid.uiOn = true; Rid.start(getApplicationContext());
+        }
+        @JavascriptInterface
+        public void ridStop() { Rid.uiOn = false; Rid.stopIfIdle(); }
+        @JavascriptInterface
+        public String rid() { return Rid.json(); }
         /** Probe: Benachrichtigung nach ein paar Sekunden – zum Wechseln in DJI Pilot 2 */
         @JavascriptInterface
         public void notifyTrafTest(int snd) {   // Probe der Luftverkehr-Warnung mit gewähltem Ton
@@ -2647,6 +2662,193 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
     }
 
+    // ---------- Andere Drohnen: Direct Remote ID (EU-Pflicht, ASTM F3411 / ASD-STAN) – Bluetooth und WLAN, ganz ohne Internet ----------
+    static final class Rid {
+        /** key (Seriennummer bzw. Funkadresse) -> Zustand */
+        static final Map<String, double[]> st = new java.util.concurrent.ConcurrentHashMap<>();   // {lat, lon, altGeo, height, heightType, speed, dir, vs, uaType, t, opLat, opLon, src(0 BLE/1 WLAN)}
+        static final Map<String, String[]> ids = new java.util.concurrent.ConcurrentHashMap<>();  // {uasId, operatorId, selfId}
+        static final Map<String, String> macKey = new java.util.concurrent.ConcurrentHashMap<>();  // Funkadresse -> Schlüssel
+        static volatile boolean uiOn, watchOn, running; static volatile String err = "";
+        static volatile long bleN, wifiScans, wifiHits, lastScan, nanN; static volatile int bleState = -1, nanState = -1; static Object nanSes;
+        static Context ctx; static Object bleCb; static android.content.BroadcastReceiver wifiRx; static Thread wifiTh;
+        static boolean active() { return uiOn || watchOn; }
+        static final java.util.UUID ODID = java.util.UUID.fromString("0000fffa-0000-1000-8000-00805f9b34fb");
+
+        @SuppressLint("MissingPermission")
+        static synchronized void start(Context c) {
+            if (running) return; ctx = c.getApplicationContext(); running = true; err = "";
+            // Bluetooth (BT4 Legacy + BT5 Long Range)
+            try {
+                android.bluetooth.BluetoothManager bm = (android.bluetooth.BluetoothManager) ctx.getSystemService(Context.BLUETOOTH_SERVICE);
+                android.bluetooth.BluetoothAdapter ad = bm == null ? null : bm.getAdapter();
+                if (ad == null) { bleState = 0; err += "kein Bluetooth. "; }
+                else if (!ad.isEnabled()) { bleState = 1; err += "Bluetooth ist aus. "; }
+                else {
+                    android.bluetooth.le.BluetoothLeScanner sc = ad.getBluetoothLeScanner();
+                    android.bluetooth.le.ScanCallback cb = new android.bluetooth.le.ScanCallback() {
+                        @Override public void onScanResult(int type, android.bluetooth.le.ScanResult r) { onBle(r); }
+                        @Override public void onBatchScanResults(List<android.bluetooth.le.ScanResult> l) { for (android.bluetooth.le.ScanResult r : l) onBle(r); }
+                        @Override public void onScanFailed(int code) { bleState = 3; err += "Bluetooth-Suche fehlgeschlagen (" + code + "). "; }
+                    };
+                    List<android.bluetooth.le.ScanFilter> f = new ArrayList<>();
+                    f.add(new android.bluetooth.le.ScanFilter.Builder().setServiceData(new android.os.ParcelUuid(ODID), new byte[0], new byte[0]).build());
+                    android.bluetooth.le.ScanSettings.Builder sb = new android.bluetooth.le.ScanSettings.Builder().setScanMode(android.bluetooth.le.ScanSettings.SCAN_MODE_LOW_LATENCY);
+                    if (Build.VERSION.SDK_INT >= 26 && ad.isLeCodedPhySupported()) sb.setLegacy(false).setPhy(android.bluetooth.le.ScanSettings.PHY_LE_ALL_SUPPORTED);
+                    sc.startScan(f, sb.build(), cb); bleCb = cb; bleState = 2;
+                }
+            } catch (Throwable e) { bleState = 3; err += "Bluetooth: " + e.getMessage() + " "; }
+            // WLAN NaN (Wi-Fi Aware) – nur wenn das Gerät es kann
+            if (Build.VERSION.SDK_INT >= 26) try {
+                if (ctx.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE)) {
+                    final android.net.wifi.aware.WifiAwareManager am = (android.net.wifi.aware.WifiAwareManager) ctx.getSystemService(Context.WIFI_AWARE_SERVICE);
+                    final android.os.Handler h = new android.os.Handler(Looper.getMainLooper());
+                    if (am != null && am.isAvailable()) am.attach(new android.net.wifi.aware.AttachCallback() {
+                        @Override public void onAttached(android.net.wifi.aware.WifiAwareSession ses) {
+                            nanSes = ses; nanState = 2;
+                            ses.subscribe(new android.net.wifi.aware.SubscribeConfig.Builder().setServiceName("org.opendroneid.remoteid").build(), new android.net.wifi.aware.DiscoverySessionCallback() {
+                                @Override public void onServiceDiscovered(android.net.wifi.aware.PeerHandle peer, byte[] info, List<byte[]> mf) {
+                                    try { if (info != null && info.length > 1) { nanN++; parse("nan" + peer.hashCode(), info, 1, 1); } } catch (Throwable ignored) { }   // [Zähler][Nachrichtenpaket]
+                                }
+                            }, h);
+                        }
+                        @Override public void onAttachFailed() { nanState = 3; }
+                    }, h);
+                    else nanState = 1;
+                } else nanState = 0;
+            } catch (Throwable e) { nanState = 3; }
+            // WLAN-Beacon (Android 11+: Informationselemente der Suchergebnisse)
+            if (Build.VERSION.SDK_INT >= 30) try {
+                final android.net.wifi.WifiManager wm = (android.net.wifi.WifiManager) ctx.getSystemService(Context.WIFI_SERVICE);
+                wifiRx = new android.content.BroadcastReceiver() { @Override public void onReceive(Context cx, Intent in) { try { onWifi(wm.getScanResults()); } catch (Throwable ignored) { } } };
+                ctx.registerReceiver(wifiRx, new android.content.IntentFilter(android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+                wifiTh = new Thread(() -> {   // Android erlaubt ca. 4 Suchen je 2 Minuten
+                    while (running && active()) { try { if (wm.isWifiEnabled() && wm.startScan()) { wifiScans++; lastScan = System.currentTimeMillis(); } Thread.sleep(31000); } catch (InterruptedException ie) { break; } catch (Throwable ignored) { } }
+                });
+                wifiTh.start();
+            } catch (Throwable e) { err += "WLAN: " + e.getMessage() + " "; }
+        }
+        @SuppressLint("MissingPermission")
+        static synchronized void stopIfIdle() {
+            if (active() || !running) return; running = false;
+            try { if (bleCb != null) { android.bluetooth.BluetoothManager bm = (android.bluetooth.BluetoothManager) ctx.getSystemService(Context.BLUETOOTH_SERVICE);
+                bm.getAdapter().getBluetoothLeScanner().stopScan((android.bluetooth.le.ScanCallback) bleCb); } } catch (Throwable ignored) { }
+            bleCb = null;
+            try { if (wifiRx != null) ctx.unregisterReceiver(wifiRx); } catch (Throwable ignored) { } wifiRx = null;
+            Thread t = wifiTh; wifiTh = null; if (t != null) t.interrupt();
+            try { if (nanSes != null && Build.VERSION.SDK_INT >= 26) ((android.net.wifi.aware.WifiAwareSession) nanSes).close(); } catch (Throwable ignored) { } nanSes = null; nanState = -1;
+            st.clear(); ids.clear(); macKey.clear();
+        }
+        static void onBle(android.bluetooth.le.ScanResult r) {
+            try {
+                if (r.getScanRecord() == null) return;
+                byte[] d = r.getScanRecord().getServiceData(new android.os.ParcelUuid(ODID));
+                if (d == null || d.length < 3 || (d[0] & 0xFF) != 0x0D) return;   // App-Code Open Drone ID
+                bleN++;
+                parse(r.getDevice().getAddress(), d, 2, 0);
+            } catch (Throwable ignored) { }
+        }
+        static void onWifi(List<android.net.wifi.ScanResult> l) {
+            if (Build.VERSION.SDK_INT < 30 || l == null) return;
+            for (android.net.wifi.ScanResult r : l) {
+                try {
+                    for (android.net.wifi.ScanResult.InformationElement ie : r.getInformationElements()) {
+                        if (ie.getId() != 221) continue;
+                        java.nio.ByteBuffer b = ie.getBytes(); byte[] d = new byte[b.remaining()]; b.get(d);
+                        // Herstellerelement: OUI FA:0B:BC, Typ 0x0D, Zähler, dann Nachrichtenpaket
+                        if (d.length < 6) continue;
+                        int oui = ((d[0] & 0xFF) << 16) | ((d[1] & 0xFF) << 8) | (d[2] & 0xFF);
+                        if (oui == 0xFA0BBC && (d[3] & 0xFF) == 0x0D) { wifiHits++; parse(r.BSSID, d, 5, 1); }
+                        else if (oui == 0x60601F || oui == 0x481CB9 || oui == 0x34D262 || oui == 0x263712) { if (dji(r.BSSID, d)) wifiHits++; }   // DJI-eigenes „DroneID“ (ältere Modelle)
+                    }
+                } catch (Throwable ignored) { }
+            }
+        }
+        /** DJI-eigenes DroneID im WLAN-Beacon: [OUI 3][4 Byte][Version 1/2][Daten] – Koordinaten in Bogenmaß × 1e7 */
+        static boolean dji(String mac, byte[] d) {
+            int ver = d.length > 7 ? u8(d, 7) : 0, o = 8;
+            if ((ver != 1 && ver != 2) || d.length < o + 2 + 2 + 16 + 4 + 4 + 2 + 2 + 2 + 2 + 2 + 2) return false;
+            String serial = str(d, o + 4, 16);
+            int p = o + 20;
+            double lon = i32(d, p) / 1e7 * 180 / Math.PI, lat = i32(d, p + 4) / 1e7 * 180 / Math.PI;
+            double height = (short) u16(d, p + 10) / 10.0;
+            double vx = (short) u16(d, p + 12), vy = (short) u16(d, p + 14);
+            double yaw = (short) u16(d, ver == 1 ? p + 22 : p + 18) / 100.0;
+            if (Math.abs(lat) < 0.01 && Math.abs(lon) < 0.01 || Math.abs(lat) > 90 || Math.abs(lon) > 180) return false;
+            String key = serial.isEmpty() ? mac : serial; macKey.put(mac, key);
+            double[] v = st.computeIfAbsent(key, k -> blank());
+            v[0] = lat; v[1] = lon; v[3] = height; v[4] = 0; v[5] = Math.hypot(vx, vy) / 100.0; v[6] = ((yaw % 360) + 360) % 360; v[7] = 0; v[8] = 2; v[9] = System.currentTimeMillis(); v[12] = 1;
+            if (ver == 2 && d.length >= p + 44) { double pla = i32(d, p + 28) / 1e7 * 180 / Math.PI, plo = i32(d, p + 32) / 1e7 * 180 / Math.PI; if (Math.abs(pla) > 0.01 && Math.abs(pla) <= 90) { v[10] = pla; v[11] = plo; } }
+            String[] s0 = ids.computeIfAbsent(key, k -> new String[3]); if (!serial.isEmpty()) s0[0] = serial;
+            return true;
+        }
+        static int u8(byte[] d, int i) { return d[i] & 0xFF; }
+        static int u16(byte[] d, int i) { return (d[i] & 0xFF) | ((d[i + 1] & 0xFF) << 8); }
+        static int i32(byte[] d, int i) { return (d[i] & 0xFF) | ((d[i + 1] & 0xFF) << 8) | ((d[i + 2] & 0xFF) << 16) | (d[i + 3] << 24); }
+        static String str(byte[] d, int i, int n) { StringBuilder b = new StringBuilder(); for (int k = i; k < i + n && k < d.length; k++) { int c = d[k] & 0xFF; if (c == 0) break; if (c >= 32 && c < 127) b.append((char) c); } return b.toString().trim(); }
+        /** eine Nachricht (25 Byte) oder ein Nachrichtenpaket ab Position o */
+        static void parse(String mac, byte[] d, int o, int src) {
+            if (o >= d.length) return;
+            int type = u8(d, o) >> 4;
+            if (type == 0xF) {   // Paket: [Kopf][Größe][Anzahl][Nachrichten…]
+                if (o + 3 > d.length) return;
+                int sz = u8(d, o + 1), n = u8(d, o + 2); if (sz < 25) sz = 25;
+                for (int k = 0; k < n && o + 3 + (k + 1) * sz <= d.length; k++) one(mac, d, o + 3 + k * sz, src);
+            } else for (int p = o; p + 25 <= d.length; p += 25) one(mac, d, p, src);   // ältere Sender: Nachrichten ohne Paket-Kopf hintereinander
+        }
+        static void one(String mac, byte[] d, int o, int src) {
+            if (o + 25 > d.length) return;
+            int type = u8(d, o) >> 4;
+            String key = macKey.getOrDefault(mac, mac);
+            if (type == 0) {   // Basis-ID: Seriennummer / Registrierung + Luftfahrzeugart
+                String id = str(d, o + 2, 20); if (id.isEmpty()) return;
+                String old = macKey.put(mac, id);
+                if (old == null || !old.equals(id)) { double[] v = st.remove(old != null ? old : mac); if (v != null) st.put(id, v); String[] s0 = ids.remove(old != null ? old : mac); if (s0 != null) ids.put(id, s0); }
+                key = id;
+                double[] v = st.computeIfAbsent(key, k -> blank()); v[8] = u8(d, o + 1) & 0x0F; v[12] = src;
+                String[] s = ids.computeIfAbsent(key, k -> new String[3]); s[0] = id;
+            } else if (type == 1) {   // Position
+                int f = u8(d, o + 1);
+                double lat = i32(d, o + 5) * 1e-7, lon = i32(d, o + 9) * 1e-7;
+                if (lat == 0 && lon == 0 || Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
+                double[] v = st.computeIfAbsent(key, k -> blank());
+                int dir = u8(d, o + 2); if ((f & 2) != 0) dir += 180; v[6] = dir > 360 ? -1 : dir;
+                int sp = u8(d, o + 3); v[5] = sp == 255 ? -1 : (f & 1) != 0 ? sp * 0.75 + 63.75 : sp * 0.25;
+                v[7] = d[o + 4] == 126 ? 0 : d[o + 4] * 0.5;   // 126 = unbekannt
+                v[0] = lat; v[1] = lon;
+                int ag = u16(d, o + 15), h = u16(d, o + 17);
+                v[2] = ag == 0 ? Double.NaN : ag * 0.5 - 1000; v[3] = h == 0 ? Double.NaN : h * 0.5 - 1000; v[4] = (f >> 2) & 1;   // 0 über Startpunkt, 1 über Grund
+                v[9] = System.currentTimeMillis(); v[12] = src;
+            } else if (type == 4) {   // System: Standort der steuernden Person
+                double[] v = st.computeIfAbsent(key, k -> blank());
+                double la = i32(d, o + 2) * 1e-7, lo = i32(d, o + 6) * 1e-7;
+                if (!(la == 0 && lo == 0) && Math.abs(la) <= 90) { v[10] = la; v[11] = lo; }
+            } else if (type == 5) {   // Betreiber-Registrierung (öffentlich, z. B. DEU…)
+                String[] s = ids.computeIfAbsent(key, k -> new String[3]); s[1] = str(d, o + 2, 20);
+            } else if (type == 3) {   // Freitext (z. B. Einsatzzweck)
+                String[] s = ids.computeIfAbsent(key, k -> new String[3]); s[2] = str(d, o + 2, 23);
+            }
+        }
+        static double[] blank() { double[] v = new double[13]; Arrays.fill(v, Double.NaN); v[9] = 0; return v; }
+        static String json() {
+            long now = System.currentTimeMillis();
+            StringBuilder sb = new StringBuilder("{\"run\":").append(running).append(",\"ble\":").append(bleState).append(",\"bleN\":").append(bleN)
+                    .append(",\"wifiScans\":").append(wifiScans).append(",\"wifiHits\":").append(wifiHits).append(",\"nan\":").append(nanState).append(",\"nanN\":").append(nanN).append(",\"err\":").append(JSONObject.quote(err.trim())).append(",\"d\":[");
+            boolean f = true;
+            for (Map.Entry<String, double[]> e : st.entrySet()) {
+                double[] v = e.getValue(); if (v[9] == 0 || now - (long) v[9] > 60000) continue;
+                String[] s = ids.getOrDefault(e.getKey(), new String[3]);
+                if (!f) sb.append(','); f = false;
+                sb.append("{\"id\":").append(JSONObject.quote(e.getKey())).append(",\"uas\":").append(JSONObject.quote(s[0] == null ? "" : s[0]))
+                        .append(",\"op\":").append(JSONObject.quote(s[1] == null ? "" : s[1])).append(",\"self\":").append(JSONObject.quote(s[2] == null ? "" : s[2]))
+                        .append(String.format(Locale.ROOT, ",\"la\":%.6f,\"lo\":%.6f,\"altGeo\":%s,\"h\":%s,\"hRef\":%d,\"ms\":%s,\"trk\":%s,\"vs\":%s,\"ua\":%s,\"age\":%d,\"src\":%d,\"opLa\":%s,\"opLo\":%s}",
+                                v[0], v[1], num(v[2]), num(v[3]), Double.isNaN(v[4]) ? 0 : (int) v[4], num(v[5]), num(v[6]), num(v[7]), num(v[8]), (now - (long) v[9]) / 1000, Double.isNaN(v[12]) ? 0 : (int) v[12], num6(v[10]), num6(v[11])));
+            }
+            return sb.append("]}").toString();
+        }
+        static String num(double v) { return Double.isNaN(v) ? "null" : String.format(Locale.ROOT, "%.1f", v); }
+        static String num6(double v) { return Double.isNaN(v) ? "null" : String.format(Locale.ROOT, "%.6f", v); }
+    }
+
     static final class Traffic {
         static final Map<String, double[]> ac = new java.util.concurrent.ConcurrentHashMap<>();   // id -> {lat, lon, altM, trk, kmh, climb m/s, typ, t, src(0 OGN/1 ADS-B)}
         static final Map<String, String> label = new java.util.concurrent.ConcurrentHashMap<>();   // nur ADS-B: Flugnummer/Kennzeichen (öffentlich)
@@ -2796,7 +2998,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             android.app.Notification n = nb(this, CH_RUN).setSmallIcon(android.R.drawable.ic_menu_compass).setContentTitle(tOnly ? "Luftverkehr-Warnung aktiv" : "Einsatz-Wächter aktiv bis " + until)
                     .setContentText(tOnly ? tInfo : "Prüft alle 5 Minuten Regen, Wind, Scherwind, Kp" + (names.isEmpty() ? "" : " · " + names)).setOngoing(true)
                     .setContentIntent(openApp(this)).addAction(new android.app.Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Beenden", ps).build()).build();
-            try { if (Build.VERSION.SDK_INT >= 29) startForeground(77, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC); else startForeground(77, n); }
+            boolean ridOn = false; try { ridOn = new JSONObject(cfg).optBoolean("rid"); } catch (Exception ignored) { }
+            try { if (Build.VERSION.SDK_INT >= 29) {
+                    // Drohnen-Suche (Bluetooth/WLAN) braucht im Hintergrund den Standort-Typ
+                    try { startForeground(77, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC | (ridOn ? android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION : 0)); }
+                    catch (Exception e1) { startForeground(77, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC); }
+                } else startForeground(77, n); }
             catch (Exception e) { stopSelf(); return START_NOT_STICKY; }
             Thread t = th;
             if (t == null || !t.isAlive()) { th = new Thread(this::loop); th.start(); }
@@ -2816,20 +3023,21 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     try { check(c, sent); lastInfo = "zuletzt geprüft " + new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new java.util.Date()); }
                     catch (Exception e) { lastInfo = "Prüfung fehlgeschlagen: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()); }
                 }
-                if (c.optBoolean("traffic")) { try { checkTraffic(c, sent, lastD); } catch (Exception ignored) { } }   // Luftverkehr alle 5 s
-                else if (Traffic.watchOn) { Traffic.watchOn = false; Traffic.stopIfIdle(); trafClearAll(); }
-                try { Thread.sleep(c.optBoolean("traffic") ? 5000L : 15000L); } catch (InterruptedException e) { break; }
+                if (c.optBoolean("traffic") || c.optBoolean("rid")) { try { checkTraffic(c, sent, lastD); } catch (Exception ignored) { } }   // Luftverkehr / Drohnen alle 5 s
+                else if (Traffic.watchOn || Rid.watchOn) { Traffic.watchOn = false; Traffic.stopIfIdle(); Rid.watchOn = false; Rid.stopIfIdle(); trafClearAll(); }
+                try { Thread.sleep(c.optBoolean("traffic") || c.optBoolean("rid") ? 5000L : 15000L); } catch (InterruptedException e) { break; }
             }
-            Traffic.watchOn = false; Traffic.stopIfIdle(); trafClearAll();
+            Traffic.watchOn = false; Traffic.stopIfIdle(); Rid.watchOn = false; Rid.stopIfIdle(); trafClearAll();
             if (th == me) { th = null; lastInfo = "abgelaufen"; stopForeground(true); stopSelf(); }
         }
         /** Luftfahrzeuge im Warnumkreis und unter der Warnhöhe (über Grund) melden */
         void checkTraffic(JSONObject c, Map<String, Long> sent, Map<String, Double> lastD) {
             double la = c.optDouble("lat"), lo = c.optDouble("lon"), km = c.optDouble("tKm", 3), maxAgl = c.optDouble("tAlt", 500);
-            Traffic.watchOn = true; Traffic.start(la, lo, Math.max(25, km * 4));
+            boolean tr = c.optBoolean("traffic");
+            if (tr) { Traffic.watchOn = true; Traffic.start(la, lo, Math.max(25, km * 4)); } else if (Traffic.watchOn) { Traffic.watchOn = false; Traffic.stopIfIdle(); }
             double g = Elev.cached(la, lo); if (Double.isNaN(g)) g = Double.isNaN(Traffic.ground) ? c.optDouble("elev", Double.NaN) : Traffic.ground;
             long now = System.currentTimeMillis(); java.util.Set<String> inZone = new java.util.HashSet<>();
-            for (Map.Entry<String, double[]> e : Traffic.ac.entrySet()) {
+            for (Map.Entry<String, double[]> e : tr ? Traffic.ac.entrySet() : Collections.<Map.Entry<String, double[]>>emptySet()) {
                 double[] v = e.getValue(); if (now - (long) v[7] > 60000) continue;
                 double dy = (v[0] - la) * 111.2, dx = (v[1] - lo) * 111.2 * Math.cos(Math.toRadians(la)), d = Math.hypot(dx, dy);
                 Double prev = lastD.put(e.getKey(), d);
@@ -2852,6 +3060,24 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         (Double.isNaN(agl) ? "Höhe unbekannt" : "ca. " + Math.round(Math.max(0, agl)) + " m über Grund") + (v[4] > 0 ? " · " + Math.round(v[4]) + " km/h" : "") + (lb.isEmpty() ? "" : " · " + lb)
                         + ". Luftraum beobachten, Drohne tief halten bzw. landen.");
             }
+            // andere Drohnen (Remote ID, ohne Internet)
+            if (c.optBoolean("rid")) {
+                Rid.watchOn = true; Rid.start(this);
+                double rKm = c.optDouble("rKm", 1); String own = "," + c.optString("ridOwn", "") + ",";
+                for (Map.Entry<String, double[]> e : Rid.st.entrySet()) {
+                    double[] v = e.getValue(); if (v[9] == 0 || now - (long) v[9] > 30000 || Double.isNaN(v[0])) continue;
+                    if (own.contains("," + e.getKey() + ",")) continue;   // eigene Drohne
+                    double dy = (v[0] - la) * 111.2, dx = (v[1] - lo) * 111.2 * Math.cos(Math.toRadians(la)), d = Math.hypot(dx, dy);
+                    String k = "rid" + e.getKey(); boolean was = trafActive.containsKey(k);
+                    if (d > (was ? rKm * 1.1 + 0.05 : rKm)) continue;
+                    Double prev = lastD.put(k, d); boolean near = prev != null && d < prev - 0.02;
+                    int id = 1500 + Math.abs(k.hashCode() % 400);
+                    inZone.add(k); trafActive.put(k, id);
+                    String hs = Double.isNaN(v[3]) ? "Höhe unbekannt" : "ca. " + Math.round(v[3]) + " m über " + (v[4] == 1 ? "Grund" : "ihrem Startpunkt");
+                    trafNotify(id, CH_TRAF[Math.max(0, Math.min(2, c.optInt("tSnd", 1)))], "🛸 Andere Drohne " + (d < 1 ? Math.round(d * 1000) + " m" : f1(d) + " km") + " " + dir(Math.toDegrees(Math.atan2(dx, dy))) + (near ? " – kommt näher" : ""),
+                            hs + (v[5] > 0 ? " · " + Math.round(v[5] * 3.6) + " km/h" : "") + ". Abstimmen bzw. Abstand halten.");
+                }
+            } else if (Rid.watchOn) { Rid.watchOn = false; Rid.stopIfIdle(); }
             // aus dem Bereich heraus (oder keine Meldung mehr seit 60 s): Benachrichtigung entfernen
             for (java.util.Iterator<Map.Entry<String, Integer>> it = trafActive.entrySet().iterator(); it.hasNext(); ) {
                 Map.Entry<String, Integer> a = it.next();
