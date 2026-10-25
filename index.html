@@ -6338,6 +6338,10 @@ function trafCenter() { return S.me ? S.me : [V.lat, V.lon]; }
 function trafTick() {
   clearTimeout(trafT);
   if (!A.trafficStart) return;
+  try { trafTick0(); S.trafJsErr = ''; }
+  catch (e) { S.trafJsErr = String(e && e.message || e); trafT = setTimeout(trafTick, 3000); }   // Fehler dürfen die Abfrage nie stoppen
+}
+function trafTick0() {
   if (!trafData() || document.hidden) {
     if (trafStarted) { A.trafficStop(); trafStarted = false; }
     if (ridStarted && A.ridStop) { A.ridStop(); ridStarted = false; }
@@ -6347,11 +6351,17 @@ function trafTick() {
   const [la, lo] = trafCenter();
   let list = [];
   if (P.traffic === '1' && isOnline()) {
-    A.trafficStart(la, lo, Math.max(20, (+P.tKm || 3) * 5)); trafStarted = true;
-    try { const r = JSON.parse(A.traffic() || '{}'); list = r.ac || []; S.trafG = r.g; } catch (e) { }
+    // abgefragt wird um die Kartenmitte (so weit, wie die Karte zeigt) – und so, dass dein Standort samt Warnumkreis immer mit drin ist
+    const mpp = 156543 * Math.cos(V.lat * Math.PI / 180) / Math.pow(2, V.z), viewKm = Math.hypot(W, H) / 2 * mpp / 1000;
+    let rq = Math.max(20, Math.min(100, viewKm * 1.2));
+    if (S.me) rq = Math.max(rq, Math.min(150, distM(V.lat, V.lon, S.me[0], S.me[1]) / 1000 + (+P.tKm || 3) + 2));
+    A.trafficStart(V.lat, V.lon, Math.round(rq)); trafStarted = true;
+    try { const r = JSON.parse(A.traffic() || '{}'); list = r.ac || []; const [mla, mlo] = trafCenter(), ge = A.elevAt ? A.elevAt(mla, mlo) : '';
+      S.trafG = ge !== '' && ge != null ? +ge : r.g; if (!(ge !== '' && ge != null) && A.elevPrefetch && isOnline()) elevPrefetch([[+mla.toFixed(4), +mlo.toFixed(4)]]); S.trafErr = r.err || ''; S.trafN = r.n; }   // „über Grund“ = über deinem Standort / Einsatzort
+    catch (e) { S.trafErr = 'Daten unlesbar: ' + e.message; }
   } else if (trafStarted) { A.trafficStop(); trafStarted = false; }
   if (P.rid === '1' && A.ridStart) {
-    if (!ridStarted) { A.ridStart(); ridStarted = true; }
+    if (!ridStarted) { ridStarted = true; try { A.ridStart(); } catch (e) { S.trafJsErr = 'Remote ID: ' + e.message; } }
     try {
       const r = JSON.parse(A.rid() || '{}'); S.ridDiag = r; const own = ridOwnSet();
       (r.d || []).forEach(d => list.push({ rid: true, own: own.has(d.id), id: 'R' + d.id, rkey: d.id, la: d.la, lo: d.lo, typ: 13, src: 2, age: d.age, trk: d.trk == null ? -1 : d.trk,
@@ -6359,10 +6369,10 @@ function trafTick() {
     } catch (e) { }
   } else if (ridStarted && A.ridStop) { A.ridStop(); ridStarted = false; }
   S.traf = list.filter(a => !a.own); S.trafAt = Date.now();
-  trafEnsure();
-  trafPanel();
-  if (trafOn()) drawLive(false);
   trafT = setTimeout(trafTick, 2000);
+  try { trafEnsure(); } catch (e) { S.trafJsErr = 'Warndienst: ' + e.message; }
+  try { trafPanel(); } catch (e) { S.trafJsErr = 'Anzeige: ' + e.message; }
+  if (trafOn()) drawLive(false);
 }
 let ridStarted = false;
 const trafAgl = a => a.rid ? (a.agl == null ? null : a.agl) : a.alt == null || S.trafG == null ? null : a.alt - S.trafG;
@@ -6607,7 +6617,7 @@ function ridUi() {
 document.querySelectorAll('[data-rid]').forEach(b => b.onclick = () => { setP('rid', b.dataset.rid); if (b.dataset.rid === '1') setP('trafMap', '1'); ridUi(); trafTick(); trafRestart(); });
 document.querySelectorAll('[data-rkm]').forEach(b => b.onclick = () => { setP('rKm', b.dataset.rkm); ridUi(); trafRestart(); });
 if ($('bRidOwn')) $('bRidOwn').onclick = () => { setP('ridOwn', ''); ridUi(); trafRestart(); toast('Alle Drohnen werden wieder gezeigt.', 'ok'); };
-setInterval(() => { if ($('pgSet').classList.contains('open')) ridUi(); }, 2000);
+setInterval(() => { if ($('pgSet').classList.contains('open')) { ridUi(); try { trafUi(); } catch (e) { } } }, 2000);
 // frei einstellbare Werte (Stufen, damit es mit Finger/Regler gut geht)
 const T_STEPS = { tShow: [300, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 8000, 10000, 0], tKm: [0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10, 12, 15, 20], tAlt: [50, 75, 100, 150, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 1000, 1200, 1500, 1800, 2000, 2500, 3000, 4000, 5000] };
 const tIdx = k => { const v = +P[k], a = T_STEPS[k]; if (!v && a.includes(0)) return a.length - 1; let b = 0; a.forEach((x, i) => { if (Math.abs(x - v) < Math.abs(a[b] - v)) b = i; }); return b; };
@@ -6628,7 +6638,7 @@ function trafUi() {
   if ($('vTshow')) { $('vTshow').textContent = +P.tShow ? (+P.tShow) + ' m' : 'nie'; $('rTshow').value = tIdx('tShow'); }
   if ($('vTkm')) { $('vTkm').textContent = String(+P.tKm).replace('.', ',') + ' km'; $('rTkm').value = tIdx('tKm'); }
   if ($('vTalt')) { $('vTalt').textContent = (+P.tAlt) + ' m'; $('rTalt').value = tIdx('tAlt'); }
-  const v = $('vTraf'); if (v) v.innerHTML = P.traffic !== '1' ? '<b>● aus</b>' : `<b style="color:#13a538">● an</b>${S.traf.length ? ' · ' + S.traf.length + ' Luftfahrzeug' + (S.traf.length > 1 ? 'e' : '') + ' im Umkreis' : ''}${P.trafMap === '0' ? ' · auf der Karte ausgeblendet (Ebenen-Knopf)' : ''}`;
+  const v = $('vTraf'); if (v) v.innerHTML = P.traffic !== '1' ? '<b>● aus</b>' : `<b style="color:#13a538">● an</b> · ${S.trafN != null ? S.trafN + ' empfangen' : 'verbindet …'}, ${S.traf.filter(a => !a.rid && trafShown(a)).length} auf der Karte (unter „Ausblenden über“)${P.trafMap === '0' ? ' · auf der Karte ausgeblendet (Ebenen-Knopf)' : ''}${!isOnline() ? ' · <b style="color:#d42020">kein Internet</b>' : ''}${S.trafErr ? ' · <span style="color:#d42020">' + esc(S.trafErr) + '</span>' : ''}${S.trafJsErr ? ' · <span style="color:#d42020">Fehler: ' + esc(S.trafJsErr) + '</span>' : ''}`;
 }
 document.querySelectorAll('[data-traf]').forEach(b => b.onclick = () => { setP('traffic', b.dataset.traf); if (b.dataset.traf === '1') setP('trafMap', '1'); trafUi(); trafTick(); trafRestart(); });
 /** geänderte Einstellungen an den laufenden Dienst geben (Einsatz-Wächter oder reiner Luftverkehr-Dienst) */

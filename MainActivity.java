@@ -1052,21 +1052,21 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public String elevAt(double lat, double lon) { double e = Elev.cached(lat, lon); return Double.isNaN(e) ? "" : String.valueOf(Math.round(e)); }
         @JavascriptInterface
-        public void trafficStart(double lat, double lon, double km) { Traffic.uiOn = true; Traffic.start(lat, lon, km); }
+        public void trafficStart(double lat, double lon, double km) { try { Traffic.uiOn = true; Traffic.start(lat, lon, km); } catch (Throwable e) { Traffic.err = "Start: " + e; } }
         @JavascriptInterface
         public void trafficStop() { Traffic.uiOn = false; Traffic.stopIfIdle(); }
         @JavascriptInterface
-        public String traffic() { return Traffic.json(); }
+        public String traffic() { try { return Traffic.json(); } catch (Throwable e) { return "{\"err\":" + JSONObject.quote(String.valueOf(e)) + ",\"ac\":[]}"; } }
         @JavascriptInterface
         public void ridStart() {
             if (Build.VERSION.SDK_INT >= 31 && checkSelfPermission("android.permission.BLUETOOTH_SCAN") != PackageManager.PERMISSION_GRANTED)
                 runOnUiThread(() -> requestPermissions(new String[]{"android.permission.BLUETOOTH_SCAN", Manifest.permission.ACCESS_FINE_LOCATION}, 78));
-            Rid.uiOn = true; Rid.start(getApplicationContext());
+            try { Rid.uiOn = true; Rid.start(getApplicationContext()); } catch (Throwable e) { Rid.err = "Start: " + e; }
         }
         @JavascriptInterface
         public void ridStop() { Rid.uiOn = false; Rid.stopIfIdle(); }
         @JavascriptInterface
-        public String rid() { return Rid.json(); }
+        public String rid() { try { if (Rid.running) Rid.retryBle(); return Rid.json(); } catch (Throwable e) { return "{\"err\":" + JSONObject.quote(String.valueOf(e)) + ",\"d\":[]}"; } }
         @JavascriptInterface
         public boolean canOverlay() { return Build.VERSION.SDK_INT < 23 || android.provider.Settings.canDrawOverlays(MainActivity.this); }
         @JavascriptInterface
@@ -2685,26 +2685,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @SuppressLint("MissingPermission")
         static synchronized void start(Context c) {
             if (running) return; ctx = c.getApplicationContext(); running = true; err = "";
-            // Bluetooth (BT4 Legacy + BT5 Long Range)
-            try {
-                android.bluetooth.BluetoothManager bm = (android.bluetooth.BluetoothManager) ctx.getSystemService(Context.BLUETOOTH_SERVICE);
-                android.bluetooth.BluetoothAdapter ad = bm == null ? null : bm.getAdapter();
-                if (ad == null) { bleState = 0; err += "kein Bluetooth. "; }
-                else if (!ad.isEnabled()) { bleState = 1; err += "Bluetooth ist aus. "; }
-                else {
-                    android.bluetooth.le.BluetoothLeScanner sc = ad.getBluetoothLeScanner();
-                    android.bluetooth.le.ScanCallback cb = new android.bluetooth.le.ScanCallback() {
-                        @Override public void onScanResult(int type, android.bluetooth.le.ScanResult r) { onBle(r); }
-                        @Override public void onBatchScanResults(List<android.bluetooth.le.ScanResult> l) { for (android.bluetooth.le.ScanResult r : l) onBle(r); }
-                        @Override public void onScanFailed(int code) { bleState = 3; err += "Bluetooth-Suche fehlgeschlagen (" + code + "). "; }
-                    };
-                    List<android.bluetooth.le.ScanFilter> f = new ArrayList<>();
-                    f.add(new android.bluetooth.le.ScanFilter.Builder().setServiceData(new android.os.ParcelUuid(ODID), new byte[0], new byte[0]).build());
-                    android.bluetooth.le.ScanSettings.Builder sb = new android.bluetooth.le.ScanSettings.Builder().setScanMode(android.bluetooth.le.ScanSettings.SCAN_MODE_LOW_LATENCY);
-                    if (Build.VERSION.SDK_INT >= 26 && ad.isLeCodedPhySupported()) sb.setLegacy(false).setPhy(android.bluetooth.le.ScanSettings.PHY_LE_ALL_SUPPORTED);
-                    sc.startScan(f, sb.build(), cb); bleCb = cb; bleState = 2;
-                }
-            } catch (Throwable e) { bleState = 3; err += "Bluetooth: " + e.getMessage() + " "; }
+            startBle();
             // WLAN NaN (Wi-Fi Aware) – nur wenn das Gerät es kann
             if (Build.VERSION.SDK_INT >= 26) try {
                 if (ctx.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE)) {
@@ -2734,6 +2715,35 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 });
                 wifiTh.start();
             } catch (Throwable e) { err += "WLAN: " + e.getMessage() + " "; }
+        }
+        static volatile long bleTry;
+        /** Bluetooth war aus / Suche fehlgeschlagen: alle 20 s neu versuchen (z. B. nachdem Bluetooth eingeschaltet wurde) */
+        static synchronized void retryBle() { if (running && bleCb == null && System.currentTimeMillis() - bleTry > 20000) startBle(); }
+        @SuppressLint("MissingPermission")
+        static synchronized void startBle() {
+            bleTry = System.currentTimeMillis(); err = err.replaceAll("(Standort[^.]*)\\. ?", "");
+            if (Build.VERSION.SDK_INT >= 23 && ctx.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) err += "Standort-Berechtigung fehlt – ohne sie liefert Android keine Funde. ";
+            try { android.location.LocationManager lm = (android.location.LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
+                if (Build.VERSION.SDK_INT >= 28 && lm != null && !lm.isLocationEnabled()) err += "Standort (GPS) ist ausgeschaltet – ohne ihn liefert Android keine Funde. "; } catch (Throwable ignored) { }
+            err = err.replaceAll("(kein Bluetooth|Bluetooth ist aus|Bluetooth[^.]*fehlgeschlagen[^.]*|Bluetooth:[^.]*)\\.? ?", "");
+            try {
+                android.bluetooth.BluetoothManager bm = (android.bluetooth.BluetoothManager) ctx.getSystemService(Context.BLUETOOTH_SERVICE);
+                android.bluetooth.BluetoothAdapter ad = bm == null ? null : bm.getAdapter();
+                if (ad == null) { bleState = 0; err += "kein Bluetooth. "; }
+                else if (!ad.isEnabled()) { bleState = 1; err += "Bluetooth ist aus. "; }
+                else {
+                    android.bluetooth.le.BluetoothLeScanner sc = ad.getBluetoothLeScanner();
+                    android.bluetooth.le.ScanCallback cb = new android.bluetooth.le.ScanCallback() {
+                        @Override public void onScanResult(int type, android.bluetooth.le.ScanResult r) { onBle(r); }
+                        @Override public void onBatchScanResults(List<android.bluetooth.le.ScanResult> l) { for (android.bluetooth.le.ScanResult r : l) onBle(r); }
+                        @Override public void onScanFailed(int code) { bleState = 3; err += "Bluetooth-Suche fehlgeschlagen (" + code + "). "; }
+                    };
+                    List<android.bluetooth.le.ScanFilter> f = new ArrayList<>();   // ohne Filter (manche Chips filtern leere Dienstdaten falsch) – sortiert wird in onBle
+                    android.bluetooth.le.ScanSettings.Builder sb = new android.bluetooth.le.ScanSettings.Builder().setScanMode(android.bluetooth.le.ScanSettings.SCAN_MODE_LOW_LATENCY);
+                    if (Build.VERSION.SDK_INT >= 26 && ad.isLeCodedPhySupported()) sb.setLegacy(false).setPhy(android.bluetooth.le.ScanSettings.PHY_LE_ALL_SUPPORTED);
+                    sc.startScan(f, sb.build(), cb); bleCb = cb; bleState = 2;
+                }
+            } catch (Throwable e) { bleState = 3; err += "Bluetooth: " + e.getMessage() + " "; }
         }
         @SuppressLint("MissingPermission")
         static synchronized void stopIfIdle() {
@@ -2861,10 +2871,15 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         static final Map<String, double[]> ac = new java.util.concurrent.ConcurrentHashMap<>();   // id -> {lat, lon, altM, trk, kmh, climb m/s, typ, t, src(0 OGN/1 ADS-B)}
         static final Map<String, String> label = new java.util.concurrent.ConcurrentHashMap<>();   // nur ADS-B: Flugnummer/Kennzeichen (öffentlich)
         static volatile double cLat, cLon, cKm = 30, ground = Double.NaN, qnh = Double.NaN; static volatile long qnhT;
-        static volatile boolean uiOn, watchOn; static volatile Thread ogn, adsb; static volatile String err = "";
+        static volatile boolean uiOn, watchOn; static volatile Thread ogn, adsb; static volatile String err = "", adsbErr = "";
         static synchronized void start(double lat, double lon, double km) {
-            boolean moved = Math.hypot((lat - cLat) * 111.2, (lon - cLon) * 71) > 8 || Math.abs(km - cKm) > 1;
-            cLat = lat; cLon = lon; cKm = Math.max(5, Math.min(100, km));
+            double nk = Math.max(5, Math.min(150, km));
+            boolean moved = Math.hypot((lat - cLat) * 111.2, (lon - cLon) * 71) > Math.max(8, nk / 4) || Math.abs(nk - cKm) > Math.max(1, cKm / 4);
+            if (!moved && ogn != null && ogn.isAlive()) {   // kleine Verschiebung: Abfrage läuft weiter (spart Neuverbindungen)
+                if (adsb == null || !adsb.isAlive()) { adsb = new Thread(Traffic::adsbLoop); adsb.start(); }
+                return;
+            }
+            cLat = lat; cLon = lon; cKm = nk;
             if (moved) { ground = Elev.cached(lat, lon); qnhT = 0; }
             if (ogn == null || !ogn.isAlive() || moved) { Thread o = ogn; ogn = new Thread(Traffic::ognLoop); if (o != null) o.interrupt(); ogn.start(); }
             if (adsb == null || !adsb.isAlive()) { adsb = new Thread(Traffic::adsbLoop); adsb.start(); }
@@ -2947,7 +2962,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         JSONObject e = new JSONObject(Watch.get(String.format(Locale.ROOT, "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=pressure_msl", cLat, cLon)));
                         double q = e.optJSONObject("current").optDouble("pressure_msl"); if (q > 900 && q < 1100) { qnh = q; qnhT = System.currentTimeMillis(); }
                     } catch (Exception ignored) { }
-                } catch (Exception e) { hi = (hi + 1) % hosts.length; }
+                    adsbErr = "";
+                } catch (Exception e) { hi = (hi + 1) % hosts.length; adsbErr = "ADS-B (" + hosts[(hi + hosts.length - 1) % hosts.length].replaceAll("https://(api\\.)?|/v2.*", "") + "): " + e.getMessage(); }
                 // alte Einträge entfernen
                 long now = System.currentTimeMillis();
                 for (Map.Entry<String, double[]> e : ac.entrySet()) if (now - (long) e.getValue()[7] > 120000) { ac.remove(e.getKey()); label.remove(e.getKey()); }
@@ -2975,7 +2991,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         static final String[] TYP = {"Luftfahrzeug", "Segelflugzeug", "Schleppflugzeug", "Hubschrauber", "Fallschirmspringer", "Absetzflugzeug", "Drachen", "Gleitschirm", "Motorflugzeug", "Jet", "Luftfahrzeug", "Ballon", "Luftschiff", "Drohne", "Bodenfahrzeug", "Objekt"};
         static String json() {
-            StringBuilder sb = new StringBuilder("{\"q\":").append(Double.isNaN(qnh) ? "null" : String.valueOf(Math.round(qnh))).append(",\"g\":").append(Double.isNaN(ground) ? "null" : String.valueOf(Math.round(ground))).append(",\"err\":").append(JSONObject.quote(err)).append(",\"ac\":[");
+            StringBuilder sb = new StringBuilder("{\"q\":").append(Double.isNaN(qnh) ? "null" : String.valueOf(Math.round(qnh))).append(",\"g\":").append(Double.isNaN(ground) ? "null" : String.valueOf(Math.round(ground))).append(",\"err\":").append(JSONObject.quote((err + " " + adsbErr).trim())).append(",\"n\":").append(ac.size()).append(",\"ac\":[");
             long now = System.currentTimeMillis(); boolean f = true;
             for (Map.Entry<String, double[]> e : ac.entrySet()) {
                 double[] v = e.getValue(); if (now - (long) v[7] > 90000) continue;
@@ -3045,7 +3061,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         void checkTraffic(JSONObject c, Map<String, Long> sent, Map<String, Double> lastD) {
             double la = c.optDouble("lat"), lo = c.optDouble("lon"), km = c.optDouble("tKm", 3), maxAgl = c.optDouble("tAlt", 500);
             boolean tr = c.optBoolean("traffic");
-            if (tr) { Traffic.watchOn = true; Traffic.start(la, lo, Math.max(25, km * 4)); } else if (Traffic.watchOn) { Traffic.watchOn = false; Traffic.stopIfIdle(); }
+            // App offen: sie bestimmt das Abfragegebiet (Kartenausschnitt inkl. deines Standorts) – sonst springt die Abfrage hin und her
+            if (tr) { Traffic.watchOn = true; if (!Traffic.uiOn) Traffic.start(la, lo, Math.max(25, km * 4)); } else if (Traffic.watchOn) { Traffic.watchOn = false; Traffic.stopIfIdle(); }
             double g = Elev.cached(la, lo); if (Double.isNaN(g)) g = Double.isNaN(Traffic.ground) ? c.optDouble("elev", Double.NaN) : Traffic.ground;
             long now = System.currentTimeMillis(); java.util.Set<String> inZone = new java.util.HashSet<>();
             double bD = 1e9, bBrg = 0; String bKey = null, bT = "", bS = ""; int nT = 0; List<double[]> tg = new ArrayList<>();   // Radar: {Peilung, Anteil am Umkreis, Kurs, Art 0 Flz/1 Hubschr./2 Drohne}
