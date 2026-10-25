@@ -2130,13 +2130,13 @@ function srcUi() {
 }
 async function load(keepView) {
   if (loading) return;
-  if (P.fsrc === 'none') { S.files = []; update(); return; }   // beide Feldarten ausgeblendet
+  if (P.fsrc === 'none') { S.files = []; update(); draw(); return; }   // beide Feldarten ausgeblendet
   if (!A.hasAccess()) { $('perm').classList.add('open'); return; }
   $('perm').classList.remove('open');
   ensureFolders();   // nach der Freigabe: fehlende Standardordner anlegen
   loading = true;
   const keep = new Set(S.files.filter(f => f.selected).map(f => f.path));
-  const rc = P.fsrc !== 'uave', mix = P.fsrc === 'mix';
+  const rc = P.fsrc !== 'uave', mix = P.fsrc === 'mix', src0 = P.fsrc;
   const r = JSON.parse(rc ? (A.listKmzDeep ? A.listKmzDeep(rcDir()) : '{"ok":false,"error":"App-Version zu alt"}') : A.listKmz(P.src));
   if (!r.ok) { loading = false; S.files = []; update(); return toast(r.error + (rc ? ' – Ordner der Fernsteuerung (DJI Pilot 2) in den Einstellungen prüfen.' : ' – Quellordner in den Einstellungen prüfen.'), true); }
   const out = []; let bad = 0, stop = false; const badNames = [];
@@ -2157,6 +2157,7 @@ async function load(keepView) {
   }
   S.badFiles = badNames;
   busy('');
+  if (P.fsrc !== src0) { loading = false; return load(true); }   // während des Ladens umgeschaltet: neu laden statt alte Felder zeigen
   S.files = out;
   applyOutlines();
   markDups();
