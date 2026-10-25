@@ -1035,6 +1035,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public boolean watchRunning() { Thread t = Watch.th; return t != null && t.isAlive(); }
         @JavascriptInterface
         public String watchLast() { return Watch.lastInfo; }
+        @JavascriptInterface
+        public String watchCfg() { Thread t = Watch.th; return t != null && t.isAlive() && Watch.cfg != null ? Watch.cfg : ""; }
         /** Luftverkehr für die Karte: Umkreis um lat/lon (km) – läuft, bis trafficStop() */
         @JavascriptInterface
         public void elevPrefetch(String pts) {   // Geländehöhen der Wiesen einmalig holen und dauerhaft merken (für „über Grund“ beim Luftverkehr)
@@ -1051,6 +1053,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public String traffic() { return Traffic.json(); }
         /** Probe: Benachrichtigung nach ein paar Sekunden – zum Wechseln in DJI Pilot 2 */
+        @JavascriptInterface
+        public void notifyTrafTest(int snd) {   // Probe der Luftverkehr-Warnung mit gewähltem Ton
+            final Context c = getApplicationContext();
+            new Thread(() -> { try { Thread.sleep(3000L); } catch (InterruptedException ignored) { }
+                alert(c, 4712, "✈ Test: Hubschrauber 1,2 km NW – kommt näher", "ca. 150 m über Grund · 180 km/h. So sieht die Luftverkehr-Warnung aus.", CH_TRAF[Math.max(0, Math.min(2, snd))]); }).start();
+        }
         @JavascriptInterface
         public void notifyTest(int sec) {
             if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED)
@@ -2553,6 +2561,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     // ---------- Einsatz-Wächter: Warnungen als Benachrichtigung – auch wenn DJI Pilot 2 im Vordergrund ist ----------
     static final String CH_ALERT = "einsatz_warn", CH_RUN = "einsatz_lauf";
+    /** Luftverkehr: je Ton-Einstellung ein eigener Kanal (Android erlaubt keinen Tonwechsel an einem bestehenden Kanal) */
+    static final String[] CH_TRAF = {"luftverkehr_still", "luftverkehr_ton", "luftverkehr_alarm"};
     static void ensureChannels(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
         android.app.NotificationManager nm = (android.app.NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -2560,6 +2570,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         a.setDescription("Regen, Böen, Wind in Flughöhe, Scherwind, Kp, NOTAM, Tiefflug"); a.enableVibration(true);
         nm.createNotificationChannel(a);
         nm.createNotificationChannel(new android.app.NotificationChannel(CH_RUN, "Einsatz-Wächter läuft", android.app.NotificationManager.IMPORTANCE_LOW));
+        String[] nm3 = {"Luftverkehr – ohne Ton", "Luftverkehr – Hinweiston", "Luftverkehr – Alarmton"};
+        for (int i = 0; i < 3; i++) {
+            android.app.NotificationChannel t = new android.app.NotificationChannel(CH_TRAF[i], nm3[i], android.app.NotificationManager.IMPORTANCE_HIGH);
+            t.setDescription("Luftfahrzeug nahe und tief (Open Glider Network, ADS-B)");
+            if (i == 0) { t.setSound(null, null); t.enableVibration(false); }
+            else if (i == 2) { t.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM),
+                    new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build()); t.enableVibration(true); }
+            else t.enableVibration(true);
+            nm.createNotificationChannel(t);
+        }
     }
     @SuppressWarnings("deprecation")
     static android.app.Notification.Builder nb(Context c, String ch) { return Build.VERSION.SDK_INT >= 26 ? new android.app.Notification.Builder(c, ch) : new android.app.Notification.Builder(c); }
@@ -2568,10 +2588,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return android.app.PendingIntent.getActivity(c, 0, i, android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
     }
     @SuppressWarnings("deprecation")
-    static void alert(Context c, int id, String title, String text) {
+    static void alert(Context c, int id, String title, String text) { alert(c, id, title, text, CH_ALERT); }
+    @SuppressWarnings("deprecation")
+    static void alert(Context c, int id, String title, String text, String ch) {
         try {
             ensureChannels(c);
-            android.app.Notification.Builder b = nb(c, CH_ALERT).setSmallIcon(android.R.drawable.stat_sys_warning).setContentTitle(title).setContentText(text)
+            android.app.Notification.Builder b = nb(c, ch).setSmallIcon(android.R.drawable.stat_sys_warning).setContentTitle(title).setContentText(text)
                     .setStyle(new android.app.Notification.BigTextStyle().bigText(text)).setAutoCancel(true).setContentIntent(openApp(c))
                     .setCategory(android.app.Notification.CATEGORY_ALARM).setWhen(System.currentTimeMillis()).setShowWhen(true);
             if (Build.VERSION.SDK_INT < 26) b.setPriority(android.app.Notification.PRIORITY_HIGH).setDefaults(android.app.Notification.DEFAULT_ALL);
@@ -2705,7 +2727,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         if (old != null && old[8] == 0 && now - old[7] < 20000) continue;   // OGN-Meldung ist frischer
                         ac.put(key, new double[]{o.optDouble("lat"), o.optDouble("lon"), alt, o.optDouble("track", -1), o.has("gs") ? o.optDouble("gs") * 1.852 : -1, o.optDouble("baro_rate", 0) * 0.00508, typ, now, 1});
                         // öffentliche ADS-B-Angaben: Rufzeichen | Typcode | Kennzeichen | Typbezeichnung | ICAO-Adresse (keine Halter-/Betreiberdaten)
-                        label.put(key, o.optString("flight", "").trim() + "|" + t + "|" + o.optString("r", "").trim() + "|" + o.optString("desc", "").trim() + "|" + o.optString("hex", "").trim());
+                        String fl = o.optString("flight", "").trim(), op = o.optString("ownOp", "").trim();
+                        int role = role(fl, op, o.optInt("dbFlags", 0));
+                        // Betreiber nur bei Behörden/Rettung/Militär weitergeben – nie bei Privatleuten
+                        label.put(key, fl + "|" + t + "|" + o.optString("r", "").trim() + "|" + o.optString("desc", "").trim() + "|" + o.optString("hex", "").trim() + "|" + role + "|" + (role > 0 ? op.replace("|", " ") : ""));
                     }
                     if (Double.isNaN(ground)) ground = Elev.at(cLat, cLon);   // Geländehöhe am Einsatzort (gemerkt bzw. einmal geholt)
                     if (System.currentTimeMillis() - qnhT > 30 * 60000L) try {   // aktueller Luftdruck auf Meereshöhe (QNH) für die barometrischen Höhen
@@ -2719,6 +2744,22 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 try { Thread.sleep(5000); } catch (InterruptedException ie) { break; }   // ADS-B alle 5 s (OGN kommt ohnehin sofort)
             }
         }
+        /** Einsatzart: 1 Rettung, 2 Polizei, 3 Militär, 4 Such- und Rettung (SAR), 0 sonst – aus Rufzeichen, Betreiber und Militär-Kennung der ADS-B-Datenbank */
+        static int role(String fl, String op, int dbFlags) {
+            String f = fl.toUpperCase(Locale.ROOT), o = op.toUpperCase(Locale.ROOT);
+            if (f.startsWith("SAR") || o.contains("SEARCH AND RESCUE") || o.contains("SEENOT")) return 4;
+            if (f.startsWith("CHX") || f.startsWith("CHRIST") || o.contains("LUFTRETTUNG") || o.contains("ADAC") || o.contains("DRF ") || o.startsWith("DRF")
+                    || o.contains("JOHANNITER") || o.contains("RESCUE") || o.contains("HEMS") || o.contains("AMBULAN") || o.contains("NOTARZT") || o.contains("RETTUNG")) return 1;
+            if (f.matches("(PHH|PPH|HBT)\\d.*") || o.contains("POLIZEI") || o.contains("POLICE") || o.contains("BUNDESPOLIZEI") || o.contains("POLIS") || o.contains("GENDARM")) return 2;
+            if ((dbFlags & 1) != 0 || f.startsWith("GAF") || f.startsWith("GAM") || f.startsWith("RCH") || f.startsWith("NATO") || o.contains("BUNDESWEHR") || o.contains("LUFTWAFFE")
+                    || o.contains("AIR FORCE") || o.contains("ARMY") || o.contains("NAVY") || o.contains("MILITARY") || o.contains("HEERESFLIEGER") || o.contains("MARINE")) return 3;
+            return 0;
+        }
+        static String roleName(int role, int typ, String art) {
+            boolean h = typ == 3;
+            switch (role) { case 1: return h ? "Rettungshubschrauber" : "Ambulanzflugzeug"; case 2: return h ? "Polizeihubschrauber" : "Polizeiflugzeug";
+                case 3: return h ? "Militärhubschrauber" : typ == 9 ? "Militärjet" : "Militärflugzeug"; case 4: return h ? "SAR-Hubschrauber" : "SAR-Flugzeug"; default: return art; }
+        }
         static final String[] TYP = {"Luftfahrzeug", "Segelflugzeug", "Schleppflugzeug", "Hubschrauber", "Fallschirmspringer", "Absetzflugzeug", "Drachen", "Gleitschirm", "Motorflugzeug", "Jet", "Luftfahrzeug", "Ballon", "Luftschiff", "Drohne", "Bodenfahrzeug", "Objekt"};
         static String json() {
             StringBuilder sb = new StringBuilder("{\"q\":").append(Double.isNaN(qnh) ? "null" : String.valueOf(Math.round(qnh))).append(",\"g\":").append(Double.isNaN(ground) ? "null" : String.valueOf(Math.round(ground))).append(",\"err\":").append(JSONObject.quote(err)).append(",\"ac\":[");
@@ -2726,9 +2767,11 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             for (Map.Entry<String, double[]> e : ac.entrySet()) {
                 double[] v = e.getValue(); if (now - (long) v[7] > 90000) continue;
                 if (!f) sb.append(','); f = false;
-                String[] L = (label.getOrDefault(e.getKey(), "") + "||||").split("\\|", -1);
+                String[] L = (label.getOrDefault(e.getKey(), "") + "||||||").split("\\|", -1);
                 String lb = (L[0] + " " + L[1]).trim(); if (lb.isEmpty()) lb = L[2];
-                sb.append(String.format(Locale.ROOT, "{\"id\":%s,\"la\":%.5f,\"lo\":%.5f,\"alt\":%s,\"trk\":%.0f,\"kmh\":%.0f,\"vs\":%.1f,\"typ\":%d,\"age\":%d,\"src\":%d,\"lb\":%s,\"fl\":%s,\"tc\":%s,\"reg\":%s,\"desc\":%s,\"hex\":%s}",
+                int role = 0; try { role = Integer.parseInt(L[5]); } catch (Exception ignored) { }
+                sb.append(String.format(Locale.ROOT, "{\"role\":%d,\"op\":%s,", role, JSONObject.quote(L[6])));
+                sb.append(String.format(Locale.ROOT, "\"id\":%s,\"la\":%.5f,\"lo\":%.5f,\"alt\":%s,\"trk\":%.0f,\"kmh\":%.0f,\"vs\":%.1f,\"typ\":%d,\"age\":%d,\"src\":%d,\"lb\":%s,\"fl\":%s,\"tc\":%s,\"reg\":%s,\"desc\":%s,\"hex\":%s}",
                         JSONObject.quote(e.getKey()), v[0], v[1], Double.isNaN(v[2]) ? "null" : String.valueOf(Math.round(v[2])), v[3], v[4], v[5], (int) v[6], (now - (long) v[7]) / 1000, (int) v[8],
                         JSONObject.quote(lb), JSONObject.quote(L[0]), JSONObject.quote(L[1]), JSONObject.quote(L[2]), JSONObject.quote(L[3]), JSONObject.quote(L[4])));
             }
@@ -2745,12 +2788,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (in != null && in.getStringExtra("cfg") != null) cfg = in.getStringExtra("cfg");
             if (cfg == null) { stopSelf(); return START_NOT_STICKY; }
             ensureChannels(this); Elev.init(getFilesDir());
-            String names = "", until = "";
-            try { JSONObject c = new JSONObject(cfg); names = c.optString("names"); until = new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new java.util.Date(c.optLong("until"))); } catch (Exception ignored) { }
+            String names = "", until = ""; boolean tOnly = false; String tInfo = "";
+            try { JSONObject c = new JSONObject(cfg); names = c.optString("names"); tOnly = c.optBoolean("trafOnly");
+                tInfo = "Warnt bei Luftfahrzeugen im Umkreis von " + String.format(Locale.GERMANY, "%.1f", c.optDouble("tKm", 3)).replace(",0", "") + " km unter " + c.optInt("tAlt", 300) + " m über Grund"; until = new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new java.util.Date(c.optLong("until"))); } catch (Exception ignored) { }
             android.app.PendingIntent ps = android.app.PendingIntent.getService(this, 1, new Intent(this, Watch.class).setAction("stop"),
                     android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
-            android.app.Notification n = nb(this, CH_RUN).setSmallIcon(android.R.drawable.ic_menu_compass).setContentTitle("Einsatz-Wächter aktiv bis " + until)
-                    .setContentText("Prüft alle 5 Minuten Regen, Wind, Scherwind, Kp" + (names.isEmpty() ? "" : " · " + names)).setOngoing(true)
+            android.app.Notification n = nb(this, CH_RUN).setSmallIcon(android.R.drawable.ic_menu_compass).setContentTitle(tOnly ? "Luftverkehr-Warnung aktiv" : "Einsatz-Wächter aktiv bis " + until)
+                    .setContentText(tOnly ? tInfo : "Prüft alle 5 Minuten Regen, Wind, Scherwind, Kp" + (names.isEmpty() ? "" : " · " + names)).setOngoing(true)
                     .setContentIntent(openApp(this)).addAction(new android.app.Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Beenden", ps).build()).build();
             try { if (Build.VERSION.SDK_INT >= 29) startForeground(77, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC); else startForeground(77, n); }
             catch (Exception e) { stopSelf(); return START_NOT_STICKY; }
@@ -2767,16 +2811,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 JSONObject c = null;
                 try { c = new JSONObject(cfg); } catch (Exception ignored) { }
                 if (c == null || System.currentTimeMillis() > c.optLong("until")) break;
-                if (System.currentTimeMillis() >= nextWx) {   // Wetter alle 5 Minuten
+                if (!c.optBoolean("trafOnly") && System.currentTimeMillis() >= nextWx) {   // Wetter alle 5 Minuten (nicht im reinen Luftverkehr-Modus)
                     nextWx = System.currentTimeMillis() + 5 * 60000L;
                     try { check(c, sent); lastInfo = "zuletzt geprüft " + new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new java.util.Date()); }
                     catch (Exception e) { lastInfo = "Prüfung fehlgeschlagen: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()); }
                 }
-                if (c.optBoolean("traffic")) { try { checkTraffic(c, sent, lastD); } catch (Exception ignored) { } }   // Luftverkehr alle 15 s
-                else if (Traffic.watchOn) { Traffic.watchOn = false; Traffic.stopIfIdle(); }
-                try { Thread.sleep(15000L); } catch (InterruptedException e) { break; }
+                if (c.optBoolean("traffic")) { try { checkTraffic(c, sent, lastD); } catch (Exception ignored) { } }   // Luftverkehr alle 5 s
+                else if (Traffic.watchOn) { Traffic.watchOn = false; Traffic.stopIfIdle(); trafClearAll(); }
+                try { Thread.sleep(c.optBoolean("traffic") ? 5000L : 15000L); } catch (InterruptedException e) { break; }
             }
-            Traffic.watchOn = false; Traffic.stopIfIdle();
+            Traffic.watchOn = false; Traffic.stopIfIdle(); trafClearAll();
             if (th == me) { th = null; lastInfo = "abgelaufen"; stopForeground(true); stopSelf(); }
         }
         /** Luftfahrzeuge im Warnumkreis und unter der Warnhöhe (über Grund) melden */
@@ -2784,24 +2828,54 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             double la = c.optDouble("lat"), lo = c.optDouble("lon"), km = c.optDouble("tKm", 3), maxAgl = c.optDouble("tAlt", 500);
             Traffic.watchOn = true; Traffic.start(la, lo, Math.max(25, km * 4));
             double g = Elev.cached(la, lo); if (Double.isNaN(g)) g = Double.isNaN(Traffic.ground) ? c.optDouble("elev", Double.NaN) : Traffic.ground;
-            long now = System.currentTimeMillis();
+            long now = System.currentTimeMillis(); java.util.Set<String> inZone = new java.util.HashSet<>();
             for (Map.Entry<String, double[]> e : Traffic.ac.entrySet()) {
                 double[] v = e.getValue(); if (now - (long) v[7] > 60000) continue;
                 double dy = (v[0] - la) * 111.2, dx = (v[1] - lo) * 111.2 * Math.cos(Math.toRadians(la)), d = Math.hypot(dx, dy);
                 Double prev = lastD.put(e.getKey(), d);
-                if (d > km) continue;
+                boolean was = trafActive.containsKey(e.getKey());
+                double kmLim = was ? km * 1.1 + 0.1 : km;   // kleine Hysterese: Meldung flackert nicht am Rand des Umkreises
+                if (d > kmLim) continue;
                 // Geländehöhe nicht abrufbar: mit 600 m rechnen (höher als fast alles in Mittelgebirgslagen) → eher zu früh als zu spät warnen
                 double agl = Double.isNaN(v[2]) ? Double.NaN : v[2] - (Double.isNaN(g) ? 600 : g);   // Höhe unbekannt → sicherheitshalber warnen
-                if (!Double.isNaN(agl) && agl > maxAgl) continue;
+                if (!Double.isNaN(agl) && agl > maxAgl + (was ? 50 : 0)) continue;
                 int typ = (int) v[6]; String art = Traffic.TYP[Math.max(0, Math.min(15, typ))];
                 String dir = dir(Math.toDegrees(Math.atan2(dx, dy)));
                 boolean near = prev != null && d < prev - 0.05;
-                String[] L = (Traffic.label.getOrDefault(e.getKey(), "") + "||||").split("\\|", -1);
+                String[] L = (Traffic.label.getOrDefault(e.getKey(), "") + "||||||").split("\\|", -1);
                 String lb = (L[0] + " " + L[1]).trim(); if (lb.isEmpty()) lb = L[2];
-                once(sent, "ac" + e.getKey(), (typ == 3 ? "🚁 " : "✈ ") + art + " " + f1(d) + " km " + dir + (near ? " – kommt näher" : ""),
+                art = Traffic.roleName(L[5].matches("[0-4]") ? Integer.parseInt(L[5]) : 0, typ, art);
+                // Meldung bleibt stehen, solange das Luftfahrzeug im Umkreis und unter der Warnhöhe ist, und wird laufend aktualisiert (Ton nur beim ersten Mal)
+                int id = 1000 + Math.abs(e.getKey().hashCode() % 500);
+                inZone.add(e.getKey()); trafActive.put(e.getKey(), id);
+                trafNotify(id, CH_TRAF[Math.max(0, Math.min(2, c.optInt("tSnd", 1)))], (typ == 3 ? "🚁 " : "✈ ") + art + " " + f1(d) + " km " + dir + (near ? " – kommt näher" : ""),
                         (Double.isNaN(agl) ? "Höhe unbekannt" : "ca. " + Math.round(Math.max(0, agl)) + " m über Grund") + (v[4] > 0 ? " · " + Math.round(v[4]) + " km/h" : "") + (lb.isEmpty() ? "" : " · " + lb)
-                        + ". Luftraum beobachten, Drohne tief halten bzw. landen.", 10 * 60000L);
+                        + ". Luftraum beobachten, Drohne tief halten bzw. landen.");
             }
+            // aus dem Bereich heraus (oder keine Meldung mehr seit 60 s): Benachrichtigung entfernen
+            for (java.util.Iterator<Map.Entry<String, Integer>> it = trafActive.entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<String, Integer> a = it.next();
+                if (!inZone.contains(a.getKey())) { trafCancel(a.getValue()); it.remove(); }
+            }
+        }
+        final Map<String, Integer> trafActive = new HashMap<>();
+        void trafCancel(int id) { try { ((android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(id); } catch (Exception ignored) { } }
+        void trafClearAll() { for (int id : trafActive.values()) trafCancel(id); trafActive.clear(); }
+        @SuppressWarnings("deprecation")
+        void trafNotify(int id, String ch, String title, String text) {
+            try {
+                android.app.Notification.Builder b = nb(this, ch).setSmallIcon(android.R.drawable.stat_sys_warning).setContentTitle(title).setContentText(text)
+                        .setStyle(new android.app.Notification.BigTextStyle().bigText(text)).setContentIntent(openApp(this)).setOnlyAlertOnce(true)
+                        .setCategory(android.app.Notification.CATEGORY_ALARM).setWhen(System.currentTimeMillis()).setShowWhen(true);
+                if (Build.VERSION.SDK_INT < 26) b.setPriority(android.app.Notification.PRIORITY_HIGH).setDefaults(android.app.Notification.DEFAULT_ALL);
+                ((android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(id, b.build());
+            } catch (Exception ignored) { }
+        }
+        void onceCh(Map<String, Long> sent, String key, String ch, String title, String text, long pause) {
+            long now = System.currentTimeMillis(); Long t = sent.get(key);
+            if (t != null && now - t < pause) return;
+            sent.put(key, now);
+            alert(this, 1000 + Math.abs(key.hashCode() % 500), title, text, ch);
         }
         /** Einmal melden – dieselbe Warnung frühestens nach „pause“ wieder */
         void once(Map<String, Long> sent, String key, String title, String text, long pause) {
