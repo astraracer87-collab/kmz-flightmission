@@ -1215,7 +1215,7 @@ function paintLive() {
   }
   { // Pflicht-Quellenangabe der Kartendienste, klein unten rechts
     const at = P.layer === 'sat' ? 'Luftbild © GeoBasis-DE / HVBG, LVermGeoRP (dl-de/by-2-0) · außerhalb © Esri' : '© GeoBasis-DE / BKG ' + new Date().getFullYear() + ' CC BY 4.0';
-    const at2 = at + (P.geo === '1' ? ' · Geozonen © DFS dipul' : '') + (P.osmPower === '1' ? ' · Hindernisse © OpenStreetMap' : '') + (trafOn() ? ' · Luftverkehr: OGN, adsb.lol' : '');
+    const at2 = at + (P.geo === '1' ? ' · Geozonen © DFS dipul' : '') + (P.osmPower === '1' ? ' · Hindernisse © OpenStreetMap' : '') + (trafOn() ? ' · Luftverkehr: OGN, ' + (S.trafVia || 'adsb.lol') : '');
     ctx.font = '11px Roboto,system-ui,sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
     const tw = ctx.measureText(at2).width;
     if (barTop()) {   // Leiste oben: ganz unten mittig zwischen den Tasten-Knöpfen
@@ -6393,7 +6393,7 @@ function trafTick0() {
     if (S.me) rq = Math.max(rq, Math.min(150, distM(V.lat, V.lon, S.me[0], S.me[1]) / 1000 + (+P.tKm || 3) + 2));
     A.trafficStart(V.lat, V.lon, Math.round(rq)); trafStarted = true;
     try { const r = JSON.parse(A.traffic() || '{}'); list = r.ac || []; const [mla, mlo] = trafCenter(), ge = A.elevAt ? A.elevAt(mla, mlo) : '';
-      S.trafG = ge !== '' && ge != null ? +ge : r.g; if (!(ge !== '' && ge != null) && A.elevPrefetch && isOnline()) elevPrefetch([[+mla.toFixed(4), +mlo.toFixed(4)]]); S.trafErr = r.err || ''; S.trafN = r.n; }   // „über Grund“ = über deinem Standort / Einsatzort
+      S.trafG = ge !== '' && ge != null ? +ge : r.g; if (!(ge !== '' && ge != null) && A.elevPrefetch && isOnline()) elevPrefetch([[+mla.toFixed(4), +mlo.toFixed(4)]]); S.trafErr = r.err || ''; S.trafN = r.n; S.trafVia = r.via || ''; }   // „über Grund“ = über deinem Standort / Einsatzort
     catch (e) { S.trafErr = 'Daten unlesbar: ' + e.message; }
   } else if (trafStarted) { A.trafficStop(); trafStarted = false; }
   if (P.rid === '1' && A.ridStart) {
@@ -6693,7 +6693,7 @@ function trafUi() {
   if ($('vTshow')) { $('vTshow').textContent = +P.tShow ? (+P.tShow) + ' m' : 'nie'; $('rTshow').value = tIdx('tShow'); }
   if ($('vTkm')) { $('vTkm').textContent = String(+P.tKm).replace('.', ',') + ' km'; $('rTkm').value = tIdx('tKm'); }
   if ($('vTalt')) { $('vTalt').textContent = (+P.tAlt) + ' m'; $('rTalt').value = tIdx('tAlt'); }
-  const v = $('vTraf'); if (v) v.innerHTML = P.traffic !== '1' ? '<b>● aus</b>' : `<b style="color:#13a538">● an</b> · ${S.trafN != null ? S.trafN + ' empfangen' : 'verbindet …'}, ${S.traf.filter(a => !a.rid && trafShown(a)).length} auf der Karte (unter „Ausblenden über“)${P.trafMap === '0' ? ' · auf der Karte ausgeblendet (Ebenen-Knopf)' : ''}${!isOnline() ? ' · <b style="color:#d42020">kein Internet</b>' : ''}${S.trafErr ? ' · <span style="color:#d42020">' + esc(S.trafErr) + '</span>' : ''}${S.trafJsErr ? ' · <span style="color:#d42020">Fehler: ' + esc(S.trafJsErr) + '</span>' : ''}`;
+  const v = $('vTraf'); if (v) v.innerHTML = P.traffic !== '1' ? '<b>● aus</b>' : `<b style="color:#13a538">● an</b> · ${S.trafN != null ? S.trafN + ' empfangen' + (S.trafVia ? ' (ADS-B über ' + esc(S.trafVia) + ')' : '') : 'verbindet …'}, ${S.traf.filter(a => !a.rid && trafShown(a)).length} auf der Karte (unter „Ausblenden über“)${P.trafMap === '0' ? ' · auf der Karte ausgeblendet (Ebenen-Knopf)' : ''}${!isOnline() ? ' · <b style="color:#d42020">kein Internet</b>' : ''}${S.trafErr ? ' · <span style="color:' + (S.trafN ? '#c77800' : '#d42020') + '">' + esc(S.trafErr) + (S.trafN ? ' – weicht auf anderen Dienst aus' : '') + '</span>' : ''}${S.trafJsErr ? ' · <span style="color:#d42020">Fehler: ' + esc(S.trafJsErr) + '</span>' : ''}`;
 }
 document.querySelectorAll('[data-traf]').forEach(b => b.onclick = () => { setP('traffic', b.dataset.traf); if (b.dataset.traf === '1') setP('trafMap', '1'); trafUi(); trafTick(); trafRestart(); });
 /** geänderte Einstellungen an den laufenden Dienst geben (Einsatz-Wächter oder reiner Luftverkehr-Dienst) */

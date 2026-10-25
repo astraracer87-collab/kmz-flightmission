@@ -2905,7 +2905,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         static final Map<String, double[]> ac = new java.util.concurrent.ConcurrentHashMap<>();   // id -> {lat, lon, altM, trk, kmh, climb m/s, typ, t, src(0 OGN/1 ADS-B)}
         static final Map<String, String> label = new java.util.concurrent.ConcurrentHashMap<>();   // nur ADS-B: Flugnummer/Kennzeichen (öffentlich)
         static volatile double cLat, cLon, cKm = 30, ground = Double.NaN, qnh = Double.NaN; static volatile long qnhT;
-        static volatile boolean uiOn, watchOn; static volatile Thread ogn, adsb; static volatile String err = "", adsbErr = "";
+        static volatile boolean uiOn, watchOn; static volatile Thread ogn, adsb; static volatile String err = "", adsbErr = "", adsbSrc = "", apDay = ""; static volatile int apCount;
         static synchronized void start(double lat, double lon, double km) {
             double nk = Math.max(5, Math.min(150, km));
             boolean moved = Math.hypot((lat - cLat) * 111.2, (lon - cLon) * 71) > Math.max(8, nk / 4) || Math.abs(nk - cKm) > Math.max(1, cKm / 4);
@@ -2962,16 +2962,40 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         static void adsbLoop() {
             Thread me = Thread.currentThread();
-            String[] hosts = {"https://api.adsb.lol/v2/point/", "https://api.airplanes.live/v2/point/"};
+            // drei freie Dienste mit gleichem Datenformat; wer „zu viele Anfragen“ (HTTP 429) meldet, bekommt eine Pause und der nächste ist dran
+            // Reihenfolge = Vorrang: adsb.lol (Grenze nach Serverlast), adsb.fi (1/s), airplanes.live (1/s, kostenlos nur ca. 500 Abfragen/Tag → nur Notreserve)
+            String[] hosts = {"https://api.adsb.lol/v2/point/%.4f/%.4f/%d", "https://opendata.adsb.fi/api/v3/lat/%.4f/lon/%.4f/dist/%d", "https://api.airplanes.live/v2/point/%.4f/%.4f/%d"};
+            String[] names = {"adsb.lol", "adsb.fi", "airplanes.live"};
+            long[] pause = new long[hosts.length], wait = new long[hosts.length];
             int hi = 0;
             while (adsb == me && active()) {
+                long now0 = System.currentTimeMillis();
+                // immer der vorrangigste freie Dienst (nicht reihum – so verteilt sich nichts unnötig); airplanes.live nur bis 400 Abfragen am Tag
+                String day = new SimpleDateFormat("yyyyMMdd", Locale.ROOT).format(new java.util.Date());
+                if (!day.equals(apDay)) { apDay = day; apCount = 0; }
+                int pick = -1; for (int h = 0; h < hosts.length; h++) { if (now0 < pause[h]) continue; if (h == 2 && apCount >= 400) continue; pick = h; break; }
+                if (pick < 0) {   // alle drei pausieren: bis zum frühesten Ende warten
+                    long t = Long.MAX_VALUE; for (long pz : pause) t = Math.min(t, pz);
+                    try { Thread.sleep(Math.max(1000, Math.min(60000, t - now0))); } catch (InterruptedException ie) { break; }
+                    continue;
+                }
+                hi = pick;
+                if (hi == 2) apCount++;
                 try {
-                    String url = hosts[hi] + String.format(Locale.ROOT, "%.4f/%.4f/%d", cLat, cLon, (int) Math.max(5, Math.round(cKm / 1.852)));
+                    String url = String.format(Locale.ROOT, hosts[hi], cLat, cLon, (int) Math.max(5, Math.min(100, Math.round(cKm / 1.852))));
                     HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
                     c.setConnectTimeout(10000); c.setReadTimeout(15000); c.setRequestProperty("User-Agent", "MissionKitzrettung/2.1 (Kitzrettung, ehrenamtlich)");
-                    if (c.getResponseCode() != 200) throw new Exception("HTTP " + c.getResponseCode());
+                    int code = c.getResponseCode();
+                    if (code == 429 || code == 503) {   // zu viele Anfragen: Pause (Retry-After beachten), bei Wiederholung länger
+                        long ra = 0; try { ra = Long.parseLong(c.getHeaderField("Retry-After").trim()) * 1000; } catch (Exception ignored) { }
+                        wait[hi] = Math.min(10 * 60000L, Math.max(ra, wait[hi] == 0 ? 60000 : wait[hi] * 2)); pause[hi] = System.currentTimeMillis() + wait[hi];
+                        c.disconnect(); throw new Exception("HTTP " + code + " – Pause " + wait[hi] / 1000 + " s");
+                    }
+                    if (code != 200) { c.disconnect(); pause[hi] = System.currentTimeMillis() + 30000; throw new Exception("HTTP " + code); }
                     String txt; try (InputStream in = c.getInputStream()) { txt = readAll(in); } finally { c.disconnect(); }
-                    JSONArray a = new JSONObject(txt).optJSONArray("ac"); long now = System.currentTimeMillis();
+                    wait[hi] = 0;
+                    JSONObject jo = new JSONObject(txt);
+                    JSONArray a = jo.has("ac") ? jo.optJSONArray("ac") : jo.optJSONArray("aircraft"); long now = System.currentTimeMillis();
                     if (a != null) for (int i = 0; i < a.length(); i++) {
                         JSONObject o = a.optJSONObject(i); if (o == null || !o.has("lat")) continue;
                         Object ab = o.opt("alt_baro"); if ("ground".equals(String.valueOf(ab))) continue;
@@ -3002,12 +3026,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         JSONObject e = new JSONObject(Watch.get(String.format(Locale.ROOT, "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=pressure_msl", cLat, cLon)));
                         double q = e.optJSONObject("current").optDouble("pressure_msl"); if (q > 900 && q < 1100) { qnh = q; qnhT = System.currentTimeMillis(); }
                     } catch (Exception ignored) { }
-                    adsbErr = "";
-                } catch (Exception e) { hi = (hi + 1) % hosts.length; adsbErr = "ADS-B (" + hosts[(hi + hosts.length - 1) % hosts.length].replaceAll("https://(api\\.)?|/v2.*", "") + "): " + e.getMessage(); }
+                    adsbErr = ""; adsbSrc = names[hi];
+                } catch (Exception e) { adsbErr = "ADS-B (" + names[hi] + "): " + e.getMessage(); if (now0 >= pause[hi]) pause[hi] = System.currentTimeMillis() + 30000; }
                 // alte Einträge entfernen
                 long now = System.currentTimeMillis();
                 for (Map.Entry<String, double[]> e : ac.entrySet()) if (now - (long) e.getValue()[7] > 120000) { ac.remove(e.getKey()); label.remove(e.getKey()); }
-                try { Thread.sleep(5000); } catch (InterruptedException ie) { break; }   // ADS-B alle 5 s (OGN kommt ohnehin sofort)
+                // App offen: alle 10 s, nur im Hintergrund (Warndienst): alle 15 s – weit unter allen Grenzen; dazwischen rechnet die Karte weiter (OGN kommt ohnehin sofort)
+                try { Thread.sleep(uiOn ? 10000 : 15000); } catch (InterruptedException ie) { break; }
             }
         }
         static final String[] ROLE_OP = {"Oyonnair", "", "Airlec Air Espace", "Gendarmerie Frankreich", "French Customs", "Unicair GmbH", "Aero-Dienst", "DRF Luftrettung", "Tyrol Air Ambulance", "Polizei Hessen", "ADAC Luftrettung", "Luftwaffe", "Polizei", "Polizei Brandenburg", "Polizei Bayern", "Johanniter Luftrettung", "Polizei Baden-Württemberg", "Bundespolizei", "Heli-Flight", "Polizei Mecklenburg-Vorpommern", "Polizei Nordrhein-Westfalen", "Polizei Niedersachsen", "Polizei Rheinland-Pfalz", "Polizei Sachsen-Anhalt", "Polizei Sachsen", "Polizei Thüringen", "Kohl Medical", "Colombian National Police", "Polizei Österreich", "ARA Flugrettung", "Belgian Coast Guard", "Service dAide Medicale dUrgence", "Föderale Polizei Belgien", "Grenzschutz Polen", "ANWB Medical Air Assistance", "Netherlands Coast Guard", "Polizei Niederlande", "Dutch Caribbean Coastguard", "Aruba Police", "Polish Medical Air Service", "Polish Medical Air Rescue", "Polizei Polen", "Polizei Tschechien", "Swiss Air Ambulance AG", "AAA Alpine Air Ambulance", "Luxembourg Air Ambulance", "Luxembourg Air Rescue", "Polizei Luxemburg"};
@@ -3119,7 +3144,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         static final String[] TYP = {"Luftfahrzeug", "Segelflugzeug", "Schleppflugzeug", "Hubschrauber", "Fallschirmspringer", "Absetzflugzeug", "Drachen", "Gleitschirm", "Motorflugzeug", "Jet", "Luftfahrzeug", "Ballon", "Luftschiff", "Drohne", "Bodenfahrzeug", "Objekt"};
         static String json() {
-            StringBuilder sb = new StringBuilder("{\"q\":").append(Double.isNaN(qnh) ? "null" : String.valueOf(Math.round(qnh))).append(",\"g\":").append(Double.isNaN(ground) ? "null" : String.valueOf(Math.round(ground))).append(",\"err\":").append(JSONObject.quote((err + " " + adsbErr).trim())).append(",\"n\":").append(ac.size()).append(",\"ac\":[");
+            StringBuilder sb = new StringBuilder("{\"q\":").append(Double.isNaN(qnh) ? "null" : String.valueOf(Math.round(qnh))).append(",\"g\":").append(Double.isNaN(ground) ? "null" : String.valueOf(Math.round(ground))).append(",\"err\":").append(JSONObject.quote((err + " " + adsbErr).trim())).append(",\"via\":").append(JSONObject.quote(adsbSrc)).append(",\"n\":").append(ac.size()).append(",\"ac\":[");
             long now = System.currentTimeMillis(); boolean f = true;
             for (Map.Entry<String, double[]> e : ac.entrySet()) {
                 double[] v = e.getValue(); if (now - (long) v[7] > 90000) continue;
