@@ -640,7 +640,7 @@ body.bartop #trafWarn{top:84px}
           <input type="range" id="rTalt" min="0" max="23" step="1"></div>
         <div class="trow"><span class="tl">Daueralarm im Nahbereich</span><div class="seg"><button data-tnear="0">Aus</button><button data-tnear="0.5">0,5</button><button data-tnear="1">1</button><button data-tnear="1.5">1,5</button><button data-tnear="2">2</button><button data-tnear="3">3 km</button></div>
           <button class="tbtn" id="bNearTest" style="width:auto;padding:0 12px;font-size:14px">Daueralarm anhören</button></div>
-        <div class="v" style="margin-top:-4px">Ist ein Luftfahrzeug (unter der Warnhöhe) näher als dieser Abstand und kommt weiter näher, ertönt alle 4 s ein TCAS-Doppelchime und das Warnfenster wird rot – bis es den nächsten Punkt passiert hat und sich wieder entfernt. 🔊✕ schaltet stumm, 🔇 schaltet wieder ein. Bei anderen Drohnen gilt höchstens 300 m.</div>
+        <div class="v" style="margin-top:-4px">Ist ein Luftfahrzeug (unter der Warnhöhe) näher als dieser Abstand und kommt weiter näher, ertönt alle 4 s die Sprachansage „Traffic, Traffic" und das Warnfenster wird rot – bis es den nächsten Punkt passiert hat und sich wieder entfernt. 🔊✕ schaltet stumm, 🔇 schaltet wieder ein. Bei anderen Drohnen gilt höchstens 300 m.</div>
         <div class="trow"><span class="tl">Warnton</span><div class="seg"><button data-tsnd="0">Aus</button><button data-tsnd="1">Warnton</button><button data-tsnd="2">Alarm (lang)</button></div>
           <button class="tbtn" id="bTrafTest" style="width:auto;padding:0 12px;font-size:14px">Test in 3 s</button></div>
         <div class="trow"><span class="tl">Warnfenster über allen Apps</span><div class="seg"><button data-tovl="0">Aus</button><button data-tovl="1">An</button></div>
@@ -3620,7 +3620,37 @@ function geoInfoPage(raw) {
       ${AIR_LAYERS.includes(f.layer) ? airZoneExtra(f, r.lat, r.lon) : ''}
       ${extra ? `<details><summary>Alle Angaben von dipul</summary>${extra}</details>` : ''}</div>`;
   });
-  if (r.text && !feats.length) html += `<div class="zone"><h4>Antwort von dipul</h4><pre style="white-space:pre-wrap;font-size:13px">${esc(r.text)}</pre></div>`;
+  if (r.text && !feats.length) {
+    // dipul-Textantwort (text/plain-Fallback) in Zonenkarten parsen
+    const txtFeats = [];
+    r.text.split(/Results for FeatureType\s+'[^:]*:(\w+)'\s*:/).forEach((part, i, arr) => {
+      if (i % 2 === 1) {   // ungerade = Layer-Name, gerade+1 = Inhalt
+        const layer = arr[i], body = (arr[i + 1] || '');
+        const props = {};
+        body.split('\n').forEach(ln => {
+          const m = ln.match(/^\s*(\w[\w_]*)\s*=\s*(.+)$/);
+          if (m && m[1] !== 'geom' && !/^\[GEOMETRY/.test(m[2])) props[m[1]] = m[2].trim();
+        });
+        if (Object.keys(props).length) txtFeats.push({ layer, props });
+      }
+    });
+    if (txtFeats.length) {
+      txtFeats.forEach(tf => {
+        const p = tf.props, layer = tf.layer;
+        const label = LAYER_LABEL[layer] || layer;
+        const k = covKind(layer, reg);
+        const extra = Object.keys(p).filter(k => p[k] != null && p[k] !== '')
+          .map(k => `<div>${esc(PROP_LABEL[k] || k)}: ${esc(p[k])}</div>`).join('');
+        html += `<div class="zone"><h4>${esc(p.name || p.generated_name_EN || label)} <span class="chip ${k === 'on' ? 'cov' : k === 'dist' ? 'dist' : ''}">${k === 'on' ? 'Überflug erlaubt (grün)' : k === 'dist' ? 'Nur mit Abstand (orange)' : 'Gesperrt (rot)'}</span>${covBadges(layer, reg)}</h4>
+          <div class="meta">${esc(label)}${p.lower_limit_altitude || p.upper_limit_altitude ? ' · ' + esc((p.lower_limit_altitude || '0') + '–' + (p.upper_limit_altitude || '∞') + ' ' + (p.upper_limit_unit || 'ft') + ' ' + (p.upper_limit_alt_ref || '')) : ''}${p.legal_ref ? ' · ' + esc(p.legal_ref) : ''}</div>
+          ${rulesHtml(layer, reg)}
+          ${extra ? `<details><summary>Alle Angaben von dipul</summary>${extra}</details>` : ''}
+          <div class="meta" style="margin-top:6px;color:#888">Daten aus dipul-Textantwort (kein JSON/GML verfügbar)</div></div>`;
+      });
+    } else {
+      html += `<div class="zone"><h4>Antwort von dipul</h4><pre style="white-space:pre-wrap;font-size:13px">${esc(r.text)}</pre></div>`;
+    }
+  }
   // Felder an dieser Stelle (wenn „Felder“ aktiv)
   if (P.labels === '1') {
     const here = S.files.filter(visible).filter(f => (f.outline && inRing(r.lat, r.lon, f.outline.map(p => [p[1], p[0]]))) || fieldDistTo(f, r.lat, r.lon) < 25);
@@ -6228,6 +6258,15 @@ window.onUave = raw => {
     if (ev.cancelled) toast(`Abgleich abgebrochen – ${ev.ok} Feld${ev.ok === 1 ? '' : 'er'} geladen und gespeichert.`, true, 6000);
     else if (ev.errors && ev.errors.length) toast(`${ev.ok} geladen, ${ev.errors.length} Fehler:\n` + ev.errors.join('\n'), true, 10000);
     else toast(`${ev.ok} Feld${ev.ok === 1 ? '' : 'er'} aus UAV Editor geladen.`);
+    // Bei Pre-Check & Download (catDl): heruntergeladene Felder direkt in den Import-Ordner kopieren
+    const doneFiles = Object.values(ev.files || {});
+    if (S.catDl && doneFiles.length) {
+      S.catDl = false;
+      const base = P.src.replace(/\/+$/, '') + '/';
+      doTransfer(doneFiles.map(n => base + n));
+      setTimeout(() => load(true), 1500);
+      return;
+    }
     load(true);
   }
 };
@@ -6728,7 +6767,7 @@ document.querySelectorAll('[data-traf]').forEach(b => b.onclick = () => { setP('
 /** geänderte Einstellungen an den laufenden Dienst geben (Einsatz-Wächter oder reiner Luftverkehr-Dienst) */
 function trafRestart() { const run = trafSvcRunning(); if (run && !run.trafOnly) watchStart(null, true); else trafEnsure(true); }
 document.querySelectorAll('[data-tsnd]').forEach(b => b.onclick = () => { setP('tSnd', b.dataset.tsnd); trafUi(); trafRestart(); });
-if ($('bNearTest')) $('bNearTest').onclick = () => { if (!A.sirenTest) return toast('Diese App-Version kann das noch nicht.', true); A.sirenTest(3); toast('So klingt der TCAS-Doppelchime (wiederholt sich alle 4 s, solange es näher kommt). Lautstärke: Wecker/Alarm.', 'ok', 4000); };
+if ($('bNearTest')) $('bNearTest').onclick = () => { if (!A.sirenTest) return toast('Diese App-Version kann das noch nicht.', true); A.sirenTest(3); toast('So klingt die Sprachansage „Traffic, Traffic" (wiederholt sich alle 4 s, solange es näher kommt). Lautstärke: Wecker/Alarm.', 'ok', 4000); };
 document.querySelectorAll('[data-tnear]').forEach(b => b.onclick = () => { setP('tNear', b.dataset.tnear); trafUi(); trafRestart(); });
 document.querySelectorAll('[data-tovl]').forEach(b => b.onclick = () => { setP('tOvl', b.dataset.tovl); trafUi(); trafRestart(); if (b.dataset.tovl === '1' && A.canOverlay && !A.canOverlay() && A.overlayPerm) A.overlayPerm(); });
 if ($('bOvlPerm')) $('bOvlPerm').onclick = () => A.overlayPerm && A.overlayPerm();
