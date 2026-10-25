@@ -2704,7 +2704,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         double[] old = ac.get(key);
                         if (old != null && old[8] == 0 && now - old[7] < 20000) continue;   // OGN-Meldung ist frischer
                         ac.put(key, new double[]{o.optDouble("lat"), o.optDouble("lon"), alt, o.optDouble("track", -1), o.has("gs") ? o.optDouble("gs") * 1.852 : -1, o.optDouble("baro_rate", 0) * 0.00508, typ, now, 1});
-                        String lb = (o.optString("flight", "").trim() + " " + t).trim(); if (lb.isEmpty()) lb = o.optString("r", ""); label.put(key, lb);
+                        // öffentliche ADS-B-Angaben: Rufzeichen | Typcode | Kennzeichen | Typbezeichnung | ICAO-Adresse (keine Halter-/Betreiberdaten)
+                        label.put(key, o.optString("flight", "").trim() + "|" + t + "|" + o.optString("r", "").trim() + "|" + o.optString("desc", "").trim() + "|" + o.optString("hex", "").trim());
                     }
                     if (Double.isNaN(ground)) ground = Elev.at(cLat, cLon);   // Geländehöhe am Einsatzort (gemerkt bzw. einmal geholt)
                     if (System.currentTimeMillis() - qnhT > 30 * 60000L) try {   // aktueller Luftdruck auf Meereshöhe (QNH) für die barometrischen Höhen
@@ -2715,18 +2716,21 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 // alte Einträge entfernen
                 long now = System.currentTimeMillis();
                 for (Map.Entry<String, double[]> e : ac.entrySet()) if (now - (long) e.getValue()[7] > 120000) { ac.remove(e.getKey()); label.remove(e.getKey()); }
-                try { Thread.sleep(12000); } catch (InterruptedException ie) { break; }
+                try { Thread.sleep(5000); } catch (InterruptedException ie) { break; }   // ADS-B alle 5 s (OGN kommt ohnehin sofort)
             }
         }
         static final String[] TYP = {"Luftfahrzeug", "Segelflugzeug", "Schleppflugzeug", "Hubschrauber", "Fallschirmspringer", "Absetzflugzeug", "Drachen", "Gleitschirm", "Motorflugzeug", "Jet", "Luftfahrzeug", "Ballon", "Luftschiff", "Drohne", "Bodenfahrzeug", "Objekt"};
         static String json() {
-            StringBuilder sb = new StringBuilder("{\"g\":").append(Double.isNaN(ground) ? "null" : String.valueOf(Math.round(ground))).append(",\"err\":").append(JSONObject.quote(err)).append(",\"ac\":[");
+            StringBuilder sb = new StringBuilder("{\"q\":").append(Double.isNaN(qnh) ? "null" : String.valueOf(Math.round(qnh))).append(",\"g\":").append(Double.isNaN(ground) ? "null" : String.valueOf(Math.round(ground))).append(",\"err\":").append(JSONObject.quote(err)).append(",\"ac\":[");
             long now = System.currentTimeMillis(); boolean f = true;
             for (Map.Entry<String, double[]> e : ac.entrySet()) {
                 double[] v = e.getValue(); if (now - (long) v[7] > 90000) continue;
                 if (!f) sb.append(','); f = false;
-                sb.append(String.format(Locale.ROOT, "{\"id\":%s,\"la\":%.5f,\"lo\":%.5f,\"alt\":%s,\"trk\":%.0f,\"kmh\":%.0f,\"vs\":%.1f,\"typ\":%d,\"age\":%d,\"src\":%d,\"lb\":%s}",
-                        JSONObject.quote(e.getKey()), v[0], v[1], Double.isNaN(v[2]) ? "null" : String.valueOf(Math.round(v[2])), v[3], v[4], v[5], (int) v[6], (now - (long) v[7]) / 1000, (int) v[8], JSONObject.quote(label.getOrDefault(e.getKey(), ""))));
+                String[] L = (label.getOrDefault(e.getKey(), "") + "||||").split("\\|", -1);
+                String lb = (L[0] + " " + L[1]).trim(); if (lb.isEmpty()) lb = L[2];
+                sb.append(String.format(Locale.ROOT, "{\"id\":%s,\"la\":%.5f,\"lo\":%.5f,\"alt\":%s,\"trk\":%.0f,\"kmh\":%.0f,\"vs\":%.1f,\"typ\":%d,\"age\":%d,\"src\":%d,\"lb\":%s,\"fl\":%s,\"tc\":%s,\"reg\":%s,\"desc\":%s,\"hex\":%s}",
+                        JSONObject.quote(e.getKey()), v[0], v[1], Double.isNaN(v[2]) ? "null" : String.valueOf(Math.round(v[2])), v[3], v[4], v[5], (int) v[6], (now - (long) v[7]) / 1000, (int) v[8],
+                        JSONObject.quote(lb), JSONObject.quote(L[0]), JSONObject.quote(L[1]), JSONObject.quote(L[2]), JSONObject.quote(L[3]), JSONObject.quote(L[4])));
             }
             return sb.append("]}").toString();
         }
@@ -2792,7 +2796,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 int typ = (int) v[6]; String art = Traffic.TYP[Math.max(0, Math.min(15, typ))];
                 String dir = dir(Math.toDegrees(Math.atan2(dx, dy)));
                 boolean near = prev != null && d < prev - 0.05;
-                String lb = Traffic.label.getOrDefault(e.getKey(), "");
+                String[] L = (Traffic.label.getOrDefault(e.getKey(), "") + "||||").split("\\|", -1);
+                String lb = (L[0] + " " + L[1]).trim(); if (lb.isEmpty()) lb = L[2];
                 once(sent, "ac" + e.getKey(), (typ == 3 ? "🚁 " : "✈ ") + art + " " + f1(d) + " km " + dir + (near ? " – kommt näher" : ""),
                         (Double.isNaN(agl) ? "Höhe unbekannt" : "ca. " + Math.round(Math.max(0, agl)) + " m über Grund") + (v[4] > 0 ? " · " + Math.round(v[4]) + " km/h" : "") + (lb.isEmpty() ? "" : " · " + lb)
                         + ". Luftraum beobachten, Drohne tief halten bzw. landen.", 10 * 60000L);
