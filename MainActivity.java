@@ -3380,7 +3380,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             // Warnfenster über allen Apps (wenn erlaubt und die App nicht selbst vorne ist – dort zeigt sie ihren eigenen Pfeil)
             for (double[] t : tg) if (Math.abs(t[0] - bBrg) < 1e-9) t[4] = 1;   // nächster = hervorgehoben
             nearAlarm(nearHit);
-            if (fresh && !nearHit) beep(c.optInt("tSnd", 1));   // neu im Warnbereich: eigener, gut hörbarer Ton (unabhängig von den Benachrichtigungs-Einstellungen)
+            // Gelbe Vorwarnung: kein eigener Ton – nur Benachrichtigung. Ton kommt erst im roten Nahbereich (TCAS-Chime).
             if (bKey != null && c.optBoolean("ovl", true) && !appFg) ovlShow(bKey, bT, bS + (nT > 1 ? " · +" + (nT - 1) + " weitere" : ""), tg, la, lo);
             else ovlHide();
             // aus dem Bereich heraus (oder keine Meldung mehr seit 60 s): Benachrichtigung entfernen
