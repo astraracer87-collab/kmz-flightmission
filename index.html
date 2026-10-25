@@ -185,6 +185,8 @@
   .dir svg{color:#d9a400}
   #pPath{font-size:14px;color:var(--muted);word-break:break-all;margin-bottom:8px}
 
+  #dTitle{padding-right:48px}
+  .dlg .box .dlgx{position:sticky;top:0;float:right;align-self:flex-end;flex:none;margin:-6px -6px -38px auto;width:44px;height:44px;border-radius:50%;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:20px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,.15)}
   .dlg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30}
   .dlg.open{display:flex}
   .dlg .box{background:var(--card);color:var(--txt);border-radius:14px;width:min(640px,94%);max-height:92%;display:flex;flex-direction:column;padding:16px;overflow:auto}
@@ -348,7 +350,51 @@
   .wxtl .gu.o{background:var(--o-bg)}.wxtl .gu.r{background:var(--r-bg)}
   .wxsh{margin-top:10px;border-radius:10px;padding:8px 12px;background:var(--card2);border-left:6px solid #13a538;font-size:14px}
   .wxsh.o{border-left-color:#e8a200;background:var(--o-bg)}.wxsh.r{border-left-color:#b3131b;background:var(--r-bg)}
-  .wxdays{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+  .wxdays{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px}
+  /* ---- Wetter „Jetzt“: dunkle Karte im Stil des Tageslaufs ---- */
+  .wxnow{background:linear-gradient(160deg,#0e1a30 0%,#152847 55%,#1c3459 100%)!important;color:#e8eef8;border:none!important;border-radius:18px!important;padding:16px!important;box-shadow:0 8px 28px rgba(0,0,0,.28)}
+  .wxnow.l0{--lc:#22c55e;--lg:rgba(34,197,94,.28)}.wxnow.l1{--lc:#f59e0b;--lg:rgba(245,158,11,.30)}.wxnow.l2{--lc:#ef4444;--lg:rgba(239,68,68,.32)}
+  .wxnow .meta{color:#8fa3bf!important}
+  .wnhero{display:flex;align-items:center;gap:14px}
+  .wnst{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--lc);box-shadow:0 0 0 6px var(--lg),0 0 26px var(--lg)}
+  .wnst svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+  .wnht{min-width:0}.wnht .t{font-size:21px;font-weight:800;letter-spacing:-.01em;color:#fff;line-height:1.2}.wnht .s{font-size:13px;color:#9fb0c8;margin-top:3px}
+  .wnkp{margin-left:auto;text-align:center;padding:6px 14px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);font-weight:800;font-size:22px;color:#fff;line-height:1.1}
+  .wnkp small{display:block;font-size:10px;letter-spacing:.1em;color:#9fb0c8;font-weight:800}.wnkp.o{color:#fbbf24}.wnkp.r{color:#f87171}
+  .wntiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+  @media (max-width:760px){.wntiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .wnt{position:relative;border-radius:16px;padding:12px 12px 12px 15px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);overflow:hidden;min-width:0;--tc:#22c55e}
+  .wnt::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:0 4px 4px 0;background:var(--tc)}
+  .wnt.o{--tc:#f59e0b;background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.25)}.wnt.r{--tc:#ef4444;background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.32)}
+  .wnt .top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  .wnt .k{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#9fb0c8;margin-top:2px}
+  .wnt .ic{width:42px;height:42px;flex:none;margin:-4px -2px -6px 0}
+  .wnt .v{font-size:27px;font-weight:800;line-height:1.1;margin-top:2px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+  .wnt .v small{font-size:13px;font-weight:600;color:#c3cfe0}
+  .wnt.o .v{color:#fde68a}.wnt.r .v{color:#fecaca}
+  .wnt .d{font-size:12.5px;color:#a9b8cd;line-height:1.35;margin-top:4px}
+  .wxnow .wxtl{margin-top:14px;padding:10px 10px 8px;border-radius:14px;background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.05)}
+  .wxnow .wxtl .lb{color:#8fa3bf}.wxnow .wxtl .hh{color:#e8eef8}
+  .wxnow .wxtl .bar{background:rgba(255,255,255,.06);height:44px;border-radius:10px}
+  .wxnow .wxtl .bar i{border-radius:8px;background:linear-gradient(180deg,#4ade80,#16a34a)}
+  .wxnow .wxtl .rain i{background:linear-gradient(180deg,#60a5fa,#2563eb)}
+  .wxnow .wxtl .bar.o i{background:linear-gradient(180deg,#fcd34d,#d97706)}.wxnow .wxtl .bar.r i{background:linear-gradient(180deg,#f87171,#dc2626)}
+  .wxnow .wxtl .bar b{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+  .wxnow .wxtl .wind .g{border-top:2px dashed rgba(255,255,255,.8);opacity:1}
+  .wxnow .wxtl .gu{background:rgba(255,255,255,.05);color:#e8eef8;border-radius:9px}
+  .wxnow .wxtl .gu.o{background:rgba(245,158,11,.22);color:#fde68a}.wxnow .wxtl .gu.r{background:rgba(239,68,68,.26);color:#fecaca}
+  .wxnow .wxtl .wd{color:#9fb0c8}.wxnow .wxtl .wd .arr{color:#fff}
+  .wnchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .wnchip{padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);font-size:13px;color:#dbe4f0}
+  .wnchip.o{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.3);color:#fde68a}.wnchip.r{background:rgba(239,68,68,.18);border-color:rgba(239,68,68,.35);color:#fecaca}
+  /* Bewertungs-Kopf und 8-Tage-Vorschau: ruhiger, moderner */
+  .wxwin{border-left:none!important;border-radius:18px!important;position:relative;overflow:hidden;padding-left:20px!important}
+  .wxwin::before{content:'';position:absolute;left:0;top:0;bottom:0;width:6px;background:#22c55e}.wxwin.o::before{background:#f59e0b}.wxwin.r::before{background:#ef4444}
+  .wxday{border-top:none!important;background:var(--card2)!important;border:1px solid var(--line);border-radius:16px;padding:11px 12px 10px;position:relative;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+  .wxday::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:#22c55e}.wxday.o::before{background:#f59e0b}.wxday.r::before{background:#ef4444}
+  .wxday .vd{display:block;padding:5px 9px;border-radius:10px;line-height:1.35;background:rgba(34,197,94,.14);color:#15803d;font-size:12px;margin:2px 0 6px}
+  .wxday.o .vd{background:rgba(245,158,11,.16);color:#b45309}.wxday.r .vd{background:rgba(239,68,68,.14);color:#b91c1c}
+
   .wxday{border-radius:12px;padding:9px 10px;background:var(--card2);border-top:6px solid #13a538;font-size:13.5px;line-height:1.4}
   .wxday.o{border-top-color:#e8a200;background:var(--o-bg)}.wxday.r{border-top-color:#b3131b;background:var(--r-bg)}
   .wxday .dd{font-weight:900;font-size:16px;display:flex;justify-content:space-between;align-items:center}
@@ -610,6 +656,7 @@
 <!-- Bestätigung -->
 <div class="dlg" id="dlg">
   <div class="box">
+    <button id="dX" class="dlgx" aria-label="Schließen" title="Schließen">✕</button>
     <h3 id="dTitle"></h3>
     <div id="dText" style="color:var(--muted);font-size:15px;word-break:break-all"></div>
     <div class="lst" id="dList"></div>
@@ -2640,7 +2687,7 @@ function pickDlg(title, text, items, okWord, cb) {
     let n = 0;
     box.querySelectorAll('label.pick').forEach((l, i) => { const v = shown(items[i]); l.style.display = v ? '' : 'none'; if (v) n++; });
     if (cntEl) cntEl.textContent = filtering() ? `${n} Treffer · Laden gilt für alle angehakten` : '';
-    if (pm && box.classList.contains('pmon')) pm.fit();
+    if (pm && box.classList.contains('pmon')) pm.paint();   // Ausschnitt behalten – nur neu zeichnen
   }
   // Filter-Chips je Merkmal (nur wenn es mehr als einen Wert gibt)
   const fkeys = [...new Set(items.flatMap(x => Object.keys(x.facets || {})))];
@@ -2671,12 +2718,13 @@ function pickDlg(title, text, items, okWord, cb) {
     const mw = document.createElement('div'); mw.className = 'pickmap';
     mw.innerHTML = '<div class="pmbtn"><button data-pz="1">+</button><button data-pz="-1">−</button><button data-pz="0" title="Alle zeigen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div><div class="pmleg"><i style="background:#ff7a00"></i>nicht gewählt <i style="background:#1aa34a"></i>gewählt <i style="background:#1e7bff"></i>schon auf der RC · Feld antippen = an/aus</div>';
     pm = pickMap(mw, items, shown, i => { items[i].on = !items[i].on; upd(); });
+    var pmFitted = false;
     mw.querySelectorAll('[data-pz]').forEach(b => b.onclick = () => +b.dataset.pz ? pm.zoom(+b.dataset.pz) : pm.fit());
     tabs.querySelectorAll('[data-pt]').forEach(b => b.onclick = () => {
       const m = b.dataset.pt === 'map';
       tabs.querySelectorAll('button').forEach(o => o.classList.toggle('on', o === b));
       box.classList.toggle('pmon', m); dbox.classList.toggle('wide', m);
-      if (m) requestAnimationFrame(() => pm.fit());
+      if (m) requestAnimationFrame(() => { if (!pmFitted) { pmFitted = true; pm.fit(); } else { pm.resize ? pm.resize() : pm.paint(); } });   // nur beim ersten Öffnen einpassen
     });
     var pickMapEl = mw;
   }
@@ -2705,6 +2753,7 @@ function pickDlg(title, text, items, okWord, cb) {
 }
 $('dNo').onclick = () => { dlgDanger(); $('dlg').classList.remove('open'); if (dlgOnCancel) { const c = dlgOnCancel; dlgOnCancel = null; c(); } };
 $('dYes').onclick = () => { $('dlg').classList.remove('open'); dlgOnCancel = null; dlgCb && dlgCb(); };
+$('dX').onclick = () => $('dNo').onclick();   // ✕ oben rechts = Abbrechen
 $('permGo').onclick = () => A.requestAccess();
 
 // ================= Einstellungen =================
@@ -4732,9 +4781,12 @@ function wxNext4(hours, kpc, loc) {
   const rainIco = per.some(p => p.snow > 0) ? WXI('snow', 'ic') : anyRain ? WXI(mx('rain') >= 1 ? 'rain' : 'drizzle', 'ic') : WXI(sunElev(Date.now(), wxLoc().lat, wxLoc().lon) < -3 ? 'moon' : 'sun', 'ic');
   // Wind-Karte: Pfeil zeigt wohin der Wind weht, Zahl = Wind in Einsatzhöhe
   const wRot = p0.dir != null ? (p0.dir + 180) % 360 : 0, calm = p0.w10 == null || p0.w10 < 0.5;
-  const windIco = `<svg class="ic" viewBox="0 0 64 64"><circle cx="32" cy="32" r="29" fill="none" stroke="var(--line)" stroke-width="3"/>
-    <text x="32" y="12" text-anchor="middle" font-size="9" font-weight="800" fill="var(--muted)">N</text>
-    ${calm ? '<circle cx="32" cy="32" r="5" fill="#13a538"/>' : `<g transform="rotate(${wRot} 32 32)"><path d="M32 12l9 14h-6v24h-6V26h-6z" fill="${AMP[lW]}"/></g>`}</svg>`;
+  const TC = ['#22c55e', '#f59e0b', '#ef4444'];
+  const gustIco = `<svg class="ic" viewBox="0 0 64 64" fill="none" stroke="#9fd3ff" stroke-width="4" stroke-linecap="round"><path d="M8 24h30a7 7 0 1 0-7-7"/><path d="M8 34h42a7 7 0 1 1-7 7"/><path d="M8 44h20"/></svg>`, shearIco = `<svg class="ic" viewBox="0 0 64 64" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M10 50h14" stroke="#9fd3ff" stroke-width="4"/><path d="M10 34h26" stroke="#7cc4ff" stroke-width="4"/><path d="M10 18h40" stroke="#5aa9ff" stroke-width="4"/><path d="M44 12l7 6-7 6" stroke="#5aa9ff" stroke-width="4"/></svg>`;
+  const windIco = `<svg class="ic" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.22)" stroke-width="2"/>
+    ${[0, 90, 180, 270].map(r => `<path transform="rotate(${r} 32 32)" d="M32 5v5" stroke="rgba(255,255,255,.45)" stroke-width="2" stroke-linecap="round"/>`).join('')}
+    <text x="32" y="19" text-anchor="middle" font-size="8" font-weight="800" fill="#9fb0c8" stroke="none">N</text>
+    ${calm ? `<circle cx="32" cy="32" r="5" fill="${TC[0]}"/>` : `<g transform="rotate(${wRot} 32 32)"><path d="M32 14l8 13h-5.5v21h-5V27H24z" fill="${TC[lW]}" stroke="none"/></g>`}</svg>`;
   const windHead = whmax != null ? `${f1(p0.wH)} <small>m/s in ${H} m</small>` : '—';
   const windSub = `Böen bis ${gmax != null ? f1(gmax) : '—'} m/s · max. ${whmax != null ? f1(whmax) : '—'} m/s in ${H} m${calm ? ' · windstill' : ' · aus ' + dirTxt(p0.dir)}`;
   // Zeitleiste: je Stunde Regenbalken und Windbalken (Strich = Böe)
@@ -4747,16 +4799,22 @@ function wxNext4(hours, kpc, loc) {
   tl += `<div class="lb xq" data-x="vis" data-h="${H}" data-t="${esc(String(visTxt(p0.vis)))}">Sicht</div>` + per.map(p => `<div class="gu ${C[p.lVis]}">${visTxt(p.vis)}</div>`).join('');
   tl += `<div class="lb xq" data-x="dew" data-h="${H}" data-t="${esc(String(p0.dew == null ? '—' : f1(p0.dew) + '°'))}">Taupkt.</div>` + per.map(p => `<div class="gu ${p.dew != null && p.t2 != null && p.t2 - p.dew <= 1 ? 'o' : ''}" style="font-weight:600">${p.dew == null ? '—' : f1(p.dew) + '°'}</div>`).join('');
   tl += `<div class="lb xq" data-x="dir" data-h="${H}" data-t="${esc(String(p0.dir == null ? '—' : dirTxt(p0.dir)))}">aus</div>` + per.map(p => `<div class="wd">${p.dir != null && p.w10 >= 0.5 ? `<span class="arr" style="transform:rotate(${(p.dir + 180) % 360}deg)">↑</span> ${DIR8[Math.round(p.dir / 45) % 8]}` : 'still'}</div>`).join('');
-  return `<div class="zone" style="display:block">
-    <div class="wxban l${lvl}">${banIco}<div>${ban}<small>Nächste 4 h · ${loc.what}${kp ? ` · Kp ${f1(kp.kp)}` : ''}</small></div></div>
-    <div class="wxbig">
-      <div class="wxc ${C[lR]}">${rainIco}<div style="min-width:0"><div class="k">Regen</div><div class="v">${rainHead}</div><div class="d">${rainSub}</div></div></div>
-      <div class="wxc ${C[lW]}">${windIco}<div style="min-width:0"><div class="k">Wind</div><div class="v">${windHead}</div><div class="d">${windSub}</div></div></div>
+  const lG = lv(gmax, WX_THR.gust), tile = (lvT, ico, k, v, d, extra) => `<div class="wnt ${C[lvT]}${extra || ''}"><div class="top"><span class="k">${k}</span>${ico}</div><div class="v">${v}</div><div class="d">${d}</div></div>`;
+  return `<div class="zone wxnow l${lvl}" style="display:block">
+    <div class="wnhero"><div class="wnst">${banIco}</div><div class="wnht"><div class="t">${ban}</div><div class="s">Nächste 4 Stunden · ${loc.what}</div></div>
+      ${kp ? `<div class="wnkp ${kp.kp >= 5 ? 'r' : kp.kp >= 4 ? 'o' : ''}"><small>KP-INDEX</small>${f1(kp.kp)}</div>` : ''}</div>
+    <div class="wntiles">
+      ${tile(lR, rainIco, 'Regen', rainHead, rainSub)}
+      ${tile(lW, windIco, 'Wind ' + H + ' m', whmax != null ? `${f1(p0.wH)}<small> m/s</small>` : '—', `max. ${whmax != null ? f1(whmax) : '—'} m/s${calm ? ' · windstill' : ' · aus ' + dirTxt(p0.dir)}`)}
+      ${tile(lG, gustIco, 'Böen', gmax != null ? `${f1(gmax)}<small> m/s</small>` : '—', lW ? (lW === 2 ? 'zu stark für den Einsatz' : 'grenzwertig') + ' · ' + droneWindTxt(Math.max(gmax || 0, whmax || 0)) : `Grenze ${WX_THR.gust[0]}/${WX_THR.gust[1]} m/s`)}
+      ${tile(lS, shearIco, 'Scherwind', shearTxt, shearD, ` xq" data-x="shear" data-t="${esc(shearTxt)}`)}
     </div>
     <div class="wxtl" style="--n:${per.length}">${tl}</div>
-    <div class="wxsh ${C[lV]}"><b>👁 Sicht: ${vmin == null ? 'keine Angabe' : 'min. ' + visTxt(vmin)}</b>${p0.dew != null ? ` · Taupunkt jetzt ${f1(p0.dew)}°${p0.t2 != null ? ` bei ${f1(p0.t2)}° Luft (Taupunkt-Abstand ${f1(p0.t2 - p0.dew)} °C${p0.t2 - p0.dew <= 1 ? ' – Nebel/Tau wahrscheinlich, Linse kann beschlagen' : p0.t2 - p0.dew <= 2.5 ? ' – Nebel möglich' : ''})` : ''}` : ''}</div>
-    <div class="wxsh xq ${C[lS]}" data-x="shear" data-t="${esc(shearTxt)}"><b>↗ Scherwind: ${shearTxt}</b> · ${shearD}</div>
-    <div class="meta" style="margin:8px 0 0">Balken: Wind in ${H} m, gestrichelt = Böe · Grenzen: Böen ${WX_THR.gust[0]}/${WX_THR.gust[1]} m/s, Wind in Höhe ${WX_THR.windH[0]}/${WX_THR.windH[1]} m/s, Regen ${f1(WX_THR.rain[0])}/${f1(WX_THR.rain[1])} mm/h, Sicht unter 3/1 km · keine Flugfreigabe</div>
+    <div class="wnchips">
+      <span class="wnchip ${C[lV]}">👁 Sicht ${vmin == null ? 'ohne Angabe' : 'min. ' + visTxt(vmin)}</span>
+      ${p0.dew != null ? `<span class="wnchip ${p0.t2 != null && p0.t2 - p0.dew <= 1 ? 'o' : ''}">💧 Taupunkt ${f1(p0.dew)}°${p0.t2 != null ? ` · Luft ${f1(p0.t2)}° · Abstand ${f1(p0.t2 - p0.dew)} °C${p0.t2 - p0.dew <= 1 ? ' – Nebel/Tau wahrscheinlich, Linse kann beschlagen' : p0.t2 - p0.dew <= 2.5 ? ' – Nebel möglich' : ''}` : ''}</span>` : ''}
+    </div>
+    <div class="meta" style="margin:10px 0 0">Balken: Wind in ${H} m, gestrichelt = Böe · Grenzen: Böen ${WX_THR.gust[0]}/${WX_THR.gust[1]} m/s, Wind in Höhe ${WX_THR.windH[0]}/${WX_THR.windH[1]} m/s, Regen ${f1(WX_THR.rain[0])}/${f1(WX_THR.rain[1])} mm/h, Sicht unter 3/1 km · keine Flugfreigabe</div>
   </div>`;
 }
 /** Tage (DWD ICON): Gesamtbewertung – Regen über den ganzen Tag (Regen nachts oder nachmittags = Bauer mäht nicht), Wind/Sicht im Flugfenster Startzeit–10 Uhr */
@@ -6026,7 +6084,7 @@ function pickMap(el, items, shown, toggle) {
   };
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
   cv.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, e.deltaY < 0 ? .5 : -.5); }, { passive: false });
-  return { fit, paint, zoom: d => zoomAt(Wm / 2, Hm / 2, d) };
+  return { fit, paint, resize: () => { size(); paint(); }, zoom: d => zoomAt(Wm / 2, Hm / 2, d) };
 }
 function syncEnd() { syncing = false; $('bSync').disabled = false; if ($('bUaveSeg')) $('bUaveSeg').classList.remove('busy'); busy(''); }
 window.onUave = raw => {

@@ -2315,16 +2315,38 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     String body;
                     try (InputStream in = c.getInputStream()) { body = readAll(in); }
                     if (body.trim().startsWith("{")) feats = new JSONObject(body).optJSONArray("features");
-                    else text = body;
+                    else if (!body.contains("ServiceException")) text = body;   // dipul erlaubt JSON nicht mehr („ForbiddenFormat“) – dann GML
                 }
                 c.disconnect();
             } catch (Exception ignored) { }
+            if (feats == null && text == null) {   // GML: Merkmale je Zone auslesen
+                try {
+                    HttpURLConnection c = (HttpURLConnection) new URL(base + "&info_format=" + URLEncoder.encode("application/vnd.ogc.gml", "UTF-8")).openConnection();
+                    c.setConnectTimeout(10000); c.setReadTimeout(20000);
+                    for (Map.Entry<String, String> e : h.entrySet()) c.setRequestProperty(e.getKey(), e.getValue());
+                    if (c.getResponseCode() == 200) {
+                        String body; try (InputStream in = c.getInputStream()) { body = readAll(in); }
+                        if (!body.contains("ServiceException")) {
+                            feats = new JSONArray();
+                            Matcher fm = Pattern.compile("(?s)<(?:gml:featureMember|wfs:member)>\\s*<(\\w+):(\\w+)[^>]*>(.*?)</\\1:\\2>").matcher(body);
+                            while (fm.find()) {
+                                JSONObject pr = new JSONObject();
+                                Matcher pm = Pattern.compile("(?s)<" + fm.group(1) + ":(\\w+)>([^<]*)</" + fm.group(1) + ":\\1>").matcher(fm.group(3));
+                                while (pm.find()) { String v = pm.group(2).trim(); if (!v.isEmpty()) pr.put(pm.group(1), v.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'")); }
+                                feats.put(new JSONObject().put("id", fm.group(2) + ".x").put("properties", pr));
+                            }
+                        }
+                    }
+                    c.disconnect();
+                } catch (Exception ignored) { feats = null; }
+            }
             if (feats == null && text == null) {
                 HttpURLConnection c = (HttpURLConnection) new URL(base + "&info_format=text/plain").openConnection();
                 c.setConnectTimeout(10000); c.setReadTimeout(20000);
                 if (c.getResponseCode() != 200) throw new Exception("dipul antwortet mit " + c.getResponseCode());
                 try (InputStream in = c.getInputStream()) { text = readAll(in); }
                 c.disconnect();
+                if (text.contains("ServiceException")) throw new Exception("dipul lehnt die Abfrage ab");
             }
             JSONArray out = new JSONArray();
             if (feats != null) for (int i = 0; i < feats.length(); i++) {
