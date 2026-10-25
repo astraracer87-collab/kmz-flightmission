@@ -643,7 +643,7 @@ body.bartop #trafWarn{top:84px}
         <div class="trow"><span class="tl">Ausblenden über</span><button data-tstep="tShow:-1">−</button><b id="vTshow"></b><button data-tstep="tShow:1">+</button>
           <input type="range" id="rTshow" min="0" max="13" step="1"></div>
         <div class="v" style="margin-top:-4px">Luftfahrzeuge höher als dieser Wert (über Grund) werden auf der Karte und in der Warnung nicht gezeigt – z. B. Verkehrsflugzeuge in 10 km Höhe.</div>
-        <div class="v">Die Warnung erscheint oben als Benachrichtigung – auch über DJI Pilot 2. Mit „Warnfenster über allen Apps“ bleibt zusätzlich ein Fenster mit Richtungspfeil im Vordergrund, solange das Luftfahrzeug bzw. die Drohne im Warnbereich ist (✕ blendet es für 3 Minuten aus, Antippen öffnet die App). Solange Luftverkehr an ist, läuft dafür im Hintergrund ein kleiner Dienst (Symbol in der Statusleiste); in der App zeigt zusätzlich ein kleines Radar, wo es ist – mit Kompass bezogen auf deine Blickrichtung.</div>
+        <div class="v">Mit „Warnfenster über allen Apps“ erscheint die Warnung als Fenster mit Radar oben auf dem Bildschirm – auch über DJI Pilot 2 – plus Warnton; die Benachrichtigungszentrale bleibt dann frei. Ohne diese Erlaubnis kommt die Warnung als Benachrichtigung. Das Fenster bleibt im Vordergrund, solange das Luftfahrzeug bzw. die Drohne im Warnbereich ist (✕ blendet es für 3 Minuten aus, Antippen öffnet die App). Solange Luftverkehr an ist, läuft dafür im Hintergrund ein kleiner Dienst (Symbol in der Statusleiste); in der App zeigt zusätzlich ein kleines Radar, wo es ist – mit Kompass bezogen auf deine Blickrichtung.</div>
         <div class="trow"><span class="tl">Polizei / Luftrettung erkennen</span><span class="meta" id="vRole"></span>
           <button class="tbtn" id="bRoleUpd" style="width:auto;padding:0 12px;font-size:14px">Jetzt aktualisieren</button></div>
         <div class="v" style="margin-top:-4px">Die Liste der Polizei-, Rettungs- und SAR-Luftfahrzeuge (Deutschland und Nachbarländer, aus der offenen Datenbank plane-alert-db) holt die App alle 3 Monate automatisch neu, wenn WLAN da ist. Zusätzlich erkennt sie Polizeihubschrauber an Kennzeichen und Funkrufnamen der Länder (z. B. „Edelweiss“, „Ibis“) und Rettungshubschrauber am Rufzeichen „Christoph“.</div>
@@ -1190,7 +1190,7 @@ function paintStatic() {
   // Hubschrauberlandeplätze sitzen auf dem Mittelpunkt des dipul-Kreises
   if (V.z >= 9 && (icons.length || (P.airf === '1' && S.airfields.length))) vincenzCenters(icons).forEach(drawVincenzRings);
   if (P.airf === '1' && S.airfields.length && V.z >= 9) {
-    S.airfields.map(a => a.kind === 'heliport' && S.geo.length ? heliSnap(a) : a).filter(a => !nearIcon(a)).forEach(drawAirfield);
+    S.airfields.filter(a => !a.rth || V.z >= 11).map(a => a.kind === 'heliport' && S.geo.length && !a.rth ? heliSnap(a) : a).filter(a => !nearIcon(a)).forEach(drawAirfield);   // RTH-Landestellen erst beim Hineinzoomen
   }
   icons.forEach(drawGeoAirIcon);
   if (P.metar !== '0' && S.metar.length && V.z >= 6) paintMetar();
@@ -1741,10 +1741,10 @@ function drawGeoAirIcon(g) {
 function drawAirfield(a) {
   const [x, y] = toScreen(a.lat, a.lon);
   if (x < -40 || y < -40 || x > W + 40 || y > H + 40) return;
-  const heli = a.kind === 'heliport';
-  ctx.beginPath(); ctx.arc(x, y, 15, 0, 7);
-  ctx.fillStyle = heli ? '#7a1fa2' : '#0b3d91'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
-  ctx.fillStyle = '#fff'; ctx.font = '700 15px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const heli = a.kind === 'heliport', rr = a.rth ? 11 : 15;   // Rettungshubschrauber-Landestelle: kleiner und heller
+  ctx.beginPath(); ctx.arc(x, y, rr, 0, 7);
+  ctx.fillStyle = a.rth ? '#b05cc8' : heli ? '#7a1fa2' : '#0b3d91'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = (a.rth ? '700 12px' : '700 15px') + ' Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(heli ? 'H' : '✈', x, y + 1);
   if (V.z >= 11) {
     const t = a.icao || a.name;
