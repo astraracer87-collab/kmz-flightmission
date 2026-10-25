@@ -15,6 +15,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Luftverkehr-Warnung als Fenster über allen Apps (auch über DJI Pilot 2) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Andere Drohnen erkennen (Remote ID über Bluetooth und WLAN, ohne Internet) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />

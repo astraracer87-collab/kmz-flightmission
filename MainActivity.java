@@ -228,7 +228,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     @Override
     protected void onResume() {
-        super.onResume();
+        super.onResume(); appFg = true;
         // Zugriff gerade (wieder) erteilt, z. B. nach Neuinstallation: ab jetzt den Ordner „Kitzrettung Cache“ benutzen und Karte neu laden
         try { File dc = dataDirCache; if (hasFileAccess() && dc != null && dc.equals(super.getFilesDir())) { dataDirCache = null; if (web != null && prefs.getBoolean("prefs_restored", false)) web.reload(); } } catch (Exception ignored) { }
         try { if (hasFileAccess() && !prefs.getBoolean("prefs_restored", false) && prefsRestore() && web != null) { web.reload(); } } catch (Exception ignored) { }
@@ -262,7 +262,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     @Override
     protected void onPause() {
-        super.onPause();
+        super.onPause(); appFg = false;
         try { if (sensorManager != null) sensorManager.unregisterListener(this); } catch (Exception ignored) { }
         stopLocation();
         try { new Thread(this::prefsBackupNow).start(); } catch (Exception ignored) { }   // Einstellungen sichern
@@ -1067,6 +1067,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         public void ridStop() { Rid.uiOn = false; Rid.stopIfIdle(); }
         @JavascriptInterface
         public String rid() { return Rid.json(); }
+        @JavascriptInterface
+        public boolean canOverlay() { return Build.VERSION.SDK_INT < 23 || android.provider.Settings.canDrawOverlays(MainActivity.this); }
+        @JavascriptInterface
+        public void overlayPerm() {
+            runOnUiThread(() -> { try { startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()))); }
+                catch (Exception e) { try { startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName()))); } catch (Exception ignored) { } } });
+        }
         /** Probe: Benachrichtigung nach ein paar Sekunden – zum Wechseln in DJI Pilot 2 */
         @JavascriptInterface
         public void notifyTrafTest(int snd) {   // Probe der Luftverkehr-Warnung mit gewähltem Ton
@@ -2576,6 +2583,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     // ---------- Einsatz-Wächter: Warnungen als Benachrichtigung – auch wenn DJI Pilot 2 im Vordergrund ist ----------
     static final String CH_ALERT = "einsatz_warn", CH_RUN = "einsatz_lauf";
+    static volatile boolean appFg;   // App gerade im Vordergrund (dann kein Warnfenster über allen Apps – die App zeigt ihren eigenen Hinweis)
     /** Luftverkehr: je Ton-Einstellung ein eigener Kanal (Android erlaubt keinen Tonwechsel an einem bestehenden Kanal) */
     static final String[] CH_TRAF = {"luftverkehr_still", "luftverkehr_ton", "luftverkehr_alarm"};
     static void ensureChannels(Context c) {
@@ -2950,10 +2958,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         static int role(String fl, String op, int dbFlags) {
             String f = fl.toUpperCase(Locale.ROOT), o = op.toUpperCase(Locale.ROOT);
             if (f.startsWith("SAR") || o.contains("SEARCH AND RESCUE") || o.contains("SEENOT")) return 4;
-            if (f.startsWith("CHX") || f.startsWith("CHRIST") || o.contains("LUFTRETTUNG") || o.contains("ADAC") || o.contains("DRF ") || o.startsWith("DRF")
+            // Rettung: „Christoph NN“ sendet in ADS-B „CHX“ + Nummer; dazu Rega (SAZ), Ambulanz-/HEMS-Rufzeichen und Betreiber
+            if (f.matches("(CHX|CHRIS|CHRISTO|CHRISTOPH|SAZ|AMB|HEMS|RESQ|RESCUE|ITH)\\d.*") || f.startsWith("CHRISTOPH") || o.contains("OAMTC") || o.contains("ÖAMTC") || o.contains("CHRISTOPHORUS") || o.contains("REGA") || o.contains("FLUGRETTUNG") || o.contains("LUFTRETTUNG") || o.contains("ADAC") || o.contains("DRF ") || o.startsWith("DRF")
                     || o.contains("JOHANNITER") || o.contains("RESCUE") || o.contains("HEMS") || o.contains("AMBULAN") || o.contains("NOTARZT") || o.contains("RETTUNG")) return 1;
-            if (f.matches("(PHH|PPH|HBT)\\d.*") || o.contains("POLIZEI") || o.contains("POLICE") || o.contains("BUNDESPOLIZEI") || o.contains("POLIS") || o.contains("GENDARM")) return 2;
-            if ((dbFlags & 1) != 0 || f.startsWith("GAF") || f.startsWith("GAM") || f.startsWith("RCH") || f.startsWith("NATO") || o.contains("BUNDESWEHR") || o.contains("LUFTWAFFE")
+            // Polizei: Staffel-Kürzel und Funkrufnamen der Länder (Hessen „Ibis“, Bayern „Edelweiss“, BW „Bussard“, NRW „Hummel“ …)
+            if (f.matches("(PHH|PPH|HBT)\\d.*") || f.matches("(IBIS|EDELW\\w*|EDLW\\w*|BUSSARD|BUSARD|HUMMEL|PIROL|LIBELLE|LIBEL|MERLIN|PHOENIX|PHONIX|SPERBER|PASSAT|IKARUS)\\d{0,3}")
+                    || o.contains("POLIZEI") || o.contains("POLICE") || o.contains("BUNDESPOLIZEI") || o.contains("POLIS") || o.contains("GENDARM")) return 2;
+            if ((dbFlags & 1) != 0 || f.startsWith("GAF") || f.startsWith("GAM") || f.startsWith("RCH") || f.startsWith("GNY") || f.startsWith("NATO") || o.contains("BUNDESWEHR") || o.contains("LUFTWAFFE")
                     || o.contains("AIR FORCE") || o.contains("ARMY") || o.contains("NAVY") || o.contains("MILITARY") || o.contains("HEERESFLIEGER") || o.contains("MARINE")) return 3;
             return 0;
         }
@@ -3037,6 +3048,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (tr) { Traffic.watchOn = true; Traffic.start(la, lo, Math.max(25, km * 4)); } else if (Traffic.watchOn) { Traffic.watchOn = false; Traffic.stopIfIdle(); }
             double g = Elev.cached(la, lo); if (Double.isNaN(g)) g = Double.isNaN(Traffic.ground) ? c.optDouble("elev", Double.NaN) : Traffic.ground;
             long now = System.currentTimeMillis(); java.util.Set<String> inZone = new java.util.HashSet<>();
+            double bD = 1e9, bBrg = 0; String bKey = null, bT = "", bS = ""; int nT = 0;
             for (Map.Entry<String, double[]> e : tr ? Traffic.ac.entrySet() : Collections.<Map.Entry<String, double[]>>emptySet()) {
                 double[] v = e.getValue(); if (now - (long) v[7] > 60000) continue;
                 double dy = (v[0] - la) * 111.2, dx = (v[1] - lo) * 111.2 * Math.cos(Math.toRadians(la)), d = Math.hypot(dx, dy);
@@ -3059,6 +3071,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 trafNotify(id, CH_TRAF[Math.max(0, Math.min(2, c.optInt("tSnd", 1)))], (typ == 3 ? "🚁 " : "✈ ") + art + " " + f1(d) + " km " + dir + (near ? " – kommt näher" : ""),
                         (Double.isNaN(agl) ? "Höhe unbekannt" : "ca. " + Math.round(Math.max(0, agl)) + " m über Grund") + (v[4] > 0 ? " · " + Math.round(v[4]) + " km/h" : "") + (lb.isEmpty() ? "" : " · " + lb)
                         + ". Luftraum beobachten, Drohne tief halten bzw. landen.");
+                nT++;
+                if (d < bD && !ovlMuted(e.getKey())) { bD = d; bKey = e.getKey(); bBrg = Math.toDegrees(Math.atan2(dx, dy));
+                    bT = art + " · " + f1(d) + " km" + (near ? " · kommt näher" : "");
+                    bS = (Double.isNaN(agl) ? "Höhe unbekannt" : "ca. " + Math.round(Math.max(0, agl)) + " m über Grund") + (v[4] > 0 ? " · " + Math.round(v[4]) + " km/h" : "") + (lb.isEmpty() ? "" : " · " + lb); }
             }
             // andere Drohnen (Remote ID, ohne Internet)
             if (c.optBoolean("rid")) {
@@ -3076,8 +3092,15 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     String hs = Double.isNaN(v[3]) ? "Höhe unbekannt" : "ca. " + Math.round(v[3]) + " m über " + (v[4] == 1 ? "Grund" : "ihrem Startpunkt");
                     trafNotify(id, CH_TRAF[Math.max(0, Math.min(2, c.optInt("tSnd", 1)))], "🛸 Andere Drohne " + (d < 1 ? Math.round(d * 1000) + " m" : f1(d) + " km") + " " + dir(Math.toDegrees(Math.atan2(dx, dy))) + (near ? " – kommt näher" : ""),
                             hs + (v[5] > 0 ? " · " + Math.round(v[5] * 3.6) + " km/h" : "") + ". Abstimmen bzw. Abstand halten.");
+                    nT++;
+                    if (d < bD && !ovlMuted(k)) { bD = d; bKey = k; bBrg = Math.toDegrees(Math.atan2(dx, dy));
+                        bT = "Andere Drohne · " + (d < 1 ? Math.round(d * 1000) + " m" : f1(d) + " km") + (near ? " · kommt näher" : "");
+                        bS = hs + (v[5] > 0 ? " · " + Math.round(v[5] * 3.6) + " km/h" : ""); }
                 }
             } else if (Rid.watchOn) { Rid.watchOn = false; Rid.stopIfIdle(); }
+            // Warnfenster über allen Apps (wenn erlaubt und die App nicht selbst vorne ist – dort zeigt sie ihren eigenen Pfeil)
+            if (bKey != null && c.optBoolean("ovl", true) && !appFg) ovlShow(bKey, bT, bS + (nT > 1 ? " · +" + (nT - 1) + " weitere" : ""), bBrg, la, lo);
+            else ovlHide();
             // aus dem Bereich heraus (oder keine Meldung mehr seit 60 s): Benachrichtigung entfernen
             for (java.util.Iterator<Map.Entry<String, Integer>> it = trafActive.entrySet().iterator(); it.hasNext(); ) {
                 Map.Entry<String, Integer> a = it.next();
@@ -3085,8 +3108,99 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             }
         }
         final Map<String, Integer> trafActive = new HashMap<>();
+        // ---------- Warnfenster über allen Apps (Berechtigung „Über anderen Apps einblenden“) ----------
+        android.view.View ovl; android.widget.TextView ovlT, ovlS, ovlH; ArrowView ovlA; String ovlKey; final Map<String, Long> ovlMute = new java.util.concurrent.ConcurrentHashMap<>();
+        volatile double ovlBrg, hdg = Double.NaN; android.hardware.SensorEventListener sens; float decl = 2.5f;
+        boolean ovlMuted(String k) { Long t = ovlMute.get(k); return t != null && System.currentTimeMillis() - t < 3 * 60000L; }
+        static class ArrowView extends android.view.View {
+            float rot; boolean compass; final android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG); final android.graphics.Path a = new android.graphics.Path();
+            ArrowView(Context c) { super(c); }
+            @Override protected void onDraw(android.graphics.Canvas cv) {
+                float w = getWidth(), h = getHeight(), r = Math.min(w, h) / 2f;
+                p.setStyle(android.graphics.Paint.Style.FILL); p.setColor(0xFF15202B); cv.drawCircle(w / 2, h / 2, r, p);
+                cv.save(); cv.rotate(rot, w / 2, h / 2);
+                a.reset(); a.moveTo(w / 2, h / 2 - r * .8f); a.lineTo(w / 2 + r * .48f, h / 2 + r * .3f); a.lineTo(w / 2, h / 2); a.lineTo(w / 2 - r * .48f, h / 2 + r * .3f); a.close();
+                p.setColor(0xFFFFD000); cv.drawPath(a, p); p.setStyle(android.graphics.Paint.Style.STROKE); p.setStrokeWidth(r * .07f); p.setColor(0xFFFFFFFF); cv.drawPath(a, p);
+                cv.restore();
+                if (!compass) { p.setStyle(android.graphics.Paint.Style.FILL); p.setColor(0xFFFFFFFF); p.setTextSize(r * .42f); p.setTextAlign(android.graphics.Paint.Align.CENTER); cv.drawText("N↑", w / 2, h - r * .12f, p); }
+            }
+        }
+        float dp(float v) { return v * getResources().getDisplayMetrics().density; }
+        void ovlShow(String key, String t, String sub, double brg, double la, double lo) {
+            if (Build.VERSION.SDK_INT >= 23 && !android.provider.Settings.canDrawOverlays(this)) return;
+            ovlBrg = (brg + 360) % 360; ovlKey = key;
+            try { decl = new android.hardware.GeomagneticField((float) la, (float) lo, 0, System.currentTimeMillis()).getDeclination(); } catch (Exception ignored) { }
+            new android.os.Handler(Looper.getMainLooper()).post(() -> {
+                try {
+                    if (ovl == null) {
+                        android.widget.LinearLayout row = new android.widget.LinearLayout(this); row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+                        row.setGravity(android.view.Gravity.CENTER_VERTICAL); int pd = (int) dp(10); row.setPadding(pd, pd, (int) dp(6), pd);
+                        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable(); bg.setColor(0xF015202B); bg.setCornerRadius(dp(16)); bg.setStroke((int) dp(2), 0xFFFFD000); row.setBackground(bg);
+                        ovlA = new ArrowView(this); row.addView(ovlA, new android.widget.LinearLayout.LayoutParams((int) dp(56), (int) dp(56)));
+                        android.widget.LinearLayout col = new android.widget.LinearLayout(this); col.setOrientation(android.widget.LinearLayout.VERTICAL); col.setPadding((int) dp(12), 0, (int) dp(8), 0);
+                        ovlT = new android.widget.TextView(this); ovlT.setTextColor(0xFFFFFFFF); ovlT.setTextSize(17); ovlT.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+                        ovlS = new android.widget.TextView(this); ovlS.setTextColor(0xFFDFE6EE); ovlS.setTextSize(14);
+                        ovlH = new android.widget.TextView(this); ovlH.setTextColor(0xFF9FB0C0); ovlH.setTextSize(11);
+                        col.addView(ovlT); col.addView(ovlS); col.addView(ovlH);
+                        row.addView(col, new android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+                        android.widget.TextView x = new android.widget.TextView(this); x.setText("✕"); x.setTextColor(0xFF9FB0C0); x.setTextSize(22); x.setPadding((int) dp(12), (int) dp(4), (int) dp(10), (int) dp(4));
+                        x.setOnClickListener(v -> { if (ovlKey != null) ovlMute.put(ovlKey, System.currentTimeMillis()); ovlHide(); });
+                        row.addView(x);
+                        row.setOnClickListener(v -> { try { openApp(this).send(); } catch (Exception ignored) { } ovlHide(); });
+                        android.view.WindowManager.LayoutParams lp = new android.view.WindowManager.LayoutParams(
+                                (int) Math.min(dp(620), getResources().getDisplayMetrics().widthPixels * .94f), android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                                Build.VERSION.SDK_INT >= 26 ? android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : android.view.WindowManager.LayoutParams.TYPE_PHONE,
+                                android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN, android.graphics.PixelFormat.TRANSLUCENT);
+                        lp.gravity = android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL; lp.y = (int) dp(56);
+                        ((android.view.WindowManager) getSystemService(WINDOW_SERVICE)).addView(row, lp); ovl = row;
+                        sensOn();
+                    }
+                    ovlT.setText("⚠ " + t); ovlS.setText(sub); ovlUpd();
+                } catch (Exception ignored) { ovl = null; }
+            });
+        }
+        void ovlUpd() {
+            if (ovlA == null) return;
+            boolean c = !Double.isNaN(hdg); ovlA.compass = c; ovlA.rot = (float) (c ? ovlBrg - hdg : ovlBrg); ovlA.invalidate();
+            if (ovlH != null) ovlH.setText(c ? "Pfeil bezogen auf die Blickrichtung der Fernsteuerung · antippen öffnet die App" : "kein Kompass – Pfeil nach Norden ausgerichtet · antippen öffnet die App");
+        }
+        void ovlHide() {
+            new android.os.Handler(Looper.getMainLooper()).post(() -> {
+                try { if (ovl != null) ((android.view.WindowManager) getSystemService(WINDOW_SERVICE)).removeView(ovl); } catch (Exception ignored) { }
+                ovl = null; ovlA = null; sensOff();
+            });
+        }
+        final float[] rm = new float[9], rr = new float[9], or = new float[3];
+        void sensOn() {
+            try {
+                android.hardware.SensorManager sm = (android.hardware.SensorManager) getSystemService(SENSOR_SERVICE);
+                android.hardware.Sensor rv = sm == null ? null : sm.getDefaultSensor(android.hardware.Sensor.TYPE_ROTATION_VECTOR);
+                if (rv == null || sens != null) return;
+                sens = new android.hardware.SensorEventListener() {
+                    @Override public void onSensorChanged(android.hardware.SensorEvent ev) {
+                        try {   // wie in der App: Oberkante/Rückseite der RC auf die Waagerechte projiziert, Bildschirmdrehung berücksichtigt
+                            android.hardware.SensorManager.getRotationMatrixFromVector(rm, ev.values);
+                            int rot = ((android.view.WindowManager) getSystemService(WINDOW_SERVICE)).getDefaultDisplay().getRotation();
+                            int ax = android.hardware.SensorManager.AXIS_X, ay = android.hardware.SensorManager.AXIS_Y, mx = android.hardware.SensorManager.AXIS_MINUS_X, my = android.hardware.SensorManager.AXIS_MINUS_Y;
+                            if (rot == android.view.Surface.ROTATION_90) android.hardware.SensorManager.remapCoordinateSystem(rm, ay, mx, rr);
+                            else if (rot == android.view.Surface.ROTATION_180) android.hardware.SensorManager.remapCoordinateSystem(rm, mx, my, rr);
+                            else if (rot == android.view.Surface.ROTATION_270) android.hardware.SensorManager.remapCoordinateSystem(rm, my, ax, rr);
+                            else System.arraycopy(rm, 0, rr, 0, 9);
+                            double e = rr[1] - rr[2], n = rr[4] - rr[5], az;
+                            if (Math.hypot(e, n) > 0.2) az = Math.toDegrees(Math.atan2(e, n)); else { android.hardware.SensorManager.getOrientation(rr, or); az = Math.toDegrees(or[0]); }
+                            double h = (az + decl + 720) % 360;
+                            if (Double.isNaN(hdg)) hdg = h; else { double df = ((h - hdg + 540) % 360) - 180; hdg = (hdg + df * 0.2 + 360) % 360; }
+                            ovlUpd();
+                        } catch (Exception ignored) { }
+                    }
+                    @Override public void onAccuracyChanged(android.hardware.Sensor s, int a) { }
+                };
+                sm.registerListener(sens, rv, android.hardware.SensorManager.SENSOR_DELAY_UI);
+            } catch (Exception ignored) { }
+        }
+        void sensOff() { try { if (sens != null) ((android.hardware.SensorManager) getSystemService(SENSOR_SERVICE)).unregisterListener(sens); } catch (Exception ignored) { } sens = null; hdg = Double.NaN; }
         void trafCancel(int id) { try { ((android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(id); } catch (Exception ignored) { } }
-        void trafClearAll() { for (int id : trafActive.values()) trafCancel(id); trafActive.clear(); }
+        void trafClearAll() { for (int id : trafActive.values()) trafCancel(id); trafActive.clear(); ovlHide(); }
         @SuppressWarnings("deprecation")
         void trafNotify(int id, String ch, String title, String text) {
             try {

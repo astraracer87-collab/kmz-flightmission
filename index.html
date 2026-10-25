@@ -618,7 +618,7 @@ body.bartop #trafWarn{top:84px}
       <div class="v" id="vReg"></div>
     </div>
     <div class="set"><div class="l"><div class="t">Flugplätze anzeigen</div><div class="v" id="vAf">Flugplätze, Segel-/UL-Plätze und Hubschrauberlandeplätze im Gebiet der Felder (+3 km)</div></div><button class="b-sec" id="bAfList">Liste</button><label class="sw"><input type="checkbox" id="sAf"><span></span></label></div>
-    <div class="set" id="setRcKeys" style="display:none"><div class="l"><div class="t">Bedienung mit L/R-Tasten (DJI RC Plus 2)</div><div class="v">L1 = Zoom +, L2 = Zoom −, L3 = alles zeigen · R1 = Karte (Grau → Karte → Luftbild), R2 = Info (Felder → Geozonen → beides → aus), R3 = Standort. Die Enter-Taste schaltet die Felder um (UAV-Editor → Fernsteuerung → beides → keine). Die Leiste wandert nach oben, die Knöpfe rechts entfallen.</div>
+    <div class="set" id="setRcKeys" style="display:none"><div class="l"><div class="t">Bedienung mit L/R-Tasten (DJI RC Plus 2)</div><div class="v">L1 = Zoom +, L2 = Zoom −, L3 = alles zeigen · R1 = Karte (Grau → Karte → Luftbild), R2 = Info (Felder → Geozonen → beides → aus), R3 = Standort. Die Enter-Taste (5D drücken) schaltet die Felder um (UAV-Editor → Fernsteuerung → beides → keine); nach Blättern mit 5D links/rechts markiert sie stattdessen das gewählte Feld. Die Leiste wandert nach oben, die Knöpfe rechts entfallen.</div>
 </div>
       <div class="seg"><button data-rckeys="0">Aus</button><button data-rckeys="1">An</button></div></div>
     <div class="set"><div class="l"><div class="t">Verbindungstest Datenserver</div><div class="v" id="vNet">Prüft, welche Server (OpenStreetMap, DULV, BKG, dipul) von dieser Fernsteuerung aus erreichbar sind.</div></div><button class="b-sec" id="bNet">Testen</button></div>
@@ -638,10 +638,12 @@ body.bartop #trafWarn{top:84px}
           <input type="range" id="rTalt" min="0" max="23" step="1"></div>
         <div class="trow"><span class="tl">Warnton</span><div class="seg"><button data-tsnd="0">Aus</button><button data-tsnd="1">Hinweiston</button><button data-tsnd="2">Alarmton</button></div>
           <button class="tbtn" id="bTrafTest" style="width:auto;padding:0 12px;font-size:14px">Test in 3 s</button></div>
+        <div class="trow"><span class="tl">Warnfenster über allen Apps</span><div class="seg"><button data-tovl="0">Aus</button><button data-tovl="1">An</button></div>
+          <button class="tbtn" id="bOvlPerm" style="width:auto;padding:0 12px;font-size:14px;display:none">Erlauben …</button><span class="meta" id="vOvl"></span></div>
         <div class="trow"><span class="tl">Ausblenden über</span><button data-tstep="tShow:-1">−</button><b id="vTshow"></b><button data-tstep="tShow:1">+</button>
           <input type="range" id="rTshow" min="0" max="13" step="1"></div>
         <div class="v" style="margin-top:-4px">Luftfahrzeuge höher als dieser Wert (über Grund) werden auf der Karte und in der Warnung nicht gezeigt – z. B. Verkehrsflugzeuge in 10 km Höhe.</div>
-        <div class="v">Die Warnung erscheint oben als Benachrichtigung – auch über DJI Pilot 2 und bei ausgeschaltetem Bildschirm der App. Solange Luftverkehr an ist, läuft dafür im Hintergrund ein kleiner Dienst (Symbol in der Statusleiste); in der App zeigt zusätzlich ein Pfeil, wo das Luftfahrzeug ist – mit Kompass bezogen auf deine Blickrichtung.</div>
+        <div class="v">Die Warnung erscheint oben als Benachrichtigung – auch über DJI Pilot 2. Mit „Warnfenster über allen Apps“ bleibt zusätzlich ein Fenster mit Richtungspfeil im Vordergrund, solange das Luftfahrzeug bzw. die Drohne im Warnbereich ist (✕ blendet es für 3 Minuten aus, Antippen öffnet die App). Solange Luftverkehr an ist, läuft dafür im Hintergrund ein kleiner Dienst (Symbol in der Statusleiste); in der App zeigt zusätzlich ein Pfeil, wo das Luftfahrzeug ist – mit Kompass bezogen auf deine Blickrichtung.</div>
         <div class="v">Höhe über Grund = Höhe des Luftfahrzeugs über dem Meeresspiegel minus Geländehöhe am Einsatzort (Höhenmodell Copernicus, 90-m-Raster) – derselbe Bezug wie die Flughöhe in DJI Pilot 2 (über dem Startpunkt). Genauigkeit etwa ±30 m; bei Flugzeugen ohne GPS-Höhe wird die Luftdruckhöhe mit dem aktuellen Luftdruck umgerechnet. Die Geländehöhen aller Wiesen holt die App einmalig und merkt sie sich. Ist die Höhe eines Luftfahrzeugs unbekannt, wird immer gewarnt.</div>
       </div></div>
     <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Andere Drohnen in der Nähe (Remote ID)</div>
@@ -731,7 +733,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -6290,7 +6292,7 @@ function watchCfg(sel) {
       const hit = fs.find(f => notamFieldDist(f, n) === 0);
       if (hit) ev.push({ t: n.start, k: 'notam' + (n.props.ext_ref || n.props.name || ''), title: '⚠ NOTAM ab ' + hhmm(n.start), txt: notamTitle(n) + ' – betrifft ' + hit.title + '. Flug dort nur mit Zustimmung der genannten Stelle.' }); });
   } catch (e) { }
-  return { traffic: P.traffic === '1', rid: P.rid === '1', rKm: +P.rKm || 1, ridOwn: P.ridOwn || '', tSnd: +P.tSnd, tKm: +P.tKm || 3, tAlt: +P.tAlt || 500, lat, lon, until, h: flightHeight() || 80, gust: +P.wGust || 10, wind: +P.wWind || 12, shear: +P.wShear || 5, shearOn: true, rain: true, rainMin: 0.1, kp: true, kpMin: 5, ev,
+  return { ovl: P.tOvl !== '0', traffic: P.traffic === '1', rid: P.rid === '1', rKm: +P.rKm || 1, ridOwn: P.ridOwn || '', tSnd: +P.tSnd, tKm: +P.tKm || 3, tAlt: +P.tAlt || 500, lat, lon, until, h: flightHeight() || 80, gust: +P.wGust || 10, wind: +P.wWind || 12, shear: +P.wShear || 5, shearOn: true, rain: true, rainMin: 0.1, kp: true, kpMin: 5, ev,
     names: fs.length ? fs.length + ' Wiese' + (fs.length > 1 ? 'n' : '') : S.me ? 'Standort' : 'Kartenmitte' };
 }
 function watchStart(sel, quiet) {
@@ -6385,7 +6387,7 @@ function trafEnsure(force) {
   const moved = !trafSvcCenter || distM(la, lo, trafSvcCenter[0], trafSvcCenter[1]) > 1500;
   if (run && !moved && !force && Date.now() - trafSvcT < 3 * 3600000) return;
   trafSvcCenter = [la, lo]; trafSvcT = Date.now();
-  A.watchStart(JSON.stringify({ trafOnly: true, traffic: P.traffic === '1', rid: P.rid === '1', rKm: +P.rKm || 1, ridOwn: P.ridOwn || '', tSnd: +P.tSnd, tKm: +P.tKm || 3, tAlt: +P.tAlt || 300, lat: la, lon: lo, until: Date.now() + 12 * 3600000, names: 'Luftverkehr' }));
+  A.watchStart(JSON.stringify({ trafOnly: true, ovl: P.tOvl !== '0', traffic: P.traffic === '1', rid: P.rid === '1', rKm: +P.rKm || 1, ridOwn: P.ridOwn || '', tSnd: +P.tSnd, tKm: +P.tKm || 3, tAlt: +P.tAlt || 300, lat: la, lon: lo, until: Date.now() + 12 * 3600000, names: 'Luftverkehr' }));
 }
 /** Warn-Anzeige mit Richtungspfeil: zeigt zum nächsten Luftfahrzeug im Warnumkreis – mit Kompass bezogen auf die Blickrichtung der Fernsteuerung */
 let trafPanelId = null, trafPanelHide = {};
@@ -6594,6 +6596,10 @@ function trafUi() {
   document.querySelectorAll('[data-traf]').forEach(b => b.classList.toggle('on', b.dataset.traf === (P.traffic || '0')));
   const ts = $('trafSet'); if (ts) ts.classList.toggle('off', P.traffic !== '1');
   document.querySelectorAll('[data-tsnd]').forEach(b => b.classList.toggle('on', b.dataset.tsnd === String(P.tSnd)));
+  document.querySelectorAll('[data-tovl]').forEach(b => b.classList.toggle('on', b.dataset.tovl === (P.tOvl || '1')));
+  const can = A.canOverlay ? A.canOverlay() : false, bp = $('bOvlPerm'), vo = $('vOvl');
+  if (bp) bp.style.display = P.tOvl !== '0' && A.overlayPerm && !can ? '' : 'none';
+  if (vo) vo.textContent = P.tOvl === '0' ? 'nur Benachrichtigung' : !A.canOverlay ? 'App-Version zu alt' : can ? 'erlaubt – bleibt sichtbar, solange die Gefahr besteht (auch über DJI Pilot 2)' : 'Android-Erlaubnis fehlt – „Erlauben …“ tippen und „Über anderen Apps einblenden“ einschalten';
   if ($('vTshow')) { $('vTshow').textContent = +P.tShow ? (+P.tShow) + ' m' : 'nie'; $('rTshow').value = tIdx('tShow'); }
   if ($('vTkm')) { $('vTkm').textContent = String(+P.tKm).replace('.', ',') + ' km'; $('rTkm').value = tIdx('tKm'); }
   if ($('vTalt')) { $('vTalt').textContent = (+P.tAlt) + ' m'; $('rTalt').value = tIdx('tAlt'); }
@@ -6603,6 +6609,9 @@ document.querySelectorAll('[data-traf]').forEach(b => b.onclick = () => { setP('
 /** geänderte Einstellungen an den laufenden Dienst geben (Einsatz-Wächter oder reiner Luftverkehr-Dienst) */
 function trafRestart() { const run = trafSvcRunning(); if (run && !run.trafOnly) watchStart(null, true); else trafEnsure(true); }
 document.querySelectorAll('[data-tsnd]').forEach(b => b.onclick = () => { setP('tSnd', b.dataset.tsnd); trafUi(); trafRestart(); });
+document.querySelectorAll('[data-tovl]').forEach(b => b.onclick = () => { setP('tOvl', b.dataset.tovl); trafUi(); trafRestart(); if (b.dataset.tovl === '1' && A.canOverlay && !A.canOverlay() && A.overlayPerm) A.overlayPerm(); });
+if ($('bOvlPerm')) $('bOvlPerm').onclick = () => A.overlayPerm && A.overlayPerm();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) try { trafUi(); } catch (e) { } });
 $('rTshow').oninput = e => trafSet('tShow', +e.target.value);
 if ($('bTrafTest')) $('bTrafTest').onclick = () => { if (!A.notifyTrafTest) return toast('Diese App-Version kann das noch nicht.', true); A.notifyTrafTest(+P.tSnd); toast('Test kommt in 3 Sekunden.', 'ok'); };
 document.querySelectorAll('[data-tstep]').forEach(b => b.onclick = () => { const [k, d] = b.dataset.tstep.split(':'); trafSet(k, tIdx(k) + +d); });
@@ -6660,7 +6669,7 @@ const TOUR = [
   ['#net', 'Online / Offline', `Zeigt, ob Internet da ist. Ohne Netz läuft alles aus dem Speicher der Fernsteuerung – nur „Felder laden“ und das Auffrischen brauchen Internet.`],
   ['#bPlan', 'Einsatzplan', `Reihenfolge der markierten Wiesen, Fahrtwege, Akku-Planung und gemeinsamer Treffpunkt für Pilot und Läufer (in den Einstellungen einschaltbar).`],
   [null, 'Offline-Daten', `Alles Geladene liegt im Ordner <b>„Kitzrettung Cache“</b> und bleibt bei Updates und Neuinstallation erhalten.<br>Unter Einstellungen → Karte → <b>Offline-Daten</b> siehst du jeden Bereich mit Größe und Stand. „Löschen“ und „Neu holen“ wirken nur auf diesen einen Bereich.<br>Feldwege, Leitungen, Masten, Orte und Flugplätze kommen aus der <b>OpenStreetMap-Datei von Geofabrik</b> (einige hundert MB je Bundesland, einmal im WLAN). Unter „Einsatz-Bundesländer“ legst du fest, für welche Länder sie geladen wird.`],
-  [null, 'Tasten der Fernsteuerung', `Auf der <b>DJI RC Plus 2</b> lassen sich die Tasten L1–L3 und R1–R3 belegen (Einstellungen → Drohne &amp; Dateien): L1/L2 zoomen, L3 alles zeigen, R1 Kartenart, R2 Info-Modus, R3 Standort. Die <b>Enter-Taste</b> schaltet die Felder um: UAV-Editor → Fernsteuerung → beides → keine. Die Leiste wandert dann nach oben.<br>Auf Seiten wie dem Pre-Check blättern L1/L2 nach oben und unten.`],
+  [null, 'Tasten der Fernsteuerung', `Auf der <b>DJI RC Plus 2</b> lassen sich die Tasten L1–L3 und R1–R3 belegen (Einstellungen → Drohne &amp; Dateien): L1/L2 zoomen, L3 alles zeigen, R1 Kartenart, R2 Info-Modus, R3 Standort. Die <b>Enter-Taste</b> (5D drücken) schaltet die Felder um: UAV-Editor → Fernsteuerung → beides → keine. Hast du gerade mit 5D links/rechts durch die Felder geblättert, markiert sie stattdessen das gewählte Feld. Die Leiste wandert dann nach oben.<br>Auf Seiten wie dem Pre-Check blättern L1/L2 nach oben und unten.`],
   ['#bSet', 'Einstellungen – einmal einrichten', `<ul>
     <li><b>Drohne</b> dieser Fernsteuerung (Mavic 3T / Matrice 4T) – bestimmt Feldvariante und Missionshöhe</li>
     <li><b>Fernpilotenzeugnis</b> A1/A3 oder A2, <b>Allgemeinerlaubnis</b> je Bundesland, <b>Allgemeinverfügungen</b> – davon hängt ab, welche Geozonen grün werden</li>
@@ -6909,7 +6918,7 @@ function rcFieldStep(dir) {
     if (side.length) i = side.sort((a, b) => (a.d / (1 + 4 * a.dx * 71000 / Math.max(a.d, 1))) - (b.d / (1 + 4 * b.dx * 71000 / Math.max(b.d, 1))))[0].k;
     else i = (i + dir + fs.length) % fs.length;
   }
-  S.kf = fs[i]; V.lat = S.kf.center[0]; V.lon = S.kf.center[1]; if (V.z < 14) V.z = 14; draw();
+  S.kf = fs[i]; S.kfAt = Date.now(); V.lat = S.kf.center[0]; V.lon = S.kf.center[1]; if (V.z < 14) V.z = 14; draw();
   toast(`${S.kf.title}${S.kf.selected ? ' · markiert' : ''} – 5D drücken = ${S.kf.selected ? 'abwählen' : 'markieren'}`, false, 2500);
 }
 window.onRcKey = (k, rep) => {
@@ -6924,7 +6933,7 @@ window.onRcKey = (k, rep) => {
   if (k === 19) zoomAt(V.z + 1, W / 2, mapCY());
   else if (k === 20) zoomAt(V.z - 1, W / 2, mapCY());
   else if (k === 21 || k === 22) { if (!rep || rep % 3 === 0) rcFieldStep(k === 22 ? 1 : -1); }
-  else if (k === 23) { if (S.kf && S.files.includes(S.kf)) { toggle(S.kf); toast(S.kf.title + (S.kf.selected ? ' markiert' : ' abgewählt'), 'ok', 1800); } else $('bLoc').onclick(); }
+  else if (k === 23) { if (S.kf && S.files.includes(S.kf) && Date.now() - (S.kfAt || 0) < 15000) { S.kfAt = Date.now(); toggle(S.kf); toast(S.kf.title + (S.kf.selected ? ' markiert' : ' abgewählt'), 'ok', 1800); } else srcCycle(); }   // Enter/Drücken: Felder umschalten (Standort liegt auf R3)
 };
 // Tasten-Test (Einstellungen): zeigt, welche Taste die RC meldet
 let rcKeyTest = false;
