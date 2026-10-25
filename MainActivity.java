@@ -381,7 +381,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         int[] a = DRONES.get(from), b = DRONES.get(to);
         Matcher gm = Pattern.compile("<wpml:globalHeight>([-\\d.]+)<").matcher(t);
         double base = gm.find() ? Double.parseDouble(gm.group(1)) : 50;
-        long newBase = Math.round(base * Math.tan(Math.toRadians(a[3] / 2.0)) / Math.tan(Math.toRadians(b[3] / 2.0)));
+        long newBase;
+        if (from.equals(to)) {
+            // gleiche Drohne, aber falsche Höhe → auf Sollhöhe setzen
+            newBase = Math.round(50.0 * Math.tan(Math.toRadians(49.0 / 2.0)) / Math.tan(Math.toRadians(b[3] / 2.0)));
+        } else {
+            newBase = Math.round(base * Math.tan(Math.toRadians(a[3] / 2.0)) / Math.tan(Math.toRadians(b[3] / 2.0)));
+        }
         double delta = newBase - base;
         t = setTag(t, "droneEnumValue", String.valueOf(b[0]));
         t = setTag(t, "droneSubEnumValue", String.valueOf(b[1]));
@@ -419,8 +425,19 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (tplName == null) throw new Exception("keine DJI-Pilot-2-Mission (template.kml fehlt)");
         String tpl = new String(entries.get(tplName), StandardCharsets.UTF_8);
         String from = droneOfKml(tpl);
-        if (from == null) throw new Exception("Drohnentyp der Datei unbekannt – nicht umgerechnet");
-        if (from.equals(to)) return null;
+        if (from == null) from = to;   // unbekannt → als Zieldrohne behandeln, nur Höhe korrigieren
+        // Auch bei gleicher Drohne prüfen: Höhe könnte falsch sein
+        if (from.equals(to)) {
+            // Höhe prüfen – bei gleicher Drohne nur korrigieren, wenn Höhe abweicht
+            int[] td = DRONES.get(to);
+            Matcher gm = Pattern.compile("<wpml:globalHeight>([-\\d.]+)<").matcher(tpl);
+            if (gm.find() && td != null) {
+                double h = Double.parseDouble(gm.group(1));
+                double wantH = 50.0 * Math.tan(Math.toRadians(49.0 / 2.0)) / Math.tan(Math.toRadians(td[3] / 2.0));
+                if (Math.abs(h - wantH) <= 5) return null;   // Höhe passt → nichts zu tun
+            } else return null;
+            // Höhe falsch → durchfallen lassen und umrechnen (from=to, aber convertKml setzt Höhe korrekt)
+        }
         for (Map.Entry<String, byte[]> en : entries.entrySet()) {
             String ln = en.getKey().toLowerCase(Locale.ROOT);
             if (ln.endsWith(".kml") || ln.endsWith(".wpml"))
@@ -437,15 +454,26 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return out.toByteArray();
     }
 
-    /** Muss die Datei für die Zieldrohne umgerechnet werden? */
+    /** Muss die Datei für die Zieldrohne umgerechnet werden? Prüft Drohnentyp UND Flughöhe */
     private static boolean needsConvert(File src, String to) {
+        int[] td = DRONES.get(to);
+        if (td == null) return false;
         try (ZipInputStream z = new ZipInputStream(new FileInputStream(src))) {
             ZipEntry e;
             while ((e = z.getNextEntry()) != null) {
                 if (!e.getName().toLowerCase(Locale.ROOT).endsWith("template.kml")) continue;
                 String t = new String(readBytes(z), StandardCharsets.UTF_8);
                 String from = droneOfKml(t);
-                return from != null && !from.equals(to);
+                if (from != null && !from.equals(to)) return true;   // falsche Drohne
+                // gleiche (oder unbekannte) Drohne – Höhe prüfen
+                Matcher gm = Pattern.compile("<wpml:globalHeight>([-\\d.]+)<").matcher(t);
+                if (gm.find()) {
+                    double h = Double.parseDouble(gm.group(1));
+                    // Sollhöhe für Zieldrohne berechnen (gleiche Streifenbreite)
+                    double wantH = 50.0 * Math.tan(Math.toRadians(49.0 / 2.0)) / Math.tan(Math.toRadians(td[3] / 2.0));
+                    if (Math.abs(h - wantH) > 5) return true;   // falsche Höhe
+                }
+                return false;
             }
         } catch (Exception ignored) { }
         return false;
@@ -763,6 +791,34 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 File[] rest = a.listFiles(); if (rest == null || rest.length == 0) a.delete();
                 return "{\"ok\":true,\"moved\":" + n + "}";
             } catch (Exception e) { return "{\"ok\":false}"; }
+        }
+
+        /** Konvertiert eine KMZ-Datei an Ort und Stelle auf eine andere Drohne (Höhe, Drohnenkennung) */
+        @JavascriptInterface
+        public String convertInPlace(String filePath, String toDrone) {
+            try {
+                File f = new File(filePath);
+                if (!f.isFile()) return err("Datei nicht gefunden: " + filePath).toString();
+                if (!needsConvert(f, toDrone)) return new JSONObject().put("ok", true).put("unchanged", true).toString();
+                byte[] converted = rewriteKmz(f, toDrone);
+                // neuen Dateinamen: Drohnenkürzel im Namen tauschen
+                String newName = swapDroneInName(f.getName(), toDrone);
+                File target = new File(f.getParentFile(), newName);
+                File tmp = new File(f.getParentFile(), "." + newName + ".tmp");
+                try (OutputStream o = new FileOutputStream(tmp, false)) { o.write(converted); }
+                if (tmp.length() != converted.length) { tmp.delete(); throw new Exception("Schreiben unvollständig"); }
+                // alte Datei löschen, neue einsetzen
+                if (!f.getCanonicalPath().equals(target.getCanonicalPath())) {
+                    if (target.exists()) target.delete();
+                    f.delete();
+                }
+                if (!tmp.renameTo(target)) { copy(tmp, target); tmp.delete(); }
+                target.setLastModified(System.currentTimeMillis());
+                try { android.media.MediaScannerConnection.scanFile(MainActivity.this, new String[]{ target.getAbsolutePath(), f.getAbsolutePath() }, null, null); } catch (Exception ignored) { }
+                return new JSONObject().put("ok", true).put("newName", target.getName()).put("newPath", target.getAbsolutePath()).toString();
+            } catch (Exception e) {
+                return err(e.getMessage()).toString();
+            }
         }
 
         /** Kopiert/verschiebt Dateien in den Zielordner */

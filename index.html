@@ -1763,11 +1763,25 @@ function drawAirfield(a) {
 // Farben: unmarkiert alles blau, markiert alles orange
 const FC0 = { route: '#1e7bff', routeSel: '#ff7a00', halo: '#c75a00', fill: 'rgba(30,123,255,.22)', fillSel: 'rgba(255,122,0,.28)' };
 const FCC = { route: '#00a99d', routeSel: '#ff7a00', halo: '#c75a00', fill: 'rgba(0,169,157,.20)', fillSel: 'rgba(255,122,0,.28)' };   // Felder aus dem UAV Editor (gemischte Ansicht)
+const FCW = { route: '#d32f2f', routeSel: '#ff7a00', halo: '#c75a00', fill: 'rgba(211,47,47,.22)', fillSel: 'rgba(255,122,0,.28)' };   // Felder mit falscher Drohne/Höhe (rot)
 let FC = FC0;
+/** Erwartete Flughöhe je Drohne (gleiche Streifenbreite: M3T 50 m, M4T 70 m) */
+const DRONE_HEIGHT = { M3T: 50, M4T: 70 };
+/** Prüft, ob ein Feld die falsche Drohne/Höhe für die eingestellte Drohne hat */
+function isDroneMismatch(f) {
+  if (!P.drone || f.cat || f.dup) return false;
+  const want = P.drone, wantH = DRONE_HEIGHT[want];
+  if (!wantH) return false;
+  // Fall 1: falsche Drohne erkannt
+  if (f.drone && f.drone !== want) return true;
+  // Fall 2: richtige Drohne (oder keine erkannt), aber falsche Höhe
+  if (f.height && Math.abs(f.height - wantH) > 5) return true;
+  return false;
+}
 /** Feldkontur aus UAV Editor als Hintergrund der Flugroute (nicht eigenständig wählbar) */
 function drawOutline(f) {
   if (!f.outline) return;
-  FC = f.cat || f.ue ? FCC : FC0;
+  FC = isDroneMismatch(f) ? FCW : (f.cat || f.ue ? FCC : FC0);
   ctx.beginPath();
   f.outline.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
   ctx.closePath();
@@ -1792,7 +1806,7 @@ function fieldOnScreen(f) {
   return !(x1 < -20 || y1 < -20 || x0 > W + 20 || y0 > H + 20);
 }
 function drawField(f) {
-  FC = f.cat || f.ue ? FCC : FC0;
+  FC = isDroneMismatch(f) ? FCW : (f.cat || f.ue ? FCC : FC0);
   if (f.outline && !f.selected && !f.cat) return;   // nicht markiert: nur die Fläche (drawOutline), Flugroute erst beim Markieren
   ctx.lineJoin = 'round';
   for (const s of f.shapes) {
@@ -1818,16 +1832,17 @@ function drawLabel(f) {
   if (x < -150 || y < -30 || x > W + 150 || y > H + 30) return;
   // Kurzname auf der Karte (ohne „_0.443ha_8WP“ und Drohnen-Kürzel) – der volle Name steht in Liste und Details
   const sn = shortTitle(f.title), fs = f.selected ? 15 : 13, hh = f.selected ? 24 : 20;
+  const mm = isDroneMismatch(f);
   ctx.font = `700 ${fs}px Roboto,system-ui,sans-serif`;
-  const t = f.selected && f.height ? `${sn} · ${f.height} m${f.drone ? ' · ' + f.drone : ''}` : sn;   // markiert: Flughöhe anzeigen
+  const t = f.selected && f.height ? `${mm ? '⚠ ' : ''}${sn} · ${f.height} m${f.drone ? ' · ' + f.drone : ''}` : (mm ? `⚠ ${sn}` : sn);   // markiert: Flughöhe anzeigen; Mismatch: ⚠ voranstellen
   const w = ctx.measureText(t).width + 12;
   const box = { x: x - w / 2, y: y - hh / 2, w, h: hh };
   if (!f.selected && labelBoxes.some(b => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y)) return;   // kein Platz – Name weglassen
   box.f = f; labelBoxes.push(box);
-  ctx.fillStyle = f.selected ? FC.routeSel : 'rgba(255,255,255,.9)';
+  ctx.fillStyle = f.selected ? (mm ? '#d32f2f' : FC.routeSel) : (mm ? 'rgba(211,47,47,.12)' : 'rgba(255,255,255,.9)');
   ctx.fillRect(box.x, box.y, w, hh);
-  ctx.strokeStyle = f.selected ? '#fff' : FC.route; ctx.lineWidth = 2; ctx.strokeRect(box.x, box.y, w, hh);
-  ctx.fillStyle = f.selected ? '#fff' : '#15202b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.strokeStyle = f.selected ? '#fff' : FC.route; ctx.lineWidth = mm ? 2.5 : 2; ctx.strokeRect(box.x, box.y, w, hh);
+  ctx.fillStyle = f.selected ? '#fff' : (mm ? '#d32f2f' : '#15202b'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(t, x, y + 1);
 }
 
@@ -2295,7 +2310,42 @@ function update() {
   searchHits();
   draw();
 }
-function toggle(f) { f.selected = !f.selected; update(); return true; }
+function toggle(f) {
+  f.selected = !f.selected; update();
+  // Feld mit falscher Drohne/Höhe markiert? → Konvertierung anbieten
+  if (f.selected && isDroneMismatch(f) && A.convertInPlace) {
+    const DN = { M3T: 'Mavic 3T', M4T: 'Matrice 4T' };
+    const wantH = DRONE_HEIGHT[P.drone] || '?';
+    const hasH = f.height || '?';
+    const wrongDrone = f.drone && f.drone !== P.drone;
+    const wrongH = f.height && Math.abs(f.height - wantH) > 5;
+    // Fehlerliste zusammenbauen
+    const issues = [];
+    if (wrongDrone) issues.push(`❌ Drohne: ${DN[f.drone] || f.drone} (soll: ${DN[P.drone] || P.drone})`);
+    if (wrongH) issues.push(`❌ Flughöhe: ${hasH} m (soll: ${wantH} m)`);
+    const title = wrongDrone && wrongH ? '⚠ Falsche Drohne und Flughöhe'
+                : wrongDrone ? '⚠ Falsche Drohne' : '⚠ Falsche Flughöhe';
+    const msg = issues.join('\n') + `\n\nSoll die Datei auf ${DN[P.drone] || P.drone} (${wantH} m) korrigiert werden?`;
+    confirmDlg(title, msg, [], `Auf ${DN[P.drone] || P.drone} korrigieren`, () => {
+      busy('Rechne um…');
+      setTimeout(() => {
+        try {
+          const r = JSON.parse(A.convertInPlace(f.path, P.drone));
+          busy('');
+          if (r.ok && !r.unchanged) {
+            toast(`✓ ${f.title} → ${DN[P.drone] || P.drone} (${wantH} m) umgerechnet`, 'ok', 5000);
+            if (r.newPath) f.path = r.newPath;
+            if (r.newName) { f.name = r.newName; f.title = r.newName.replace(/\.km[lz]$/i, ''); f._ft = null; }
+            f.drone = P.drone; f.height = wantH;
+            update();
+          } else if (r.unchanged) toast('Datei hat bereits die richtige Drohne.', 'ok', 3000);
+          else toast('Fehler: ' + (r.error || 'unbekannt'), true, 6000);
+        } catch (e) { busy(''); toast('Fehler bei der Umrechnung: ' + e, true, 6000); }
+      }, 30);
+    });
+  }
+  return true;
+}
 function fitAll() {
   const sel = S.files.filter(f => f.selected && visible(f));
   fitBounds(bounds(S.files.filter(visible)) || bounds(sel));
@@ -6246,7 +6296,7 @@ window.onUave = raw => {
     if (ev.errors && ev.errors.length) toast(`${ev.ok} neu exportiert, ${ev.errors.length} Fehler:\n` + ev.errors.join('\n'), true, 10000);
     if (!files.length) return;
     const base = P.src.replace(/\/+$/, '') + '/';
-    if (S.catDl) { S.catDl = false; doTransfer(files.map(n => base + n)); setTimeout(() => load(true), 1500); return; }
+    if (S.catDl) { S.catDl = false; doTransfer(files.map(n => base + n), P.drone || ''); setTimeout(() => load(true), 1500); return; }
     load(true).then(() => {
       S.files.forEach(f => f.selected = files.includes(f.name)); update();
       doTransfer(files.map(n => base + n));
@@ -6263,7 +6313,7 @@ window.onUave = raw => {
     if (S.catDl && doneFiles.length) {
       S.catDl = false;
       const base = P.src.replace(/\/+$/, '') + '/';
-      doTransfer(doneFiles.map(n => base + n));
+      doTransfer(doneFiles.map(n => base + n), P.drone || '');
       setTimeout(() => load(true), 1500);
       return;
     }
