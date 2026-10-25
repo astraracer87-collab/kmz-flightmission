@@ -1528,10 +1528,10 @@ function segDistM(lat, lon, a, b) {
   return Math.hypot(px - t * bx, py - t * by);
 }
 /** Alle Geozonen an einem Punkt (offline) */
-function geoAt(lat, lon) {
+function geoAt(lat, lon, allLayers) {
   const hits = [];
   for (const f of S.geo) {
-    if (!geoLayerOn(f.layer)) continue;
+    if (!allLayers && !geoLayerOn(f.layer)) continue;
     if (lat > f.bb.n + 0.0003 || lat < f.bb.s - 0.0003 || lon > f.bb.e + 0.0005 || lon < f.bb.w - 0.0005) continue;
     let hit = false;
     if (f.type === 'Polygon' || f.type === 'MultiPolygon') {
@@ -1763,6 +1763,7 @@ function drawAirfield(a) {
 // Farben: unmarkiert alles blau, markiert alles orange
 const FC0 = { route: '#1e7bff', routeSel: '#ff7a00', halo: '#c75a00', fill: 'rgba(30,123,255,.22)', fillSel: 'rgba(255,122,0,.28)' };
 const FCC = { route: '#00a99d', routeSel: '#ff7a00', halo: '#c75a00', fill: 'rgba(0,169,157,.20)', fillSel: 'rgba(255,122,0,.28)' };   // Felder aus dem UAV Editor (gemischte Ansicht)
+const FCD = { route: '#7b1fa2', routeSel: '#ff7a00', halo: '#c75a00', fill: 'rgba(123,31,162,.20)', fillSel: 'rgba(255,122,0,.28)' };   // heruntergeladen, aber noch nicht in Bibliothek (lila)
 const FCW = { route: '#d32f2f', routeSel: '#ff7a00', halo: '#c75a00', fill: 'rgba(211,47,47,.22)', fillSel: 'rgba(255,122,0,.28)' };   // Felder mit falscher Drohne/Höhe (rot)
 let FC = FC0;
 /** Erwartete Flughöhe je Drohne (gleiche Streifenbreite: M3T 50 m, M4T 70 m) */
@@ -1781,7 +1782,7 @@ function isDroneMismatch(f) {
 /** Feldkontur aus UAV Editor als Hintergrund der Flugroute (nicht eigenständig wählbar) */
 function drawOutline(f) {
   if (!f.outline) return;
-  FC = isDroneMismatch(f) ? FCW : (f.cat || f.ue ? FCC : FC0);
+  FC = isDroneMismatch(f) ? FCW : f.cat ? FCC : (f.ue && !f.inDst) ? FCD : (f.ue ? FCC : FC0);
   ctx.beginPath();
   f.outline.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
   ctx.closePath();
@@ -1806,7 +1807,7 @@ function fieldOnScreen(f) {
   return !(x1 < -20 || y1 < -20 || x0 > W + 20 || y0 > H + 20);
 }
 function drawField(f) {
-  FC = isDroneMismatch(f) ? FCW : (f.cat || f.ue ? FCC : FC0);
+  FC = isDroneMismatch(f) ? FCW : f.cat ? FCC : (f.ue && !f.inDst) ? FCD : (f.ue ? FCC : FC0);
   if (f.outline && !f.selected && !f.cat) return;   // nicht markiert: nur die Fläche (drawOutline), Flugroute erst beim Markieren
   ctx.lineJoin = 'round';
   for (const s of f.shapes) {
@@ -1833,6 +1834,7 @@ function drawLabel(f) {
   // Kurzname auf der Karte (ohne „_0.443ha_8WP“ und Drohnen-Kürzel) – der volle Name steht in Liste und Details
   const sn = shortTitle(f.title), fs = f.selected ? 15 : 13, hh = f.selected ? 24 : 20;
   const mm = isDroneMismatch(f);
+  FC = mm ? FCW : f.cat ? FCC : (f.ue && !f.inDst) ? FCD : (f.ue ? FCC : FC0);
   ctx.font = `700 ${fs}px Roboto,system-ui,sans-serif`;
   const t = f.selected && f.height ? `${mm ? '⚠ ' : ''}${sn} · ${f.height} m${f.drone ? ' · ' + f.drone : ''}` : (mm ? `⚠ ${sn}` : sn);   // markiert: Flughöhe anzeigen; Mismatch: ⚠ voranstellen
   const w = ctx.measureText(t).width + 12;
@@ -2262,6 +2264,13 @@ async function load(keepView) {
   S.badFiles = badNames;
   busy('');
   if (P.fsrc !== src0) { loading = false; return load(true); }   // während des Ladens umgeschaltet: neu laden statt alte Felder zeigen
+  // Prüfen, welche Felder schon im Import-Ordner (Bibliothek) liegen → f.inDst
+  let dstNames = new Set();
+  try {
+    const d = JSON.parse(A.listKmz(P.dst));
+    if (d.ok && d.files) d.files.forEach(f => dstNames.add(f.name.replace(/\.km[lz]$/i, '').toLowerCase()));
+  } catch (e) { }
+  out.forEach(f => { f.inDst = dstNames.has(f.title.toLowerCase()) || dstNames.has(baseName(f.title).toLowerCase()); });
   S.files = out;
   applyOutlines();
   markDups();
@@ -2543,6 +2552,8 @@ function doTransfer(paths, drone) {
     }
     // Quellordner nicht neu einlesen: beim Kopieren ändert sich dort nichts, beim Verschieben nur die übertragenen Felder entfernen
     if (move) { const gone = new Set(paths); S.files = S.files.filter(f => !gone.has(f.path)); markDups(); }
+    // Übertragene Felder als „in Bibliothek" markieren → Farbe wechselt von lila zu türkis/blau
+    const ps = new Set(paths); S.files.forEach(f => { if (ps.has(f.path)) f.inDst = true; });
     update();
   }, 30);
 }
@@ -2566,7 +2577,7 @@ function flightBriefing(sel) {
   const zones = new Map(), obs = new Map(), rails = new Map(), lines = new Map();
   sel.forEach(fl => {
     fieldSamples(fl).forEach(([la, lo]) => {
-      geoAt(la, lo).forEach(h => {
+      geoAt(la, lo, true).forEach(h => {   // true = alle Layer, auch ausgeblendete – Pre-Check muss immer alles prüfen
         // gleiche Art + gleicher Name + gleiche Regel (Bundesland) nur einmal aufführen, z. B. mehrere Abschnitte einer Bahnanlage
         const reg = regionAt(la, lo), key = h.f.layer + '|' + ((h.f.props || {}).name || '') + '|' + covKind(h.f.layer, reg) + '|' + (reg.st || '');
         let z = zones.get(key);
