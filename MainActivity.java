@@ -1088,15 +1088,18 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         /** Probe: Benachrichtigung nach ein paar Sekunden – zum Wechseln in DJI Pilot 2 */
         @JavascriptInterface
-        public void notifyTrafTest(int snd) {   // Probe der Luftverkehr-Warnung mit gewähltem Ton
+        public void notifyTrafTest(int snd) {   // Probe der Luftverkehr-Warnung mit gewähltem Ton – Benachrichtigung verschwindet nach 5 s
             final Context c = getApplicationContext();
             new Thread(() -> { try { Thread.sleep(3000L); } catch (InterruptedException ignored) { }
                 alert(c, 4712, "✈ Test: Hubschrauber 1,2 km NW – kommt näher", "ca. 150 m über Grund · 180 km/h. So sieht die Luftverkehr-Warnung aus.", CH_TRAF[Math.max(0, Math.min(2, snd))]);
-                testBeep(snd); }).start();
+                testBeep(snd);
+                try { Thread.sleep(5000L); } catch (InterruptedException ignored) { }
+                try { ((android.app.NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(4712); } catch (Exception ignored) { }
+            }).start();
         }
         void testBeep(int snd) { if (snd > 0) siren(snd >= 2 ? 2 : 1); }
         @JavascriptInterface
-        public void sirenTest(int kind) { new Thread(() -> { if (kind == 3) { Watch.initTts(getApplicationContext()); try { Thread.sleep(500); } catch (Exception ignored) {} Watch.tcasSpeak(); } else siren(kind); }).start(); }
+        public void sirenTest(int kind) { new Thread(() -> siren(kind)).start(); }
         @JavascriptInterface
         public void notifyTest(int sec) {
             if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED)
@@ -2650,10 +2653,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         try {
             int sr = 22050; int n; short[] buf;
             if (kind == 3) {
-                n = sr * 16 / 10; buf = new short[n]; double ph = 0;
-                for (int i = 0; i < n; i++) { double t = (double) i / sr; double f = ((int) (t / 0.2) % 2 == 0) ? 1450 : 950;
-                    ph += 2 * Math.PI * f / sr; double env = Math.min(1, Math.min(i, n - i) / 200.0);
-                    buf[i] = (short) (Math.signum(Math.sin(ph)) * 0.55 * 32767 * env + Math.sin(ph) * 0.35 * 32767 * env); }
+                // TCAS-artiger Doppel-Chime: zwei aufsteigende Sinustöne (C5→E5, E5→G5), Pause, wiederholt 2×
+                int chime = sr * 15 / 100, gap = sr * 8 / 100, pause = sr * 3 / 10;
+                int block = chime * 2 + gap + pause; n = block * 2; buf = new short[n]; double ph = 0;
+                double[][] tones = {{523.25, 659.26}, {659.26, 783.99}};   // C5→E5, E5→G5
+                for (int rep = 0; rep < 2; rep++) { int base = rep * block;
+                    for (int t = 0; t < 2; t++) { int off = base + t * (chime + gap / 2);
+                        ph = 0; for (int i = 0; i < chime; i++) { double u = (double) i / chime;
+                            double f = tones[t][0] + (tones[t][1] - tones[t][0]) * u;
+                            ph += 2 * Math.PI * f / sr; double env = Math.sin(Math.PI * u);   // sanfte Hüllkurve
+                            if (off + i < n) buf[off + i] = (short) (Math.sin(ph) * 0.7 * 32767 * env); } } }
             } else {
                 int rep = kind == 2 ? 6 : 3; double sweep = 0.45, gap = 0.05; n = (int) (sr * rep * (sweep + gap)); buf = new short[n]; double ph = 0;
                 for (int i = 0; i < n; i++) { double t = (double) i / sr, u = t % (sweep + gap);
@@ -3255,14 +3264,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     public static class Watch extends android.app.Service {
         static volatile Thread th; static volatile String cfg; static volatile String lastInfo = "";
-        static volatile android.speech.tts.TextToSpeech tts; static volatile boolean ttsReady;
         @Override public android.os.IBinder onBind(Intent i) { return null; }
         @SuppressWarnings("deprecation")
         @Override public int onStartCommand(Intent in, int flags, int startId) {
             if (in != null && "stop".equals(in.getAction())) { Thread t = th; th = null; if (t != null) t.interrupt(); lastInfo = "beendet"; stopForeground(true); stopSelf(); return START_NOT_STICKY; }
             if (in != null && in.getStringExtra("cfg") != null) cfg = in.getStringExtra("cfg");
             if (cfg == null) { stopSelf(); return START_NOT_STICKY; }
-            ensureChannels(this); Elev.init(getFilesDir()); initTts(this);
+            ensureChannels(this); Elev.init(getFilesDir());
             String names = "", until = ""; boolean tOnly = false; String tInfo = "";
             try { JSONObject c = new JSONObject(cfg); names = c.optString("names"); tOnly = c.optBoolean("trafOnly");
                 tInfo = "Warnt bei Luftfahrzeugen im Umkreis von " + String.format(Locale.GERMANY, "%.1f", c.optDouble("tKm", 3)).replace(",0", "") + " km unter " + c.optInt("tAlt", 300) + " m über Grund"; until = new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new java.util.Date(c.optLong("until"))); } catch (Exception ignored) { }
@@ -3396,40 +3404,15 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             void nearAlarm(boolean on) {
             nearOn = on;
             if (on && (nearTh == null || !nearTh.isAlive())) {
-                nearTh = new Thread(() -> {   // TCAS-Ansage: „Traffic, Traffic" alle 4 s – bis vorbei oder stumm
+                nearTh = new Thread(() -> {   // TCAS-Doppelchime alle 4 s – bis vorbei oder stumm
                     try { while (nearOn && th != null) {
-                        if (System.currentTimeMillis() > nearMuteUntil) tcasSpeak();
+                        if (System.currentTimeMillis() > nearMuteUntil) siren(3);
                         Thread.sleep(4000);
                     } } catch (Exception ignored) { }
                 });
                 nearTh.start();
             }
             ovlNear = on;
-        }
-        /** TTS initialisieren – TCAS-Ansagen über den Wecker/Alarm-Kanal */
-        static void initTts(Context ctx) {
-            if (tts != null) return;
-            ttsReady = false;
-            tts = new android.speech.tts.TextToSpeech(ctx, status -> {
-                if (status == android.speech.tts.TextToSpeech.SUCCESS) {
-                    android.speech.tts.TextToSpeech t = tts; if (t == null) return;
-                    int r = t.setLanguage(Locale.US);   // TCAS ist international auf Englisch
-                    if (r == android.speech.tts.TextToSpeech.LANG_MISSING_DATA || r == android.speech.tts.TextToSpeech.LANG_NOT_SUPPORTED)
-                        t.setLanguage(Locale.GERMANY);   // Fallback: Deutsch auf dem DJI RC
-                    t.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build());
-                    t.setSpeechRate(1.1f);
-                    ttsReady = true;
-                }
-            });
-        }
-        /** TCAS-Style Sprachansage „Traffic, Traffic" – Fallback: kurzer Warnton */
-        static void tcasSpeak() {
-            android.speech.tts.TextToSpeech t = tts;
-            if (t != null && ttsReady) {
-                t.speak("Traffic, Traffic", android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "tcas_near");
-            } else {
-                siren(1);   // Fallback: kurzer Warnton statt Dauersirene
-            }
         }
         /** Warnton über den Wecker-Lautstärkekanal: 1 = zwei kurze Töne, 2 = Alarm (ca. 3 s) */
         void beep(int snd) {

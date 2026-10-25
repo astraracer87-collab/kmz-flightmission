@@ -640,7 +640,7 @@ body.bartop #trafWarn{top:84px}
           <input type="range" id="rTalt" min="0" max="23" step="1"></div>
         <div class="trow"><span class="tl">Daueralarm im Nahbereich</span><div class="seg"><button data-tnear="0">Aus</button><button data-tnear="0.5">0,5</button><button data-tnear="1">1</button><button data-tnear="1.5">1,5</button><button data-tnear="2">2</button><button data-tnear="3">3 km</button></div>
           <button class="tbtn" id="bNearTest" style="width:auto;padding:0 12px;font-size:14px">Daueralarm anhören</button></div>
-        <div class="v" style="margin-top:-4px">Ist ein Luftfahrzeug (unter der Warnhöhe) näher als dieser Abstand und kommt weiter näher, ertönt alle 4 s eine TCAS-Ansage „Traffic, Traffic” und das Warnfenster wird rot – bis es den nächsten Punkt passiert hat und sich wieder entfernt. 🔊✕ schaltet stumm, 🔇 schaltet wieder ein. Bei anderen Drohnen gilt höchstens 300 m.</div>
+        <div class="v" style="margin-top:-4px">Ist ein Luftfahrzeug (unter der Warnhöhe) näher als dieser Abstand und kommt weiter näher, ertönt alle 4 s ein TCAS-Doppelchime und das Warnfenster wird rot – bis es den nächsten Punkt passiert hat und sich wieder entfernt. 🔊✕ schaltet stumm, 🔇 schaltet wieder ein. Bei anderen Drohnen gilt höchstens 300 m.</div>
         <div class="trow"><span class="tl">Warnton</span><div class="seg"><button data-tsnd="0">Aus</button><button data-tsnd="1">Warnton</button><button data-tsnd="2">Alarm (lang)</button></div>
           <button class="tbtn" id="bTrafTest" style="width:auto;padding:0 12px;font-size:14px">Test in 3 s</button></div>
         <div class="trow"><span class="tl">Warnfenster über allen Apps</span><div class="seg"><button data-tovl="0">Aus</button><button data-tovl="1">An</button></div>
@@ -6728,7 +6728,7 @@ document.querySelectorAll('[data-traf]').forEach(b => b.onclick = () => { setP('
 /** geänderte Einstellungen an den laufenden Dienst geben (Einsatz-Wächter oder reiner Luftverkehr-Dienst) */
 function trafRestart() { const run = trafSvcRunning(); if (run && !run.trafOnly) watchStart(null, true); else trafEnsure(true); }
 document.querySelectorAll('[data-tsnd]').forEach(b => b.onclick = () => { setP('tSnd', b.dataset.tsnd); trafUi(); trafRestart(); });
-if ($('bNearTest')) $('bNearTest').onclick = () => { if (!A.sirenTest) return toast('Diese App-Version kann das noch nicht.', true); A.sirenTest(3); toast('So klingt die TCAS-Ansage „Traffic, Traffic" (wiederholt sich alle 4 s, solange es näher kommt). Lautstärke: Wecker/Alarm.', 'ok', 4000); };
+if ($('bNearTest')) $('bNearTest').onclick = () => { if (!A.sirenTest) return toast('Diese App-Version kann das noch nicht.', true); A.sirenTest(3); toast('So klingt der TCAS-Doppelchime (wiederholt sich alle 4 s, solange es näher kommt). Lautstärke: Wecker/Alarm.', 'ok', 4000); };
 document.querySelectorAll('[data-tnear]').forEach(b => b.onclick = () => { setP('tNear', b.dataset.tnear); trafUi(); trafRestart(); });
 document.querySelectorAll('[data-tovl]').forEach(b => b.onclick = () => { setP('tOvl', b.dataset.tovl); trafUi(); trafRestart(); if (b.dataset.tovl === '1' && A.canOverlay && !A.canOverlay() && A.overlayPerm) A.overlayPerm(); });
 if ($('bOvlPerm')) $('bOvlPerm').onclick = () => A.overlayPerm && A.overlayPerm();
