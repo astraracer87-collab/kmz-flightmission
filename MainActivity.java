@@ -1067,7 +1067,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public void ridStop() { Rid.uiOn = false; Rid.stopIfIdle(); }
         @JavascriptInterface
-        public void trafMute(int sec) { Watch.nearMuteUntil = System.currentTimeMillis() + sec * 1000L; }   // Daueralarm aus der App stumm schalten
+        public void trafMute(int sec) { Watch.nearMuteUntil = System.currentTimeMillis() < Watch.nearMuteUntil ? 0 : System.currentTimeMillis() + sec * 1000L; }   // Toggle: stumm ↔ laut
         @JavascriptInterface
         public boolean trafMuted() { return System.currentTimeMillis() < Watch.nearMuteUntil; }
         @JavascriptInterface
@@ -1096,7 +1096,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         void testBeep(int snd) { if (snd > 0) siren(snd >= 2 ? 2 : 1); }
         @JavascriptInterface
-        public void sirenTest(int kind) { new Thread(() -> siren(kind)).start(); }
+        public void sirenTest(int kind) { new Thread(() -> { if (kind == 3) { Watch.initTts(getApplicationContext()); try { Thread.sleep(500); } catch (Exception ignored) {} Watch.tcasSpeak(); } else siren(kind); }).start(); }
         @JavascriptInterface
         public void notifyTest(int sec) {
             if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED)
@@ -3255,13 +3255,14 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     public static class Watch extends android.app.Service {
         static volatile Thread th; static volatile String cfg; static volatile String lastInfo = "";
+        static volatile android.speech.tts.TextToSpeech tts; static volatile boolean ttsReady;
         @Override public android.os.IBinder onBind(Intent i) { return null; }
         @SuppressWarnings("deprecation")
         @Override public int onStartCommand(Intent in, int flags, int startId) {
             if (in != null && "stop".equals(in.getAction())) { Thread t = th; th = null; if (t != null) t.interrupt(); lastInfo = "beendet"; stopForeground(true); stopSelf(); return START_NOT_STICKY; }
             if (in != null && in.getStringExtra("cfg") != null) cfg = in.getStringExtra("cfg");
             if (cfg == null) { stopSelf(); return START_NOT_STICKY; }
-            ensureChannels(this); Elev.init(getFilesDir());
+            ensureChannels(this); Elev.init(getFilesDir()); initTts(this);
             String names = "", until = ""; boolean tOnly = false; String tInfo = "";
             try { JSONObject c = new JSONObject(cfg); names = c.optString("names"); tOnly = c.optBoolean("trafOnly");
                 tInfo = "Warnt bei Luftfahrzeugen im Umkreis von " + String.format(Locale.GERMANY, "%.1f", c.optDouble("tKm", 3)).replace(",0", "") + " km unter " + c.optInt("tAlt", 300) + " m über Grund"; until = new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new java.util.Date(c.optLong("until"))); } catch (Exception ignored) { }
@@ -3391,16 +3392,44 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             return d <= m + 0.1;   // nächster Punkt passiert: sobald es sich wieder > 100 m entfernt, Alarm aus
         }
         static volatile long nearMuteUntil; volatile boolean nearOn; Thread nearTh;
-        /** Daueralarm, solange ein Luftfahrzeug im Nahbereich ist (auch bei Warnton „Aus" – hier geht es um Sicherheit); „Stumm" im Warnfenster/in der App für 60 s */
+        /** Daueralarm, solange ein Luftfahrzeug im Nahbereich ist (auch bei Warnton „Aus" – hier geht es um Sicherheit); „Stumm" im Warnfenster/in der App, Klick schaltet um */
             void nearAlarm(boolean on) {
             nearOn = on;
             if (on && (nearTh == null || !nearTh.isAlive())) {
-                nearTh = new Thread(() -> {   // Daueralarm: Wechselton, kurze Pause, wieder – bis vorbei oder stumm
-                    try { while (nearOn && th != null) { if (System.currentTimeMillis() > nearMuteUntil) siren(3); Thread.sleep(600); } } catch (Exception ignored) { }
+                nearTh = new Thread(() -> {   // TCAS-Ansage: „Traffic, Traffic" alle 4 s – bis vorbei oder stumm
+                    try { while (nearOn && th != null) {
+                        if (System.currentTimeMillis() > nearMuteUntil) tcasSpeak();
+                        Thread.sleep(4000);
+                    } } catch (Exception ignored) { }
                 });
                 nearTh.start();
             }
             ovlNear = on;
+        }
+        /** TTS initialisieren – TCAS-Ansagen über den Wecker/Alarm-Kanal */
+        static void initTts(Context ctx) {
+            if (tts != null) return;
+            ttsReady = false;
+            tts = new android.speech.tts.TextToSpeech(ctx, status -> {
+                if (status == android.speech.tts.TextToSpeech.SUCCESS) {
+                    android.speech.tts.TextToSpeech t = tts; if (t == null) return;
+                    int r = t.setLanguage(Locale.US);   // TCAS ist international auf Englisch
+                    if (r == android.speech.tts.TextToSpeech.LANG_MISSING_DATA || r == android.speech.tts.TextToSpeech.LANG_NOT_SUPPORTED)
+                        t.setLanguage(Locale.GERMANY);   // Fallback: Deutsch auf dem DJI RC
+                    t.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build());
+                    t.setSpeechRate(1.1f);
+                    ttsReady = true;
+                }
+            });
+        }
+        /** TCAS-Style Sprachansage „Traffic, Traffic" – Fallback: kurzer Warnton */
+        static void tcasSpeak() {
+            android.speech.tts.TextToSpeech t = tts;
+            if (t != null && ttsReady) {
+                t.speak("Traffic, Traffic", android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "tcas_near");
+            } else {
+                siren(1);   // Fallback: kurzer Warnton statt Dauersirene
+            }
         }
         /** Warnton über den Wecker-Lautstärkekanal: 1 = zwei kurze Töne, 2 = Alarm (ca. 3 s) */
         void beep(int snd) {
@@ -3459,7 +3488,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         col.addView(ovlT); col.addView(ovlS); col.addView(ovlH);
                         row.addView(col, new android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1));
                         android.widget.TextView x = new android.widget.TextView(this); x.setText("✕"); x.setTextColor(0xFF9FB0C0); x.setTextSize(22); x.setPadding((int) dp(12), (int) dp(4), (int) dp(10), (int) dp(4));
-                        x.setOnClickListener(v -> { if (ovlNear) { nearMuteUntil = System.currentTimeMillis() + 60000; ovlUpd(); return; }   // Nahbereich: nur Ton 60 s stumm, Fenster bleibt
+                        x.setOnClickListener(v -> { if (ovlNear) { nearMuteUntil = System.currentTimeMillis() < nearMuteUntil ? 0 : System.currentTimeMillis() + 60000; ovlUpd(); return; }   // Nahbereich: Toggle stumm/laut
                             if (ovlKey != null) ovlMute.put(ovlKey, System.currentTimeMillis()); ovlHide(); });
                         ovlX = x; ovlBg = bg;
                         row.addView(x);
