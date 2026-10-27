@@ -58,3 +58,15 @@ android {
         checkReleaseBuilds false
     }
 }
+
+// Kompatibel mit dem alten Workflow (assembleDebug + cp app/build/outputs/apk/debug/app-debug.apk):
+// die volle App zusätzlich unter dem alten Namen ablegen. Die Lite-APK liegt unter apk/lite/debug/app-lite-debug.apk.
+tasks.matching { it.name == 'assembleFullDebug' }.configureEach { t ->
+    t.doLast {
+        copy {
+            from layout.buildDirectory.file('outputs/apk/full/debug/app-full-debug.apk')
+            into layout.buildDirectory.dir('outputs/apk/debug')
+            rename { 'app-debug.apk' }
+        }
+    }
+}
