@@ -60,6 +60,22 @@
   .v-web #map{cursor:grab} .v-web #map:active{cursor:grabbing}
   .v-web ::-webkit-scrollbar{width:10px;height:10px} .v-web ::-webkit-scrollbar-thumb{background:rgba(128,128,128,.45);border-radius:6px} .v-web ::-webkit-scrollbar-track{background:transparent}
   .v-web .dlg .box{border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  .v-web #bar{overflow:visible;z-index:19} .v-web #bSearch{display:none!important}
+  .v-web #bar .bsl{display:inline} .v-web #bar .bss{display:none} @media (max-width:1300px){ .v-web #bar .bsl{display:none} .v-web #bar .bss{display:inline} .v-web #bar #bSync,.v-web #bar #bNone{padding:0 12px} .v-web #searchBox.inbar{min-width:250px} .v-web #searchBox.inbar #q{min-width:40px} .v-web #searchBox.inbar #qMode button{padding:0 6px;font-size:12px} .v-web #searchBox.inbar #qX{width:24px} }
+  .v-web #bar #bNone{font-size:15px;gap:6px;padding:0 14px} .v-web #bar #bNone svg{width:18px;height:18px}
+  .v-web #searchBox.inbar{position:relative;left:auto;top:auto;transform:none;width:auto;flex:0 1 560px;min-width:260px;background:none;box-shadow:none;padding:0;z-index:35}
+  .v-web #searchBox.inbar .row{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:0 4px 0 6px;height:42px}
+  .v-web #searchBox.inbar #q{flex:1;min-width:80px;height:38px;font-size:15px;border:0;background:none;color:var(--txt);outline:none}
+  .v-web #searchBox.inbar #qGo{display:none} .v-web #searchBox.inbar #qX{height:32px;width:32px;padding:0;background:none;color:var(--muted)}
+  .v-web #searchBox.inbar #qMode button{height:32px;padding:0 10px;font-size:13px}
+  .v-web #searchBox.inbar #qHits{position:absolute;top:48px;left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-height:360px;flex-direction:column;flex-wrap:nowrap;align-items:stretch}
+  .v-web #searchBox.inbar #qHits button{justify-content:flex-start;text-align:left;flex:none}
+  .v-web #searchBox.inbar #qHits{left:auto;right:0;width:min(720px,94vw);max-height:70vh;display:flex;gap:0;padding:0;overflow:hidden}
+  .wsf{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line);font-size:14px}
+  .wsf label{display:flex;gap:6px;align-items:center;color:var(--muted)} .wsf select{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:8px;height:34px;padding:0 8px;font:inherit}
+  .wsf .wsn{margin-left:auto;color:var(--muted)} #qHits .wsf button{height:34px;background:#00a99d;color:#fff;justify-content:center}
+  .wsl{overflow-y:auto;padding:6px} .wsr{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:15px}
+  .wsr:hover{background:var(--card2)} .wsr.on{background:rgba(255,122,0,.18)} .wsr input{all:revert;width:18px;height:18px;margin:0;accent-color:#ff7a00} .wsr span{color:var(--muted);font-size:13px;white-space:nowrap}
   #bar .srcseg button.busy{background-image:linear-gradient(90deg,rgba(255,255,255,.0),rgba(255,255,255,.35),rgba(255,255,255,0));background-size:200% 100%;animation:segbusy 1.2s linear infinite}
   @keyframes segbusy{from{background-position:200% 0}to{background-position:-200% 0}}
   .srcseg button.on{background:#1e7bff;color:#fff}
@@ -316,6 +332,8 @@
   .lbot{position:sticky;bottom:0;padding:10px 0;background:linear-gradient(transparent,var(--bg) 30%)}.lbot button{width:100%;font-size:19px;padding:14px}
   .lcheck{display:flex;flex-direction:column;gap:10px}
   .lrules{margin-top:6px;font-size:15px;line-height:1.4;color:var(--txt)}.lrules>span{font-weight:800;color:var(--muted)}
+  .nvt{width:100%;border-collapse:collapse;font-size:15px}.nvt th{text-align:left;color:var(--muted);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--line)}.nvt td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .lgh{margin:14px 0 8px;padding-left:10px;border-left:6px solid;font-size:17px}.lgh span{color:var(--muted);font-weight:600}
   .lverd{display:inline-block;font-size:13px;font-weight:800;color:#fff;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle}
   .lchip small{display:block;font-size:13px;color:var(--muted);margin-top:1px}.lchip small b{color:var(--txt)}.lchip small span{font-weight:800}
   .lfld .lcard{padding:8px 10px;gap:10px}.lfld .lcard .lico{font-size:22px}.lfld .lcard b{font-size:16px}.lfld .lcard p{font-size:15px}
@@ -2424,7 +2442,7 @@ async function load(keepView) {
   setTimeout(() => wxPrefetch().then(windWidget), 3000);
   windWidget();
   if (stop) toast(`Laden abgebrochen – ${out.length} von ${r.files.length} Feldern angezeigt. Beim nächsten Öffnen der App werden wieder alle geladen.`, true, 6000);
-  else if (IS_WEB) { if (!S.files.length && P.fsrc !== 'none' && A.uaveUser && A.uaveUser()) toast(P.webShow === '24h' || P.webShow === '48h' ? `In den letzten ${P.webShow === '24h' ? 24 : 48} Stunden wurden im UAV Editor keine Felder angelegt oder geändert. „${new Date().getFullYear()}“ oder „Alle“ zeigt mehr.` : 'Keine Felder – „↻ UAV Editor“ tippen, um die Feldliste neu zu holen.', false, 6000); }
+  else if (IS_WEB) { if (!S.files.length && P.fsrc !== 'none' && A.uaveUser && A.uaveUser()) toast(P.webShow === '24h' || P.webShow === '48h' ? `In den letzten ${P.webShow === '24h' ? 24 : 48} Stunden wurden im UAV Editor keine Felder angelegt oder geändert. „${new Date().getFullYear()}“ oder „Alle“ zeigt mehr.` : 'Keine Felder – „↻ UAV-Felder holen“ klicken.', false, 6000); }
   else if (!out.length) toast('Keine KMZ-Felder im Quellordner gefunden:\n' + P.src, true);
   else if (bad) {   // nur melden, wenn neue leere Missionen dazugekommen sind – nicht bei jedem Laden wieder
     let seen = []; try { seen = JSON.parse(A.getPref('badSeen', '[]') || '[]'); } catch (e) { }
@@ -2594,6 +2612,29 @@ function webCatHits(q) {
   return d.fields.filter(f => foldTxt(String(f.name)).replace(/[_\-]+/g, ' ').includes(fq))
     .sort((a, b) => CAT_YEAR(b) - CAT_YEAR(a) || String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
 }
+/** PC: Auswahlliste unter dem Suchfeld – Filter Jahr (Standard: aktuelles Jahr) und Stand (aktiv/archiviert), darunter alle Felder nach Namen sortiert */
+function webSearchPanel(box) {
+  if (!S.qOpen) { box.innerHTML = ''; return; }
+  let d = null; try { d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); } catch (e) { }
+  const all = d && Array.isArray(d.fields) ? d.fields : [], Y = new Date().getFullYear();
+  if (S.qYear == null) S.qYear = String(Y); if (!S.qStand) S.qStand = 'alle';
+  const years = [...new Set(all.map(CAT_YEAR).filter(Boolean))].sort((a, b) => b - a);
+  const fq = foldTxt($('q').value.trim()).replace(/[_\-]+/g, ' ');
+  const list = all.filter(f => (S.qYear === 'alle' || String(CAT_YEAR(f)) === S.qYear) && (S.qStand === 'alle' || (S.qStand === 'archiv') === !!f.arch)
+    && (!fq || foldTxt(String(f.name)).replace(/[_\-]+/g, ' ').includes(fq)))
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
+  const isSel = cf => S.files.some(x => x.selected && (String((x.uave || {}).id || '') === String(cf.id) || x.title === cf.name));
+  const opt = (v, t, cur) => `<option value="${v}"${cur === v ? ' selected' : ''}>${t}</option>`;
+  box.innerHTML = `<div class="wsf"><label>Jahr <select id="wsY">${opt(String(Y), 'Aktuelles Jahr (' + Y + ')', S.qYear)}${years.filter(y => y !== Y).map(y => opt(String(y), String(y), S.qYear)).join('')}${opt('alle', 'Alle Jahre', S.qYear)}</select></label>
+      <label>Stand <select id="wsS">${opt('alle', 'Aktiv und archiviert', S.qStand)}${opt('aktiv', 'Nur aktiv', S.qStand)}${opt('archiv', 'Nur archiviert', S.qStand)}</select></label>
+      <span class="wsn">${list.length} Feld${list.length === 1 ? '' : 'er'}</span><button id="wsAll"${list.length ? '' : ' disabled'}>Alle markieren</button></div>
+    <div class="wsl">${list.slice(0, 400).map((cf, k) => `<label class="wsr${isSel(cf) ? ' on' : ''}" data-k="${k}"><input type="checkbox"${isSel(cf) ? ' checked' : ''}><b>${esc(cf.name)}</b><span>${CAT_YEAR(cf) || ''}${cf.area ? ' · ' + fieldArea(cf.area) : ''}${cf.arch ? ' · archiviert' : ' · aktiv'}</span></label>`).join('')
+      || `<div class="meta" style="padding:10px">${d ? 'Keine Felder für diese Auswahl.' : 'Noch keine Feldliste – „↻ UAV-Felder holen“ klicken.'}</div>`}${list.length > 400 ? `<div class="meta" style="padding:6px">+${list.length - 400} weitere – Suchbegriff eingeben</div>` : ''}</div>`;
+  $('wsY').onchange = e => { S.qYear = e.target.value; searchHits(); };
+  $('wsS').onchange = e => { S.qStand = e.target.value; searchHits(); };
+  $('wsAll').onclick = () => { const fs = list.slice(0, 400).map(cf => webCatPick(cf, 'all')).filter(Boolean); if (fs.length) fitBounds(padBB(bounds(fs))); draw(); searchHits(); toast(`${fs.length} Feld${fs.length > 1 ? 'er' : ''} markiert`, 'ok', 2000); };
+  box.querySelectorAll('.wsr').forEach(el => el.onclick = e => { e.preventDefault(); const cf = list[+el.dataset.k]; if (isSel(cf)) { S.files.forEach(x => { if (x.title === cf.name) x.selected = false; }); update(); } else webCatPick(cf); searchHits(); });
+}
 /** Treffer aus dem UAV Editor auf die Karte holen (falls der Filter es ausblendet), markieren und hinzoomen */
 function webCatPick(cf, fit) {
   let f = S.files.find(x => x.cat && String((x.uave || {}).id || x.id) === String(cf.id)) || S.files.find(x => x.title === cf.name);
@@ -2606,16 +2647,7 @@ function searchHits() {
   const box = $('qHits'), q = $('q').value.trim().toLowerCase();
   $('bSearch').classList.toggle('on', !!q);
   if (!$('searchBox').classList.contains('open')) return;
-  if (IS_WEB && S.qMode !== 'ort') {   // Desktop, Modus „UAV-Editor“: nur Feldnamen
-    box.innerHTML = ''; const raw = $('q').value.trim(); if (raw.length < 2) return;
-    const hits = webCatHits(raw);
-    if (!hits.length) { box.innerHTML = '<span class="more">Kein Feld mit diesem Namen im UAV Editor – „↻ UAV Editor“ holt die neueste Liste.</span>'; return; }
-    hits.slice(0, 15).forEach(cf => { const on = S.files.some(x => x.selected && (x.title === cf.name)), b = document.createElement('button');
-      b.innerHTML = `${esc(cf.name)} <small>${CAT_YEAR(cf) || ''}${cf.arch ? ' · Archiv' : ''}</small>`; b.className = on ? 'sel' : '';
-      b.title = on ? 'Antippen zum Abwählen' : 'Antippen zum Markieren und Hinzoomen'; b.onclick = () => { webCatPick(cf); searchHits(); }; box.appendChild(b); });
-    if (hits.length > 15) box.insertAdjacentHTML('beforeend', `<span class="more">+${hits.length - 15} weitere – Enter markiert alle Treffer</span>`);
-    return;
-  }
+  if (IS_WEB && S.qMode !== 'ort') { webSearchPanel(box); return; }   // Desktop, Modus „UAV-Editor“: Liste mit Filtern
   box.innerHTML = '';
   if (!q) return;
   const fq = foldTxt(q);
@@ -2663,17 +2695,19 @@ function openSearch() {
 function closeSearch(clear) {
   if (clear) $('q').value = '';
   $('q').blur();
+  if (IS_WEB) { $('qHits').innerHTML = ''; update(); return; }   // PC: Suchfeld bleibt in der Leiste, nur die Trefferliste schließt
   $('searchBox').classList.remove('open');
   update();
 }
 $('bSearch').onclick = () => $('searchBox').classList.contains('open') ? closeSearch(false) : openSearch();
 $('qX').onclick = () => closeSearch(true);
-$('q').oninput = () => { update(); if (!IS_WEB || S.qMode === 'ort') photonSearch($('q').value.trim()); };
+$('q').oninput = () => { S.qOpen = true; update(); if (!IS_WEB || S.qMode === 'ort') photonSearch($('q').value.trim()); };
 /** „Los“ / Enter: zum besten Treffer – Ort hat Vorrang, wenn der Name passt; Suchfenster zu, Ort in die Mitte mit Markierung */
 function searchGo() {
   const q = $('q').value.trim(); if (!q) return closeSearch(false);
   $('q').blur();
   if (IS_WEB && S.qMode !== 'ort') {   // Desktop „UAV-Editor“: alle Treffer markieren und zeigen
+    S.qOpen = false;
     const hits = webCatHits(q).slice(0, 60); if (!hits.length) return toast('Kein Feld mit diesem Namen im UAV Editor.', true);
     const fs = hits.map(cf => webCatPick(cf, 'all')).filter(Boolean); closeSearch(true); fitBounds(padBB(bounds(fs))); draw();
     return toast(`${fs.length} Feld${fs.length > 1 ? 'er' : ''} markiert`, 'ok', 2500);
@@ -2926,13 +2960,13 @@ function briefingHtml(b, sel, wxh) {
       ${(hmax => `<li>${km.length ? `<b>Masthöhe laut OpenStreetMap: ${km.length > 1 && Math.round(km[km.length - 1]) !== Math.round(km[0]) ? Math.round(km[0]) + '–' : ''}${Math.round(hmax)} m</b> (${km.length} Mast${km.length > 1 ? 'en' : ''} in der Nähe eingetragen)` : `Typische Masthöhe ${c.h[0]}–${c.h[1]} m (keine echte Höhe in OpenStreetMap)`}${fh ? (fh - hmax < 20 ? ` – <b style="color:#b3131b">knapp bei ${fh} m Missionshöhe</b>` : ` – bei ${fh} m Missionshöhe ausreichend Abstand`) : ''}</li>`)(km.length ? km[km.length - 1] : c.h[1])}
       <li>Nur über die Leitung, nie darunter durch; Leiterseile sind im Wärmebild kaum sichtbar</li></ul></div>`;
   });
-  // Flugplätze bis 5 km um die markierten Wiesen: Nummer zum Anmelden + Warnung bei Betrieb rund um die Uhr
+  // Flugplätze im dipul-Radius (1,5 km), Rettungshubschrauber-Landeplätze bis 5 km: Nummer zum Anmelden + Warnung bei Betrieb rund um die Uhr
   const cs = sel.filter(f => f.center).map(f => f.center);
-  S.airfields.map(a => ({ a, d: Math.min(...cs.map(c => distM(c[0], c[1], a.lat, a.lon))) })).filter(x => x.d < 5000).sort((p1, p2) => p1.d - p2.d).forEach(({ a, d }) => {
+  S.airfields.map(a => ({ a, d: Math.min(...cs.map(c => distM(c[0], c[1], a.lat, a.lon))) })).filter(x => x.d < afWarnR(x.a)).sort((p1, p2) => p1.d - p2.d).forEach(({ a, d }) => {
     const dv = dulvFor(a), dp = dv ? dulvPhones(dv.tel) : [], ppr = dp.find(p => p.ppr) || dp[0], own = afPhones(a).own;
-    const early = a.kind === 'heliport' || (dv && dulvEarly(dv));
+    const early = isRescueHeli(a) || (dv && dulvEarly(dv));
     h += `<div class="zone" style="border-left:5px solid ${early ? '#c77800' : '#1e7bff'}"><h4>${a.kind === 'heliport' ? 'H' : '✈'} ${esc(a.name)} ${a.icao ? `<span class="chip grey">${esc(a.icao)}</span>` : ''} <span class="chip grey">${(d / 1000).toFixed(1).replace('.', ',')} km</span></h4>
-      ${early ? `<div style="color:#c77800;font-weight:700">${a.kind === 'heliport' ? 'Rettungshubschrauber jederzeit möglich – auch nachts/frühmorgens' : 'Betrieb rund um die Uhr bzw. unbeaufsichtigt möglich – auch frühmorgens mit Verkehr rechnen'}</div>` : ''}
+      ${early ? `<div style="color:#c77800;font-weight:700">${isRescueHeli(a) ? 'Rettungshubschrauber jederzeit möglich – auch nachts/frühmorgens' : 'Betrieb rund um die Uhr bzw. unbeaufsichtigt möglich – auch frühmorgens mit Verkehr rechnen'}</div>` : ''}
       ${own || ppr ? `<div>☎ <b>${esc(own || ppr.num)}</b>${!own && ppr && ppr.ppr ? ' (PPR)' : ''}${dv && dv.funk ? ' · Funk ' + esc(dv.funk) : ''}</div>` : '<div class="meta">Keine Telefonnummer bekannt</div>'}
       ${dv && dv.zeiten ? `<div class="meta">Betriebszeiten: ${esc(dv.zeiten)} (DULV, ohne Gewähr)</div>` : ''}</div>`;
   });
@@ -2955,7 +2989,7 @@ $('bDl').onclick = async () => {
   busy('Pre-Check läuft…'); await new Promise(r => setTimeout(r, 30));
   let b; try { b = flightBriefing(sel); } finally { busy(''); }
   const wxOn = P.pcWx !== '0', wx = { html: wxOn ? '<div id="pcWx"><div class="zone" style="border-left:5px solid #8a8f98"><h4>⏳ Wetter wird geprüft…</h4><div class="meta">Die Vorhersage für die nächsten 24 h lädt – alles andere steht schon unten.</div></div></div>' : '' };
-  const afNear = S.airfields.some(a => sel.some(f => f.center && distM(f.center[0], f.center[1], a.lat, a.lon) < 5000));
+  const afNear = S.airfields.some(a => sel.some(f => f.center && distM(f.center[0], f.center[1], a.lat, a.lon) < afWarnR(a)));
   const rcMode = P.fsrc === 'rc' || (P.fsrc === 'mix' && !sel.some(f => f.cat));
   if (P.fsrc === 'mix' && sel.some(f => f.cat)) {   // gemischt: erst Hinweise, dann die türkisen Felder aus dem UAV Editor laden und nach Pilot 2 übertragen
     const box = document.createElement('div'); box.innerHTML = briefingHtml(b, sel, wx.html);
@@ -4598,11 +4632,18 @@ function showAirfield(a) {
   const mt = a.icao && S.metar.find(x => x.id === a.icao);
   openInfoPage(a.kind === 'heliport' ? 'Hubschrauberlandeplatz' : 'Flugplatz', (isVincenz(a) ? vincenzHtml(a) : '') + (mt ? `<div class="zone" style="display:block"><h4>Wetter jetzt (METAR)</h4>${metarCard(mt)}</div>` : '') + html);
   if ($('ilsSave')) $('ilsSave').onclick = () => { A.setPref('ils_phone', $('ilsPhone').value.trim()); toast('Nummer der Rettungsleitstelle gespeichert.'); showAirfield(a); };
-  $('afSave').onclick = () => { A.setPref('afphone_' + a.id, $('afPhone').value.trim()); toast('Nummer gespeichert.'); showAirfield(a); };
+  $('afSave').onclick = () => { A.setPref('afphone_' + a.id, $('afPhone').value.trim()); try { A.setPref('afname_' + a.id, a.name || ''); } catch (e) { } toast('Nummer gespeichert.'); showAirfield(a); };   // Name dazu – damit die Adressdatei lesbar ist
 }
 // ---------- Sonderregel St. Vincenz (Limburg / Diez) ----------
 const VINCENZ_MAIL = 'luftsicherheit@st-vincenz.de';
 const VINCENZ_URL = 'https://www.st-vincenz.de/kontakt/drohnenfluege';
+/** Landeplatz, an dem Rettungshubschrauber landen (Krankenhaus, RTH-Station): Warnung bis 5 km – alle anderen Plätze nur im dipul-Radius (1,5 km) */
+function isRescueHeli(a) {
+  if (!a) return false; if (a.rth || isVincenz(a)) return true;
+  return a.kind === 'heliport' && /krankenhaus|klinik|hospital|spital|rettung|christoph|\brth\b|notfall|unfall|\bbg\b/i.test((a.name || '') + ' ' + (a.operator || ''));
+}
+const AF_DIPUL = 1500;
+const afWarnR = a => (isRescueHeli(a) ? 5000 : AF_DIPUL);
 function isVincenz(a) {
   if (a.kind !== 'heliport') return false;
   const t = (a.name + ' ' + (a.operator || '')).toLowerCase();
@@ -6473,14 +6514,53 @@ function netOps(sel) {
   });
   return [...ops.values()].sort((a, b) => (a.name === 'Betreiber unbekannt') - (b.name === 'Betreiber unbekannt') || a.name.localeCompare(b.name, 'de'));
 }
+/** Vereinbarungen mit Netzbetreibern (PC, gespeichert in der Adressdatei): { Betreiber: true } */
+const netDeals = () => { try { return JSON.parse(A.getPref('netDeal', '{}') || '{}') || {}; } catch (e) { return {}; } };
+/** PC: alle Netzbetreiber, deren Freileitungen eure Felder berühren – mit E-Mail und „Vereinbarung vorhanden“ */
+function webNetOverview(year) {
+  let d = null; try { d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); } catch (e) { }
+  if (!d || !Array.isArray(d.fields)) return toast('Noch keine Feldliste – erst „↻ UAV-Felder holen“.', true);
+  const Y = new Date().getFullYear(); year = year || String(Y);
+  busy('Ermittle Netzbetreiber…');
+  setTimeout(() => {
+    let ops = [], fs = [];
+    try {
+      fs = d.fields.filter(f => year === 'alle' || String(CAT_YEAR(f)) === year).map(f => catEntry(f, false)).filter(Boolean);
+      ops = netOps(fs);
+    } finally { busy(''); }
+    const mails = netMails(), deals = netDeals(), years = [...new Set(d.fields.map(CAT_YEAR).filter(Boolean))].sort((a, b) => b - a);
+    const opt = (v, t) => `<option value="${v}"${v === year ? ' selected' : ''}>${t}</option>`;
+    const rows = ops.map((o, i) => { const nf = new Set(o.items.map(x => x.f)).size, len = o.items.reduce((m, x) => m + x.secs.reduce((k, sc) => k + sc.len, 0), 0);
+      const kv = [...new Set(o.items.map(x => x.l.kv ? x.l.kv + ' kV' : lineVolt(x.l).t))].join(', '), unk = o.name === 'Betreiber unbekannt';
+      return `<tr data-i="${i}"><td><b>${esc(o.name)}</b><div class="meta">${esc(kv)}</div></td><td style="text-align:right">${nf}</td><td style="text-align:right">${(len / 1000).toFixed(1).replace('.', ',')} km</td>
+        <td>${unk ? '<span class="meta">Leitungen ohne Betreiber in OpenStreetMap – vor Ort prüfen</span>' : `<input type="email" class="inp nvm" placeholder="E-Mail-Adresse" value="${esc(mails[o.name] || '')}" style="width:100%">`}</td>
+        <td style="text-align:center">${unk ? '' : `<input type="checkbox" class="nvd"${deals[o.name] ? ' checked' : ''} style="width:20px;height:20px;accent-color:#13a538">`}</td></tr>`; }).join('');
+    const nDeal = ops.filter(o => deals[o.name]).length, nOps = ops.filter(o => o.name !== 'Betreiber unbekannt').length;
+    openInfoPage('Betroffene Netzbetreiber', `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><label>Felder aus <select id="nvY" class="inp" style="width:auto">${opt(String(Y), 'aktuelles Jahr (' + Y + ')')}${years.filter(y => y !== Y).map(y => opt(String(y), String(y))).join('')}${opt('alle', 'allen Jahren')}</select></label>
+        <span class="meta">${fs.length} Felder geprüft · <b>${nOps}</b> Netzbetreiber · Vereinbarung mit <b>${nDeal}</b>${nOps - nDeal > 0 ? ` · <b style="color:#e07800">${nOps - nDeal} ohne Vereinbarung</b>` : ''}</span>
+        <button class="b-sec" id="nvCsv" style="margin-left:auto">Als Liste exportieren (CSV)</button></div>
+      ${ops.length ? `<table class="nvt"><thead><tr><th>Netzbetreiber</th><th>Felder</th><th>Leitung über/neben Feldern</th><th>E-Mail für Meldungen</th><th>Vereinbarung</th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="zone"><h4>Keine Freileitung an den Feldern gefunden</h4></div>'}
+      <div class="meta" style="margin-top:10px">Freileitungen laut OpenStreetMap bis 30 m neben den Feldern; Betreiber kann fehlen oder veraltet sein. Nur Gebiete, deren Leitungsdaten schon geladen sind (Karte dort einmal ansehen). E-Mail und „Vereinbarung“ werden in der Adressdatei gespeichert und mit exportiert.</div>`);
+    const body = $('iBody');
+    body.querySelector('#nvY').onchange = e => webNetOverview(e.target.value);
+    body.querySelectorAll('tr[data-i]').forEach(tr => { const o = ops[+tr.dataset.i], m = tr.querySelector('.nvm'), c = tr.querySelector('.nvd');
+      if (m) m.onchange = () => { const x = netMails(); x[o.name] = m.value.trim(); setP('netMail', JSON.stringify(x)); };
+      if (c) c.onchange = () => { const x = netDeals(); if (c.checked) x[o.name] = true; else delete x[o.name]; A.setPref('netDeal', JSON.stringify(x)); }; });
+    body.querySelector('#nvCsv').onclick = () => {
+      const mm = netMails(), dd = netDeals(), q = v => '"' + String(v).replace(/"/g, '""') + '"';
+      const csv = ['Netzbetreiber;Felder;Leitung (km);Spannung;E-Mail;Vereinbarung'].concat(ops.map(o => [o.name, new Set(o.items.map(x => x.f)).size, (o.items.reduce((m, x) => m + x.secs.reduce((k, sc) => k + sc.len, 0), 0) / 1000).toFixed(1).replace('.', ','),
+        [...new Set(o.items.map(x => x.l.kv ? x.l.kv + ' kV' : lineVolt(x.l).t))].join(', '), mm[o.name] || '', dd[o.name] ? 'ja' : 'nein'].map(q).join(';'))).join('\r\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv' })); a.download = `Netzbetreiber ${year} ${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); };
+  }, 30);
+}
 function netOpsHtml(ops) {
   if (!S.osm.length) return `<div class="zone" style="border-left:5px solid #8a8f98"><h4>Stromleitungen: für dieses Gebiet noch keine Daten</h4><div class="meta">Einstellungen → Karte → „Hindernisse aus OpenStreetMap“ an und Geozonen-Daten neu holen, dann den Pre-Check wiederholen.</div></div>`;
   if (!ops.length) return `<div class="zone" style="border-left:5px solid #13a538"><h4 style="color:#13a538">✓ Keine Freileitung über oder direkt neben den Feldern</h4><div class="meta">Geprüft: Freileitungen aus OpenStreetMap bis 30 m neben den Feldern. Nicht eingetragene Leitungen fehlen – vor Ort prüfen.</div></div>`;
-  const mails = netMails(); let no = 0;
+  const mails = netMails(), deals = netDeals(); let no = 0;
   return `<div class="zone" id="netOps" style="border:2px solid #6a1b9a"><h4>⚡ Netzbetreiber benachrichtigen (${ops.length})</h4>
     <div class="meta">Diese Betreiber vor dem Flug über den Überflug informieren. Die Abschnitte sind auf der Karte gelb hinterlegt.</div>
     ${ops.map((o, i) => `<div class="netop" data-op="${i}">
-      <div class="netop-h"><b style="color:${OP_COLS[i % OP_COLS.length]}">● ${esc(o.name)}</b>
+      <div class="netop-h"><b style="color:${OP_COLS[i % OP_COLS.length]}">● ${esc(o.name)}</b>${o.name === 'Betreiber unbekannt' ? '' : deals[o.name] ? ' <span class="chip cov">✓ Vereinbarung</span>' : ' <span class="chip" style="background:#e07800;color:#fff">keine Vereinbarung hinterlegt</span>'}
         <input type="email" class="netmail" placeholder="E-Mail-Adresse des Betreibers" value="${esc(mails[o.name] || '')}">
         <button class="tdb netimg" title="Karte mit den markierten Abschnitten als Bild speichern">🖼 Bild</button>
         <button class="tdb netenv" title="E-Mail an den Betreiber vorbereiten">✉ E-Mail</button></div>
@@ -6586,14 +6666,17 @@ async function saveCanvas(cv, name) {
 }
 const bbOfPts = pts => { let n = -90, s = 90, e = -180, w = 180; pts.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); }); return { n, s, e, w }; };
 /** Kartenbild für einen Netzbetreiber: seine Abschnitte nummeriert wie in der Liste */
+/** Ort (Dorf/Stadtteil) an einem Leitungsabschnitt – macht Bild und E-Mail eindeutig („bei Niederselters“) */
+const secPlace = sc => { const m = sc.pts[Math.floor(sc.pts.length / 2)], np = m && nearPlace(m[0], m[1]); return np ? np.p.n : ''; };
+const opPlaces = o => [...new Set(o.items.flatMap(x => x.secs.map(secPlace)).filter(Boolean))];
 async function opImage(ops, i) {
   const o = ops[i], col = OP_COLS[i % OP_COLS.length]; let no = 0; ops.slice(0, i).forEach(x => x.items.forEach(it => no += it.secs.length));
   const lines = [], leg = [], pts = [], fields = [...new Set(o.items.map(x => x.f))];
   o.items.forEach(x => x.secs.forEach(sc => { no++; lines.push({ pts: sc.pts, color: col, no }); pts.push(...sc.pts);
-    leg.push(`${no}. ${lineLbl(x.l)} · ca. ${Math.round(sc.len)} m · von ${fmtLL(...sc.pts[0])} bis ${fmtLL(...sc.pts[sc.pts.length - 1])}${x.l.id ? ' · OSM-Weg ' + x.l.id : ''}`); }));
+    leg.push(`${no}. ${secPlace(sc) ? 'bei ' + secPlace(sc) + ' – ' : ''}${lineLbl(x.l)} · ca. ${Math.round(sc.len)} m · von ${fmtLL(...sc.pts[0])} bis ${fmtLL(...sc.pts[sc.pts.length - 1])}${x.l.id ? ' · OSM-Weg ' + x.l.id : ''}`); }));
   // Für den Netzbetreiber zählen nur die Leitungsabschnitte – keine Einsatzbereiche/Felder im Bild
   const bb0 = bbOfPts(pts), pad = Math.max(0.002, (bb0.n - bb0.s) * 0.15, (bb0.e - bb0.w) * 0.15);
-  return mapImage({ bb: { n: bb0.n + pad, s: bb0.s - pad, e: bb0.e + pad * 1.5, w: bb0.w - pad * 1.5 }, spots: [], lines, title: `Drohnenüberflug Kitzrettung – betroffene Leitungsabschnitte ${o.name}`, legend: leg });
+  return mapImage({ bb: { n: bb0.n + pad, s: bb0.s - pad, e: bb0.e + pad * 1.5, w: bb0.w - pad * 1.5 }, spots: [], lines, title: `Drohnenüberflug Kitzrettung – ${o.name}${opPlaces(o).length ? ' – bei ' + opPlaces(o).slice(0, 4).join(', ') : ''} – ${new Date().toLocaleDateString('de-DE')}`, legend: leg });
 }
 /** Teil des Einsatzbereichs, der im Schutzgebiet liegt: Rasterpunkte (ca. 8 m) in Feld UND Zone → konvexe Hülle [[lat,lon]] – neutral, ohne Feldumriss */
 function overlapHull(f, rings) {
@@ -6637,7 +6720,7 @@ window.onMailDraftFail = err => toast('Mailprogramm konnte den Entwurf nicht öf
 function netMailText(o, startNo) {
   const H = 70, d0 = new Date(), d1 = new Date(Date.now() + 48 * 3600000), dd = d => d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
   let no = startNo; const li = [];
-  o.items.forEach(x => x.secs.forEach(sc => { no++; li.push(`${no}. ${lineLbl(x.l)}, ca. ${Math.round(sc.len)} m, von ${fmtLL(...sc.pts[0])} bis ${fmtLL(...sc.pts[sc.pts.length - 1])}${x.l.id ? ' (OSM-Weg ' + x.l.id + ')' : ''}`); }));
+  o.items.forEach(x => x.secs.forEach(sc => { no++; li.push(`${no}. ${secPlace(sc) ? 'bei ' + secPlace(sc) + ': ' : ''}${lineLbl(x.l)}, ca. ${Math.round(sc.len)} m, von ${fmtLL(...sc.pts[0])} bis ${fmtLL(...sc.pts[sc.pts.length - 1])}${x.l.id ? ' (OSM-Weg ' + x.l.id + ')' : ''}`); }));
   const more = li.length > 12 ? li.length - 12 : 0;
   return ['Sehr geehrte Damen und Herren,', '',
     `hiermit informieren wir Sie über Drohnenflüge zur Wildtierrettung (Rehkitzsuche vor der Mahd) über bzw. neben Ihren Freileitungen.`, '',
@@ -6675,10 +6758,11 @@ function webPreCheck(sel) {
   draw();
   const box = document.createElement('div');
   const top = [ops.length ? `<b style="color:#6a1b9a">⚡ ${ops.length} Netzbetreiber benachrichtigen</b>` : '', nz.length ? `<b style="color:#2e7d32">🌿 ${nz.length} Schutzgebiet${nz.length > 1 ? 'e' : ''}</b>` : ''].filter(Boolean).join(' · ');
-  const vs = sel.map(fieldVerdict), n13 = vs.filter(v => v.k === 'a13').length, n2 = vs.filter(v => v.k === 'a2').length, nNo = vs.filter(v => v.k === 'no').length;
+  const vs = sel.map(fieldVerdict), n13 = vs.filter(v => v.k === 'a13').length, n2 = vs.filter(v => v.k === 'a2').length, nNo = vs.filter(v => v.k === 'no').length, nZ = vs.filter(v => v.k === 'zust').length;
   const fz = n => n + ' Feld' + (n > 1 ? 'er' : '');
   const lic = `<div class="zone" style="border-left:5px solid ${n2 ? '#e07800' : nNo ? '#d42020' : '#13a538'}"><h4>Empfehlung Fernpilotenzeugnis: ${n2 ? 'Piloten mit A2 + Allgemeinerlaubnis einplanen' : n13 === sel.length ? 'A1/A3 reicht' : 'gesperrte Teile beachten'}</h4><ul style="margin:4px 0 0 18px">`
-    + (n2 ? `<li><b>${fz(n2)}</b> nur mit A2 + Allgemeinerlaubnis bzw. Allgemeinverfügung</li>` : '') + (n13 ? `<li><b>${fz(n13)}</b> auch mit A1/A3 fliegbar (ohne Allgemeinerlaubnis)</li>` : '')
+    + (n2 ? `<li><b>${fz(n2)}</b> nur mit A2 (teils zusätzlich Allgemeinerlaubnis bzw. Allgemeinverfügung)</li>` : '') + (n13 ? `<li><b>${fz(n13)}</b> auch mit A1/A3 fliegbar (ohne Allgemeinerlaubnis)</li>` : '')
+    + (nZ ? `<li style="color:#d42020"><b>${fz(nZ)}</b> am Flugplatz – vorher Zustimmung der Flugaufsicht/des Betreibers einholen</li>` : '')
     + (nNo ? `<li style="color:#d42020"><b>${fz(nNo)}</b> mit Teilen, die auch mit A2 gesperrt sind – diese Teile nicht befliegen</li>` : '') + `</ul></div>`;
   const sv = P.lic; P.lic = 'A2'; let per = ''; try { per = liteCheckInner(sel, { verdict: true }); } finally { P.lic = sv; }
   box.innerHTML = (top ? `<div style="margin-bottom:8px">${top} – Zusammenfassung zum Weitergeben ganz unten</div>` : '') + lic + `<h3 style="margin:16px 0 8px">Feld für Feld</h3>` + per
@@ -6688,11 +6772,12 @@ function webPreCheck(sel) {
   box.querySelectorAll('[data-op]').forEach(el => {
     const i = +el.dataset.op, o = ops[i], inp = el.querySelector('.netmail');
     inp.onchange = () => { const m = netMails(); m[o.name] = inp.value.trim(); setP('netMail', JSON.stringify(m)); };
-    el.querySelector('.netimg').onclick = async () => { busy('Erstelle Kartenbild…'); try { await saveCanvas(await opImage(ops, i), `Leitungen ${o.name} ${new Date().toISOString().slice(0, 10)}`); } finally { busy(''); } };
+    el.querySelector('.netimg').onclick = async () => { busy('Erstelle Kartenbild…'); try { await saveCanvas(await opImage(ops, i), `Leitungen ${o.name}${opPlaces(o).length ? ' ' + opPlaces(o).slice(0, 3).join(', ') : ''} ${new Date().toISOString().slice(0, 10)}`); } finally { busy(''); } };
     el.querySelector('.netenv').onclick = async () => {
       inp.onchange(); busy('Bereite E-Mail vor…'); let cv = null;
       try { cv = await opImage(ops, i); } catch (e) { } finally { busy(''); }
-      await mailWithImage(inp.value.trim(), `Information Drohnenüberflug Kitzrettung – ${o.name}`, netMailText(o, startNo(i)), cv, `Leitungen ${o.name} ${new Date().toISOString().slice(0, 10)}`);
+      const pl = opPlaces(o).slice(0, 3).join(', ');
+      await mailWithImage(inp.value.trim(), `Information Drohnenüberflug Kitzrettung – ${o.name}${pl ? ' – bei ' + pl : ''}`, netMailText(o, startNo(i)), cv, `Leitungen ${o.name}${pl ? ' ' + pl : ''} ${new Date().toISOString().slice(0, 10)}`);
     };
   });
   box.querySelectorAll('[data-nat]').forEach(el => { const z = nz[+el.dataset.nat], p = z.f.props || {}, mk = 'nat|' + (p.name || LAYER_LABEL[z.f.layer] || z.f.layer), inp = el.querySelector('.netmail');
@@ -6840,9 +6925,22 @@ function liteCheckHtml(sel, lic) {
 }
 /** Welches Fernpilotenzeugnis braucht dieses Feld? Vergleicht die Prüfung mit A1/A3 und mit A2 (rote Karten = Verbot) */
 function fieldVerdict(f) {
-  const red = lic => { const sv = P.lic; P.lic = lic; try { return liteCardsHtml(flightBriefing([f]), { sel: [f], centers: f.center ? [f.center] : [] }).includes('border-left-color:#d42020'); } finally { P.lic = sv; } };
-  const r13 = red('A1A3'); if (!r13) return { k: 'a13', t: '✓ auch mit A1/A3 fliegbar', col: '#13a538' };
-  return red('A2') ? { k: 'no', t: '⛔ Teile gesperrt – auch mit A2', col: '#d42020' } : { k: 'a2', t: 'A2 + Allgemeinerlaubnis/-verfügung nötig', col: '#e07800' };
+  // rote Karten (Verbote) je Zeugnis – Titel merken, damit man sieht, WARUM A2 nötig ist
+  // Stromleitungen zählen hier nicht: mit den Netzbetreibern besteht eine Vereinbarung – das hängt nicht vom Zeugnis ab
+  const red = lic => { const sv = P.lic, sp = P.power; P.lic = lic; P.power = '1'; try { const d = document.createElement('div'); d.innerHTML = liteCardsHtml(flightBriefing([f]), { sel: [f], centers: f.center ? [f.center] : [] });
+    return [...d.querySelectorAll('.lcard')].filter(c => /212, 32, 32|#d42020/i.test(c.style.borderLeftColor)).map(c => c.querySelector('b').textContent).filter(t => !/^Stromleitung/.test(t)); } finally { P.lic = sv; P.power = sp; } };
+  const r13 = red('A1A3'); if (!r13.length) return { k: 'a13', t: '✓ auch mit A1/A3 fliegbar', col: '#13a538', why: [] };
+  const r2 = red('A2'), why = r13.filter(t => !r2.includes(t));
+  const onlyLic = why.length && why.every(t => /^Wohngebiet/.test(t));   // 150-m-Regel gilt nur in A1/A3 – A2 reicht, ohne Allgemeinerlaubnis
+  if (r2.length && r2.every(t => /Zustimmung/.test(t))) return { k: 'zust', t: '⚠ Zustimmung des Flugplatzes nötig', col: '#d42020', why, onlyLic };
+  return r2.length ? { k: 'no', t: '⛔ Teile gesperrt – auch mit A2', col: '#d42020', why, onlyLic } : { k: 'a2', t: onlyLic ? 'A2 nötig' : 'A2 + Allgemeinerlaubnis/-verfügung nötig', col: '#e07800', why, onlyLic };
+}
+/** Felder ausgeben – mit Zeugnis-Empfehlung (PC) in Gruppen: zuerst „A2 nötig“, dann „Teile auch mit A2 gesperrt“, dann „auch mit A1/A3 fliegbar“ */
+function lgridHtml(rows, opt, one) {
+  if (!opt.verdict) return '<div class="lgrid">' + rows.map(one).join('') + '</div>';
+  const by = n => (a, b) => b.r - a.r || ftitle(a.f).localeCompare(ftitle(b.f), 'de', { numeric: true });
+  return [['a2', 'Nur mit A2 (ggf. + Allgemeinerlaubnis/-verfügung)', '#e07800'], ['zust', 'Zustimmung nötig (Flugplatz in der Nähe)', '#d42020'], ['no', 'Teile auch mit A2 gesperrt – diese Teile nicht befliegen', '#d42020'], ['a13', 'Auch mit A1/A3 fliegbar', '#13a538']]
+    .map(([k, t, c]) => { const g = rows.filter(x => x.v.k === k).sort(by()); return g.length ? `<h4 class="lgh" style="border-color:${c}">${esc(t)} <span>(${g.length})</span></h4><div class="lgrid">${g.map(one).join('')}</div>` : ''; }).join('');
 }
 function liteCheckInner(sel, opt) {
   opt = opt || {};
@@ -6855,11 +6953,13 @@ function liteCheckInner(sel, opt) {
     const its = [...d.querySelectorAll('.lcard')].map(c => { const col = c.style.borderLeftColor, hex = '#' + (col.match(/\d+/g) || []).slice(0, 3).map(x => (+x).toString(16).padStart(2, '0')).join('');
       const t = c.querySelector('b').textContent, ru = c.querySelector('.lrules');
       return { ico: c.querySelector('.lico').textContent, t, ru: ru ? ru.innerHTML : '', col: col || '#888', r: t === 'Alles frei' ? 0 : RANK[hex] ?? 1 }; }).sort((a, b) => b.r - a.r);
-    return { f, html, its, r: its.length ? its[0].r : 0, v: opt.verdict ? fieldVerdict(f) : null };
+    const v = opt.verdict ? fieldVerdict(f) : null;
+    if (v && v.why.length) its.forEach(i => { if (i.t === 'Alles frei') i.t = 'Mit A2 sonst nichts Besonderes'; });   // „Alles frei“ wäre neben „A2 nötig“ missverständlich
+    return { f, html, its, r: Math.max(its.length ? its[0].r : 0, v ? (v.k === 'no' || v.k === 'zust' ? 3 : v.k === 'a2' ? 2 : 0) : 0), v };
   }).sort((a, b) => b.r - a.r || b.its.filter(i => i.r === b.r).length - a.its.filter(i => i.r === a.r).length || ftitle(a.f).localeCompare(ftitle(b.f)));
   const note = rows.filter(x => x.r >= 1).length, bad = rows.filter(x => x.r >= 3).length;
-  return `<div class="meta" style="margin:0 0 8px">${note ? `<b>${note} von ${sel.length} Feldern</b>: etwas zu beachten (Zonen, Auflagen, Umrechnung)${bad ? ` – <b>${bad}</b> davon mit Flugverbot für einen Teil` : ''}. Wichtigstes zuerst.` : 'An keinem Feld gibt es Zonen oder Auflagen.'} Antippen zeigt Einzelheiten.</div>` +
-    '<div class="lgrid">' + rows.map(x => `<details class="lfld"><summary>${fieldThumb(x.f, 120, 90)}<div class="lfi"><div class="lfn">${esc(x.f.title)}${x.v ? ` <span class="lverd" style="background:${x.v.col}">${esc(x.v.t)}</span>` : ''}</div>${x.its.map(i => `<div class="lchip" style="border-color:${i.col}">${esc(i.ico)} ${esc(i.t)}${i.ru ? `<small>${i.ru}</small>` : ''}</div>`).join('')}</div></summary>${x.html}</details>`).join('') + '</div>';
+  return `<div class="meta" style="margin:0 0 8px">${note ? `<b>${note} von ${sel.length} Feldern</b>: etwas zu beachten (Zonen, Auflagen, Umrechnung)${bad ? ` – <b>${bad}</b> davon mit Sperre oder Zustimmungspflicht` : ''}. Wichtigstes zuerst.` : 'An keinem Feld gibt es Zonen oder Auflagen.'} Antippen zeigt Einzelheiten.</div>` +
+    lgridHtml(rows, opt, x => `<details class="lfld"><summary>${fieldThumb(x.f, 120, 90)}<div class="lfi"><div class="lfn">${esc(x.f.title)}${x.v ? ` <span class="lverd" style="background:${x.v.col}">${esc(x.v.t)}</span>` : ''}</div>${x.v && x.v.why.length ? `<div class="lchip" style="border-color:#e07800">⚠️ Mit A1/A3 nicht erlaubt: ${esc(x.v.why.join(' · '))}<small>${x.v.onlyLic ? 'Mit A2 ist das erlaubt (dort gilt nur 30 m Abstand zu Unbeteiligten) – darum ist A2 nötig.' : 'Mit A2 + Allgemeinerlaubnis bzw. Allgemeinverfügung ist das hier erlaubt – darum ist A2 nötig.'}</small></div>` : ''}${x.its.map(i => `<div class="lchip" style="border-color:${i.col}">${esc(i.ico)} ${esc(i.t)}${i.ru ? `<small>${i.ru}</small>` : ''}</div>`).join('')}</div></summary>${x.html}</details>`);
 }
 /** Kleines Luftbild eines Feldes mit seinem Umriss (nur in der App – nicht für E-Mails/Bilder an Dritte) */
 function fieldThumb(f, W, H) {
@@ -6883,7 +6983,7 @@ function fieldThumb(f, W, H) {
 /** Einfache Karten für Feldcheck UND Antippen einer Stelle (gleiches Aussehen) – o: { sel (Felder) | point:[lat,lon], centers } */
 function liteCardsHtml(b, o) {
   const sel = o.sel || [], pt = !!o.point, a2 = P.lic === 'A2', H = flightHeight() || 70, cards = [];
-  let heliZone = false;
+  let heliZone = false, afZone = false;
   const place = pt ? 'an dieser Stelle' : 'am Feld', notHere = pt ? '<b>Hier nicht fliegen.</b>' : '<b>Diesen Teil des Feldes nicht befliegen.</b>';
   const card = (ico, col, title, text, extra) => cards.push(`<div class="lcard" style="border-left-color:${col}"><span class="lico">${ico}</span><div><b>${title}</b><p>${text}</p>${extra || ''}</div></div>`);
   // Auflagen kompakt in einer Zeile: „Auflagen: a · b · c“
@@ -6900,6 +7000,9 @@ function liteCardsHtml(b, o) {
     if (z.near != null) return card('🏘️', '#d42020', `Wohngebiet nur ${m(z.near)} entfernt`, `Mit A1/A3 brauchst du <b>150 m Abstand</b> zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten. Hier nicht fliegen – mit A2 wäre es möglich.${where(z.fields)}`,
       `<div class="lrules"><span>Fliegen nur:</span> mit <b>A2</b> · mit A1/A3 erst <b>ab 150 m Abstand</b></div>`);
     if (z.f.layer === 'flugplaetze' && isHeliZone(z.f)) { heliZone = true; return; }   // Hubschrauberlandeplatz: unten eigene Karte mit Regeln
+    if (z.f.layer === 'flugplaetze' && covKind(z.f.layer, z.reg) === 'off') { afZone = true;   // Flugplatz: kein Verbot, sondern Zustimmung nötig
+      return card('✈️', '#d42020', 'Flugplatz: Zustimmung des Betreibers nötig', `${nm}. Bis 1,5 km um den Flugplatz nur mit Zustimmung der Flugaufsicht bzw. des Betreibers – die Allgemeinerlaubnis gilt hier nur bis 30 m, nicht für Kitzrettung (${H} m).${where(z.fields)}`,
+        `<div class="lrules"><span>Fliegen nur:</span> mit <b>Zustimmung der Flugaufsicht/des Betreibers</b> – vorher anrufen</div>`); }
     const k = covKind(z.f.layer, z.reg);
     const cov = coverageOf(z.f.layer, z.reg), via = cov === 'ae' ? 'mit A2 + Allgemeinerlaubnis' : cov === 'avgi' ? 'mit Allgemeinverfügung' : cov === 'power' ? 'mit Genehmigung des Netzbetreibers' : '';
     const nr5 = (LUFTVO_NR[z.f.layer] || [])[0] === 5;   // Straßen, Bahn, Wasserstraßen: 1:1-Regel
@@ -6936,14 +7039,14 @@ function liteCardsHtml(b, o) {
   const cs = o.centers || [];
   const vh = (b.vh || [])[0], vd = vh ? vh.d : null;
   if (cs.length) S.airfields.map(a => ({ a, d: Math.min(...cs.map(c => distM(c[0], c[1], a.lat, a.lon))) })).map(x => (isVincenz(x.a) && vd != null ? Object.assign(x, { d: Math.min(x.d, vd) }) : x))
-    .filter(x => x.d < ((x.a.kind === 'heliport' || x.a.rth) ? 5000 : 1500)).sort((p, q) => p.d - q.d).slice(0, 4).forEach(({ a, d }) => {
+    .filter(x => x.d < afWarnR(x.a)).sort((p, q) => p.d - q.d).slice(0, 4).forEach(({ a, d }) => {
     const nm = a.name ? esc(a.name) + '. ' : '';
     if (isVincenz(a) && d < 1500) {   // Krankenhaus-Landeplatz Limburg (St. Vincenz): Sonderregeln
       card('🚁', '#d42020', `Hubschrauberlandeplatz Krankenhaus – ${d < 1000 ? m(d) : km(d)} entfernt`, `${nm}Bis 1,5 km grundsätzlich gesperrt. Mit unserer Flughöhe (${H} m) reicht die Allgemeinerlaubnis hier <b>nicht</b> – <b>Freigabe der Luftsicherheit St. Vincenz nötig</b> (mind. 10 Arbeitstage vorher). Rettungshubschrauber haben immer Vorrang.`,
         `<div class="lrules"><span>Ohne Freigabe nur:</span> mit <b>A2 + Allgemeinerlaubnis</b> · <b>unter Dach-/Baumhöhe</b> · Rettungsleitstelle (ILS) vorher anrufen · 100 m ums Klinikgelände frei${d < 750 ? ' · <b>zweite Person als Luftraumbeobachter</b> (750-m-Bereich)' : ''}</div>`);
-    } else if (a.kind === 'heliport' || a.rth) card('🚁', '#c77800', `Achtung: Hubschrauberlandeplatz in ${km(d)}`, `${nm}Rettungshubschrauber können <b>plötzlich auftauchen</b> – Himmel beobachten und bei einem Hubschrauber sofort tiefer gehen.`,
+    } else if (isRescueHeli(a)) card('🚁', '#c77800', `Achtung: Rettungshubschrauber-Landeplatz in ${km(d)}`, `${nm}Rettungshubschrauber können <b>plötzlich auftauchen</b> – Himmel beobachten und bei einem Hubschrauber sofort tiefer gehen.`,
         d < 1500 || heliZone ? `<div class="lrules"><span>Fliegen nur:</span> mit Zustimmung des Betreibers · Allgemeinerlaubnis (A2) nur <b>bis 30 m</b> – Kitzrettung mit ${H} m nicht</div>` : '');
-    else card('✈️', '#1e7bff', `Flugplatz in ${km(d)}`, `${nm}Mit Flugzeugen rechnen – Himmel beobachten.`,
+    else if (!(afZone && a.kind !== 'heliport')) card(a.kind === 'heliport' ? '🚁' : '✈️', '#1e7bff', `${a.kind === 'heliport' ? 'Hubschrauberlandeplatz' : 'Flugplatz'} in ${km(d)}`, `${nm}${a.kind === 'heliport' ? 'Mit Hubschraubern' : 'Mit Flugzeugen'} rechnen – Himmel beobachten.`,
         `<div class="lrules"><span>Fliegen nur:</span> mit Zustimmung der Flugaufsicht · Allgemeinerlaubnis (A2) nur <b>bis 30 m</b> – Kitzrettung mit ${H} m nicht</div>`); });
   if ((b.vh || []).length && !cards.some(c => c.includes('🚁'))) card('🚁', '#d42020', 'Hubschrauberlandeplatz Krankenhaus in der Nähe', `Bis 1,5 km grundsätzlich gesperrt – mit ${H} m Flughöhe <b>Freigabe der Luftsicherheit St. Vincenz nötig</b>.`);
   // Falsche Drohne/Höhe: wird beim Import umgerechnet
@@ -7103,7 +7206,7 @@ function webInit() {
   }
   const sb = $('bSync');
   if (sb) {
-    sb.style.display = ''; sb.innerHTML = '↻ UAV Editor'; sb.title = 'Feldliste aus dem UAV Editor neu holen';
+    sb.style.display = ''; sb.innerHTML = '↻ <span class="bsl">UAV-Felder holen</span><span class="bss">UAV-Felder</span>'; sb.title = 'Feldliste aus dem UAV Editor neu holen (neue und geänderte Felder)';
     sb.onclick = () => {
       if (syncing) return;
       if (!A.uaveUser || !A.uaveUser() || !A.uaveHasPassword()) { toast('Bitte zuerst den UAV-Editor-Zugang eintragen.', true); $('bSet').onclick(); return; }
@@ -7117,14 +7220,30 @@ function webInit() {
     'UAV-Editor-Felder auf der Karte', 'Feldnamen auf Karte'];   // Filter steht oben in der Leiste; Feldnamen immer an
   if (A.sharedFileInfo && !$('setShared')) {   // Adressdatei (E-Mails der Netzbetreiber/Behörden) – zum Weitergeben an andere Koordinatoren
     const d = document.createElement('div'); d.className = 'set'; d.id = 'setShared';
-    d.innerHTML = `<div class="l"><div class="t">Adressen der Netzbetreiber und Behörden</div><div class="v">Eingetragene E-Mail-Adressen stehen in der Datei <b>${esc(A.sharedFileInfo())}</b>. Diese Datei kann an andere Koordinatoren weitergegeben werden – einfach in deren Programmordner legen (vorher Programm schließen).</div></div><button class="b-sec" id="bShared">Im Ordner zeigen</button>`;
+    d.innerHTML = `<div class="l"><div class="t">Adressen und Telefonnummern</div><div class="v">E-Mail-Adressen der Netzbetreiber und Forstämter (je Schutzgebiet), Telefonnummern der Flugplätze und der Rettungsleitstelle. Gespeichert in <b>${esc(A.sharedFileInfo())}</b>. Mit „Exportieren“ als Datei weitergeben, mit „Importieren“ die Datei eines anderen Koordinators übernehmen (vorhandene Einträge bleiben, gleiche werden ersetzt).</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="b-sec" id="bShExp">Exportieren</button><button class="b-sec" id="bShImp">Importieren</button><button class="b-sec" id="bShared">Im Ordner zeigen</button><input type="file" id="fShImp" accept=".json,application/json" style="display:none"></div>`;
     const u = $('uUser') && $('uUser').closest('.set'); if (u) u.after(d);
     $('bShared').onclick = () => A.sharedFileShow && A.sharedFileShow();
+    const nv = document.createElement('div'); nv.className = 'set'; nv.id = 'setNetOv';
+    nv.innerHTML = '<div class="l"><div class="t">Betroffene Netzbetreiber ermitteln</div><div class="v">Listet alle Netzbetreiber, deren Freileitungen eure Felder berühren – mit E-Mail-Adresse und ob schon eine Vereinbarung besteht. So seht ihr, mit wem ihr noch sprechen müsst.</div></div><button class="b-sec" id="bNetOv">Ermitteln</button>';
+    d.after(nv); $('bNetOv').onclick = () => webNetOverview();
+    $('bShExp').onclick = () => { const txt = A.sharedExport ? A.sharedExport() : '{}', a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = `Kitzrettung-Adressen ${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); };
+    $('bShImp').onclick = () => $('fShImp').click();
+    $('fShImp').onchange = async e => { const f = e.target.files[0]; if (!f) return; e.target.value = '';
+      let r = {}; try { r = JSON.parse(A.sharedImport(await f.text()) || '{}'); } catch (x) { r = { ok: false, error: x.message }; }
+      if (!r.ok) return toast(r.error || 'Datei konnte nicht gelesen werden.', true, 7000);
+      P.netMail = A.getPref('netMail', '{}'); toast(`${r.n} Einträge übernommen.`, 'ok', 5000); };
   }
-  // Suche: Umschalter „UAV-Editor“ (Standard: nur Feldnamen) | „Orte“
-  const sbx = $('searchBox');
-  if (sbx && !$('qMode')) { S.qMode = 'uave'; const m = document.createElement('div'); m.id = 'qMode'; m.className = 'seg'; m.style.cssText = 'margin:0 0 6px';
-    m.innerHTML = '<button data-qm="uave" class="on">UAV-Editor</button><button data-qm="ort">Orte</button>'; sbx.prepend(m);
+  // PC-Leiste: [Logo] [↻ UAV-Felder holen] [24 h | 48 h | Jahr | Alle | Keine] [Auswahl aufheben] … [Suchfeld | UAV-Editor | Orte] [Pre-Check] [⚙]
+  const sbx = $('searchBox'), segEl = document.querySelector('#bar .srcseg');
+  if ($('bSync') && segEl) segEl.before($('bSync'));
+  const bn = $('bNone'); if (bn) { bn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="bsl">Auswahl aufheben</span><span class="bss">Aufheben</span>'; bn.title = 'Alle markierten Felder abwählen'; }
+  if (sbx) { const sp = document.querySelector('#bar .sp'); if (sp) sp.after(sbx); sbx.classList.add('open', 'inbar');
+    $('q').onfocus = () => { S.qOpen = true; searchHits(); };
+    document.addEventListener('pointerdown', e => { if (!sbx.contains(e.target) && S.qOpen) { S.qOpen = false; $('qHits').innerHTML = ''; } }, true); }
+  if (sbx && !$('qMode')) { S.qMode = 'uave'; const m = document.createElement('div'); m.id = 'qMode'; m.className = 'seg';
+    m.innerHTML = '<button data-qm="uave" class="on">UAV-Editor</button><button data-qm="ort">Orte</button>'; sbx.querySelector('.row').appendChild(m);
     const ph = () => { $('q').placeholder = S.qMode === 'ort' ? 'Ort suchen…' : 'Feldname aus dem UAV Editor…'; };
     m.querySelectorAll('[data-qm]').forEach(b => b.onclick = () => { S.qMode = b.dataset.qm; m.querySelectorAll('[data-qm]').forEach(x => x.classList.toggle('on', x === b)); ph(); update(); if (S.qMode === 'ort') photonSearch($('q').value.trim()); $('q').focus(); });
     ph(); }
