@@ -1885,7 +1885,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (uaveAuthHeader == null) return;
         JSONObject out = outlineFile().isFile() ? new JSONObject(readFile(outlineFile())) : new JSONObject();
         int got = 0;
-        for (boolean archived : new boolean[]{true, false}) {
+        for (boolean archived : getPackageName().endsWith(".lite") ? new boolean[]{false} : new boolean[]{true, false}) {
             JSONObject vars = new JSONObject().put("fieldsFilter", new JSONObject().put("archived", archived).put("removed", false));
             JSONObject res = gql("query getFieldsMapData($planningId: String, $fieldsFilter: FieldFilterInput, $pilotCoordinationId: String, $pilotGroupId: String, $useFieldCatalogFields: Boolean) { "
                     + "getFieldsMapData(useFieldCatalogFields: $useFieldCatalogFields pilotGroupId: $pilotGroupId planningId: $planningId fieldsFilter: $fieldsFilter pilotCoordinationId: $pilotCoordinationId) }", vars, uaveAuthHeader);
@@ -2009,12 +2009,14 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             uaveLogin();
             uaveProgress("Lade Feldliste…");
             uaveFields.clear();
-            for (boolean archive : new boolean[]{true, false}) {
+            // Lite: nur aktive Felder holen (die Suche zeigt nur aktive Felder des laufenden Jahres) – spart das große Archiv
+            final boolean liteOnly = getPackageName().endsWith(".lite");
+            for (boolean archive : liteOnly ? new boolean[]{false} : new boolean[]{true, false}) {
                 JSONArray arr;
                 try {
                     arr = uaveFetchFields(archive);
                 } catch (Exception e) {
-                    if (archive) throw e;      // Archiv ist Pflicht, aktive Felder optional
+                    if (archive || liteOnly) throw e;      // Archiv ist Pflicht, aktive Felder optional (Lite: aktive sind Pflicht)
                     continue;
                 }
                 for (int i = 0; i < arr.length(); i++) {
