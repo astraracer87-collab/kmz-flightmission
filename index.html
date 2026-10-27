@@ -332,6 +332,8 @@
   .lbot{position:sticky;bottom:0;padding:10px 0;background:linear-gradient(transparent,var(--bg) 30%)}.lbot button{width:100%;font-size:19px;padding:14px}
   .lcheck{display:flex;flex-direction:column;gap:10px}
   .lrules{margin-top:6px;font-size:15px;line-height:1.4;color:var(--txt)}.lrules>span{font-weight:800;color:var(--muted)}
+  .osmt{margin-top:6px}.osmt summary{cursor:pointer;color:var(--acc);font-size:13px}.osmt table{border-collapse:collapse;margin:6px 0;font-size:13px}.osmt td{padding:3px 10px 3px 0;vertical-align:top;border-bottom:1px solid var(--line)}.osmt td small{display:block;color:var(--muted);font-size:11px}
+  .nvd2{margin-top:6px}.nvd2 summary{cursor:pointer;color:var(--acc);font-size:13px}.nvi{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;padding:4px 0;border-top:1px dashed var(--line)}.nvi button{height:28px;padding:0 10px;font-size:12px}
   .nvt{width:100%;border-collapse:collapse;font-size:15px}.nvt th{text-align:left;color:var(--muted);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--line)}.nvt td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
   .lgh{margin:14px 0 8px;padding-left:10px;border-left:6px solid;font-size:17px}.lgh span{color:var(--muted);font-weight:600}
   .lverd{display:inline-block;font-size:13px;font-weight:800;color:#fff;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle}
@@ -4062,7 +4064,7 @@ function geoInfoPage(raw) {
       return `<div class="zone" style="border-left:5px solid ${c.c}"><h4>Stromleitung · ${esc(lineVolt(l).t)} <span class="chip grey">keine dipul-Geozone</span></h4>
         <div class="meta">${c.name}${l.n ? ' · ' + esc(l.n) : ''}${l.ref ? ' · Ref. ' + esc(l.ref) : ''}${l.o ? ' · Betreiber ' + esc(l.o) : ''}${l.cab ? ' · ' + esc(l.cab) + ' Leiterseile' : ''}${l.ci ? ' · ' + esc(l.ci) + ' Stromkreise' : ''} · typische Masthöhe ca. ${c.h[0]}–${c.h[1]} m (Schätzwert)</div>
         <div>Keine Geozone nach § 21h LuftVO, aber ein Hindernis: Seile sind aus der Luft schlecht zu sehen – beim Start, bei der Landung und im Tiefflug Abstand halten.</div>
-        <div class="meta" style="margin-top:4px">Daten © OpenStreetMap-Mitwirkende · <span class="lnk" data-lg="${lineGuideKey(l)}">Wie sieht so eine Leitung aus?</span></div></div>`; }).join('');
+        <div class="meta" style="margin-top:4px">Daten © OpenStreetMap-Mitwirkende · <span class="lnk" data-lg="${lineGuideKey(l)}">Wie sieht so eine Leitung aus?</span></div>${!(l.tags || {}).operator && !(l.o && !l.oInf) ? osmTagsHtml(l.id, l.tags, l.oInf ? 'Betreiber ergänzt aus dem angrenzenden Leitungsstück. ' : '') : ''}</div>`; }).join('');   // alle OSM-Angaben nur, wenn der Betreiber in OSM fehlt
   }
   // Hindernisse aus OSM an der Stelle
   const fhm = flightHeight();
@@ -4116,7 +4118,7 @@ function loadOsmLines() {
     S.osm = JSON.parse(A.osmLines() || '[]').map(l => {
       const pts = toLatLon(l.g); let n = -90, s = 90, e = -180, w = 180;
       pts.forEach(([la, lo]) => { n = Math.max(n, la); s = Math.min(s, la); e = Math.max(e, lo); w = Math.min(w, lo); });
-      return { id: l.id || '', kv: l.kv, p: l.p, n: l.n, o: l.o, ref: l.r || '', cab: l.c || '', fr: l.f || '', ci: l.ci || '', loc: l.loc || '', pts, bb: { n, s, e, w } };
+      return { id: l.id || '', kv: l.kv, p: l.p, n: l.n, o: l.o, ref: l.r || '', cab: l.c || '', fr: l.f || '', ci: l.ci || '', loc: l.loc || '', tags: l.t || null, pts, bb: { n, s, e, w } };
     });
     osmFillOperators(S.osm);
   } catch (e) { S.osm = []; }
@@ -4382,6 +4384,16 @@ function showLineGuide(key) {
     <div class="meta">Maßgeblich für Abstände sind die Geozonen in dipul und eure Genehmigung.</div></div>`;
   openInfoPage('Strommasten & Leitungen erkennen', h);
 }
+/** Alle Angaben aus OpenStreetMap zu einer Leitung (aufklappbar) + Link auf openstreetmap.org – zum Nachforschen (Betreiber, Spannung, Kennung …) */
+const OSM_TAG_DE = { power: 'Art', voltage: 'Spannung (V)', operator: 'Betreiber', 'operator:wikidata': 'Betreiber (Wikidata)', 'operator:short': 'Betreiber (kurz)', owner: 'Eigentümer', name: 'Name', ref: 'Kennung',
+  cables: 'Leiterseile', circuits: 'Stromkreise', wires: 'Bündel', frequency: 'Frequenz (Hz)', line: 'Leitungstyp', location: 'Lage', note: 'Notiz', description: 'Beschreibung', source: 'Quelle', 'source:voltage': 'Quelle Spannung',
+  website: 'Webseite', 'contact:website': 'Webseite', 'contact:email': 'E-Mail', 'contact:phone': 'Telefon', phone: 'Telefon', email: 'E-Mail', start_date: 'Baujahr', fixme: 'Zu prüfen', layer: 'Ebene', design: 'Mastbild' };
+function osmTagsHtml(id, tags, extra) {
+  const t = tags || {}, keys = Object.keys(t).sort((a, b) => (OSM_TAG_DE[a] ? 0 : 1) - (OSM_TAG_DE[b] ? 0 : 1) || a.localeCompare(b));
+  const val = (k, v) => /^(website|contact:website|url)$/.test(k) && /^https?:/.test(v) ? `<span class="lnk" data-url="${esc(v)}">${esc(v)}</span>` : /wikidata$/.test(k) && /^Q\d+$/.test(v) ? `<span class="lnk" data-url="https://www.wikidata.org/wiki/${esc(v)}">${esc(v)}</span>` : esc(v);
+  const link = id ? ` · <span class="lnk" data-url="https://www.openstreetmap.org/way/${esc(String(id))}">auf openstreetmap.org öffnen (Weg ${esc(String(id))})</span>` : '';
+  return `<details class="osmt"><summary>Alle Angaben aus OpenStreetMap${keys.length ? ` (${keys.length})` : ''}</summary>${keys.length ? `<table>${keys.map(k => `<tr><td>${esc(OSM_TAG_DE[k] || k)}${OSM_TAG_DE[k] ? `<small>${esc(k)}</small>` : ''}</td><td>${val(k, String(t[k]))}</td></tr>`).join('')}</table>` : '<div class="meta">keine Angaben gespeichert</div>'}<div class="meta">${extra || ''}Daten © OpenStreetMap-Mitwirkende${link}</div></details>`;
+}
 function osmLinesNear(lat, lon, m) {
   return S.osm.filter(l => lat <= l.bb.n + .002 && lat >= l.bb.s - .002 && lon <= l.bb.e + .003 && lon >= l.bb.w - .003)
     .filter(l => { for (let i = 0; i + 1 < l.pts.length; i++) if (segDistM(lat, lon, [l.pts[i][1], l.pts[i][0]], [l.pts[i + 1][1], l.pts[i + 1][0]]) < m) return true; return false; });
@@ -4414,7 +4426,8 @@ window.onPowerInfo = raw => {
     const v = [...new Set(String(t.voltage || '').split(';').map(x => parseInt(x, 10) / 1000).filter(x => x > 0))];
     kvs.push(...v);
     const kind = t.power === 'cable' ? 'Erdkabel' : t.power === 'minor_line' ? 'Mittel-/Niederspannungsleitung' : 'Freileitung';
-    html += `<li>${esc(t.name || t.ref || kind)}${v.length ? ' · ' + v.map(x => x + ' kV').join(' / ') : ''}${t.operator ? ' · ' + esc(t.operator) : ''}${t.power === 'cable' ? ' (unterirdisch)' : ''}</li>`;
+    const own = S.osm.find(x => String(x.id) === String(l.id)), op = t.operator || (own && own.o ? own.o + ' (ergänzt aus angrenzendem Leitungsstück)' : '');
+    html += `<li>${esc(t.name || t.ref || kind)}${v.length ? ' · ' + v.map(x => x + ' kV').join(' / ') : ''}${op ? ' · ' + esc(op) : ' · Betreiber unbekannt'}${t.power === 'cable' ? ' (unterirdisch)' : ''}${t.operator ? '' : osmTagsHtml(l.id, t)}</li>`;
   });
   html += '</ul>';
   const fh = flightHeight();
@@ -4442,6 +4455,7 @@ window.onPowerInfo = raw => {
   html += `<div style="font-size:12px;margin-top:4px">Daten © OpenStreetMap-Mitwirkende · ${stamp} · ohne Gewähr · <span class="lnk" data-lg="${lgk}">Wie sieht so eine Leitung aus?</span></div>`;
   box.innerHTML = html;
   box.querySelectorAll('[data-lg]').forEach(a => a.onclick = () => showLineGuide(a.dataset.lg));
+  box.querySelectorAll('[data-url]').forEach(a => a.onclick = () => A.openUrl ? A.openUrl(a.dataset.url) : window.open(a.dataset.url));
 };
 function showRules() {
   const act = avgiActive(), reg = regionAt(V.lat, V.lon);
@@ -6516,6 +6530,17 @@ function netOps(sel) {
 }
 /** Vereinbarungen mit Netzbetreibern (PC, gespeichert in der Adressdatei): { Betreiber: true } */
 const netDeals = () => { try { return JSON.parse(A.getPref('netDeal', '{}') || '{}') || {}; } catch (e) { return {}; } };
+/** Betroffene Leitungsabschnitte (und die Felder dazu) auf der Karte zeigen – zum Nachforschen, wem die Leitung gehört */
+function showOpOnMap(items, label) {
+  S.files.forEach(f => { f.selected = false; });
+  const fs = [];
+  items.forEach(x => { let f = S.files.find(g => g.title === x.f.title); if (!f) { f = x.f; f.extra = true; S.files.push(f); } f.selected = true; fs.push(f); });
+  S.hlLines = new Set(items.map(x => x.l)); S.hlSecs = items.flatMap(x => x.secs.map(sc => sc.pts));
+  const pts = S.hlSecs.flat(); fs.forEach(f => { const b = f.bounds; if (b) pts.push([b.n, b.e], [b.s, b.w]); });
+  document.querySelectorAll('.page.open').forEach(pg => pg.classList.remove('open')); update();   // Übersicht und Einstellungen schließen – Karte zeigen
+  if (pts.length) fitBounds(padBB(bbOfPts(pts))); draw();
+  toast(`${label}: betroffene Abschnitte gelb markiert. Für Details ⓘ einschalten und auf die Leitung klicken.`, 'ok', 7000);
+}
 /** PC: alle Netzbetreiber, deren Freileitungen eure Felder berühren – mit E-Mail und „Vereinbarung vorhanden“ */
 function webNetOverview(year) {
   let d = null; try { d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); } catch (e) { }
@@ -6532,7 +6557,9 @@ function webNetOverview(year) {
     const opt = (v, t) => `<option value="${v}"${v === year ? ' selected' : ''}>${t}</option>`;
     const rows = ops.map((o, i) => { const nf = new Set(o.items.map(x => x.f)).size, len = o.items.reduce((m, x) => m + x.secs.reduce((k, sc) => k + sc.len, 0), 0);
       const kv = [...new Set(o.items.map(x => x.l.kv ? x.l.kv + ' kV' : lineVolt(x.l).t))].join(', '), unk = o.name === 'Betreiber unbekannt';
-      return `<tr data-i="${i}"><td><b>${esc(o.name)}</b><div class="meta">${esc(kv)}</div></td><td style="text-align:right">${nf}</td><td style="text-align:right">${(len / 1000).toFixed(1).replace('.', ',')} km</td>
+      const det = o.items.map((x, k) => `<div class="nvi"><span>${esc(x.f.title)} · ${esc(lineLbl(x.l))} · ${Math.round(x.secs.reduce((m, sc) => m + sc.len, 0))} m</span><button class="b-sec nvsh1" data-k="${k}">Auf Karte</button>${x.l.id ? `<span class="lnk" data-url="https://www.openstreetmap.org/way/${esc(String(x.l.id))}">OSM-Weg ${esc(String(x.l.id))}</span>` : ''}</div>`).join('');
+      return `<tr data-i="${i}"><td><b>${esc(o.name)}</b><div class="meta">${esc(kv)}</div><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><button class="b-sec nvsh">🗺 Auf Karte zeigen</button></div>
+        <details class="nvd2"><summary>${o.items.length} Abschnitt${o.items.length > 1 ? 'e' : ''} einzeln</summary>${det}</details></td><td style="text-align:right">${nf}</td><td style="text-align:right">${(len / 1000).toFixed(1).replace('.', ',')} km</td>
         <td>${unk ? '<span class="meta">Leitungen ohne Betreiber in OpenStreetMap – vor Ort prüfen</span>' : `<input type="email" class="inp nvm" placeholder="E-Mail-Adresse" value="${esc(mails[o.name] || '')}" style="width:100%">`}</td>
         <td style="text-align:center">${unk ? '' : `<input type="checkbox" class="nvd"${deals[o.name] ? ' checked' : ''} style="width:20px;height:20px;accent-color:#13a538">`}</td></tr>`; }).join('');
     const nDeal = ops.filter(o => deals[o.name]).length, nOps = ops.filter(o => o.name !== 'Betreiber unbekannt').length;
@@ -6545,7 +6572,10 @@ function webNetOverview(year) {
     body.querySelector('#nvY').onchange = e => webNetOverview(e.target.value);
     body.querySelectorAll('tr[data-i]').forEach(tr => { const o = ops[+tr.dataset.i], m = tr.querySelector('.nvm'), c = tr.querySelector('.nvd');
       if (m) m.onchange = () => { const x = netMails(); x[o.name] = m.value.trim(); setP('netMail', JSON.stringify(x)); };
-      if (c) c.onchange = () => { const x = netDeals(); if (c.checked) x[o.name] = true; else delete x[o.name]; A.setPref('netDeal', JSON.stringify(x)); }; });
+      if (c) c.onchange = () => { const x = netDeals(); if (c.checked) x[o.name] = true; else delete x[o.name]; A.setPref('netDeal', JSON.stringify(x)); };
+      tr.querySelector('.nvsh').onclick = () => showOpOnMap(o.items, o.name);
+      tr.querySelectorAll('.nvsh1').forEach(b => b.onclick = () => showOpOnMap([o.items[+b.dataset.k]], o.name));
+      tr.querySelectorAll('[data-url]').forEach(a => a.onclick = () => A.openUrl ? A.openUrl(a.dataset.url) : window.open(a.dataset.url)); });
     body.querySelector('#nvCsv').onclick = () => {
       const mm = netMails(), dd = netDeals(), q = v => '"' + String(v).replace(/"/g, '""') + '"';
       const csv = ['Netzbetreiber;Felder;Leitung (km);Spannung;E-Mail;Vereinbarung'].concat(ops.map(o => [o.name, new Set(o.items.map(x => x.f)).size, (o.items.reduce((m, x) => m + x.secs.reduce((k, sc) => k + sc.len, 0), 0) / 1000).toFixed(1).replace('.', ','),

@@ -1419,7 +1419,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     for (String v : t.optString("voltage").split(";")) { try { kv = Math.max(kv, Integer.parseInt(v.trim()) / 1000); } catch (Exception ignored) { } }
                     out.put(new JSONObject().put("kv", kv).put("p", t.optString("power")).put("n", t.optString("name", t.optString("ref", "")))
                             .put("o", t.optString("operator")).put("r", t.optString("ref")).put("c", t.optString("cables")).put("f", t.optString("frequency"))
-                            .put("ci", t.optString("circuits")).put("loc", t.optString("location")).put("g", pts));
+                            .put("ci", t.optString("circuits")).put("loc", t.optString("location")).put("t", t).put("g", pts));   // t: alle OSM-Angaben für die Info
                 }
             } catch (Exception ignored) { }
             return out.toString();
