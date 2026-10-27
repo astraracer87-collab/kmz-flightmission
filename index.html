@@ -640,7 +640,7 @@ body.bartop #trafWarn{top:84px}
           <input type="range" id="rTalt" min="0" max="23" step="1"></div>
         <div class="trow"><span class="tl">Daueralarm im Nahbereich</span><div class="seg"><button data-tnear="0">Aus</button><button data-tnear="0.5">0,5</button><button data-tnear="1">1</button><button data-tnear="1.5">1,5</button><button data-tnear="2">2</button><button data-tnear="3">3 km</button></div>
           <button class="tbtn" id="bNearTest" style="width:auto;padding:0 12px;font-size:14px">Daueralarm anhören</button></div>
-        <div class="v" style="margin-top:-4px">Ist ein Luftfahrzeug (unter der Warnhöhe) näher als dieser Abstand und kommt weiter näher, ertönt alle 4 s die Sprachansage „Traffic, Traffic" und das Warnfenster wird rot – bis es den nächsten Punkt passiert hat und sich wieder entfernt. 🔊✕ schaltet stumm, 🔇 schaltet wieder ein. Bei anderen Drohnen gilt höchstens 300 m.</div>
+        <div class="v" style="margin-top:-4px">Ist ein Luftfahrzeug (unter der Warnhöhe) näher als dieser Abstand und kommt weiter näher, ertönt alle 3 s „Traffic, traffic" und das Warnfenster wird rot; ab dem halben Abstand (mind. 300 m) alle 2 s „Descend, descend" (= Drohne sofort tiefer/landen), danach einmal „Clear of conflict" – bis es den nächsten Punkt passiert hat und sich wieder entfernt. 🔊✕ schaltet stumm, 🔇 schaltet wieder ein. Bei anderen Drohnen gilt höchstens 300 m.</div>
         <div class="trow"><span class="tl">Warnton</span><div class="seg"><button data-tsnd="0">Aus</button><button data-tsnd="1">Warnton</button><button data-tsnd="2">Alarm (lang)</button></div>
           <button class="tbtn" id="bTrafTest" style="width:auto;padding:0 12px;font-size:14px">Test in 3 s</button></div>
         <div class="trow"><span class="tl">Warnfenster über allen Apps</span><div class="seg"><button data-tovl="0">Aus</button><button data-tovl="1">An</button></div>
@@ -741,7 +741,7 @@ const A = window.Android || {
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 const setP = (k, v) => { P[k] = String(v); A.setPref(k, String(v)); };
@@ -1179,8 +1179,9 @@ let obsIcons = [], obsLabels = [];
 function paintStatic() {
   obsIcons = []; obsLabels = [];
   if (P.geo === '1' && P.geoOwn !== '0' && S.geo.length && V.z >= 9) paintGeo();
-  if (P.osmPower === '1' && (S.obs.length || S.rails.length) && V.z >= 11) paintObstacles();
-  if (P.osmPower === '1' && S.osm.length && V.z >= 11) paintOsmLines();
+  // nur Anzeige: Pre-Check und Antippen prüfen Hindernisse/Leitungen immer, auch wenn sie ausgeblendet sind
+  if (P.osmPower === '1' && P.showObs !== '0' && (S.obs.length || S.rails.length) && V.z >= 11) paintObstacles();
+  if (P.osmPower === '1' && P.showLines !== '0' && S.osm.length && V.z >= 11) paintOsmLines();
   if (P.showNotam !== '0') (S.lfa || []).forEach(drawLfa);   // Tieffluggebiete – egal ob gerade Betriebszeit (Ebenen-Knopf: ein/aus)
   if (P.showNotam !== '0' && S.notams.length) drawNotams(S.notams);
   const vis = S.files.filter(visible);
@@ -1782,7 +1783,7 @@ function isDroneMismatch(f) {
 /** Feldkontur aus UAV Editor als Hintergrund der Flugroute (nicht eigenständig wählbar) */
 function drawOutline(f) {
   if (!f.outline) return;
-  FC = isDroneMismatch(f) ? FCW : f.cat ? (f.inDst ? FCD : FCC) : FC0;
+  FC = isDroneMismatch(f) ? FCW : (f.cat || f.ue) ? (f.inDst ? FCD : FCC) : FC0;
   ctx.beginPath();
   f.outline.forEach((p, i) => { const [x, y] = toScreen(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
   ctx.closePath();
@@ -1807,7 +1808,7 @@ function fieldOnScreen(f) {
   return !(x1 < -20 || y1 < -20 || x0 > W + 20 || y0 > H + 20);
 }
 function drawField(f) {
-  FC = isDroneMismatch(f) ? FCW : f.cat ? (f.inDst ? FCD : FCC) : FC0;
+  FC = isDroneMismatch(f) ? FCW : (f.cat || f.ue) ? (f.inDst ? FCD : FCC) : FC0;
   if (f.outline && !f.selected && !f.cat) return;   // nicht markiert: nur die Fläche (drawOutline), Flugroute erst beim Markieren
   ctx.lineJoin = 'round';
   for (const s of f.shapes) {
@@ -1834,7 +1835,7 @@ function drawLabel(f) {
   // Kurzname auf der Karte (ohne „_0.443ha_8WP“ und Drohnen-Kürzel) – der volle Name steht in Liste und Details
   const sn = shortTitle(f.title), fs = f.selected ? 15 : 13, hh = f.selected ? 24 : 20;
   const mm = isDroneMismatch(f);
-  FC = mm ? FCW : f.cat ? (f.inDst ? FCD : FCC) : FC0;
+  FC = mm ? FCW : (f.cat || f.ue) ? (f.inDst ? FCD : FCC) : FC0;
   ctx.font = `700 ${fs}px Roboto,system-ui,sans-serif`;
   const t = f.selected && f.height ? `${mm ? '⚠ ' : ''}${sn} · ${f.height} m${f.drone ? ' · ' + f.drone : ''}` : (mm ? `⚠ ${sn}` : sn);   // markiert: Flughöhe anzeigen; Mismatch: ⚠ voranstellen
   const w = ctx.measureText(t).width + 12;
@@ -2121,7 +2122,7 @@ function ringArea(r) {   // Fläche in m² (Shoelace, lokal eben)
 // Feldname ohne Fläche/Wegpunkte und ohne Drohnenkürzel: „Low-17-M3T_2.247ha_31WP“ -> „low-17“
 function baseName(n) {
   return String(n).replace(/\.km[lz]$/i, '').replace(/_[\d.,]+ha_\d+WP$/i, '').replace(/[-_ ]?M[34][TE]$/i, '').replace(/[-_ ]+$/, '')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/_/g, ' ').toLowerCase().trim();
 }
 const nameDrone = n => (/[-_ ]?(M[34][TE])(?:_[\d.,]+ha_\d+WP)?(?:\.kmz)?$/i.exec(String(n)) || [])[1]?.toUpperCase() || '';
 /** Gibt es ein Feld doppelt (M3T und M4T), wird nur das zur Drohne der RC passende angezeigt. Einzelne Felder immer. */
@@ -2265,18 +2266,27 @@ async function load(keepView) {
   busy('');
   if (P.fsrc !== src0) { loading = false; return load(true); }   // während des Ladens umgeschaltet: neu laden statt alte Felder zeigen
   // Prüfen, welche Felder schon im Import-Ordner (Bibliothek) liegen → f.inDst
-  let dstNames = new Set();
+  let dstNames = new Set(); const dstBB = [], dstFiles = new Set(), DM = dstMap();
   try {
     const d = JSON.parse(A.listKmz(P.dst));
-    if (d.ok && d.files) d.files.forEach(f => dstNames.add(f.name.replace(/\.km[lz]$/i, '').toLowerCase()));
+    if (d.ok && d.files) d.files.forEach(f => {
+      dstFiles.add(f.name.toLowerCase()); dstNames.add(f.name.replace(/\.km[lz]$/i, '').toLowerCase()); dstNames.add(baseName(f.name));
+      // Fläche der Datei merken – Name im Import-Ordner kann anders lauten als im UAV Editor
+      const ck = f.path + '|' + (f.size || '') + '|' + (f.mtime || '');
+      let bb = S.dstBBc && S.dstBBc[ck];
+      if (bb === undefined) { try { const sh = parseKml(A.readKml(f.path)); bb = sh.length ? bounds([{ shapes: sh }]) : null; } catch (e) { bb = null; } (S.dstBBc = S.dstBBc || {})[ck] = bb; }
+      if (bb) dstBB.push(bb);
+    });
   } catch (e) { }
-  out.forEach(f => { f.inDst = dstNames.has(f.title.toLowerCase()) || dstNames.has(baseName(f.title).toLowerCase()); });
+  const inDstOf = f => (DM[f.path] && dstFiles.has(String(DM[f.path]).toLowerCase())) || dstNames.has(String(f.title).toLowerCase()) || dstNames.has(baseName(f.title))
+    || (f.bounds && dstBB.some(b => { const v = bbOverlap(b, f.bounds); return v.r > .7 && v.q > .45 && v.q < 2.2; }));
+  out.forEach(f => { f.inDst = inDstOf(f); });
   S.files = out;
   applyOutlines();
   markDups();
   if (mix) { try { S.files = S.files.concat(catFields(S.files, keep)); } catch (e) { } }
   // inDst auch auf Katalog-Feldern setzen (die kommen erst nach catFields dazu)
-  if (dstNames.size) S.files.forEach(f => { if (f.cat) f.inDst = dstNames.has(f.title.toLowerCase()) || dstNames.has(baseName(f.title).toLowerCase()); });
+  S.files.forEach(f => { if (f.cat) f.inDst = inDstOf(f); });
   if (mix) setTimeout(() => catRefresh(false), 4000);   // Feldliste ab und zu still aktualisieren
   loading = false;
   update();
@@ -2534,13 +2544,16 @@ const DRONE_INFO = {
 };
 
 
-function doTransfer(paths, drone) {
+/** Merkt sich je Feld (Pfad bzw. „uave:<id>“) den Dateinamen, unter dem es im Import-Ordner liegt */
+function dstMap() { try { return JSON.parse(P.dstMap || '{}') || {}; } catch (e) { return {}; } }
+function doTransfer(paths, drone, keys) {
   const move = false;   // immer kopieren: „UAV-Editor“ behält alle Felder
   busy(drone ? 'Rechne um und übertrage…' : 'Übertrage…');
   setTimeout(async () => {
     const r = JSON.parse(A.transfer(JSON.stringify(paths), P.dst, move, true, drone || ''));
     busy('');
     if (r.error) return toast('Fehler: ' + r.error, true);
+    if (r.names) { const m = dstMap(); paths.forEach(p => { const n = r.names[p]; if (n) { m[p] = n; if (keys && keys[p]) m[keys[p]] = n; } }); setP('dstMap', JSON.stringify(m)); }
     S.files.forEach(f => f.selected = false);
     const nConv = drone ? S.files.filter(f => paths.includes(f.path) && f.drone && f.drone !== drone).length : 0;
     const what = nConv ? ` (${nConv} auf ${drone === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} umgerechnet)` : '';
@@ -2554,8 +2567,8 @@ function doTransfer(paths, drone) {
     }
     // Quellordner nicht neu einlesen: beim Kopieren ändert sich dort nichts, beim Verschieben nur die übertragenen Felder entfernen
     if (move) { const gone = new Set(paths); S.files = S.files.filter(f => !gone.has(f.path)); markDups(); }
-    // Übertragene Felder als „in Bibliothek" markieren → Farbe wechselt von lila zu türkis/blau
-    const ps = new Set(paths); S.files.forEach(f => { if (ps.has(f.path)) f.inDst = true; });
+    // übertragene Felder liegen jetzt im Import-Ordner → lila (bis sie auf der Fernsteuerung sind, dann blau)
+    const ps = new Set(paths), ks = new Set(Object.values(keys || {})); S.files.forEach(f => { if (ps.has(f.path) || ks.has(f.path)) f.inDst = true; }); draw();
     update();
   }, 30);
 }
@@ -2598,7 +2611,53 @@ function flightBriefing(sel) {
       }
     });
   });
+  // Zusätzlich echte Flächen-Überschneidung: schneidet eine Zone nur eine Ecke des Feldes an, kann sie zwischen den Prüfpunkten liegen
+  // Und mit A1/A3 (Unterkategorie A3): Wohngebiete näher als 150 m melden, auch wenn das Feld sie nicht berührt
+  const a3 = P.lic !== 'A2';
+  sel.forEach(fl => {
+    const fr = fieldRingLL(fl); if (fr.length < 3) return;
+    let n = -90, so = 90, e = -180, w = 180; fr.forEach(([lo, la]) => { n = Math.max(n, la); so = Math.min(so, la); e = Math.max(e, lo); w = Math.min(w, lo); });
+    const mLa = 0.0015, mLo = 0.0023;   // ca. 160 m Rand
+    for (const f of S.geo) {
+      if (f.type !== 'Polygon' && f.type !== 'MultiPolygon') continue;
+      if (f.bb.s > n + mLa || f.bb.n < so - mLa || f.bb.w > e + mLo || f.bb.e < w - mLo) continue;
+      const mid = [(n + so) / 2, (e + w) / 2], reg = regionAt(mid[0], mid[1]);
+      const key = f.layer + '|' + ((f.props || {}).name || '') + '|' + covKind(f.layer, reg) + '|' + (reg.st || '');
+      const z0 = zones.get(key);
+      if (z0 && z0.fields.has(fl.title) && !z0.near) continue;
+      const touch = polyTouch(fr, f.rings);
+      if (touch) { const z = z0 || { f, reg, fields: new Set() }; delete z.near; z.fields.add(fl.title); zones.set(key, z); continue; }
+      if (!a3 || f.layer !== 'wohngrundstuecke' || (z0 && !z0.near)) continue;
+      const d = polyDistM(fr, f.rings);
+      if (d < 150) { const z = z0 || { f, reg, fields: new Set(), near: d }; z.near = Math.min(z.near, d); z.fields.add(fl.title); zones.set(key, z); }
+    }
+  });
   return { zones: [...zones.values()], obs: [...obs.values()].sort((a, b) => a.d - b.d), rails: [...rails.values()], lines: [...lines.values()], vh: vincenzHits(sel) };
+}
+/** Schneiden sich zwei Strecken? (Punkte [lon, lat]) */
+function segX(a, b, c, d) {
+  const o = (p, q, r) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+  const d1 = o(c, d, a), d2 = o(c, d, b), d3 = o(a, b, c), d4 = o(a, b, d);
+  return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
+}
+/** Feld-Ring (lon/lat) und Zonen-Ringe überschneiden oder berühren sich */
+function polyTouch(fr, rings) {
+  for (const r of rings) {
+    if (r.length < 3) continue;
+    if (fr.some(p => inRing(p[1], p[0], r))) return true;          // Feldecke in der Zone
+    if (r.some(p => inRing(p[1], p[0], fr))) return true;          // Zonenecke im Feld
+    for (let i = 0; i < fr.length; i++) { const a = fr[i], b = fr[(i + 1) % fr.length];
+      for (let j = 0; j < r.length; j++) if (segX(a, b, r[j], r[(j + 1) % r.length])) return true; }
+  }
+  return false;
+}
+/** kürzester Abstand Feld ↔ Zone in m (Feldecken gegen Zonenkanten und umgekehrt) */
+function polyDistM(fr, rings) {
+  let best = 1e9;
+  rings.forEach(r => { for (let j = 0; j < r.length; j++) { const c = r[j], d = r[(j + 1) % r.length];
+    fr.forEach(p => { const x = segDistM(p[1], p[0], c, d); if (x < best) best = x; }); } });
+  rings.forEach(r => r.forEach(q => { for (let i = 0; i < fr.length; i++) { const x = segDistM(q[1], q[0], fr[i], fr[(i + 1) % fr.length]); if (x < best) best = x; } }));
+  return best;
 }
 const KIND_ORDER = { off: 0, dist: 1, on: 2 };
 /** NOTAM-Prüfung im Pre-Check: genau an der Fläche der markierten Felder (nicht im Umkreis) */
@@ -2643,7 +2702,7 @@ function notamBriefHtml(sel) {
 function briefingHtml(b, sel) {
   const fh = flightHeight(), multi = sel.length > 1;
   const fl = set => multi ? `<div class="meta">Betrifft: ${[...set].map(esc).join(', ')}</div>` : '';
-  const zs = b.zones.map(z => Object.assign(z, { k: covKind(z.f.layer, z.reg) })).sort((a, c) => KIND_ORDER[a.k] - KIND_ORDER[c.k]);
+  const zs = b.zones.map(z => Object.assign(z, { k: z.near != null ? 'off' : covKind(z.f.layer, z.reg) })).sort((a, c) => KIND_ORDER[a.k] - KIND_ORDER[c.k]);
   const cnt = k => zs.filter(z => z.k === k).length;
   let h = `<div class="meta" style="margin-bottom:8px">${zs.length ? `<b style="color:#d42020">${cnt('off')} gesperrt</b> · <b style="color:#e07800">${cnt('dist')} nur mit Abstand</b> · <b style="color:#13a538">${cnt('on')} erlaubt mit Auflagen</b>` : '<b style="color:#13a538">Keine Geozone im Flugbereich.</b>'}${fh ? ` · Missionshöhe ${fh} m` : ''} · Daten offline (dipul/OSM), maßgeblich ist dipul.de</div>`;
   h += notamBriefHtml(sel);
@@ -2652,6 +2711,13 @@ function briefingHtml(b, sel) {
     <div class="meta">${b.vh.map(x => esc(x.f.title) + ' – ' + Math.round(x.d) + ' m').join(' · ')}</div>${vincenzHtml(b.vh[0].a, true)}</div>`;
   zs.forEach(z => {
     const p = z.f.props || {}, label = z.f.layer === 'flugplaetze' && isHeliZone(z.f) ? 'Hubschrauberlandeplatz' : (LAYER_LABEL[z.f.layer] || z.f.layer);
+    if (z.near != null) {   // A1/A3: Wohngebiet nicht berührt, aber näher als 150 m
+      h += `<div class="zone" style="border-left:5px solid #d42020"><h4>${esc(p.name || label)} <span class="chip">${Math.round(z.near)} m daneben</span></h4>
+        <div class="meta">${esc(label)} · ${esc(regionText(z.reg))}</div>${fl(z.fields)}
+        <div style="color:#d42020;font-weight:700">Mit A1/A3 (Unterkategorie A3): mindestens 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten – hier nur ca. ${Math.round(z.near)} m.</div>
+        <ul><li>Feld bzw. Route so anpassen, dass 150 m eingehalten werden, oder</li><li>mit A2-Fernpilotenzeugnis fliegen (dort gilt dieser Abstand nicht – nur 30 m zu unbeteiligten Personen)</li></ul></div>`;
+      return;
+    }
     const chip = `<span class="chip ${z.k === 'on' ? 'cov' : z.k === 'dist' ? 'dist' : ''}">${z.k === 'on' ? 'Überflug erlaubt' : z.k === 'dist' ? 'Nur mit Abstand' : 'Gesperrt'}</span>`;
     const rules = rulesHtml(z.f.layer, z.reg).replace(/<div id="powerBox"[^>]*>[^<]*<\/div>/, '');
     h += `<div class="zone" style="border-left:5px solid ${z.k === 'on' ? '#13a538' : z.k === 'dist' ? '#e07800' : '#d42020'}"><h4>${esc(p.name || label)} ${chip}${covBadges(z.f.layer, z.reg)}</h4>
@@ -3452,7 +3518,12 @@ const LUFTVO_NR = {};
  ['ED-R', ['flugbeschraenkungsgebiete'], 'Flugbeschränkungsgebiet (ED-R, festgelegt nach § 17 LuftVO): Einflug nur mit Erlaubnis der in dipul genannten zuständigen Stelle – gilt mit jedem Führerschein, eine Allgemeinerlaubnis hilft hier nicht.'],
  ['TBE', ['temporaere_betriebseinschraenkungen'], 'Temporäre Betriebseinschränkung (NOTAM): in der angegebenen Zeit und Höhe nur mit Zustimmung der in dipul genannten Stelle – gilt mit jedem Führerschein. Zeiten und Höhen auf der NOTAM-Seite prüfen.']].forEach(([n, ls, t]) => ls.forEach(l => LUFTVO_NR[l] = [n, t]));
 function lawHtml(layer) {
-  const e = LUFTVO_NR[layer]; if (!e) return '';
+  const L = lawItems(layer); if (!L) return '';
+  return `<div style="margin-top:8px"><b>Bundesweit (${L.src}, gilt mit jedem Führerschein):</b><ul>${L.li.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
+}
+/** Regeln der Geozone nach § 21h LuftVO (bundesweit, ohne Ausnahmegenehmigung) – { src, li } */
+function lawItems(layer) {
+  const e = LUFTVO_NR[layer]; if (!e) return null;
   const [n, t] = e, mh = [...new Set(S.files.filter(f => f.selected && f.height).map(f => Math.round(f.height)))].sort((a, b) => a - b), hTxt = mh.length ? mh.join('/') + ' m' : '50–70 m';
   let li = [];
   if (n === 5) li = layer.includes('wasser') || layer === 'schifffahrtsanlagen'
@@ -3466,7 +3537,7 @@ function lawHtml(layer) {
     `M3T/M4T wiegen über 250 g und haben Kameras – die 250-g-Ausnahme greift nicht; bei ${hTxt} also Zustimmung einholen`];
   else li = [t];
   if (layer === 'windkraftanlagen') li.push('Gilt auch für Anlagen, die dipul nicht verzeichnet – maßgeblich ist § 21h LuftVO, nicht die Karte');
-  return `<div style="margin-top:8px"><b>Bundesweit (${typeof n === 'number' ? `§ 21h Abs. 3 Nr. ${n} LuftVO` : n === 'ED-R' ? 'Flugbeschränkungsgebiet' : 'NOTAM'}, gilt mit jedem Führerschein):</b><ul>${li.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
+  return { src: typeof n === 'number' ? `§ 21h Abs. 3 Nr. ${n} LuftVO` : n === 'ED-R' ? 'Flugbeschränkungsgebiet' : 'NOTAM', li };
 }
 /** Je Fernpilotenzeugnis ein aufklappbarer Block: Regeln der offenen Kategorie + ob Allgemeinerlaubnis/Allgemeinverfügung hier greifen.
  *  Das eigene Zeugnis (Einstellungen) ist aufgeklappt, das andere zugeklappt. Quelle Kategorie-Regeln: LuBB-Merkblatt „UAS Betriebskategorie offen“ (2024) */
@@ -3485,28 +3556,40 @@ function licHtml(layer, reg) {
          'Mindestens 150 m horizontal zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten',
          'Keine unbeteiligten Personen im Flugbereich gefährden – empfohlen 30 m bzw. 1:1-Regel (Abstand ≥ Flughöhe)',
          'Keine Menschenansammlungen überfliegen · max. 120 m über Grund'];
-    const ex = [];
-    if (power) ex.push('✓ <b>Überfluggenehmigung des Netzbetreibers</b> liegt vor – gilt unabhängig vom Zeugnis, deren Auflagen gehen vor');
-    if (isAE) ex.push(c.ae ? `✓ <b>Allgemeinerlaubnis ${esc(stateName(reg.st))}</b> greift hier (Auflagen siehe oben)`
-      : lic !== 'A2' ? '✗ Allgemeinerlaubnis: nicht nutzbar – setzt das Fernpilotenzeugnis A2 voraus'
-      : !(reg && reg.st) ? '? Allgemeinerlaubnis: Bundesland noch unbekannt – wird geprüft, sobald die Landesgrenzen geladen sind'
-      : `✗ Allgemeinerlaubnis: für ${esc(stateName(reg.st))} keine eingetragen (Einstellungen → Luftraum & Regeln)`);
+    const ul = (xs, cls) => `<ul${cls ? ` class="${cls}"` : ''}>${xs.map(x => `<li>${x}</li>`).join('')}</ul>`;
+    const sec = (n, t, body, dim) => `<div class="licsec"${dim ? ' style="opacity:.6"' : ''}><div style="font-weight:700;margin-top:8px">${n} ${t}</div>${body}</div>`;
+    // ① Geozone – bundesweit, ohne jede Ausnahme
+    const law = lawItems(layer);
+    const lawLi = law ? law.li : [esc(BLOCKED_RULES[layer] || 'Betrieb nur mit Zustimmung bzw. Erlaubnis der zuständigen Stelle (§ 21h/§ 21i LuftVO).')];
+    const s1 = sec('①', `Geozone – bundesweit${law ? ' (' + law.src + ')' : ''}, gilt mit jedem Zeugnis${ok ? ' <span class="meta">– wird hier durch ② ersetzt</span>' : ''}:`, ul(lawLi), ok);
+    // ② zusätzlich erlaubt durch Allgemeinerlaubnis / Allgemeinverfügung / Netzbetreiber
+    const add = [];
+    if (power) add.push('✓ <b>Überfluggenehmigung des Netzbetreibers</b> – gilt unabhängig vom Zeugnis. Nur über die Leitung, sicherer Abstand über Mastspitzen und Seilen, nie darunter durch; Auflagen des Betreibers gehen vor.');
+    if (isAE) {
+      if (c.ae) add.push(`✓ <b>Allgemeinerlaubnis ${esc(stateName(reg.st))}</b> greift – statt ① gilt:` + ul((AE_RULES[layer] || ['Auflagen laut Bescheid']).map(esc)) + `<div class="meta">${esc(AE_COMMON)}</div>`);
+      else add.push(lic !== 'A2' ? '✗ <b>Allgemeinerlaubnis gilt für dich nicht</b> – sie setzt das Fernpilotenzeugnis A2 voraus. Es bleibt bei ①.'
+        : !(reg && reg.st) ? '? Allgemeinerlaubnis: Bundesland noch unbekannt – wird geprüft, sobald die Landesgrenzen geladen sind. Bis dahin gilt ①.'
+        : `✗ Allgemeinerlaubnis: für ${esc(stateName(reg.st))} keine eingetragen (Einstellungen → Luftraum & Regeln). Es bleibt bei ①.`);
+    }
     if (isAV) { const any = avList().filter(a => a.on && (a.layers || []).includes(layer));
-      ex.push(c.av ? `✓ <b>${esc(c.av.name || 'Allgemeinverfügung')}</b> greift hier (Auflagen siehe oben)`
-        : any.length && any.every(a => a.a2 === true) && lic !== 'A2' ? '✗ Allgemeinverfügung: laut Eintrag nur mit Fernpilotenzeugnis A2'
-        : '✗ Allgemeinverfügung: greift hier nicht (Bundesland, Bezirk oder Saison passen nicht bzw. keine eingetragen)'); }
-    const res = ok ? '<b style="color:#13a538">Ergebnis: Flug hier erlaubt – mit den genannten Auflagen</b>'
-      : '<b style="color:#d42020">Ergebnis: ohne Ausnahme – nur nach den bundesweiten Regeln oben (Zustimmung bzw. Abstand)</b>';
+      if (c.av) add.push(`✓ <b>${esc(c.av.name || 'Allgemeinverfügung')}</b> greift – statt ① gilt:` + ul((c.av.rules || ['Auflagen laut Bescheid']).map(esc)) + (c.av.link ? `<span class="lnk" data-url="${esc(c.av.link)}">Dokument öffnen</span>` : ''));
+      else add.push(any.length && any.every(a => a.a2 === true) && lic !== 'A2' ? '✗ <b>Allgemeinverfügung gilt für dich nicht</b> – laut Eintrag nur mit Fernpilotenzeugnis A2. Es bleibt bei ①.'
+        : '✗ Allgemeinverfügung greift hier nicht (Bundesland, Bezirk oder Saison passen nicht bzw. keine eingetragen). Es bleibt bei ①.'); }
+    const s2 = add.length ? sec('②', 'Zusätzlich erlaubt durch Ausnahmegenehmigung:', ul(add)) : '';
+    // ③ immer zusätzlich: Regeln aus dem Führerschein (offene Kategorie)
+    const s3 = sec('③', `Aus deinem Führerschein (${lic === 'A2' ? 'A2' : 'A1/A3'}, offene Kategorie) – gilt immer zusätzlich:`, ul(cat, 'meta'));
+    const res = ok ? `<b style="color:#13a538">So fliegst du hier: nach ② (statt ①) – plus ③</b>`
+      : `<b style="color:#d42020">So fliegst du hier: ${add.length ? 'keine Ausnahme nutzbar – ' : ''}nur nach ① (Zustimmung einholen bzw. Abstand halten) – plus ③</b>`;
     const head = `${lic === 'A2' ? 'A2' : 'A1/A3'} ${ok ? '<span class="chip cov">erlaubt</span>' : '<span class="chip">nur mit Zustimmung/Abstand</span>'}`;
-    return `<details class="licbox"${mine === lic ? ' open' : ''}><summary>${head}</summary>${res}<ul>${ex.map(x => `<li>${x}</li>`).join('')}</ul><div class="meta">Offene Kategorie:</div><ul class="meta">${cat.map(x => `<li>${x}</li>`).join('')}</ul></details>`;
+    return `<details class="licbox"${mine === lic ? ' open' : ''}><summary>${head}</summary>${res}${s1}${s2}${s3}</details>`;
   };
   const order = mine === 'A2' ? ['A2', 'A1A3'] : ['A1A3', 'A2'];
-  return `<div style="margin-top:8px"><b>Nach Fernpilotenzeugnis:</b>${order.map(block).join('')}</div>`;
+  return `<div style="margin-top:8px"><b>Was gilt für dich – nach Fernpilotenzeugnis:</b>${order.map(block).join('')}</div>`;
 }
 function rulesHtml(layer, reg) {
   reg = reg || regionAt(V.lat, V.lon);
   const cov = coverageOf(layer, reg);
-  if (cov === 'ae') return `<div><b>Allgemeinerlaubnis ${esc(stateName(reg.st))} – Auflagen:</b><ul>${AE_RULES[layer].map(r => `<li>${esc(r)}</li>`).join('')}</ul><div class="meta" style="margin-top:6px">${esc(AE_COMMON)}</div></div>${licHtml(layer, reg)}`;
+  if (cov === 'ae') return `<div class="meta">Allgemeinerlaubnis ${esc(stateName(reg.st))} vorhanden – ob sie für dich gilt, hängt vom Fernpilotenzeugnis ab:</div>${licHtml(layer, reg)}`;
   if (cov === 'power') return `<div><b>Überfluggenehmigung des Netzbetreibers liegt vor – Überflug erlaubt mit Auflagen:</b><ul>
     <li>Genehmigung des jeweiligen Netzbetreibers mitführen; deren Auflagen gehen vor</li>
     <li>Nur <b>über</b> die Leitung fliegen, mit sicherem Abstand über Mastspitzen und Leiterseilen – nie darunter durch</li>
@@ -3515,7 +3598,7 @@ function rulesHtml(layer, reg) {
     <li>Max. 120 m Flughöhe. Ausnahme Masten über 105 m (EU 2019/947, offene Kategorie): nur auf Anfrage/im Auftrag des Betreibers bis 50 m horizontal an den Mast heran und bis 15 m über die Mastspitze – auch über 120 m</li></ul>
     <div id="powerBox" class="meta" style="margin-top:8px">Lade Leitungsdaten aus OpenStreetMap…</div></div>${licHtml(layer, reg)}`;
   if (cov === 'avgi') { const av = avFor(layer, reg);
-    return `<div><b>${esc(av.name)} – erlaubt mit Auflagen${avSeasonOn(av) ? '' : ' <span class="chip grey">Saison-Vorschau – heute NICHT gültig</span>'}:</b><ul>${(av.rules || []).map(r => `<li>${esc(r)}</li>`).join('') || '<li>Auflagen laut Bescheid</li>'}</ul>${av.link ? `<span class="lnk" data-url="${esc(av.link)}">Dokument öffnen</span>` : ''}</div>${licHtml(layer, reg)}`; }
+    return `<div class="meta">${esc(av.name)} vorhanden${avSeasonOn(av) ? '' : ' <span class="chip grey">Saison-Vorschau – heute NICHT gültig</span>'} – ob sie für dich gilt, hängt vom Fernpilotenzeugnis ab:</div>${licHtml(layer, reg)}`; }
   let why = BLOCKED_RULES[layer] || 'Betrieb nur mit Zustimmung bzw. Erlaubnis der zuständigen Stelle (§ 21h/§ 21i LuftVO).';
   if (AE_LAYERS.includes(layer))
     why = !reg.st && P.lic === 'A2' ? 'Bundesland an diesem Ort noch unbekannt – ob eine Allgemeinerlaubnis greift, prüft die App, sobald die Landesgrenzen geladen sind (mit Internet automatisch). Bis dahin gelten die bundesweiten Regeln unten.'
@@ -3534,7 +3617,7 @@ function rulesHtml(layer, reg) {
       : `heute ist keine Saison (${esc(inSt.map(a => mmdd(a.from) + '–' + mmdd(a.to)).join(', '))}) – zur Planung: Einstellungen → „Saison-Vorschau“`;
     why = `Nur mit Zustimmung der Naturschutzbehörde. Eine Allgemeinverfügung greift hier nicht: ${why2}. Die Allgemeinerlaubnis deckt Naturschutz-, FFH- und Vogelschutzgebiete grundsätzlich nicht ab.`;
   }
-  return `<div><b>Warum rot:</b> ${why}</div>${lawHtml(layer)}${licHtml(layer, reg)}`;
+  return `<div><b>Warum rot:</b> ${why}</div>${licHtml(layer, reg)}`;
 }
 const PROP_LABEL = { name: 'Name', type_code: 'Typ', lower_limit_altitude: 'Untergrenze', upper_limit_altitude: 'Obergrenze',
   lower_limit_unit: 'Einheit unten', upper_limit_unit: 'Einheit oben', lower_limit_alt_ref: 'Bezug unten', upper_limit_alt_ref: 'Bezug oben',
@@ -3889,7 +3972,7 @@ function windLawHtml(o, d, reg, inDipul) {
   const ae = k !== 'off' && coverageOf('windkraftanlagen', reg) === 'ae';
   return `<div class="meta" style="margin-bottom:4px">${inDipul ? 'In dipul als Geozone verzeichnet' : '<b>In dipul nicht verzeichnet – der Abstand gilt nach § 21h LuftVO trotzdem.</b>'} Mast ${Math.round(d)} m entfernt${o.rot ? ` · Rotorradius ${Math.round(o.rot / 2)} m` : ''}.</div>
     ${ae ? `<div><b>Allgemeinerlaubnis ${esc(stateName(reg.st))}:</b> 1:1-Regel – seitlicher Abstand zur Anlage mindestens so groß wie die Flughöhe${fh ? ` (bei ${fh} m also mindestens ${fh} m${o.rot ? `, zur Blattspitze gerechnet ${fh + Math.round(o.rot / 2)} m vom Mast` : ''})` : ''}; Überflug nur mit Zustimmung des Betreibers.</div>` : ''}
-    ${lawHtml('windkraftanlagen')}${licHtml('windkraftanlagen', reg)}
+    ${licHtml('windkraftanlagen', reg)}
     <div class="meta">Ob eine einzelne Anlage als „zentrale Energieerzeugung“ zählt, ist rechtlich nicht abschließend geklärt – die App rechnet vorsichtig mit 100 m. Im Zweifel Zustimmung des Betreibers einholen${o.op ? ` (${esc(o.op)})` : ''}.</div>`;
 }
 function obstaclesNear(lat, lon) {
@@ -5390,7 +5473,7 @@ $('bLayer').onclick = e => {
   $('zgRow').innerHTML = ZG.map(([k, t]) => `<button class="zgb${zgOn(k) ? ' on' : ''}" data-zg="${k}">${t}</button>`).join('');
   $('zgRow').querySelectorAll('[data-zg]').forEach(b => b.onclick = e => { e.stopPropagation(); const on = !zgOn(b.dataset.zg); zgSet(b.dataset.zg, on); b.classList.toggle('on', on); });
   // eigene Ebenen: NOTAMs und Tieffluggebiete (von der App gezeichnet, unabhängig von den dipul-Geozonen)
-  [['showNotam', 'NOTAMs & Tiefflug']].concat(P.traffic === '1' || P.rid === '1' ? [['trafMap', 'Luftverkehr live']] : []).forEach(([k, t]) => {
+  [['showNotam', 'NOTAMs & Tiefflug']].concat(P.osmPower === '1' ? [['showLines', 'Stromleitungen'], ['showObs', 'Windräder & Masten']] : [], P.traffic === '1' || P.rid === '1' ? [['trafMap', 'Luftverkehr live']] : []).forEach(([k, t]) => {
     const b = document.createElement('button'); b.className = 'zgb' + (P[k] !== '0' ? ' on' : ''); b.textContent = t; b.dataset.ex = k;
     b.onclick = e => { e.stopPropagation(); const on = P[k] === '0'; setP(k, on ? '1' : '0'); b.classList.toggle('on', on); if (k === 'trafMap') trafTick(); draw(); };
     $('zgRow').appendChild(b);
@@ -6309,7 +6392,8 @@ window.onUave = raw => {
     if (ev.errors && ev.errors.length) toast(`${ev.ok} neu exportiert, ${ev.errors.length} Fehler:\n` + ev.errors.join('\n'), true, 10000);
     if (!files.length) return;
     const base = P.src.replace(/\/+$/, '') + '/';
-    if (S.catDl) { S.catDl = false; doTransfer(files.map(n => base + n), P.drone || ''); setTimeout(() => load(true), 1500); return; }
+    if (S.catDl) { S.catDl = false; const keys = {}; Object.entries(ev.files || {}).forEach(([id, n]) => keys[base + n] = 'uave:' + id);
+      doTransfer(files.map(n => base + n), P.drone || '', keys); setTimeout(() => load(true), 1500); return; }
     load(true).then(() => {
       S.files.forEach(f => f.selected = files.includes(f.name)); update();
       doTransfer(files.map(n => base + n));
@@ -6325,8 +6409,9 @@ window.onUave = raw => {
     const doneFiles = Object.values(ev.files || {});
     if (S.catDl && doneFiles.length) {
       S.catDl = false;
-      const base = P.src.replace(/\/+$/, '') + '/';
-      doTransfer(doneFiles.map(n => base + n), P.drone || '');
+      const base = P.src.replace(/\/+$/, '') + '/', keys = {};
+      Object.entries(ev.files || {}).forEach(([id, n]) => keys[base + n] = 'uave:' + id);   // Feld-ID → Datei, damit die Farbe sicher stimmt
+      doTransfer(doneFiles.map(n => base + n), P.drone || '', keys);
       setTimeout(() => load(true), 1500);
       return;
     }
@@ -6643,7 +6728,7 @@ setInterval(() => { if (trafData() && S.traf.length && !document.hidden) trafPan
 const TRAF_SHAPE = {
   glider: 'M16 3L17 9L31 10.4L31 12.2L17 12.8L16.6 24L20 25L20 26.4L12 26.4L12 25L15.4 24L15 12.8L1 12.2L1 10.4L15 9Z',
   plane: 'M16 3L17.4 7L17.4 11L29 11.5L29 14.6L17.4 15.1L17 23L21 24L21 26.6L11 26.6L11 24L15 23L14.6 15.1L3 14.6L3 11.5L14.6 11L14.6 7Z',
-  jet: 'M16 2C17.3 2 17.6 4 17.6 6L17.6 11L29 15L29 17.5L17.6 16L17.3 24L21 26.5L21 28.5L16 27L11 28.5L11 26.5L14.7 24L14.4 16L3 17.5L3 15L14.4 11L14.4 6C14.4 4 14.7 2 16 2Z',
+  jet: 'M16 1.5C17.5 1.5 18 3.5 18 6L18 11L30 15.5L30.5 17L30 18.5L18 15.5L17.8 23.5L22 26L22 28L16 26.5L10 28L10 26L14.2 23.5L14 15.5L2 18.5L1.5 17L2 15.5L14 11L14 6C14 3.5 14.5 1.5 16 1.5Z',
   heli: 'M16 6C19 6 20.2 9 20.2 12.5C20.2 15.6 18.7 17.6 17 18.2L16.8 27.5L19.6 28.6L19.6 30.4L12.4 30.4L12.4 28.6L15.2 27.5L15 18.2C13.3 17.6 11.8 15.6 11.8 12.5C11.8 9 13 6 16 6Z',
   para: 'M2 12C8 4 24 4 30 12L28 14.6C22 9.4 10 9.4 4 14.6ZM14 22H18V27H14Z',
   hang: 'M16 5L30.5 22L16 18.3L1.5 22Z',
@@ -6830,7 +6915,8 @@ document.querySelectorAll('[data-traf]').forEach(b => b.onclick = () => { setP('
 /** geänderte Einstellungen an den laufenden Dienst geben (Einsatz-Wächter oder reiner Luftverkehr-Dienst) */
 function trafRestart() { const run = trafSvcRunning(); if (run && !run.trafOnly) watchStart(null, true); else trafEnsure(true); }
 document.querySelectorAll('[data-tsnd]').forEach(b => b.onclick = () => { setP('tSnd', b.dataset.tsnd); trafUi(); trafRestart(); });
-if ($('bNearTest')) $('bNearTest').onclick = () => { if (!A.sirenTest) return toast('Diese App-Version kann das noch nicht.', true); A.sirenTest(3); toast('So klingt die Sprachansage „Traffic, Traffic" (wiederholt sich alle 4 s, solange es näher kommt). Lautstärke: Wecker/Alarm.', 'ok', 4000); };
+if ($('bNearTest')) $('bNearTest').onclick = () => { if (!A.sirenTest) return toast('Diese App-Version kann das noch nicht.', true); A.sirenTest(3); setTimeout(() => A.sirenTest(4), 1500); setTimeout(() => A.sirenTest(5), 3000);
+  toast('Ablauf wie TCAS: „Traffic, traffic" (Nahbereich, alle 3 s) → „Descend, descend" (halber Nahbereich, alle 2 s – Drohne runter) → „Clear of conflict" (vorbei). Lautstärke: Wecker/Alarm.', 'ok', 7000); };
 document.querySelectorAll('[data-tnear]').forEach(b => b.onclick = () => { setP('tNear', b.dataset.tnear); trafUi(); trafRestart(); });
 document.querySelectorAll('[data-tovl]').forEach(b => b.onclick = () => { setP('tOvl', b.dataset.tovl); trafUi(); trafRestart(); if (b.dataset.tovl === '1' && A.canOverlay && !A.canOverlay() && A.overlayPerm) A.overlayPerm(); });
 if ($('bOvlPerm')) $('bOvlPerm').onclick = () => A.overlayPerm && A.overlayPerm();
@@ -6881,7 +6967,7 @@ const TOUR = [
     Danach werden die Wiesen in „Kitzrettung Import“ kopiert – der Ordner wird vorher geleert, damit keine alten Felder drinliegen. Bei „Fernsteuerung“ gibt es nur den Pre-Check.`],
   ['#bSearch', 'Suchen', `Wiese per Name oder einen Ort (Dorf, Ortsteil, Hof) finden – auch offline. Die Treffer werden auf der Karte gezeigt, mit „Los“ springst du hin.`],
   ['#bInfo', 'Info-Modus', `Einschalten, dann auf die Karte tippen: eine Blase zeigt, was an dieser Stelle gilt – <b>Geozonen</b> (mit Bewertung für eure Genehmigung), <b>Stromleitungen</b> mit Spannung, <b>Windräder</b>, Masten, Bahn, Flugplätze.<br>„Details“ öffnet alles ausführlich: Regeln, Auflagen, Ansprechpartner, Masthöhen – und „Wie sieht so eine Leitung aus?“ mit Zeichnungen der Masttypen.`],
-  ['#bLayer', 'Kartenart & Ebenen', `<b>Grau</b> (ruhig, Zonen gut lesbar), <b>Karte</b> (farbig) oder <b>Luftbild</b>.<br>Darunter: welche Geozonen-Gruppen eingeblendet sind (Luftfahrt, Natur, Verkehr, Energie, Sicherheit) und „NOTAMs &amp; Tiefflug“ ein/aus.`],
+  ['#bLayer', 'Kartenart & Ebenen', `<b>Grau</b> (ruhig, Zonen gut lesbar), <b>Karte</b> (farbig) oder <b>Luftbild</b>.<br>Darunter: welche Geozonen-Gruppen eingeblendet sind (Luftfahrt, Natur, Verkehr, Energie, Sicherheit) sowie „NOTAMs &amp; Tiefflug“, „Stromleitungen“ und „Windräder &amp; Masten“ ein/aus. Ausblenden betrifft nur die Karte – der Pre-Check prüft trotzdem alles.`],
   ['#bFit', 'Alles zeigen', `Zoomt so, dass alle Wiesen zu sehen sind. Darüber: hinein- und herauszoomen.`],
   ['#bLoc', 'Mein Standort', `Springt zu deinem GPS-Standort. Während gesucht wird, dreht sich die Anzeige im Knopf. Der blaue Kegel auf der Karte zeigt die Blickrichtung der Fernsteuerung.`],
   ['#wind', 'Wind & Wetter', `Wind in 10 m, Böen und Wind in 50/80/100/120 m, dazu Kp-Index (Störung von GPS/Kompass) und die Quelle.<br><b>Antippen</b> öffnet das Wetter: Einsatzfenster am Morgen bewertet, Stunde für Stunde, Sonnenlauf, Vorschau für die nächsten Tage – bei markierten Wiesen für genau diese.`],
