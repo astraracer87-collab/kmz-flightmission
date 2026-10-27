@@ -40,21 +40,25 @@ jobs:
           gradle-version: '8.9'
 
       - name: APK bauen
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: gradle assembleFullDebug assembleLiteDebug --no-daemon --stacktrace
 
-      - name: APK umbenennen
-        run: cp app/build/outputs/apk/debug/app-debug.apk Mission-Kitzrettung.apk
+      - name: APKs umbenennen
+        run: |
+          cp app/build/outputs/apk/full/debug/app-full-debug.apk Mission-Kitzrettung.apk
+          cp app/build/outputs/apk/lite/debug/app-lite-debug.apk Kitzrettung-Lite.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: Mission-Kitzrettung
-          path: Mission-Kitzrettung.apk
+          path: |
+            Mission-Kitzrettung.apk
+            Kitzrettung-Lite.apk
 
       - name: Als Release "latest" veröffentlichen
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete latest --yes --cleanup-tag || true
-          gh release create latest Mission-Kitzrettung.apk --target "${{ github.sha }}" \
+          gh release create latest Mission-Kitzrettung.apk Kitzrettung-Lite.apk --target "${{ github.sha }}" \
             --title "Mission Kitzrettung – Build ${{ github.run_number }}" \
-            --notes "Automatischer Build. APK herunterladen und auf der DJI RC installieren."
+            --notes "Automatischer Build. Mission-Kitzrettung.apk = volle App, Kitzrettung-Lite.apk = vereinfachte App. Beide lassen sich gleichzeitig auf der DJI RC installieren."

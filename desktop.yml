@@ -1,0 +1,85 @@
+name: Desktop-Programm bauen (Windows/Mac)
+
+# Baut aus derselben index.html wie die App das Desktop-Programm für Koordinatoren.
+# Erwartet im Repo (flach hochgeladen): index.html, ic_launcher.png und desktop.zip (Ordner „desktop“ gepackt).
+on:
+  push:
+    branches: ['**']
+    paths: ['index.html', 'desktop.zip', 'ic_launcher.png', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dateien einsortieren
+        run: |
+          set -e
+          rm -rf build-desktop && mkdir build-desktop
+          unzip -q desktop.zip -d build-desktop
+          D=build-desktop/desktop
+          mkdir -p $D/app
+          cp index.html $D/app/index.html
+          cp $D/icon.png $D/app/icon.png
+          ls -R $D | head -50
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Abhängigkeiten installieren
+        working-directory: build-desktop/desktop
+        run: npm install --no-audit --no-fund
+
+      - name: Selbsttest (Server-Module)
+        working-directory: build-desktop/desktop
+        run: node test/run.js
+
+      - name: Programm bauen (Windows)
+        if: runner.os == 'Windows'
+        working-directory: build-desktop/desktop
+        run: npx electron-builder --win nsis portable --x64 --publish never
+
+      - name: Programm bauen (Mac)
+        if: runner.os == 'macOS'
+        working-directory: build-desktop/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --mac dmg --universal --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Mission-Kitzrettung-${{ runner.os }}
+          path: |
+            build-desktop/desktop/dist/*.exe
+            build-desktop/desktop/dist/*.dmg
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+      - name: Als Release „desktop“ veröffentlichen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ls -R out
+          gh release delete desktop --yes --cleanup-tag || true
+          gh release create desktop out/*/* --target "${{ github.sha }}" \
+            --title "Mission Kitzrettung – Desktop (Windows/Mac) – Build ${{ github.run_number }}" \
+            --notes "Windows: „Mission-Kitzrettung-Windows-Installation.exe“ (mit Startmenü-Eintrag) oder „…-ohne-Installation.exe“ (direkt starten). Mac: .dmg öffnen, App in „Programme“ ziehen, beim ersten Start Rechtsklick → Öffnen (nicht signiert)."

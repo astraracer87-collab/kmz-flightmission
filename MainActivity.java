@@ -592,6 +592,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public String getPref(String key, String def) { return prefs.getString(key, def); }
 
+        /** Welche App: „lite“ (Paket …kmzmission.lite) oder „full“ – index.html blendet danach Funktionen aus */
+        @JavascriptInterface
+        public String variant() { return getPackageName().endsWith(".lite") ? "lite" : "full"; }
+
         @JavascriptInterface
         public void setPref(String key, String value) { prefs.edit().putString(key, value).apply(); prefsBackupLater(); }
 
