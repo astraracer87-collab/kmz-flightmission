@@ -479,6 +479,40 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return false;
     }
 
+    // ---------- Mindesthöhe an Stromleitungen: Pfad → Mindesthöhe (m), von der Seite vor dem Übertragen gesetzt ----------
+    private static final Map<String, Double> MIN_H = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Hebt alle Höhenangaben einer Mission an, wenn die Flughöhe unter minH liegt (z. B. 50 → 70 m an Stromleitungen). Routen bleiben gleich. */
+    private static byte[] raiseKmz(byte[] kmz, double minH) throws Exception {
+        java.util.LinkedHashMap<String, byte[]> entries = new java.util.LinkedHashMap<>();
+        try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(kmz))) {
+            ZipEntry e; while ((e = z.getNextEntry()) != null) { if (!e.isDirectory()) entries.put(e.getName(), readBytes(z)); }
+        }
+        double base = -1;
+        for (Map.Entry<String, byte[]> en : entries.entrySet()) {
+            if (!en.getKey().toLowerCase(Locale.ROOT).endsWith("template.kml")) continue;
+            Matcher gm = Pattern.compile("<wpml:globalHeight>([-\\d.]+)<").matcher(new String(en.getValue(), StandardCharsets.UTF_8));
+            if (gm.find()) base = Double.parseDouble(gm.group(1));
+        }
+        if (base < 0 || base >= minH - 0.5) return kmz;   // schon hoch genug (oder keine Höhe gefunden)
+        double delta = minH - base;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zo = new java.util.zip.ZipOutputStream(out)) {
+            for (Map.Entry<String, byte[]> en : entries.entrySet()) {
+                byte[] v = en.getValue(); String ln = en.getKey().toLowerCase(Locale.ROOT);
+                if (ln.endsWith(".kml") || ln.endsWith(".wpml")) {
+                    Matcher m = Pattern.compile("(<wpml:(?:globalHeight|takeOffSecurityHeight|height|ellipsoidHeight|executeHeight)>)([-\\d.]+)(<)").matcher(new String(v, StandardCharsets.UTF_8));
+                    StringBuffer sb = new StringBuffer();
+                    while (m.find()) { String x = m.group(2); double nv = Double.parseDouble(x) + delta;
+                        m.appendReplacement(sb, Matcher.quoteReplacement(m.group(1) + (x.contains(".") ? String.format(Locale.ROOT, "%.1f", nv) : String.valueOf(Math.round(nv))) + m.group(3))); }
+                    m.appendTail(sb); v = sb.toString().getBytes(StandardCharsets.UTF_8);
+                }
+                ZipEntry ze = new ZipEntry(en.getKey()); ze.setTime(System.currentTimeMillis()); zo.putNextEntry(ze); zo.write(v); zo.closeEntry();
+            }
+        }
+        return out.toByteArray();
+    }
+
     /** KMZ neu packen: optional umrechnen (to != null), Zeitstempel createTime/updateTime und Zip-Einträge auf jetzt */
     private static byte[] rewriteKmz(File src, String to) throws Exception {
         if (to != null) {
@@ -825,6 +859,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             }
         }
 
+        /** Vor transfer(): { Quellpfad: Mindesthöhe in m } – für Felder mit Stromleitung */
+        @JavascriptInterface
+        public void setMinHeights(String json) {
+            MIN_H.clear();
+            try { JSONObject o = new JSONObject(json); java.util.Iterator<String> it = o.keys(); while (it.hasNext()) { String k = it.next(); MIN_H.put(k, o.optDouble(k, 0)); } } catch (Exception ignored) { }
+        }
+
         /** Kopiert/verschiebt Dateien in den Zielordner */
         @JavascriptInterface
         public String transfer(String pathsJson, String dstPath, boolean move, boolean clear, String drone) {
@@ -854,6 +895,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         boolean conv = drone != null && !drone.isEmpty() && needsConvert(src, drone);
                         // immer neu schreiben: Zeitstempel in der Planung (createTime/updateTime) auf jetzt, ggf. umrechnen
                         byte[] converted = rewriteKmz(src, conv ? drone : null);
+                        Double mh = MIN_H.get(paths.getString(i));   // Stromleitung am Feld: Mindesthöhe (Einstellung „Überflughöhe an Stromleitungen“)
+                        if (mh != null && mh > 0) { byte[] r = raiseKmz(converted, mh); if (r != converted) res.put("raised", res.optInt("raised", 0) + 1); converted = r; }
                         String name = conv ? swapDroneInName(src.getName(), drone) : src.getName();
                         File target = new File(dst, name);
                         if (src.getCanonicalPath().equals(target.getCanonicalPath())) {
