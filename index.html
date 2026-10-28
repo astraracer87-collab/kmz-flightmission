@@ -94,6 +94,10 @@
   .v-web #searchBox.inbar #qHits button{justify-content:flex-start;text-align:left;flex:none}
   .v-web #searchBox.inbar #qHits{left:auto;right:0;width:min(720px,94vw);max-height:70vh;display:flex;gap:0;padding:0;overflow:hidden}
   .wsf{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line);font-size:14px}
+  .wsx{width:34px;height:34px;border-radius:50%;background:var(--sec);color:var(--txt);font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;margin-left:4px}.wsx:hover{background:var(--line)}
+  .wsfo{justify-content:space-between;width:100%}
+  #qHits .wsf button.wsx{background:var(--sec);color:var(--txt);padding:0;width:34px;min-width:34px}
+  #qHits .wsf button.wsxa{position:absolute;top:9px;right:10px} #qHits .wsf:has(.wsxa){padding-right:56px}
   .wsf label{display:flex;gap:6px;align-items:center;color:var(--muted)} .wsf select{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:8px;height:34px;padding:0 8px;font:inherit}
   .wsf .wsn{margin-left:auto;color:var(--muted)} #qHits .wsf button{height:34px;background:#00a99d;color:#fff;justify-content:center}
   .wsl{overflow-y:auto;padding:6px} .wsr{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:15px}
@@ -271,6 +275,16 @@
   #infoPop button.on .ck{background:var(--acc);border-color:var(--acc)}
   #infoPop button.on .ck::after{content:'✓'}
   #infoPop .dot{width:12px;height:12px;border-radius:50%;flex:none}
+  #zonePop{position:fixed;display:none;flex-direction:column;gap:6px;padding:10px;background:var(--ctrl);border-radius:16px;box-shadow:0 3px 14px rgba(0,0,0,.35);z-index:30;width:290px}
+  #zonePop.open{display:flex}
+  #zonePop .zh{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:4px 2px 0}
+  #zonePop .zr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 4px;font-size:14px;font-weight:600;color:var(--txt);cursor:pointer;border-radius:8px}
+  #zonePop .zr:hover{background:var(--sec)}
+  #zonePop .zall{padding:6px 12px;border-radius:14px;font-size:13px;font-weight:800;background:var(--sec);color:var(--acc)}
+  #zonePop .zall.on{background:var(--acc);color:#fff}
+  #bZones{position:relative}
+  #bZones .zbadge{position:absolute;top:-5px;right:-5px;width:20px;height:20px;border-radius:50%;background:#d32f2f;color:#fff;font:900 13px/20px Roboto,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #fff;display:none}
+  #bZones.part .zbadge{display:block}
   #layerPop{position:fixed;display:none;gap:8px;padding:8px;background:var(--ctrl);border-radius:16px;box-shadow:0 3px 14px rgba(0,0,0,.35);z-index:30}
   #layerPop.open{display:flex;flex-direction:column}
   #layerPop .lyrow{display:flex;gap:8px}
@@ -366,7 +380,7 @@
   .nvd2{margin-top:6px}.nvd2 summary{cursor:pointer;color:var(--acc);font-size:13px}.nvi{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;padding:4px 0;border-top:1px dashed var(--line)}.nvi button{height:28px;padding:0 10px;font-size:12px}
   .nvt{width:100%;border-collapse:collapse;font-size:15px}.nvt th{text-align:left;color:var(--muted);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--line)}.nvt td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
   .lgh{margin:14px 0 8px;padding-left:10px;border-left:6px solid;font-size:17px}.lgh span{color:var(--muted);font-weight:600}
-  .lverd{display:inline-block;font-size:13px;font-weight:800;color:#fff;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle}
+  .lverd{display:inline-block;font-size:13px;font-weight:800;color:#fff;padding:2px 8px;border-radius:8px;margin:2px 0 2px 6px;vertical-align:middle;white-space:nowrap}
   .lchip small{display:block;font-size:13px;color:var(--muted);margin-top:1px}.lchip small b{color:var(--txt)}.lchip small span{font-weight:800}
   .lfld .lcard{padding:8px 10px;gap:10px}.lfld .lcard .lico{font-size:22px}.lfld .lcard b{font-size:16px}.lfld .lcard p{font-size:15px}
   .fthumb{position:relative;overflow:hidden;border-radius:10px;background:#5b6b4e;flex:none}.fthumb img{position:absolute;width:256px;height:256px;max-width:none}.fthumb svg{position:absolute;left:0;top:0;width:100%!important;height:100%!important;fill:initial;stroke:initial}
@@ -846,7 +860,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 if (IS_LITE) {   // Lite: kein Flugradar, keine Wetterwarnungen; Felder erst über „UAV-Editor“ (Suche → Pre-Check → Import)
@@ -1252,10 +1266,10 @@ function geoKeep(z, x, y) {
 const zgSel = () => ZG.map(([g]) => g).filter(zgOn).join(',');
 const GEOR = makeTileLayer($('mapG'), { url: (z, x, y) => `https://dipul.local/${z}/${x}/${y}?g=${zgSel()}`, key: (z, x, y) => 'g' + zgSel() + z + '/' + x + '/' + y,
   maxz: () => 16, maxUp: 2.1, failDone: true, minz: 7, id: () => zgSel() + (P.geoOwn === '0' ? 'a' : 'o') + (S.geoBox ? S.geoBox.n : ''), keep: geoKeep,
-  off: () => P.geo !== '1' || P.geoAll === '0' || !zgSel() });
+  off: () => !!S.opFocus || !!S.searchFocus || P.geo !== '1' || P.geoAll === '0' || !zgSel() });   // Netzbetreiber-Ansicht: keine Geozonen
 function zgSet(k, on) {
   const cur = ZG.map(([g]) => g).filter(g => g === k ? on : zgOn(g));
-  setP('zg', cur.join(',')); applyGeoConfig(); drawLive(false);
+  setP('zg', cur.join(',')); applyGeoConfig(); drawLive(false); if (typeof zoneBtnState === 'function') zoneBtnState();
 }
 function tlReset() { BASE.reset(); GEOR.reset(); }
 const placeEl = (el, B, hideOut) => { const [x, y, k] = bufPlace(B); el.style.visibility = !hideOut || (k > .3 && k < 3.5) ? 'visible' : 'hidden'; el.style.transform = `translate3d(${x}px,${y}px,0) scale(${k})`; };
@@ -1308,6 +1322,8 @@ function paintTiles() {
 let obsIcons = [], obsLabels = [];
 function paintStatic() {
   obsIcons = []; obsLabels = [];
+  if (S.opFocus) return paintOpFocus();
+  if (S.searchFocus) return paintSearchFocus();   // PC-Suche offen: nur die Felder aus der Suchliste   // Netzbetreiber-Ansicht: nur betroffene Felder und Leitungen
   if (P.geo === '1' && P.geoOwn !== '0' && S.geo.length && V.z >= 9) paintGeo();
   // nur Anzeige: Pre-Check und Antippen prüfen Hindernisse/Leitungen immer, auch wenn sie ausgeblendet sind
   if (P.osmPower === '1' && P.showObs !== '0' && (S.obs.length || S.rails.length) && V.z >= 11) paintObstacles();
@@ -1319,7 +1335,10 @@ function paintStatic() {
   ord.forEach(f => { drawOutline(f); drawField(f); });
   ord.filter(f => f.selected).forEach(drawField);   // Route markierter Felder obenauf
   labelBoxes = [];
-  if (P.labels === '1') { vis.filter(f => f.selected).forEach(drawLabel); vis.filter(f => !f.selected).forEach(drawLabel); }
+  const drawLabels = () => { if (P.labels !== '1') return;   // ganz zum Schluss: Feldnamen über Windrädern/Masten
+    if (V.z >= LABEL_Z) { vis.filter(f => f.selected).forEach(f => drawLabel(f)); vis.filter(f => !f.selected).forEach(f => drawLabel(f)); }
+    else if (V.z >= LABEL_ZMIN) drawLabelGroups(vis);   // weiter weg: Namen trotzdem lesbar, dicht liegende als Liste
+    else vis.filter(f => f.selected).forEach(f => drawLabel(f)); };
   if (!pwrAutoRaise()) ord.filter(lowNearPower).forEach(drawPowerWarn);   // zu niedrig geplant, aber Stromleitung am Feld (in den Apps nur, wenn nicht automatisch angehoben wird)   // PC: auf 50 m geplant, aber Stromleitung am Feld
   // dipul ist maßgeblich: Symbol und Vincenz-Ringe in der Mitte des dipul-Kreises; OSM-Marker nur, wo dipul keinen Platz hat
   const icons = P.geo === '1' && S.geo.length && V.z >= 9 ? geoAirIcons() : [];
@@ -1334,6 +1353,7 @@ function paintStatic() {
   if (S.plan) paintPlan();
   resetTf(); ctx.setLineDash([]);
   obsIcons.forEach(f => f()); obsLabels.forEach(f => f());   // ganz oben
+  drawLabels();
   if (S.kf && S.files.includes(S.kf)) {   // mit dem 5D-Knopf gewähltes Feld: gelber Rahmen
     const r = S.kf.outline && S.kf.outline.length > 2 ? S.kf.outline : (S.kf.shapes[0] || {}).pts || [];
     ctx.save(); ctx.lineWidth = 6; ctx.strokeStyle = '#ffd400'; ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 6; ctx.beginPath();
@@ -1964,29 +1984,41 @@ const pwrH = () => { const v = Math.round(+P.pwrH); return v >= 30 && v <= 120 ?
 const pwrAdj = () => P.pwrAdj !== '0';
 /** Wird eine Freileitung (keine Erdkabel) tatsächlich überflogen? Geprüft wird die Flugbahn (Wegpunkt-Route) der Mission:
  *  Leitung kreuzt die Bahn oder liegt höchstens 10 m daneben. Liegen die Bahnen nur neben der Leitung (Feld aufgeteilt, nur herangeflogen),
- *  gibt es keine Warnung und kein Anheben. Ohne Route (nur Fläche): Leitung innerhalb der Fläche bzw. bis 10 m an ihrem Rand. */
+ *  gibt es keine Warnung und kein Anheben. Ohne Route (nur Fläche): Leitung innerhalb der Fläche, ohne Puffer. */
 const OVER_M = 10;
+/** Flugbahn eines Feldes: Wegpunkt-Route als Strecken [lon,lat] – ohne Route nur die Feldfläche selbst (ohne Puffer) */
+function flightGeom(f) {
+  if (f._fg) return f._fg;
+  const segs = [], sh = f.shapes || [];
+  (f.route ? [{ pts: f.route }] : sh.filter(x => x.type === 'line')).forEach(x => { for (let i = 1; i < x.pts.length; i++) segs.push([[x.pts[i - 1][1], x.pts[i - 1][0]], [x.pts[i][1], x.pts[i][0]]]); });
+  const polys = segs.length ? [] : sh.filter(x => x.type === 'poly' && x.pts.length > 2).map(x => x.pts.map(p => [p[1], p[0]]));
+  if (!segs.length && !polys.length) { const fr = fieldRingLL(f) || []; if (fr.length > 2) polys.push(fr); }
+  return f._fg = { segs, polys };
+}
+const overAt = (g, la, lo) => g.segs.some(([a, b]) => segDistM(la, lo, a, b) <= OVER_M) || g.polys.some(r => inRing(la, lo, r));
+/** Abschnitte einer Freileitung, die tatsächlich überflogen werden (Flugbahn kreuzt sie bzw. höchstens 10 m daneben) – „in der Nähe“ zählt nicht */
+function overSections(f, l) {
+  const bb = f.bounds, m = 0.0003; if (!bb || !l.bb || l.bb.s > bb.n + m || l.bb.n < bb.s - m || l.bb.w > bb.e + m * 1.6 || l.bb.e < bb.w - m * 1.6) return [];
+  const g = flightGeom(f); if (!g.segs.length && !g.polys.length) return [];
+  // Leitung in 5-m-Schritten abtasten; Lücken bis 100 m zwischen überflogenen Stellen schließen (Bahnen liegen 20–60 m auseinander) → ein Abschnitt je Feld statt vieler Schnipsel
+  const smp = [];
+  for (let i = 0; i < l.pts.length - 1; i++) {
+    const a = l.pts[i], b = l.pts[i + 1], n = Math.max(1, Math.ceil(distM(a[0], a[1], b[0], b[1]) / 5));
+    for (let k = i ? 1 : 0; k <= n; k++) { const la = a[0] + (b[0] - a[0]) * k / n, lo = a[1] + (b[1] - a[1]) * k / n;
+      const inb = !(la < bb.s - m || la > bb.n + m || lo < bb.w - m * 1.6 || lo > bb.e + m * 1.6);
+      smp.push({ p: [la, lo], on: inb && overAt(g, la, lo) }); }
+  }
+  let last = -1; smp.forEach((x, i) => { if (!x.on) return; if (last >= 0 && i - last > 1 && (i - last) * 5 <= 100) for (let k = last + 1; k < i; k++) smp[k].on = true; last = i; });
+  const out = []; let cur = null;
+  smp.forEach(x => { if (x.on) { if (!cur) out.push(cur = []); cur.push(x.p); } else cur = null; });
+  return out.map(pts => pts.length > 1 ? pts : [pts[0], pts[0]]).map(pts => ({ pts, len: Math.max(5, pts.reduce((mm, q, i) => i ? mm + distM(pts[i - 1][0], pts[i - 1][1], q[0], q[1]) : 0, 0)) }));
+}
+/** Wird eine Freileitung (keine Erdkabel) tatsächlich überflogen? Liegen die Bahnen nur daneben (Feld aufgeteilt, nur herangeflogen): nein */
 function touchesPower(f) {
   if (!f || !S.osm || !S.osm.length) return false;
   const k = S.osm.length;
   if (f._lnp && f._lnp.k === k) return f._lnp.v;
-  const bb = f.bounds, m = 0.0003, sh = f.shapes || [];
-  const segs = [];   // Flugbahn-Strecken als [lon,lat]-Paare
-  (f.route ? [{ pts: f.route }] : sh.filter(x => x.type === 'line')).forEach(x => { for (let i = 1; i < x.pts.length; i++) segs.push([[x.pts[i - 1][1], x.pts[i - 1][0]], [x.pts[i][1], x.pts[i][0]]]); });
-  const polys = segs.length ? [] : sh.filter(x => x.type === 'poly' && x.pts.length > 2).map(x => x.pts.map(p => [p[1], p[0]]));
-  if (!segs.length && !polys.length) { const fr = fieldRingLL(f) || []; if (fr.length > 2) polys.push(fr); }
-  polys.forEach(r => r.forEach((p, i) => segs.push([p, r[(i + 1) % r.length]])));
-  const over = (la, lo) => segs.some(([a, b]) => segDistM(la, lo, a, b) <= OVER_M) || polys.some(r => inRing(la, lo, r));
-  let v = false;
-  if (segs.length && bb) v = S.osm.some(l => {
-    if (l.p === 'cable' || l.loc === 'underground' || !l.bb || l.bb.s > bb.n + m || l.bb.n < bb.s - m || l.bb.w > bb.e + m * 1.6 || l.bb.e < bb.w - m * 1.6) return false;
-    for (let i = 0; i < l.pts.length - 1; i++) {
-      const a = l.pts[i], b = l.pts[i + 1], n = Math.max(1, Math.ceil(distM(a[0], a[1], b[0], b[1]) / 5));
-      for (let j = 0; j <= n; j++) { const la = a[0] + (b[0] - a[0]) * j / n, lo = a[1] + (b[1] - a[1]) * j / n;
-        if (la < bb.s - m || la > bb.n + m || lo < bb.w - m * 1.6 || lo > bb.e + m * 1.6) continue;
-        if (over(la, lo)) return true; }
-    }
-    return false; });
+  const v = S.osm.some(l => l.p !== 'cable' && l.loc !== 'underground' && overSections(f, l).length);
   f._lnp = { k, v }; return v;
 }
 /** Mission niedriger als die eingestellte Überflughöhe geplant, aber Freileitung am/über dem Feld */
@@ -2000,8 +2032,42 @@ function drawPowerWarn(f) {
   ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.fillStyle = '#d32f2f'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
   ctx.fillStyle = '#fff'; ctx.font = '900 16px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', x, y + 1);
 }
-function drawLabel(f) {
-  if (V.z < LABEL_Z && !f.selected) return;
+/** Weiter herausgezoomt: nahe beieinander liegende Felder als Liste untereinander (sonst wäre es nur ein Klecks) – jede Zeile antippbar */
+const LABEL_ZMIN = 10;
+function drawLabelGroups(vis) {
+  const pts = vis.filter(f => f.center).map(f => { const [x, y] = toScreen(f.center[0], f.center[1]); return { f, x, y }; })
+    .filter(p => p.x > -200 && p.y > -100 && p.x < W + 200 && p.y < H + 100).sort((a, b) => a.y - b.y || a.x - b.x);
+  const cl = [];
+  pts.forEach(p => { const g = cl.find(g => g.items.some(q => Math.abs(q.x - p.x) < 90 && Math.abs(q.y - p.y) < 40)); g ? g.items.push(p) : cl.push({ items: [p] }); });
+  // Gruppen, die sich durch neue Mitglieder berühren, zusammenlegen
+  for (let i = 0; i < cl.length; i++) for (let j = i + 1; j < cl.length; j++) if (cl[i].items.some(a => cl[j].items.some(b => Math.abs(a.x - b.x) < 90 && Math.abs(a.y - b.y) < 40))) { cl[i].items.push(...cl[j].items); cl.splice(j, 1); j = i; }
+  cl.forEach(g => {
+    if (g.items.length === 1) return drawLabel(g.items[0].f, true);
+    const it = g.items.sort((a, b) => (b.f.selected - a.f.selected) || ftitle(a.f).localeCompare(ftitle(b.f), 'de', { numeric: true }));
+    const cx = it.reduce((m, p) => m + p.x, 0) / it.length, cy = it.reduce((m, p) => m + p.y, 0) / it.length;
+    const MAXL = 10, lines = it.slice(0, MAXL), more = it.length - lines.length, LH = 19;
+    ctx.font = '700 13px Roboto,system-ui,sans-serif';
+    const txt = p => (isDroneMismatch(p.f) ? '⚠ ' : '') + shortTitle(p.f.title);
+    const w = Math.max(...lines.map(p => ctx.measureText(txt(p)).width), more ? ctx.measureText(`+${more} weitere`).width : 0) + 14;
+    const h = (lines.length + (more ? 1 : 0)) * LH + 6;
+    const mxX = Math.max(...it.map(p => p.x)), mnX = Math.min(...it.map(p => p.x));   // Liste neben die Felder, damit sie sichtbar bleiben
+    const x0 = Math.round(mxX + 18 + w < W ? mxX + 18 : mnX - 18 - w), y0 = Math.round(Math.max(4, Math.min(H - h - 4, cy - h / 2)));
+    // Punkte der Felder mit dem Listenkasten verbinden
+    ctx.strokeStyle = 'rgba(21,32,43,.45)'; ctx.lineWidth = 1;
+    it.forEach(p => { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(Math.max(x0, Math.min(x0 + w, p.x)), Math.max(y0, Math.min(y0 + h, p.y))); ctx.stroke(); ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, 7); ctx.fillStyle = '#15202b'; ctx.fill(); });
+    ctx.fillStyle = 'rgba(255,255,255,.94)'; ctx.fillRect(x0, y0, w, h); ctx.strokeStyle = 'rgba(21,32,43,.55)'; ctx.lineWidth = 1.5; ctx.strokeRect(x0, y0, w, h);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    lines.forEach((p, i) => { const f = p.f, mm = isDroneMismatch(f), y = y0 + 3 + i * LH;
+      FC = mm ? FCW : (f.cat || f.ue) ? (f.inDst ? FCD : FCC) : FC0;
+      if (f.selected) { ctx.fillStyle = mm ? '#d32f2f' : FC.routeSel; ctx.fillRect(x0 + 2, y, w - 4, LH); }
+      else { ctx.fillStyle = FC.route; ctx.fillRect(x0 + 2, y + 3, 3, LH - 6); }
+      ctx.fillStyle = f.selected ? '#fff' : mm ? '#d32f2f' : '#15202b'; ctx.fillText(txt(p), x0 + 9, y + LH / 2 + 1);
+      labelBoxes.push({ x: x0, y, w, h: LH, f }); });
+    if (more) { ctx.fillStyle = '#5d6975'; ctx.font = '600 12px Roboto,system-ui,sans-serif'; ctx.fillText(`+${more} weitere – hineinzoomen`, x0 + 9, y0 + 3 + lines.length * LH + LH / 2); }
+  });
+}
+function drawLabel(f, force) {
+  if (V.z < LABEL_Z && !f.selected && !force) return;
   const [x, y] = toScreen(f.center[0], f.center[1]);
   if (x < -150 || y < -30 || x > W + 150 || y > H + 30) return;
   // Kurzname auf der Karte (ohne „_0.443ha_8WP“ und Drohnen-Kürzel) – der volle Name steht in Liste und Details
@@ -2088,8 +2154,10 @@ cv.addEventListener('pointerup', e => {
   const [la1, lo1] = fromScreen(Math.min(b.x0, b.x1) - r.left, Math.min(b.y0, b.y1) - r.top), [la2, lo2] = fromScreen(Math.max(b.x0, b.x1) - r.left, Math.max(b.y0, b.y1) - r.top);
   const n = Math.max(la1, la2), s0 = Math.min(la1, la2), ea = Math.max(lo1, lo2), w0 = Math.min(lo1, lo2);
   const hits = S.files.filter(f => visible(f) && f.center && f.center[0] <= n && f.center[0] >= s0 && f.center[1] <= ea && f.center[1] >= w0);
-  hits.forEach(f => { f.selected = true; }); update(); draw();
-  toast(hits.length ? `${hits.length} Feld${hits.length > 1 ? 'er' : ''} markiert` : 'Im Rahmen liegt kein Feld.', hits.length ? 'ok' : false, 2000);
+  // umschalten: schon markierte Felder im Rahmen werden wieder entmarkiert, die anderen markiert
+  let on = 0, off = 0; hits.forEach(f => { f.selected = !f.selected; f.selected ? on++ : off++; }); update(); draw();
+  const fz = n => n + ' Feld' + (n > 1 ? 'er' : '');
+  toast(hits.length ? [on ? fz(on) + ' markiert' : '', off ? fz(off) + ' entmarkiert' : ''].filter(Boolean).join(', ') : 'Im Rahmen liegt kein Feld.', hits.length ? 'ok' : false, 2000);
 }, true);
 cv.addEventListener('pointerdown', e => {
   stopFling(); trail = [];
@@ -2699,6 +2767,8 @@ function webCatHits(q) {
     .sort((a, b) => CAT_YEAR(b) - CAT_YEAR(a) || String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
 }
 /** PC: Auswahlliste unter dem Suchfeld – Filter Jahr (Standard: aktuelles Jahr) und Stand (aktiv/archiviert), darunter alle Felder nach Namen sortiert */
+/** PC: aufgeklappte Liste unter dem Suchfeld schließen (Suchbegriff bleibt stehen) */
+function webSearchClose() { S.qOpen = false; $('qHits').innerHTML = ''; $('q').blur(); setSearchFocus(null); }
 function webSearchPanel(box) {
   if (!S.qOpen) { box.innerHTML = ''; return; }
   let d = null; try { d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); } catch (e) { }
@@ -2706,20 +2776,41 @@ function webSearchPanel(box) {
   if (S.qYear == null) S.qYear = String(Y); if (!S.qStand) S.qStand = 'alle';
   const years = [...new Set(all.map(CAT_YEAR).filter(Boolean))].sort((a, b) => b - a);
   const fq = foldTxt($('q').value.trim()).replace(/[_\-]+/g, ' ');
+  // Drohne: Kürzel im Namen bzw. Drohnentyp im UAV Editor, sonst über die Flughöhe (Mavic 3T 50 m, Matrice 4T 70 m); unbekannt → in jedem Filter
+  const dOf = f => { const d = uaveInfo(f).drone, h = f.meta && f.meta.h; return d === 'M3T' || d === 'M4T' ? d : h ? (h < 60 ? 'M3T' : 'M4T') : ''; };
+  const qD = ['M3T', 'M4T'].includes(P.wsDrone) ? P.wsDrone : 'alle';
+  // jüngstes Datum: erstellt oder zuletzt geändert im UAV Editor
+  const cfT = f => { const c = dOk(f.created || (f.meta || {}).created), l = dOk(f.lm); return Math.max(c ? +c : 0, l ? +l : 0); };
+  const cfD = f => { const c = dOk(f.created || (f.meta || {}).created), l = dOk(f.lm), t = cfT(f); if (!t) return '';
+    return (l && +l === t && (!c || Math.abs(l - c) > 60000) ? 'geändert ' : 'erstellt ') + new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }); };
   const list = all.filter(f => (S.qYear === 'alle' || String(CAT_YEAR(f)) === S.qYear) && (S.qStand === 'alle' || (S.qStand === 'archiv') === !!f.arch)
+    && (qD === 'alle' || !dOf(f) || dOf(f) === qD)
     && (!fq || foldTxt(String(f.name)).replace(/[_\-]+/g, ' ').includes(fq)))
-    .sort((a, b) => String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
+    .sort((a, b) => P.wsSort === 'neu' ? (cfT(b) - cfT(a)) || String(a.name).localeCompare(String(b.name), 'de', { numeric: true })
+      : String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
   const isSel = cf => S.files.some(x => x.selected && (String((x.uave || {}).id || '') === String(cf.id) || x.title === cf.name));
+  // Karte zeigt während der Suche nur diese Felder (grau hinterlegt) – auch solche, die der Filter oben gerade ausblendet
+  S.searchTmp = S.searchTmp || new Map();
+  setSearchFocus({ files: list.slice(0, 400).map(cf => { const real = S.files.find(x => (x.cat && String((x.uave || {}).id || x.id) === String(cf.id)) || x.title === cf.name);
+    let tmp = S.searchTmp.get(cf.id); if (!real && !tmp) { tmp = catEntry(cf, false); if (tmp) S.searchTmp.set(cf.id, tmp); } return { real, tmp }; }) });
   const opt = (v, t, cur) => `<option value="${v}"${cur === v ? ' selected' : ''}>${t}</option>`;
   box.innerHTML = `<div class="wsf"><label>Jahr <select id="wsY">${opt(String(Y), 'Aktuelles Jahr (' + Y + ')', S.qYear)}${years.filter(y => y !== Y).map(y => opt(String(y), String(y), S.qYear)).join('')}${opt('alle', 'Alle Jahre', S.qYear)}</select></label>
+      <label>Drohne <select id="wsD">${opt('alle', 'Alle', qD)}${opt('M3T', 'M3T', qD)}${opt('M4T', 'M4T', qD)}</select></label>
+      <label>Sortierung <select id="wsO">${opt('name', 'Name', P.wsSort === 'neu' ? 'neu' : 'name')}${opt('neu', 'Neueste zuerst', P.wsSort === 'neu' ? 'neu' : 'name')}</select></label>
       <label>Stand <select id="wsS">${opt('alle', 'Aktiv und archiviert', S.qStand)}${opt('aktiv', 'Nur aktiv', S.qStand)}${opt('archiv', 'Nur archiviert', S.qStand)}</select></label>
-      <span class="wsn">${list.length} Feld${list.length === 1 ? '' : 'er'}</span><button id="wsAll"${list.length ? '' : ' disabled'}>Alle markieren</button></div>
-    <div class="wsl">${list.slice(0, 400).map((cf, k) => `<label class="wsr${isSel(cf) ? ' on' : ''}" data-k="${k}"><input type="checkbox"${isSel(cf) ? ' checked' : ''}><b>${esc(cf.name)}</b><span>${CAT_YEAR(cf) || ''}${cf.area ? ' · ' + fieldArea(cf.area) : ''}${cf.arch ? ' · archiviert' : ' · aktiv'}</span></label>`).join('')
+      <span class="wsn">${list.length} Feld${list.length === 1 ? '' : 'er'}</span><button id="wsAll"${list.length ? '' : ' disabled'}>Alle markieren</button><button class="wsx wsxa" title="Liste schließen">✕</button></div>
+    <div class="wsl">${list.slice(0, 400).map((cf, k) => `<label class="wsr${isSel(cf) ? ' on' : ''}" data-k="${k}"><input type="checkbox"${isSel(cf) ? ' checked' : ''}><b>${esc(cf.name)}</b><span>${cfD(cf) ? cfD(cf) + ' · ' : ''}${cf.area ? fieldArea(cf.area) : ''}${cf.arch ? ' · archiviert' : ' · aktiv'}</span></label>`).join('')
       || `<div class="meta" style="padding:10px">${d ? 'Keine Felder für diese Auswahl.' : 'Noch keine Feldliste – „↻ UAV-Felder holen“ klicken.'}</div>`}${list.length > 400 ? `<div class="meta" style="padding:6px">+${list.length - 400} weitere – Suchbegriff eingeben</div>` : ''}</div>`;
   $('wsY').onchange = e => { S.qYear = e.target.value; searchHits(); };
+  box.querySelector('.wsx').onclick = webSearchClose;
   $('wsS').onchange = e => { S.qStand = e.target.value; searchHits(); };
+  $('wsD').onchange = e => { setP('wsDrone', e.target.value); searchHits(); };
+  $('wsO').onchange = e => { setP('wsSort', e.target.value); searchHits(); };
   $('wsAll').onclick = () => { const fs = list.slice(0, 400).map(cf => webCatPick(cf, 'all')).filter(Boolean); if (fs.length) fitBounds(padBB(bounds(fs))); draw(); searchHits(); toast(`${fs.length} Feld${fs.length > 1 ? 'er' : ''} markiert`, 'ok', 2000); };
-  box.querySelectorAll('.wsr').forEach(el => el.onclick = e => { e.preventDefault(); const cf = list[+el.dataset.k]; if (isSel(cf)) { S.files.forEach(x => { if (x.title === cf.name) x.selected = false; }); update(); } else webCatPick(cf); searchHits(); });
+  // nach jedem An-/Abhaken: Karte auf alle markierten Felder zusammen einpassen (wie „Alles zeigen“)
+  box.querySelectorAll('.wsr').forEach(el => el.onclick = e => { e.preventDefault(); const cf = list[+el.dataset.k];
+    if (isSel(cf)) { S.files.forEach(x => { if (x.title === cf.name) x.selected = false; }); update(); } else webCatPick(cf, false);
+    const sl = S.files.filter(x => x.selected && x.bounds); if (sl.length) fitBounds(padBB(bounds(sl))); draw(); searchHits(); });
 }
 /** Treffer aus dem UAV Editor auf die Karte holen (falls der Filter es ausblendet), markieren und hinzoomen */
 function webCatPick(cf, fit) {
@@ -2733,7 +2824,8 @@ function searchHits() {
   const box = $('qHits'), q = $('q').value.trim().toLowerCase();
   $('bSearch').classList.toggle('on', !!q);
   if (!$('searchBox').classList.contains('open')) return;
-  if (IS_WEB && S.qMode !== 'ort') { webSearchPanel(box); return; }   // Desktop, Modus „UAV-Editor“: Liste mit Filtern
+  if (IS_WEB && S.qMode !== 'ort') { webSearchPanel(box); return; }
+  if (IS_WEB && S.searchFocus) setSearchFocus(null);   // Orte-Suche: normale Karte   // Desktop, Modus „UAV-Editor“: Liste mit Filtern
   box.innerHTML = '';
   if (!q) return;
   const fq = foldTxt(q);
@@ -2748,7 +2840,8 @@ function searchHits() {
     b.onclick = () => goPlace(p);
     box.appendChild(b);
   });
-  if (!hits.length) { if (!box.children.length) box.innerHTML = `<span class="more">${isOnline() && raw.length >= 3 && photon.q !== raw ? 'Suche Ort online…' : 'Kein Feld oder Ort gefunden' + (isOnline() ? ' – Enter sucht online' : ' (offline nur gespeicherte Orte)')}</span>`; return; }
+  if (IS_WEB) { const hx = document.createElement('div'); hx.className = 'wsf wsfo'; hx.innerHTML = '<span class="wsn">Orte</span><button class="wsx" title="Liste schließen">✕</button>'; hx.querySelector('.wsx').onclick = webSearchClose; box.prepend(hx); }
+  if (!hits.length) { if (box.children.length <= (IS_WEB ? 1 : 0)) box.insertAdjacentHTML('beforeend', `<span class="more">${isOnline() && raw.length >= 3 && photon.q !== raw ? 'Suche Ort online…' : 'Kein Feld oder Ort gefunden' + (isOnline() ? ' – Enter sucht online' : ' (offline nur gespeicherte Orte)')}</span>`); return; }
   hits.slice(0, 12).forEach(f => {
     const b = document.createElement('button');
     b.textContent = f.title; b.className = f.selected ? 'sel' : '';
@@ -2781,7 +2874,7 @@ function openSearch() {
 function closeSearch(clear) {
   if (clear) $('q').value = '';
   $('q').blur();
-  if (IS_WEB) { $('qHits').innerHTML = ''; update(); return; }   // PC: Suchfeld bleibt in der Leiste, nur die Trefferliste schließt
+  if (IS_WEB) { $('qHits').innerHTML = ''; setSearchFocus(null); update(); return; }   // PC: Suchfeld bleibt in der Leiste, nur die Trefferliste schließt
   $('searchBox').classList.remove('open');
   update();
 }
@@ -2875,6 +2968,9 @@ function fieldSamples(f) {
 function flightBriefing(sel) {
   const zones = new Map(), obs = new Map(), rails = new Map(), lines = new Map();
   sel.forEach(fl => {
+    // Stromleitungen: nur die, die die Flugbahn wirklich überquert (nicht „in der Nähe“)
+    if (P.osmPower === '1') S.osm.forEach(l => { if (l.p === 'cable' || l.loc === 'underground' || !overSections(fl, l).length) return;
+      const k = (l.kv || 0) + '|' + (l.n || '') + '|' + l.p, x = lines.get(k) || { l, fields: new Set() }; x.fields.add(fl.title); lines.set(k, x); });
     fieldSamples(fl).forEach(([la, lo]) => {
       geoAt(la, lo, true).forEach(h => {   // true = alle Layer, auch ausgeblendete – Pre-Check muss immer alles prüfen
         // gleiche Art + gleicher Name + gleiche Regel (Bundesland) nur einmal aufführen, z. B. mehrere Abschnitte einer Bahnanlage
@@ -2886,7 +2982,6 @@ function flightBriefing(sel) {
       if (P.osmPower === '1') {
         // OSM teilt Strecken in viele Stücke: nach Name/Spannung zusammenfassen
         railsNear(la, lo).forEach(r => { const k = (r.n || '') + '|' + !!r.e, x = rails.get(k) || { r, fields: new Set() }; if (r.e) x.r = r; x.fields.add(fl.title); rails.set(k, x); });
-        osmLinesNear(la, lo, 30).forEach(l => { const k = (l.kv || 0) + '|' + (l.n || '') + '|' + l.p, x = lines.get(k) || { l, fields: new Set() }; x.fields.add(fl.title); lines.set(k, x); });
         S.obs.forEach(o => {
           const d = Math.hypot((o.lat - la) * 111200, (o.lon - lo) * 111200 * Math.cos(la * Math.PI / 180));
           if (d > Math.max(100, (o.rot || 0) / 2 + 60)) return;
@@ -3182,7 +3277,7 @@ function deleteDlg(title, text, okLabel, cb) {
 }
 function dlgDanger() { const y = $('dYes'); if (y._hold) y._hold(); y.classList.remove('danger'); }
 function confirmDlg(title, text, list, okLabel, cb, extra) {
-  dlgDanger();
+  dlgDanger(); const ob = $('dBrief'); if (ob) ob.remove(); $('dNo').style.display = '';
   $('dNo').textContent = 'Abbrechen';
   $('dExtra').innerHTML = ''; if (extra) $('dExtra').appendChild(extra);
   $('dTitle').textContent = title;
@@ -6570,7 +6665,9 @@ function netBadge() {
   try { on = A.isOnline ? A.isOnline() : navigator.onLine; } catch (e) { }
   const wifi = '<path d="M2 8.5a15 15 0 0 1 20 0"/><path d="M5 12a10 10 0 0 1 14 0"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/>';
   $('net').innerHTML = `<svg viewBox="0 0 24 24">${wifi}${on ? '' : '<path d="M3 3l18 18"/>'}</svg>${on ? 'Online' : 'Offline'}`;
-  $('net').classList.toggle('off', !on); pfChipPos();
+  $('net').classList.toggle('off', !on);
+  if (IS_WEB) { $('net').style.display = on ? 'none' : ''; if (!on) $('net').lastChild.textContent = 'Offline – keine Internetverbindung'; }   // PC: nur melden, wenn offline
+  pfChipPos();
   if (on && wasOffline) { tileFail.clear(); draw(); setTimeout(() => { geoSyncNow(false); wxPrefetch().then(windWidget); }, 1500); }   // wieder online: Fehlendes nachladen
   wasOffline = !on;
 }
@@ -6621,7 +6718,7 @@ function netOps(sel) {
     S.osm.forEach(l => {
       if (l.p === 'cable' || l.loc === 'underground') return;   // Erdkabel: kein Hindernis in der Luft
       if (l.bb.s > bb.n + m || l.bb.n < bb.s - m || l.bb.w > bb.e + m * 1.6 || l.bb.e < bb.w - m * 1.6) return;
-      const secs = lineSections(l, fr, 30); if (!secs.length) return;
+      const secs = overSections(f, l); if (!secs.length) return;   // nur wirklich überflogene Abschnitte – daneben/nah dran zählt nicht
       const op = String(l.o || '').trim() || 'Betreiber unbekannt';
       const o = ops.get(op) || { name: op, items: [] }; o.items.push({ f, l, secs }); ops.set(op, o);
     });
@@ -6631,15 +6728,60 @@ function netOps(sel) {
 /** Vereinbarungen mit Netzbetreibern (PC, gespeichert in der Adressdatei): { Betreiber: true } */
 const netDeals = () => { try { return JSON.parse(A.getPref('netDeal', '{}') || '{}') || {}; } catch (e) { return {}; } };
 /** Betroffene Leitungsabschnitte (und die Felder dazu) auf der Karte zeigen – zum Nachforschen, wem die Leitung gehört */
+/** Netzbetreiber-Ansicht: nur die betroffenen Felder (farbig) und ihre Leitungen – keine Geozonen, keine anderen Felder, keine Hindernisse */
+function paintOpFocus() {
+  const F = S.opFocus; labelBoxes = [];
+  ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  F.lines.forEach(l => { ctx.beginPath(); l.pts.forEach(([la, lo], i) => { const [x, y] = toScreen(la, lo); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.stroke(); ctx.lineWidth = 3.5; ctx.strokeStyle = '#8e24aa'; ctx.stroke(); });
+  (S.hlSecs || []).forEach(pts => { ctx.beginPath(); pts.forEach(([la, lo], i) => { const [x, y] = toScreen(la, lo); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.lineWidth = 16; ctx.strokeStyle = 'rgba(255,214,0,.75)'; ctx.stroke(); ctx.lineWidth = 3.5; ctx.strokeStyle = '#8e24aa'; ctx.stroke(); });
+  ctx.restore();
+  const fs = [...F.files];
+  fs.forEach(f => { drawOutline(f); drawField(f); }); fs.forEach(f => drawLabel(f, true));
+  resetTf(); ctx.setLineDash([]);
+}
+/** PC-Suche: Karte grau, nur Felder aus der aktuellen Suchliste (markierte in Markierungsfarbe) – keine Geozonen, keine anderen Felder */
+function paintSearchFocus() {
+  const fs = S.searchFocus.files.map(x => S.files.find(g => g === x.real) || x.tmp).filter(f => f && f.center);
+  labelBoxes = [];
+  const ord = fs.filter(fieldOnScreen).sort(byAreaDesc);
+  ord.forEach(f => { drawOutline(f); drawField(f); }); ord.filter(f => f.selected).forEach(drawField);
+  resetTf(); ctx.setLineDash([]);
+  if (V.z >= LABEL_Z) { fs.filter(f => f.selected).forEach(f => drawLabel(f, true)); fs.filter(f => !f.selected).forEach(f => drawLabel(f, true)); }
+  else drawLabelGroups(fs);
+}
+function setSearchFocus(on) {
+  const was = !!S.searchFocus; S.searchFocus = on || null;
+  tdiv.style.filter = (S.searchFocus || S.opFocus) ? 'grayscale(1) brightness(1.04)' : '';
+  if (was !== !!S.searchFocus) { GEOR.update && GEOR.update(false); }
+  draw();
+}
+/** zurück zur Netzbetreiber-Liste – an dieselbe Stelle */
+function opFocusBack() {
+  const b = S.opBack; opFocusEnd(); if (!b) return;
+  b.pages.forEach(pg => pg.classList.add('open'));
+  if (!$('nvY')) webNetOverview(b.year);
+  setTimeout(() => { const ib = $('iBody'); if (ib) ib.scrollTop = b.scroll; }, 60);
+}
+function opFocusEnd() { S.opFocus = null; tdiv.style.filter = S.searchFocus ? tdiv.style.filter : ''; S.hlSecs = null; S.hlLines = null; const b = $('opFocusBar'); if (b) b.remove(); S.files.forEach(f => f.selected = false); update(); draw(); }
 function showOpOnMap(items, label) {
   S.files.forEach(f => { f.selected = false; });
   const fs = [];
   items.forEach(x => { let f = S.files.find(g => g.title === x.f.title); if (!f) { f = x.f; f.extra = true; S.files.push(f); } f.selected = true; fs.push(f); });
   S.hlLines = new Set(items.map(x => x.l)); S.hlSecs = items.flatMap(x => x.secs.map(sc => sc.pts));
   const pts = S.hlSecs.flat(); fs.forEach(f => { const b = f.bounds; if (b) pts.push([b.n, b.e], [b.s, b.w]); });
+  // Rückweg merken: offene Seiten und Scrollstand der Netzbetreiber-Liste
+  const ib = $('iBody'); S.opBack = { pages: [...document.querySelectorAll('.page.open')], scroll: ib ? ib.scrollTop : 0, year: ($('nvY') || {}).value };
   document.querySelectorAll('.page.open').forEach(pg => pg.classList.remove('open')); update();   // Übersicht und Einstellungen schließen – Karte zeigen
+  S.opFocus = { files: new Set(fs), lines: new Set(items.map(x => x.l)) };
+  let bar = $('opFocusBar'); if (!bar) { bar = document.createElement('div'); bar.id = 'opFocusBar'; document.body.appendChild(bar); }
+  bar.style.cssText = 'position:fixed;left:50%;top:132px;transform:translateX(-50%);z-index:18;background:#4a148c;color:#fff;border-radius:22px;padding:6px 8px 6px 16px;display:flex;gap:12px;align-items:center;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.35)';
+  bar.innerHTML = `<span>⚡ ${esc(label)}: ${fs.length} Feld${fs.length > 1 ? 'er' : ''}, ${S.hlSecs.length} Leitungsabschnitt${S.hlSecs.length > 1 ? 'e' : ''} (gelb)</span><button class="opb" style="background:#fff;color:#4a148c;border-radius:16px;padding:6px 14px;font-weight:800">← Zurück zur Liste</button><button class="opx" style="background:rgba(255,255,255,.18);color:#fff;border-radius:16px;padding:6px 14px;font-weight:800">✕ Normale Karte</button>`;
+  bar.querySelector('.opx').onclick = opFocusEnd;
+  bar.querySelector('.opb').onclick = opFocusBack;
+  tdiv.style.filter = 'grayscale(1) brightness(1.04)'; GEOR.update && GEOR.update(false);
   if (pts.length) fitBounds(padBB(bbOfPts(pts))); draw();
-  toast(`${label}: betroffene Abschnitte gelb markiert. Für Details ⓘ einschalten und auf die Leitung klicken.`, 'ok', 7000);
 }
 /** PC: alle Netzbetreiber, deren Freileitungen eure Felder berühren – mit E-Mail und „Vereinbarung vorhanden“ */
 function webNetOverview(year) {
@@ -6666,7 +6808,7 @@ function webNetOverview(year) {
     openInfoPage('Betroffene Netzbetreiber', `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><label>Felder aus <select id="nvY" class="inp" style="width:auto">${opt(String(Y), 'aktuelles Jahr (' + Y + ')')}${years.filter(y => y !== Y).map(y => opt(String(y), String(y))).join('')}${opt('alle', 'allen Jahren')}</select></label>
         <span class="meta">${fs.length} Felder geprüft · <b>${nOps}</b> Netzbetreiber · Vereinbarung mit <b>${nDeal}</b>${nOps - nDeal > 0 ? ` · <b style="color:#e07800">${nOps - nDeal} ohne Vereinbarung</b>` : ''}</span>
         <button class="b-sec" id="nvCsv" style="margin-left:auto">Als Liste exportieren (CSV)</button></div>
-      ${ops.length ? `<table class="nvt"><thead><tr><th>Netzbetreiber</th><th>Felder</th><th>Leitung über/neben Feldern</th><th>E-Mail für Meldungen</th><th>Vereinbarung</th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="zone"><h4>Keine Freileitung an den Feldern gefunden</h4></div>'}
+      ${ops.length ? `<table class="nvt"><thead><tr><th>Netzbetreiber</th><th>Felder</th><th>Überflogene Leitung</th><th>E-Mail für Meldungen</th><th>Vereinbarung</th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="zone"><h4>Keine Freileitung an den Feldern gefunden</h4></div>'}
       <div class="meta" style="margin-top:10px">Freileitungen laut OpenStreetMap bis 30 m neben den Feldern; Betreiber kann fehlen oder veraltet sein. Nur Gebiete, deren Leitungsdaten schon geladen sind (Karte dort einmal ansehen). E-Mail und „Vereinbarung“ werden in der Adressdatei gespeichert und mit exportiert.</div>`);
     const body = $('iBody');
     body.querySelector('#nvY').onchange = e => webNetOverview(e.target.value);
@@ -6697,7 +6839,7 @@ function netOpsHtml(ops) {
       <ol>${o.items.map(x => x.secs.map(sc => `<li value="${++no}"><b>Einsatzbereich ${areaNo(x.f)}</b> <span class="meta">(${esc(x.f.title)} – nur hier sichtbar)</span> – ${esc(lineLbl(x.l))} · ca. ${Math.round(sc.len)} m · von ${fmtLL(...sc.pts[0])} bis ${fmtLL(...sc.pts[sc.pts.length - 1])}${x.l.id ? ` · OSM-Weg ${esc(x.l.id)}` : ''}</li>`).join('')).join('')}</ol></div>`).join('')}
     <div class="meta">Nur Informationspflicht – die Betreiber müssen nicht zustimmen. Betreiber laut OpenStreetMap, kann fehlen oder veraltet sein. Bild und E-Mail enthalten <b>keine Feldnamen und keine Feldumrisse</b>, nur die betroffenen Leitungsabschnitte mit Koordinaten. „E-Mail“ öffnet einen fertigen Entwurf in deinem Mailprogramm – mit der Karte als Anhang. Die Adressen werden gespeichert.</div></div>`;
 }
-const sel2areas = z => [...S.areaSel || []].filter(f => z.fields.has(f.title)).map(f => `Einsatzbereich ${areaNo(f)} <span class="meta">(${esc(f.title)} – nur hier sichtbar)</span>`).join(', ');
+const sel2areas = z => natAreas(z, S.areaSel || []).map(a => `Bereich ${a.no} <span class="meta">(${a.fields.map(f => esc(f.title)).join(', ')} – nur hier sichtbar)</span>`).join(', ');
 /** HessenForst-Forstämter rund um Limburg (Funktionsadressen laut hessen-forst.de) mit ihren Gemeinden/Revieren als Orte –
  *  Gemeinden laut Gewässer- und Bodenschutz-Alarmplan Landkreis Limburg-Weilburg (01/2020): Weilmünster u. a. Limburg, Elz, Brechen, Hünfelden, Runkel, Villmar, Selters, Bad Camberg;
  *  Weilburg u. a. Hadamar, Dornburg, Elbtal, Waldbrunn, Beselich, Löhnberg, Merenberg, Mengerskirchen.
@@ -6738,7 +6880,7 @@ function natureHtml(nz) {
         ${fa ? `<div class="meta" style="color:#e07800">Vorschlag: <b>${esc(fa.n)}</b> (nächstgelegenes Revier) – bitte prüfen. Wenn du die Adresse änderst, wird sie für dieses Schutzgebiet gespeichert.</div>` : mails[mk] ? '<div class="meta">✓ gespeicherte Adresse</div>' : ''}
         <div class="meta">${esc(regionText(z.reg))}${altText(p) ? ' · ' + esc(altText(p)) : ''} · ${sel2areas(z)}</div>
         <div style="margin-top:4px;color:${ok ? '#13a538' : '#d42020'}">${ok ? 'Allgemeinverfügung greift: nur <b>Informationspflicht</b> – vorher melden, keine Zustimmung nötig.' : 'Hier greift keine Allgemeinverfügung (Bundesland, Bezirk oder Saison) – diesen Teil nicht befliegen.'}</div></div>`; }).join('')}
-    <div class="meta">Bild und E-Mail enthalten keine Feldnamen und keine Feldumrisse – nur das Schutzgebiet und neutrale „Einsatzbereiche“ mit Koordinaten.</div></div>`;
+    <div class="meta">Bild und E-Mail enthalten keine Feldnamen und keine Feldumrisse – nur das Schutzgebiet und grobe Kreise um die Einsatzorte (mind. 150 m Radius, benachbarte Felder zusammengefasst) – kein einzelnes Grundstück erkennbar.</div></div>`;
 }
 // ---------- Kartenbild (PNG) mit Feldern, markierten Leitungsabschnitten bzw. Schutzgebiet und Koordinaten ----------
 const mX = (lo, z) => (lo + 180) / 360 * 256 * Math.pow(2, z);
@@ -6763,6 +6905,11 @@ async function mapImage(o) {
   const path = pts => { c.beginPath(); pts.forEach((q, i) => { const [x, y] = pr(q[0], q[1]); i ? c.lineTo(x, y) : c.moveTo(x, y); }); };
   (o.areas || []).forEach(a => { c.beginPath(); a.rings.forEach(r => r.forEach((q, i) => { const [x, y] = pr(q[1], q[0]); i ? c.lineTo(x, y) : c.moveTo(x, y); })); c.closePath();
     c.fillStyle = a.color + '40'; c.fill('evenodd'); c.lineWidth = 3; c.strokeStyle = a.color; c.stroke(); });
+  { const mpp0 = 156543.03392 * Math.cos(((o.bb.n + o.bb.s) / 2) * Math.PI / 180) / Math.pow(2, z);   // Kreise in Metern (Schutzgebiet: grobe Einsatzbereiche)
+    (o.circles || []).forEach(ci => { const [x, y] = pr(ci.lat, ci.lon), rp = ci.r / mpp0;
+      c.beginPath(); c.arc(x, y, rp, 0, 7); c.fillStyle = 'rgba(230,81,0,.18)'; c.fill(); c.lineWidth = 5; c.setLineDash([16, 10]); c.strokeStyle = '#e65100'; c.stroke(); c.setLineDash([]);
+      c.font = '800 24px Roboto,Arial,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; const tw = c.measureText(ci.label).width + 20;
+      c.fillStyle = 'rgba(255,255,255,.95)'; c.fillRect(x - tw / 2, y - 18, tw, 36); c.fillStyle = '#e65100'; c.fillText(ci.label, x, y + 1); }); }
   (o.routes || []).forEach(r => { path(r.pts); c.lineWidth = 2.5; c.strokeStyle = r.color || '#ff6f00'; c.stroke(); });   // Flugbahnen (nur Pilotenbriefing)
   (o.lines || []).forEach(l => { path(l.pts); c.lineWidth = l.w || 11; c.strokeStyle = 'rgba(255,255,255,.95)'; c.stroke(); c.lineWidth = l.w ? l.w * 0.55 : 6; c.strokeStyle = l.color; c.stroke(); });
   // Einsatzbereiche nur als neutrale Markierung (keine Feldnamen, keine Feldumrisse – Datenschutz); Nummern der Abschnitte auf der Leitung
@@ -6831,17 +6978,31 @@ function overlapHull(f, rings) {
   const h = lo.slice(0, -1).concat(up.slice(0, -1)), c = h.reduce((m, q) => [m[0] + q[0] / h.length, m[1] + q[1] / h.length], [0, 0]);
   return { hull: h, center: c, area: pts.length * 64 };
 }
+/** Schutzgebiet nach außen: keine Wiesen/Feldumrisse, sondern grobe Kreise um die Einsatzorte (benachbarte Felder bis ~400 m zusammengefasst).
+ *  Radius mind. 150 m, auf 50 m gerundet, Mitte auf 3 Nachkommastellen (~100 m) – so wird kein einzelnes Grundstück/kein Pächter erkennbar. */
+function natAreas(z, sel) {
+  const fields = sel.filter(f => z.fields.has(f.title)).map(f => { const o = overlapHull(f, z.f.rings), c = o ? o.center : f.center; return c ? { f, c, pts: o ? o.hull : (fieldRingLL(f) || []).map(([lo, la]) => [la, lo]), ha: o ? o.area / 10000 : 0 } : null; }).filter(Boolean);
+  const cl = [];
+  fields.forEach(x => { const g = cl.find(g => g.items.some(y => distM(x.c[0], x.c[1], y.c[0], y.c[1]) < 400)); g ? g.items.push(x) : cl.push({ items: [x] }); });
+  return cl.map(g => {
+    const all = g.items.flatMap(x => x.pts.length ? x.pts : [x.c]);
+    const lat = all.reduce((m, q) => m + q[0], 0) / all.length, lon = all.reduce((m, q) => m + q[1], 0) / all.length;
+    const r0 = Math.max(0, ...all.map(q => distM(lat, lon, q[0], q[1])));
+    const la = Math.round(lat * 1000) / 1000, lo = Math.round(lon * 1000) / 1000;
+    return { lat: la, lon: lo, r: Math.max(150, Math.ceil((r0 + 60 + distM(lat, lon, la, lo)) / 50) * 50), ha: g.items.reduce((m, x) => m + x.ha, 0), fields: g.items.map(x => x.f) };
+  }).sort((a, b) => b.lat - a.lat).map((a, i) => Object.assign(a, { no: i + 1 }));
+}
 async function natImage(z, sel) {
-  const fields = sel.filter(f => z.fields.has(f.title)), pts = [];
-  fields.forEach(f => { const b = f.bounds; if (b) pts.push([b.n, b.e], [b.s, b.w]); });
-  const zb = z.f.bb;   // Ausschnitt: Einsatzbereiche plus umliegendes Schutzgebiet pts.push([Math.min(zb.n, bbOfPts(pts).n + .01), Math.min(zb.e, bbOfPts(pts).e + .015)], [Math.max(zb.s, bbOfPts(pts).s - .01), Math.max(zb.w, bbOfPts(pts).w - .015)]);   // Zone mit, aber nicht ganz Deutschland
+  const ar = natAreas(z, sel), pts = [];
+  ar.forEach(a => { const dl = a.r / 111200, dn = a.r / (111200 * Math.cos(a.lat * Math.PI / 180)); pts.push([a.lat + dl, a.lon + dn], [a.lat - dl, a.lon - dn]); });
+  if (!pts.length) return null;
+  const b0 = bbOfPts(pts), pad = Math.max(0.004, (b0.n - b0.s) * 0.3);
   const p = z.f.props || {}, lbl = LAYER_LABEL[z.f.layer] || z.f.layer;
-  const ov = fields.map(f => ({ f, o: overlapHull(f, z.f.rings) }));
-  return mapImage({ bb: bbOfPts(pts), areas: [{ rings: z.f.rings, color: '#2e7d32' }, ...ov.filter(x => x.o).map(x => ({ rings: [x.o.hull.map(([la, lo]) => [lo, la])], color: '#e65100' }))],
-    spots: ov.map(({ f, o }) => { const c = o ? o.center : f.center; return c ? { lat: c[0], lon: c[1], label: 'Einsatzbereich ' + areaNo(f) } : null; }).filter(Boolean),
+  return mapImage({ bb: { n: b0.n + pad, s: b0.s - pad, e: b0.e + pad * 1.6, w: b0.w - pad * 1.6 }, areas: [{ rings: z.f.rings, color: '#2e7d32' }],
+    circles: ar.map(a => ({ lat: a.lat, lon: a.lon, r: a.r, label: 'Bereich ' + a.no })),
     title: `Drohnenflug Kitzrettung – ${lbl}${p.name ? ': ' + p.name : ''}`,
-    legend: [`${lbl}${p.name ? ': ' + p.name : ''} · ${regionText(z.reg)}${altText(p) ? ' · ' + altText(p) : ''}`, 'Orange: Überflugbereich innerhalb des Schutzgebiets',
-      ...ov.map(({ f, o }) => { const c = o ? o.center : f.center; return `Einsatzbereich ${areaNo(f)}: ${o ? 'ca. ' + (o.area / 10000).toFixed(2).replace('.', ',') + ' ha im Schutzgebiet, ' : ''}Mitte ${c ? fmtLL(c[0], c[1]) : '—'} (WGS84)`; })] });
+    legend: [`${lbl}${p.name ? ': ' + p.name : ''} · ${regionText(z.reg)}${altText(p) ? ' · ' + altText(p) : ''}`, 'Orange Kreise: ungefähre Einsatzbereiche (Drohnenflüge innerhalb des Kreises)',
+      ...ar.map(a => `Bereich ${a.no}: Umkreis ca. ${a.r} m um ${a.lat.toFixed(3).replace('.', ',')}° N, ${a.lon.toFixed(3).replace('.', ',')}° O`)] });
 }
 /** E-Mail mit Kartenbild: Desktop-Programm → fertiger Entwurf mit Anhang im Mailprogramm; sonst mailto + Bild in der Zwischenablage */
 async function mailWithImage(to, subject, body, cv, fname) {
@@ -6882,7 +7043,7 @@ function natMailText(z, fields) {
   return ['Sehr geehrte Damen und Herren,', '',
     `${ref ? ref + ' i' : 'hiermit i'}nformieren wir Sie vorab über Drohnenflüge zur Wildtierrettung (Rehkitzsuche vor der Mahd) im ${lbl}${p.name ? ' „' + p.name + '“' : ''}.`, '',
     `Zeitraum: ${flyWinText()}, in der Regel frühmorgens.`,
-    'Betroffene Einsatzbereiche (Mitte des Überflugs im Schutzgebiet, WGS84):', ...fields.map(f => { const o = overlapHull(f, z.f.rings), c = o ? o.center : f.center; return `- Einsatzbereich ${areaNo(f)}: ${c ? fmtLL(c[0], c[1]) : '—'}${o ? ', ca. ' + (o.area / 10000).toFixed(2).replace('.', ',') + ' ha' : ''}`; }), '',
+    'Betroffene Bereiche (ungefähr, Mittelpunkt WGS84):', ...natAreas(z, S.areaSel || fields).map(a => `- Bereich ${a.no}: Umkreis ca. ${a.r} m um ${a.lat.toFixed(3)}, ${a.lon.toFixed(3)}`), '',
     ...(gi ? ['Die Nebenbestimmungen der Allgemeinverfügung werden eingehalten, u. a.: Einsatz nur im Zusammenhang mit einer zulässigen Mahd, höchstens zwei zusammenhängende Durchgänge, mindestens 50 m Abstand zu Waldrändern, höchstens eine aktive Drohne je 15 ha, Tiere werden nicht direkt angeflogen, Start und Landung möglichst auf Wegen.', ''] : []),
     'Eine Karte fügen wir bei.', '', 'Sobald die Flüge abgeschlossen sind, geben wir Ihnen kurz Bescheid.', '', 'Mit freundlichen Grüßen', 'Kitzrettung Limburg e.V.'].join('\n');
 }
@@ -7007,6 +7168,9 @@ function webPreCheck(sel) {
   pb.querySelector('button').onclick = () => briefWinDlg(w => pilotBriefing(sel, w).finally(() => webPreCheck(sel)), () => webPreCheck(sel));
   box.prepend(pb);
   confirmDlg(`Pre-Check – ${sel.length} Feld${sel.length > 1 ? 'er' : ''}`, 'Was an diesen Feldern gilt und wem Bescheid gesagt werden muss:', [], 'Schließen', null, box);
+  { const bb = document.createElement('button'); bb.id = 'dBrief'; bb.className = 'b-ok'; bb.textContent = '📋 Pilotenbriefing erstellen';   // unten neben „Schließen“
+    bb.onclick = () => briefWinDlg(w => pilotBriefing(sel, w).finally(() => webPreCheck(sel)), () => webPreCheck(sel));
+    $('dNo').style.display = 'none'; $('dYes').before(bb); }
   $('dlg').querySelector('.box').classList.add('wide');   // Desktop: ganze Fensterbreite nutzen – Felder in Spalten
   $('dlg').querySelector('.box').scrollTop = 0;
 }
@@ -7030,7 +7194,7 @@ th{font-size:7pt;text-transform:uppercase;letter-spacing:.4px;color:#5d6975;bord
 .fl td{border-bottom:1px solid #e6ebef}.fl tr:nth-child(even) td{background:#f8fafb}
 .num{display:inline-block;width:19px;height:19px;line-height:19px;border-radius:50%;background:#00695c;color:#fff;text-align:center;font-weight:800;font-size:8.5pt}
 .nm{font-family:Consolas,'Courier New',monospace;font-weight:700;font-size:9pt;word-break:break-all}
-.pill{display:inline-block;padding:2px 8px;border-radius:9px;color:#fff;font-weight:700;font-size:8pt;white-space:nowrap}
+.pill{display:inline-block;padding:2px 7px;border-radius:9px;color:#fff;font-weight:700;font-size:7.5pt;white-space:nowrap;margin:1px 3px 1px 0}
 .notes{list-style:none;margin:0;padding:0}.notes li{padding:3px 0 3px 22px;position:relative;font-size:9pt}.notes li i{position:absolute;left:0;top:2px;font-style:normal}
 .mapw{border-radius:7px;overflow:hidden;border:1px solid #cfd6de;margin:6px auto 0}img.map{display:block;width:100%}
 .legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:7.5pt;color:#5d6975;margin-top:3px}.legend i{display:inline-block;width:14px;height:4px;border-radius:2px;vertical-align:middle;margin-right:4px}
@@ -7213,7 +7377,7 @@ async function briefingHtml(sel, win) {
       <div class="tile" style="border-top-color:${lic[1]}"><small>Fernpilotenzeugnis</small><b style="color:${lic[1]}">${lic[0]}</b><span>${lic[2]}</span></div></div>
     <div class="sec">Felder – Namen wie im UAV Editor</div>
     <table class="fl"><tr><th></th><th>Feldname</th><th>Drohne</th><th>Höhe</th><th>Fläche</th><th>Ort</th><th>Bewertung</th></tr>
-    ${sel.map((f, i) => `<tr><td><span class="num">${i + 1}</span></td><td class="nm">${esc(f.title)}</td><td>${esc(drone(f))}</td><td>${f.height ? f.height + ' m' : '—'}</td><td>${area(f)}</td><td>${esc(place(f))}</td><td><span class="pill" style="background:${vs[i].col}">${esc(vs[i].t.replace(/^[^\wÄÖÜäöü]+/, ''))}</span></td></tr>`).join('')}</table>
+    ${sel.map((f, i) => `<tr><td><span class="num">${i + 1}</span></td><td class="nm">${esc(f.title)}</td><td>${esc(drone(f))}</td><td>${f.height ? f.height + ' m' : '—'}</td><td>${area(f)}</td><td>${esc(place(f))}</td><td>${licBadges(vs[i]).replace(/class="lverd"/g, 'class="pill"')}</td></tr>`).join('')}</table>
     ${notes.length ? `<div class="sec">Wichtig</div><ul class="notes">${notes.map(n => `<li style="color:${n[2]}"><i>${n[0]}</i>${n[1]}</li>`).join('')}</ul>` : ''}
     <div class="sec">Übersichtskarte</div>
     ${over ? `<div class="mapw"><img class="map" src="${jpg(over)}"></div>${legend}` : ''}</div>${foot()}</div>`;
@@ -7224,7 +7388,7 @@ async function briefingHtml(sel, win) {
     const mp = await briefMap([f], sel, fb.zones, 900);
     const tp = fo.length ? touchesPower(f) : false;
     h += `<div class="page">${top(`Feld ${i + 1} von ${sel.length}`)}<div class="body">
-      <div class="fhead"><span class="big">${i + 1}</span><div><div class="nm">${esc(f.title)}</div><span class="pill" style="background:${v.col}">${esc(v.t.replace(/^[^\wÄÖÜäöü]+/, ''))}</span>${v.why && v.why.length ? ` <span class="sub">wegen ${esc(v.why.join(', '))}</span>` : ''}</div></div>
+      <div class="fhead"><span class="big">${i + 1}</span><div><div class="nm">${esc(f.title)}</div>${licBadges(v).replace(/class="lverd"/g, 'class="pill"')}${v.why && v.why.length ? `<div class="sub">A1/A3 reicht nicht wegen: ${esc(v.why.map(whyShort).join(', '))}</div>` : ''}</div></div>
       <div class="tiles"><div class="tile" style="border-top-color:#00695c"><small>Drohne</small><b>${esc(drone(f))}</b></div>
         <div class="tile" style="border-top-color:${lowNearPower(f) ? '#c62828' : '#00695c'}"><small>Flughöhe</small><b>${f.height ? f.height + ' m' : '—'}</b>${lowNearPower(f) ? `<span style="color:#c62828">Leitung: auf ${pwrH()} m!</span>` : ''}</div>
         <div class="tile" style="border-top-color:#00695c"><small>Fläche</small><b>${area(f)}</b></div>
@@ -7407,10 +7571,19 @@ function fieldVerdict(f) {
   return r2.length ? { k: 'no', t: '⛔ Teile gesperrt – auch mit A2', col: '#d42020', why, onlyLic } : { k: 'a2', t: onlyLic ? 'A2 nötig' : 'A2 + Allgemeinerlaubnis/-verfügung nötig', col: '#e07800', why, onlyLic };
 }
 /** Felder ausgeben – mit Zeugnis-Empfehlung (PC) in Gruppen: zuerst „A2 nötig“, dann „Teile auch mit A2 gesperrt“, dann „auch mit A1/A3 fliegbar“ */
+/** Je Feld zwei Etiketten: „A2 (+ Allgemeinerlaubnis) ✓/✗“ und „A1/A3 ✓/✗“ – Allgemeinerlaubnis/-verfügung laut Einstellungen schon berücksichtigt */
+function licBadges(v) {
+  const G = '#13a538', R = '#d42020', b = (ok, t) => `<span class="lverd" style="background:${ok ? G : R}">${ok ? '✓' : '✗'} ${t}</span>`;
+  const a2 = v.k === 'a13' || v.k === 'a2' ? b(true, v.k === 'a2' && !v.onlyLic ? 'A2 + Allgemeinerlaubnis' : 'A2')
+    : v.k === 'zust' ? b(false, 'A2: nur mit Zustimmung des Flugplatzes') : b(false, 'A2: Teile gesperrt');
+  return a2 + b(v.k === 'a13', v.k === 'a13' ? 'A1/A3' : 'A1/A3 nicht möglich');
+}
+/** Grund, warum A1/A3 nicht reicht – ohne „so nicht fliegen“ (mit A2 geht es ja) */
+const whyShort = t => String(t).replace(/:\s*(so nicht fliegen|hier nicht fliegen|nicht fliegen).*$/i, '').replace(/\s+nur\s+/, ' nur ');
 function lgridHtml(rows, opt, one) {
   if (!opt.verdict) return '<div class="lgrid">' + rows.map(one).join('') + '</div>';
   const by = n => (a, b) => b.r - a.r || ftitle(a.f).localeCompare(ftitle(b.f), 'de', { numeric: true });
-  return [['a2', 'Nur mit A2 (ggf. + Allgemeinerlaubnis/-verfügung)', '#e07800'], ['zust', 'Zustimmung nötig (Flugplatz in der Nähe)', '#d42020'], ['no', 'Teile auch mit A2 gesperrt – diese Teile nicht befliegen', '#d42020'], ['a13', 'Auch mit A1/A3 fliegbar', '#13a538']]
+  return [['a2', 'Mit A2 (+ Allgemeinerlaubnis/-verfügung) – nicht mit A1/A3', '#e07800'], ['zust', 'Zustimmung nötig (Flugplatz in der Nähe)', '#d42020'], ['no', 'Teile auch mit A2 gesperrt – diese Teile nicht befliegen', '#d42020'], ['a13', 'Auch mit A1/A3 fliegbar', '#13a538']]
     .map(([k, t, c]) => { const g = rows.filter(x => x.v.k === k).sort(by()); return g.length ? `<h4 class="lgh" style="border-color:${c}">${esc(t)} <span>(${g.length})</span></h4><div class="lgrid">${g.map(one).join('')}</div>` : ''; }).join('');
 }
 function liteCheckInner(sel, opt) {
@@ -7430,7 +7603,7 @@ function liteCheckInner(sel, opt) {
   }).sort((a, b) => b.r - a.r || b.its.filter(i => i.r === b.r).length - a.its.filter(i => i.r === a.r).length || ftitle(a.f).localeCompare(ftitle(b.f)));
   const note = rows.filter(x => x.r >= 1).length, bad = rows.filter(x => x.r >= 3).length;
   return `<div class="meta" style="margin:0 0 8px">${note ? `<b>${note} von ${sel.length} Feldern</b>: etwas zu beachten (Zonen, Auflagen, Umrechnung)${bad ? ` – <b>${bad}</b> davon mit Sperre oder Zustimmungspflicht` : ''}. Wichtigstes zuerst.` : 'An keinem Feld gibt es Zonen oder Auflagen.'} Antippen zeigt Einzelheiten.</div>` +
-    lgridHtml(rows, opt, x => `<details class="lfld"><summary>${fieldThumb(x.f, 120, 90)}<div class="lfi"><div class="lfn">${esc(x.f.title)}${x.v ? ` <span class="lverd" style="background:${x.v.col}">${esc(x.v.t)}</span>` : ''}</div>${x.v && x.v.why.length ? `<div class="lchip" style="border-color:#e07800">⚠️ Mit A1/A3 nicht erlaubt: ${esc(x.v.why.join(' · '))}<small>${x.v.onlyLic ? 'Mit A2 ist das erlaubt (dort gilt nur 30 m Abstand zu Unbeteiligten) – darum ist A2 nötig.' : 'Mit A2 + Allgemeinerlaubnis bzw. Allgemeinverfügung ist das hier erlaubt – darum ist A2 nötig.'}</small></div>` : ''}${x.its.map(i => `<div class="lchip" style="border-color:${i.col}">${esc(i.ico)} ${esc(i.t)}${i.ru ? `<small>${i.ru}</small>` : ''}</div>`).join('')}</div></summary>${x.html}</details>`);
+    lgridHtml(rows, opt, x => `<details class="lfld"><summary>${fieldThumb(x.f, 120, 90)}<div class="lfi"><div class="lfn">${esc(x.f.title)}${x.v ? ` ${licBadges(x.v)}` : ''}</div>${x.v && x.v.why.length ? `<div class="lchip" style="border-color:#8a96a3">ℹ️ A1/A3 reicht nicht wegen: ${esc(x.v.why.map(whyShort).join(' · '))}<small>${x.v.onlyLic ? 'Mit A2 erlaubt (dort gilt nur 30 m Abstand zu Unbeteiligten).' : 'Mit A2 + Allgemeinerlaubnis bzw. Allgemeinverfügung erlaubt – liegt laut Einstellungen vor.'}</small></div>` : ''}${x.its.map(i => `<div class="lchip" style="border-color:${i.col}">${esc(i.ico)} ${esc(i.t)}${i.ru ? `<small>${i.ru}</small>` : ''}</div>`).join('')}</div></summary>${x.html}</details>`);
 }
 /** Kleines Luftbild eines Feldes mit seinem Umriss (nur in der App – nicht für E-Mails/Bilder an Dritte) */
 function fieldThumb(f, W, H) {
@@ -7502,7 +7675,7 @@ function liteCardsHtml(b, o) {
     const ov = pt ? null : sel.filter(f => fs.has(f.title) && touchesPower(f)), none = ov && !ov.length, part = ov && ov.length && ov.length < fs.size;
     const hTxt = none ? 'Die Flugbahnen liegen neben der Leitung – sie wird <b>nicht überflogen</b>. Nur heranfliegen, Abstand halten.'
       : `Bei Stromleitungen fliegen wir <b>${pwrH()} m hoch</b>${pwrAutoRaise() ? ' (wird beim Import automatisch angepasst)' : ''}${part ? ` – überflogen wird sie nur bei ${ov.map(f => esc(f.title)).join(', ')}, bei den anderen liegen die Bahnen daneben` : ''}.`;
-    card('⚡', '#8e24aa', `Stromleitung ${place}`, `${ht}. ${hTxt} Nie unter der Leitung durch – die Seile sieht man im Wärmebild kaum. Der Netzbetreiber wird vorher informiert (keine Zustimmung nötig).${where(fs)}`,
+    card('⚡', '#8e24aa', pt ? `Stromleitung ${place}` : 'Stromleitung wird überflogen', `${ht}. ${hTxt} Nie unter der Leitung durch – die Seile sieht man im Wärmebild kaum. Der Netzbetreiber wird vorher informiert (keine Zustimmung nötig).${where(fs)}`,
       `<div class="lrules"><span>Fliegen nur:</span> ${none ? '<b>neben der Leitung</b>' : `<b>${pwrH()} m hoch</b>`} · nie unter der Leitung durch · ${ht.replace(/Masten /g, '')}</div>`); }
   if (b.rails.length && !b.zones.some(z => z.f.layer === 'bahnanlagen')) {   // Bahn-Geozone vorhanden: deren Auflagen sagen schon alles const fs = new Set(); b.rails.forEach(x => (x.fields || []).forEach(t => fs.add(t)));
     card('🚆', '#2b2f36', `Bahnstrecke ${place}`, `Zügig darüber fliegen, nicht über den Gleisen stehen bleiben. Nicht auf Bahngelände starten.${where(fs)}`); }
@@ -7685,8 +7858,42 @@ function webOsmView() {
   const [n, w] = fromScreen(0, 0), [s, e] = fromScreen(W, H), k = [n, s, e, w].map(x => x.toFixed(2)).join(',');
   if (k === osmViewLast) return; osmViewLast = k; A.osmView(n, s, e, w);
 }
+/** PC: eigener Knopf „Was zeigt die Karte?“ – Geozonen alle/einzeln, dazu NOTAMs, Leitungen, Windräder. Roter „!“-Punkt, wenn nur ein Teil der Geozonen an ist */
+function zoneBtnState() {
+  const b = $('bZones'); if (!b) return;
+  const n = ZG.filter(([k]) => zgOn(k)).length;
+  b.classList.toggle('part', n > 0 && n < ZG.length);
+  b.title = n === ZG.length ? 'Kartenanzeige: alle Geozonen an' : n ? `Kartenanzeige: ${n} von ${ZG.length} Geozonen-Gruppen an – nicht alles wird angezeigt` : 'Kartenanzeige: Geozonen aus';
+}
+function zonePopFill() {
+  const pop = $('zonePop'), n = ZG.filter(([k]) => zgOn(k)).length, sw = on => `<label class="sw" style="pointer-events:none"><input type="checkbox"${on ? ' checked' : ''}><span></span></label>`;
+  const EX = [['showNotam', 'NOTAMs & Tiefflug'], ['showLines', 'Stromleitungen'], ['showObs', 'Windräder & Masten']];
+  pop.innerHTML = `<div class="zh"><span>Geozonen</span><span style="display:flex;gap:6px"><button class="zall${n === ZG.length ? ' on' : ''}" data-all="1">Alle an</button><button class="zall${n === 0 ? ' on' : ''}" data-all="0">Alle aus</button></span></div>`
+    + ZG.map(([k, t]) => `<div class="zr" data-zg="${k}"><span>${t}</span>${sw(zgOn(k))}</div>`).join('')
+    + `<div class="zh"><span>Weitere Ebenen</span></div>` + EX.map(([k, t]) => `<div class="zr" data-ex="${k}"><span>${t}</span>${sw(P[k] !== '0')}</div>`).join('');
+  pop.querySelectorAll('[data-all]').forEach(b => b.onclick = e => { e.stopPropagation(); setP('zg', b.dataset.all === '1' ? ZG.map(([g]) => g).join(',') : ''); applyGeoConfig(); drawLive(false); zonePopFill(); zoneBtnState(); });
+  pop.querySelectorAll('[data-zg]').forEach(r => r.onclick = e => { e.stopPropagation(); zgSet(r.dataset.zg, !zgOn(r.dataset.zg)); zonePopFill(); zoneBtnState(); });
+  pop.querySelectorAll('[data-ex]').forEach(r => r.onclick = e => { e.stopPropagation(); const k = r.dataset.ex; setP(k, P[k] === '0' ? '1' : '0'); draw(); zonePopFill(); });
+}
+function zoneBtnInit() {
+  if ($('bZones')) return;
+  const b = document.createElement('button'); b.id = 'bZones';
+  b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 5l6-2 4 2 6-2v16l-6 2-4-2-6 2z"/><path d="M10 3v16M14 5v16"/></svg><span class="zbadge">!</span>';
+  $('bLayer').after(b);
+  const pop = document.createElement('div'); pop.id = 'zonePop'; document.body.appendChild(pop);
+  b.onclick = e => { e.stopPropagation(); if (pop.classList.contains('open')) return pop.classList.remove('open');
+    $('layerPop').classList.remove('open'); zonePopFill(); const r = b.getBoundingClientRect();
+    pop.style.right = (innerWidth - r.left + 10) + 'px'; pop.classList.add('open');
+    const h = pop.offsetHeight; pop.style.top = Math.max(80, Math.min(innerHeight - h - 8, r.top + r.height / 2 - h / 2)) + 'px'; };
+  document.addEventListener('pointerdown', e => { if (!e.target.closest('#zonePop') && !e.target.closest('#bZones')) pop.classList.remove('open'); });
+  // Ebenen-Knopf auf dem PC: nur noch Kartentyp
+  const lp = $('layerPop'); lp.querySelectorAll('.zgt, .zgrow').forEach(el => el.style.display = 'none');
+  $('bLayer').title = 'Kartentyp: Grau, Karte oder Luftbild';
+  zoneBtnState();
+}
 function webInit() {
   setInterval(webOsmView, 2500);
+  zoneBtnInit();
   P.labels = '1';   // wie Lite: Feldnamen immer an, der Info-Knopf schaltet nur die Geozonen-Info
   $('bInfo').onclick = e => { e.stopPropagation(); liteGeoToggle(); }; $('bInfo').title = 'Geozonen-Info an/aus – danach in die Karte klicken';
   const seg = document.querySelector('#bar .srcseg');
@@ -7717,7 +7924,11 @@ function webInit() {
   // Einstellungen, die es nur auf der Fernsteuerung gibt
   const HIDE = ['Einsatzplan', 'Quellordner', 'Felder löschen', 'Datenquelle der Felder', 'Missionsordner der Fernsteuerung', 'Zielordner', 'Verschieben statt kopieren',
     'Import-Ordner', 'Dateizugriff', 'Offline-Daten', 'Einsatz-Bundesländer', 'Bedienung mit L/R-Tasten', 'Drohne dieser Fernsteuerung', 'Einrichtung',
-    'UAV-Editor-Felder auf der Karte', 'Feldnamen auf Karte'];   // Filter steht oben in der Leiste; Feldnamen immer an
+    'UAV-Editor-Felder auf der Karte', 'Feldnamen auf Karte',   // Filter steht oben in der Leiste; Feldnamen immer an
+    // was der Ebenen-Knopf auf der Karte schon kann (Kartentyp, Zonen, Leitungen, Hindernisse) – nicht doppelt in den Einstellungen
+    'Verbindungstest Datenserver',   // geht auf dem PC nicht sinnvoll (Fernsteuerungs-Test)
+    'Hindernisse aus OpenStreetMap', 'Geozonen (dipul) anzeigen', 'Eigene Zonen-Karte', 'Geozonen in ganz Deutschland', 'Flugplätze anzeigen'];
+  P.geo = '1'; P.osmPower = '1'; P.airf = '1';   // Daten immer laden – ein-/ausblenden geht über den Ebenen-Knopf
   if (A.sharedFileInfo && !$('setShared')) {   // Adressdatei (E-Mails der Netzbetreiber/Behörden) – zum Weitergeben an andere Koordinatoren
     const d = document.createElement('div'); d.className = 'set'; d.id = 'setShared';
     d.innerHTML = `<div class="l"><div class="t">Adressen und Telefonnummern</div><div class="v">E-Mail-Adressen der Netzbetreiber und Forstämter (je Schutzgebiet), Telefonnummern der Flugplätze und der Rettungsleitstelle. Gespeichert in <b>${esc(A.sharedFileInfo())}</b>. Mit „Exportieren“ als Datei weitergeben, mit „Importieren“ die Datei eines anderen Koordinators übernehmen (vorhandene Einträge bleiben, gleiche werden ersetzt).</div></div>
@@ -7741,7 +7952,7 @@ function webInit() {
   const bn = $('bNone'); if (bn) { bn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="bsl">Auswahl aufheben</span><span class="bss">Aufheben</span>'; bn.title = 'Alle markierten Felder abwählen'; }
   if (sbx) { const sp = document.querySelector('#bar .sp'); if (sp) sp.after(sbx); sbx.classList.add('open', 'inbar');
     $('q').onfocus = () => { S.qOpen = true; searchHits(); };
-    document.addEventListener('pointerdown', e => { if (!sbx.contains(e.target) && S.qOpen) { S.qOpen = false; $('qHits').innerHTML = ''; } }, true); }
+    document.addEventListener('pointerdown', e => { if (!sbx.contains(e.target) && S.qOpen) { S.qOpen = false; $('qHits').innerHTML = ''; setSearchFocus(null); } }, true); }
   if (sbx && !$('qMode')) { S.qMode = 'uave'; const m = document.createElement('div'); m.id = 'qMode'; m.className = 'seg';
     m.innerHTML = '<button data-qm="uave" class="on">UAV-Editor</button><button data-qm="ort">Orte</button>'; sbx.querySelector('.row').appendChild(m);
     const ph = () => { $('q').placeholder = S.qMode === 'ort' ? 'Ort suchen…' : 'Feldname aus dem UAV Editor…'; };
@@ -7749,6 +7960,17 @@ function webInit() {
     ph(); }
   const h1 = $('sc-drohne'); if (h1) h1.textContent = 'UAV Editor'; const n1 = document.querySelector('.setnav [data-sc="drohne"]'); if (n1) n1.textContent = 'UAV Editor';
   document.querySelectorAll('#pgSet .set').forEach(el => { const t = el.querySelector('.t'); if (t && HIDE.some(h => t.textContent.trim().startsWith(h))) el.classList.add('vhide'); });
+  // Kartentyp wählt man über den Ebenen-Knopf – hier bleibt nur der Kartenspeicher (Größe, Leeren)
+  document.querySelectorAll('#pgSet .set').forEach(el => { const t = el.querySelector('.t'); if (!t || !t.textContent.trim().startsWith('Kartentyp')) return;
+    t.textContent = 'Kartenspeicher'; el.querySelectorAll('.seg').forEach(sg => { if (sg.querySelector('[data-layer],[data-ly]') || /Luftbild/.test(sg.textContent)) sg.style.display = 'none'; }); });
+  // Technisches (Daten, Bundesland-Erkennung, Verbindungstest) zugeklappt unter „Erweitert“
+  const ADV = ['Geozonen-Daten', 'Bundesland-Erkennung'];
+  const adv = [...document.querySelectorAll('#pgSet .set')].filter(el => { const t = el.querySelector('.t'); return t && !el.classList.contains('vhide') && ADV.some(h => t.textContent.trim().startsWith(h)); });
+  if (adv.length && !$('advTog')) { const tg = document.createElement('div'); tg.className = 'set'; tg.id = 'advTog'; tg.style.cursor = 'pointer';
+    tg.innerHTML = '<div class="l"><div class="t">Erweitert ▸</div><div class="v">Geozonen-Daten und Bundesland-Erkennung – nur bei Problemen nötig</div></div>';
+    const last = document.querySelectorAll('#pgSet .set:not(.vhide)'); (adv[0].parentNode).insertBefore(tg, adv[0]);
+    adv.forEach(el => el.classList.add('vhide'));
+    tg.onclick = () => { const open = tg.classList.toggle('on'); tg.querySelector('.t').textContent = 'Erweitert ' + (open ? '▾' : '▸'); adv.forEach(el => el.classList.toggle('vhide', !open)); }; }
   ['radar', 'wetter'].forEach(id => {
     const h = $('sc-' + id); if (!h) return; h.classList.add('vhide');
     for (let el = h.nextElementSibling; el && !el.classList.contains('setcat'); el = el.nextElementSibling) el.classList.add('vhide');
