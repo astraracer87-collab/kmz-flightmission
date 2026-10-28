@@ -1986,6 +1986,8 @@ const pwrAdj = () => P.pwrAdj !== '0';
  *  Leitung kreuzt die Bahn oder liegt höchstens 10 m daneben. Liegen die Bahnen nur neben der Leitung (Feld aufgeteilt, nur herangeflogen),
  *  gibt es keine Warnung und kein Anheben. Ohne Route (nur Fläche): Leitung innerhalb der Fläche, ohne Puffer. */
 const OVER_M = 10;
+/** Leitungen bis 20 kV (Mittel-/Niederspannung, „kleine Leitung“): keine Betreiberanfrage, keine Höhenvorgabe – nur Hinweis als Hindernis */
+const minorLine = l => { const k = +l.kv || 0; return k > 0 ? k <= 20 : l.p === 'minor_line'; };
 /** Flugbahn eines Feldes: Wegpunkt-Route als Strecken [lon,lat] – ohne Route nur die Feldfläche selbst (ohne Puffer) */
 function flightGeom(f) {
   if (f._fg) return f._fg;
@@ -2018,7 +2020,7 @@ function touchesPower(f) {
   if (!f || !S.osm || !S.osm.length) return false;
   const k = S.osm.length;
   if (f._lnp && f._lnp.k === k) return f._lnp.v;
-  const v = S.osm.some(l => l.p !== 'cable' && l.loc !== 'underground' && overSections(f, l).length);
+  const v = S.osm.some(l => l.p !== 'cable' && l.loc !== 'underground' && !minorLine(l) && overSections(f, l).length);
   f._lnp = { k, v }; return v;
 }
 /** Mission niedriger als die eingestellte Überflughöhe geplant, aber Freileitung am/über dem Feld */
@@ -6716,7 +6718,7 @@ function netOps(sel) {
   sel.forEach(f => {
     const fr = (fieldRingLL(f) || []), bb = f.bounds; if (fr.length < 2 || !bb) return;
     S.osm.forEach(l => {
-      if (l.p === 'cable' || l.loc === 'underground') return;   // Erdkabel: kein Hindernis in der Luft
+      if (l.p === 'cable' || l.loc === 'underground' || minorLine(l)) return;   // Erdkabel: kein Hindernis in der Luft; bis 20 kV: keine Betreiberanfrage
       if (l.bb.s > bb.n + m || l.bb.n < bb.s - m || l.bb.w > bb.e + m * 1.6 || l.bb.e < bb.w - m * 1.6) return;
       const secs = overSections(f, l); if (!secs.length) return;   // nur wirklich überflogene Abschnitte – daneben/nah dran zählt nicht
       const op = String(l.o || '').trim() || 'Betreiber unbekannt';
@@ -7664,10 +7666,15 @@ function liteCardsHtml(b, o) {
       card('⛔', '#d42020', `${esc(lbl)}: hier nicht fliegen`, `${nm}. ${why} ${notHere}${where(z.fields)}`, need || br ? `<div class="lrules"><span>Fliegen nur:</span> ${need || esc(br)}</div>` : ''); }
   });
   // Stromleitungen, Bahn, Hindernisse
-  if (b.lines.length) { const fs = new Set(); b.lines.forEach(x => (x.fields || []).forEach(t => fs.add(t)));
+  // Leitungen bis 20 kV: nur Hindernis-Hinweis (keine Betreiberanfrage, keine Höhenvorgabe)
+  const lvL = b.lines.filter(x => minorLine(x.l)), hvL = b.lines.filter(x => !minorLine(x.l));
+  if (lvL.length) { const fs = new Set(); lvL.forEach(x => (x.fields || []).forEach(t => fs.add(t)));
+    const kn = lvL.flatMap(x => knownMasts(x.l, pt ? [{ center: o.point }] : sel)).sort((a, c) => a - c);
+    card('🔌', '#6d7a86', `Kleine Stromleitung ${place} (bis 20 kV)`, `Masten ${kn.length ? 'laut OpenStreetMap <b>' + Math.round(kn[kn.length - 1]) + ' m</b>' : '<b>ca. 6–15 m</b>'} hoch – Hindernis beim Start, bei der Landung und im Tiefflug. Keine Betreiberanfrage nötig.${where(fs)}`); }
+  if (hvL.length) { const fs = new Set(); hvL.forEach(x => (x.fields || []).forEach(t => fs.add(t)));
     // je Leitungsart eine Höhe: echte Masthöhe aus OpenStreetMap, sonst typische Höhe (geschätzt) – höchste zuerst
     const per = new Map();
-    b.lines.map(x => x.l).forEach(l => { const c = lineClass(l.kv, l.p), k = l.kv ? l.kv + ' kV' : c.name.replace(/^Spannung unbekannt \((.*)\)$/, '$1');
+    hvL.map(x => x.l).forEach(l => { const c = lineClass(l.kv, l.p), k = l.kv ? l.kv + ' kV' : c.name.replace(/^Spannung unbekannt \((.*)\)$/, '$1');
       const e = per.get(k) || { k, h: c.h, known: [] }; e.known.push(...knownMasts(l, pt ? [{ center: o.point }] : sel)); per.set(k, e); });
     const ht = [...per.values()].sort((x, y) => y.h[1] - x.h[1]).map(e => { const kn = e.known.sort((x, y) => x - y);
       return `${esc(e.k)}: ${kn.length ? `Masten laut OpenStreetMap <b>${Math.round(kn[0]) !== Math.round(kn[kn.length - 1]) ? Math.round(kn[0]) + '–' : ''}${Math.round(kn[kn.length - 1])} m hoch</b>` : `Masten <b>geschätzt ${e.h[0]}–${e.h[1]} m hoch</b>`}`; }).join(' · ');
