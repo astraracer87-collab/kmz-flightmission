@@ -860,7 +860,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 if (IS_LITE) {   // Lite: kein Flugradar, keine Wetterwarnungen; Felder erst über „UAV-Editor“ (Suche → Pre-Check → Import)
@@ -2506,7 +2506,7 @@ function setSourceTo(nv) {
   }
   if (quick) S.loadedSrc = nv; else { S.files = []; }
   update(); draw();
-  if (!S.quietSrc) toast(nv === 'none' ? 'Keine Felder angezeigt – UAV-Editor oder Fernsteuerung antippen zum Einblenden' : nv === 'rc' ? 'Zeige Missionen auf der Fernsteuerung (DJI Pilot 2)' : nv === 'uave' ? 'Zeige Felder aus dem UAV Editor (heruntergeladen)'
+  if (!S.quietSrc) toast(nv === 'none' ? (IS_WEB ? 'Keine: 0 Felder angezeigt – nur Zonen und Hindernisse' : 'Keine Felder angezeigt – UAV-Editor oder Fernsteuerung antippen zum Einblenden') : nv === 'rc' ? 'Zeige Missionen auf der Fernsteuerung (DJI Pilot 2)' : nv === 'uave' ? 'Zeige Felder aus dem UAV Editor (heruntergeladen)'
     : 'Gemischt: Missionen der Fernsteuerung (blau) + was im UAV-Editor noch fehlt (türkis)', false, 3500);
   srcUi(); if (!quick) load(true);
   if (nv === 'mix') catRefresh(false);
@@ -2598,7 +2598,10 @@ async function load(keepView) {
   setTimeout(() => wxPrefetch().then(windWidget), 3000);
   windWidget();
   if (stop) toast(`Laden abgebrochen – ${out.length} von ${r.files.length} Feldern angezeigt. Beim nächsten Öffnen der App werden wieder alle geladen.`, true, 6000);
-  else if (IS_WEB) { if (!S.files.length && P.fsrc !== 'none' && A.uaveUser && A.uaveUser()) toast(P.webShow === '24h' || P.webShow === '48h' ? `In den letzten ${P.webShow === '24h' ? 24 : 48} Stunden wurden im UAV Editor keine Felder angelegt oder geändert. „${new Date().getFullYear()}“ oder „Alle“ zeigt mehr.` : 'Keine Felder – „↻ UAV-Felder holen“ klicken.', false, 6000); }
+  else if (IS_WEB && S.wshowMsg && S.files.filter(visible).length) { S.wshowMsg = false;
+    const n = S.files.filter(visible).length, w = { '24h': 'Letzte 24 Stunden', '48h': 'Letzte 48 Stunden', year: 'Jahr ' + new Date().getFullYear(), all: 'Alle Jahre' }[P.webShow] || '';
+    toast(`${w ? w + ': ' : ''}${n} Feld${n === 1 ? '' : 'er'} angezeigt`, 'ok', 2500); }
+  else if (IS_WEB) { S.wshowMsg = false; if (!S.files.length && P.fsrc !== 'none' && A.uaveUser && A.uaveUser()) toast(P.webShow === '24h' || P.webShow === '48h' ? `In den letzten ${P.webShow === '24h' ? 24 : 48} Stunden wurden im UAV Editor keine Felder angelegt oder geändert. „${new Date().getFullYear()}“ oder „Alle“ zeigt mehr.` : 'Keine Felder – „↻ UAV-Felder holen“ klicken.', false, 6000); }
   else if (!out.length) toast('Keine KMZ-Felder im Quellordner gefunden:\n' + P.src, true, 0, { label: 'Jetzt einstellen', fn: () => gotoSetting('[data-pick="src"]') });
   else if (bad) {   // nur melden, wenn neue leere Missionen dazugekommen sind – nicht bei jedem Laden wieder
     let seen = []; try { seen = JSON.parse(A.getPref('badSeen', '[]') || '[]'); } catch (e) { }
@@ -2755,7 +2758,7 @@ function placeHits(q) {
 function goPlace(p) {
   V.lat = p.lat; V.lon = p.lon; V.z = PLACE_Z[p.t] || 14.5;
   S.placePin = { lat: p.lat, lon: p.lon, n: p.n };   // Ort bleibt markiert, bis neu gesucht wird
-  $('q').value = '';   // Feldfilter aufheben, damit die Felder rund um den Ort sichtbar sind
+  $('q').value = IS_WEB ? p.n : '';   // PC: Ortsname bleibt im Suchfeld (solange er drin steht, bleibt die Nadel); RC: Feldfilter aufheben
   closeSearch(false);
   const near = S.files.filter(f => !f.dup && Math.hypot((f.center[0] - p.lat) * 111.2, (f.center[1] - p.lon) * 71) < 3).length;
   toast(`${p.n}${PLACE_LBL[p.t] ? ' (' + PLACE_LBL[p.t] + ')' : ''} · ${near} Feld${near === 1 ? '' : 'er'} im Umkreis von 3 km`, false, 3500);
@@ -2814,12 +2817,31 @@ function webSearchPanel(box) {
     if (isSel(cf)) { S.files.forEach(x => { if (x.title === cf.name) x.selected = false; }); update(); } else webCatPick(cf, false);
     const sl = S.files.filter(x => x.selected && x.bounds); if (sl.length) fitBounds(padBB(bounds(sl))); draw(); searchHits(); });
 }
+/** PC: im Hintergrund prüfen, ob durch neue/gesuchte Felder ein Netzbetreiber betroffen ist, mit dem noch keine Vereinbarung hinterlegt ist.
+ *  Bekannte Betreiber mit Vereinbarung: nichts. Jeder neue Betreiber wird nur einmal gemeldet. */
+let opAutoT = null, opAutoFs = new Set();
+function opAutoCheck(fs) {
+  if (!IS_WEB) return;
+  (fs || []).forEach(f => opAutoFs.add(f));
+  clearTimeout(opAutoT);
+  opAutoT = setTimeout(() => {   // kurz warten: Leitungen für den neuen Kartenausschnitt nachladen lassen
+    const list = [...opAutoFs]; opAutoFs = new Set(); if (!list.length || !S.osm.length) return;
+    let ops = []; try { ops = netOps(list); } catch (e) { return; }
+    const deals = netDeals(); let seen = []; try { seen = JSON.parse(P.opSeen || '[]'); } catch (e) { }
+    const neu = ops.filter(o => !deals[o.name] && !seen.includes(o.name));
+    if (!neu.length) return;
+    setP('opSeen', JSON.stringify([...seen, ...neu.map(o => o.name)].slice(-300)));
+    const nm = neu.map(o => o.name === 'Betreiber unbekannt' ? 'eine Leitung mit unbekanntem Betreiber' : o.name);
+    toast(`⚡ Neu betroffen: ${nm.join(', ')} – noch keine Vereinbarung hinterlegt.`, 'warn', 10000, { label: 'Netzbetreiber ansehen', fn: () => webNetOverview() });
+  }, 5000);
+}
 /** Treffer aus dem UAV Editor auf die Karte holen (falls der Filter es ausblendet), markieren und hinzoomen */
 function webCatPick(cf, fit) {
   let f = S.files.find(x => x.cat && String((x.uave || {}).id || x.id) === String(cf.id)) || S.files.find(x => x.title === cf.name);
   if (!f) { f = catEntry(cf, true); if (!f) return toast('Für dieses Feld ist im UAV Editor keine Fläche gespeichert.', true); f.extra = true; S.files.push(f); }
   else f.selected = !f.selected || fit === 'all';
   if (f.selected && fit !== false) fitBounds(padBB(bounds([f])));
+  if (f.selected) opAutoCheck([f]);   // betroffene Netzbetreiber im Hintergrund prüfen
   update(); return f;
 }
 function searchHits() {
@@ -2874,7 +2896,7 @@ function openSearch() {
   setTimeout(() => { $('q').focus(); }, 50);
 }
 function closeSearch(clear) {
-  if (clear) $('q').value = '';
+  if (clear) { $('q').value = ''; if (IS_WEB && S.placePin) { S.placePin = null; draw(); } }   // ✕: Ort-Nadel weg
   $('q').blur();
   if (IS_WEB) { $('qHits').innerHTML = ''; setSearchFocus(null); update(); return; }   // PC: Suchfeld bleibt in der Leiste, nur die Trefferliste schließt
   $('searchBox').classList.remove('open');
@@ -2882,7 +2904,8 @@ function closeSearch(clear) {
 }
 $('bSearch').onclick = () => $('searchBox').classList.contains('open') ? closeSearch(false) : openSearch();
 $('qX').onclick = () => closeSearch(true);
-$('q').oninput = () => { S.qOpen = true; update(); if (!IS_WEB || S.qMode === 'ort') photonSearch($('q').value.trim()); };
+$('q').oninput = () => { if (IS_WEB && S.placePin && $('q').value.trim() !== S.placePin.n) { S.placePin = null; draw(); }   // Ortsname gelöscht/geändert: Nadel weg
+  S.qOpen = true; update(); if (!IS_WEB || S.qMode === 'ort') photonSearch($('q').value.trim()); };
 /** „Los“ / Enter: zum besten Treffer – Ort hat Vorrang, wenn der Name passt; Suchfenster zu, Ort in die Mitte mit Markierung */
 function searchGo() {
   const q = $('q').value.trim(); if (!q) return closeSearch(false);
@@ -7615,15 +7638,17 @@ function fieldThumb(f, W, H) {
   const all = rings.flat(); if (!all.length && f.center) all.push(f.center);
   if (!all.length) return `<div class="fthumb" style="width:${W}px;height:${H}px"></div>`;
   const bb = { n: Math.max(...all.map(q => q[0])), s: Math.min(...all.map(q => q[0])), e: Math.max(...all.map(q => q[1])), w: Math.min(...all.map(q => q[1])) };
-  let z = 18; for (; z > 10; z--) if ((mX(bb.e, z) - mX(bb.w, z)) * 1.3 <= W && (mY(bb.s, z) - mY(bb.n, z)) * 1.3 <= H) break;
+  let z = 17; for (; z > 10; z--) if ((mX(bb.e, z) - mX(bb.w, z)) * 1.3 <= W && (mY(bb.s, z) - mY(bb.n, z)) * 1.3 <= H) break;   // höchstens 17: Zoom 18 fehlt im Luftbild oft (graue Kacheln) – kleine Felder werden unten vergrößert
   const ox = (mX(bb.e, z) + mX(bb.w, z)) / 2 - W / 2, oy = (mY(bb.s, z) + mY(bb.n, z)) / 2 - H / 2;
-  let im = '';
+  // Hintergrund wie die Karte: erst die Straßenkarte (lädt immer), darüber – wenn auf der Karte Luftbild gewählt ist – das Luftbild; Lücken im Luftbild zeigen die Karte
+  let im = ''; const top = P.layer === 'sat' ? 'sat' : null, base = P.layer === 'grey' ? 'grey' : 'osm', flt = LAYER_FILTER[base] ? `;filter:${LAYER_FILTER[base]}` : '';
   for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + W) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + H) / 256); ty++) {
-    let u = LAYERS.osm(z, tx, ty); try { u = LAYERS.sat(z, tx, ty); } catch (e) { }
-    im += `<img src="${esc(TSRC(u))}" data-alt="${esc(TSRC(LAYERS.osm(z, tx, ty)))}" onerror="if(this.dataset.alt&&this.src!==this.dataset.alt){this.src=this.dataset.alt}" style="left:${Math.round(tx * 256 - ox)}px;top:${Math.round(ty * 256 - oy)}px" alt="">`; }
+    const pos = `left:${Math.round(tx * 256 - ox)}px;top:${Math.round(ty * 256 - oy)}px`;
+    im += `<img src="${esc(TSRC(LAYERS[base](z, tx, ty)))}" onerror="this.style.visibility='hidden'" style="${pos}${flt}" alt="">`;
+    if (top) im += `<img src="${esc(TSRC(LAYERS.sat(z, tx, ty)))}" onerror="this.remove()" style="${pos}" alt="">`; }
   const d = rings.map(r => 'M' + r.map(q => (mX(q[1], z) - ox).toFixed(1) + ' ' + (mY(q[0], z) - oy).toFixed(1)).join('L') + 'Z').join('');
   // Nahansicht: zwischen zwei Zoomstufen stufenlos vergrößern, damit das Feld das Bild gut ausfüllt
-  const k = Math.max(1, Math.min(2, W / ((mX(bb.e, z) - mX(bb.w, z)) * 1.2 || W), H / ((mY(bb.s, z) - mY(bb.n, z)) * 1.2 || H)));
+  const k = Math.max(1, Math.min(3, W / ((mX(bb.e, z) - mX(bb.w, z)) * 1.2 || W), H / ((mY(bb.s, z) - mY(bb.n, z)) * 1.2 || H)));
   return `<div class="fthumb" style="width:${W}px;height:${H}px"><div style="position:absolute;inset:0;transform:scale(${k.toFixed(3)})">${im}<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><path d="${d}" fill="rgba(0,229,212,.18)" stroke="#00e5d4" stroke-width="2.5" stroke-linejoin="round" fill-rule="evenodd" vector-effect="non-scaling-stroke"/></svg></div></div>`;
 }
 /** Einfache Karten für Feldcheck UND Antippen einer Stelle (gleiches Aussehen) – o: { sel (Felder) | point:[lat,lon], centers } */
@@ -7913,7 +7938,8 @@ function webInit() {
     seg.querySelectorAll('[data-wshow]').forEach(b => b.onclick = () => {
       const v = b.dataset.wshow;
       if (v === 'none') setSourceTo('none');
-      else { setP('webShow', v); if (P.fsrc === 'none') setSourceTo('mix'); else { S.files = []; update(); load(true); } }
+      else { setP('webShow', v); S.wshowMsg = true;   // nach dem Laden: „N Felder angezeigt“
+        if (P.fsrc === 'none') { S.quietSrc = true; try { setSourceTo('mix'); } finally { S.quietSrc = false; } } else { S.files = []; update(); load(true); } }
       ui();
     });
     ui();
@@ -7963,7 +7989,8 @@ function webInit() {
   if (sbx && !$('qMode')) { S.qMode = 'uave'; const m = document.createElement('div'); m.id = 'qMode'; m.className = 'seg';
     m.innerHTML = '<button data-qm="uave" class="on">UAV-Editor</button><button data-qm="ort">Orte</button>'; sbx.querySelector('.row').appendChild(m);
     const ph = () => { $('q').placeholder = S.qMode === 'ort' ? 'Ort suchen…' : 'Feldname aus dem UAV Editor…'; };
-    m.querySelectorAll('[data-qm]').forEach(b => b.onclick = () => { S.qMode = b.dataset.qm; m.querySelectorAll('[data-qm]').forEach(x => x.classList.toggle('on', x === b)); ph(); update(); if (S.qMode === 'ort') photonSearch($('q').value.trim()); $('q').focus(); });
+    m.querySelectorAll('[data-qm]').forEach(b => b.onclick = () => { if (b.dataset.qm === 'uave' && S.placePin && $('q').value.trim() === S.placePin.n) { $('q').value = ''; S.placePin = null; draw(); }   // zurück zur Feldsuche: Ort raus
+      S.qMode = b.dataset.qm; m.querySelectorAll('[data-qm]').forEach(x => x.classList.toggle('on', x === b)); ph(); update(); if (S.qMode === 'ort') photonSearch($('q').value.trim()); $('q').focus(); });
     ph(); }
   const h1 = $('sc-drohne'); if (h1) h1.textContent = 'UAV Editor'; const n1 = document.querySelector('.setnav [data-sc="drohne"]'); if (n1) n1.textContent = 'UAV Editor';
   document.querySelectorAll('#pgSet .set').forEach(el => { const t = el.querySelector('.t'); if (t && HIDE.some(h => t.textContent.trim().startsWith(h))) el.classList.add('vhide'); });
@@ -8166,7 +8193,9 @@ window.onUave = raw => {
     if (S.liteRefresh) { const man = S.liteRefresh === 'manual'; S.liteRefresh = false; const open = $('pgInfo').classList.contains('open') && $('lq');
       if (ev.type === 'error') { if (man) toast('UAV Editor: ' + (ev.message || 'Fehler'), true, 7000); if (open) liteSearch(true); }
       else if (open) { liteSearch(true); if (man) toast('Neue Felder geholt – die Liste ist aktuell.', 'ok', 2500); } return; }
-    if (ev.type === 'list' && P.fsrc === 'mix') load(true).then(() => { if (wr) toast(`Feldliste aktualisiert · ${S.files.filter(f => f.cat).length} Felder${P.webShow === '24h' ? ' aus den letzten 24 h' : ''} auf der Karte`, 'ok', 4000); });
+    if (ev.type === 'list' && P.fsrc === 'mix') load(true).then(() => { if (wr) toast(`Feldliste aktualisiert · ${S.files.filter(f => f.cat).length} Felder${P.webShow === '24h' ? ' aus den letzten 24 h' : ''} auf der Karte`, 'ok', 4000);
+      if (IS_WEB) { let d = null; try { d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); } catch (e) { }   // alle Felder des Jahres auf neue Netzbetreiber prüfen
+        const Y = String(new Date().getFullYear()); if (d && d.fields) opAutoCheck(d.fields.filter(f => String(CAT_YEAR(f)) === Y).map(f => catEntry(f, false)).filter(Boolean)); } });
     return;
   }
   if (ev.type === 'status') { busy(ev.text, { cancel: syncAbort }); return; }
@@ -9270,7 +9299,7 @@ loadNotams();
 geoBadge();
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
