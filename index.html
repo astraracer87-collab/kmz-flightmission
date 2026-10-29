@@ -275,6 +275,25 @@
   #infoPop button.on .ck{background:var(--acc);border-color:var(--acc)}
   #infoPop button.on .ck::after{content:'✓'}
   #infoPop .dot{width:12px;height:12px;border-radius:50%;flex:none}
+  #sidePanel{position:fixed;left:0;top:72px;bottom:0;width:360px;z-index:17;background:var(--card);box-shadow:3px 0 16px rgba(0,0,0,.25);display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .2s}
+  #sidePanel.open{transform:none}
+  body.side-open #notam{margin-left:360px}
+  #sideTab{position:absolute;right:-42px;top:120px;width:42px;height:92px;border-radius:0 12px 12px 0;background:var(--card);color:var(--acc);box-shadow:3px 0 10px rgba(0,0,0,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:800}
+  #sideTab span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:13px}#sideTab b{font-size:20px;line-height:1}
+  #sidePanel .sph{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px 4px;font-size:15px}#sidePanel .sph span{color:var(--muted);font-size:13px}
+  #sidePanel .spf{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px 14px}#sidePanel .spf input{grid-column:1/-1}
+  #sidePanel .spf input,#sidePanel .spf select{height:34px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--card);color:var(--txt);font-size:13px;min-width:0}
+  #sidePanel .spa{display:flex;gap:6px;padding:4px 14px 8px;border-bottom:1px solid var(--line)}#sidePanel .spa button{flex:1;height:32px;border-radius:8px;background:var(--sec);color:var(--acc);font-weight:700;font-size:12.5px}
+  #sidePanel .spa button.on{background:#ff7a00;color:#fff}
+  #sideList{flex:1;overflow-y:auto;padding:4px 8px 12px}
+  #sideList .spd{font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:10px 6px 3px}
+  #sideList .spr{display:flex;gap:10px;align-items:flex-start;padding:7px 8px;border-radius:8px;cursor:pointer}#sideList .spr:hover{background:var(--card2)}#sideList .spr.on{background:rgba(255,122,0,.18)}
+  #sideList .spr input{all:revert;width:17px;height:17px;margin:2px 0 0;accent-color:#ff7a00;flex:none}#sideList .spr b{font-size:14px;word-break:break-all}#sideList .spr span{display:block;color:var(--muted);font-size:12px}
+  #sideList .spg{display:flex;gap:10px;align-items:center;padding:7px 8px;border-radius:8px;cursor:pointer;background:var(--card2);margin:3px 0}#sideList .spg.on{background:rgba(255,122,0,.22)}
+  #sideList .spg input{all:revert;width:17px;height:17px;margin:0;accent-color:#ff7a00;flex:none}#sideList .spgn{flex:1;min-width:0}#sideList .spgn b{font-size:14px}#sideList .spgn em{font-style:normal;color:var(--muted);font-size:12px}
+  #sideList .spgx{width:30px;height:30px;border-radius:8px;background:transparent;color:var(--txt);font-size:16px;flex:none}#sideList .spgx:hover{background:var(--sec)}
+  #sideList .spr.sub{margin-left:22px}
+  #sideList .spnew{font-style:normal;background:#ff7a00;color:#fff;border-radius:6px;padding:0 5px;font-size:10.5px;font-weight:800}
   #zonePop{position:fixed;display:none;flex-direction:column;gap:6px;padding:10px;background:var(--ctrl);border-radius:16px;box-shadow:0 3px 14px rgba(0,0,0,.35);z-index:30;width:290px}
   #zonePop.open{display:flex}
   #zonePop .zh{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:4px 2px 0}
@@ -860,7 +879,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 if (IS_LITE) {   // Lite: kein Flugradar, keine Wetterwarnungen; Felder erst über „UAV-Editor“ (Suche → Pre-Check → Import)
@@ -2625,6 +2644,7 @@ function visible(f) {
   return !visMemo.any || ftitle(f).includes(visMemo.q) || f.selected;   // nur Ort getippt: Felder nicht ausblenden
 }
 function update() {
+  if (IS_WEB) sideRender();
   const n = S.files.filter(f => f.selected).length;
   const dups = S.files.filter(f => f.dup).length;
   $('count').innerHTML = `${n} markiert<small>${S.files.length - dups} Felder</small>`;
@@ -2816,6 +2836,106 @@ function webSearchPanel(box) {
   box.querySelectorAll('.wsr').forEach(el => el.onclick = e => { e.preventDefault(); const cf = list[+el.dataset.k];
     if (isSel(cf)) { S.files.forEach(x => { if (x.title === cf.name) x.selected = false; }); update(); } else webCatPick(cf, false);
     const sl = S.files.filter(x => x.selected && x.bounds); if (sl.length) fitBounds(padBB(bounds(sl))); draw(); searchHits(); });
+}
+// ================= PC: Seitenleiste links – Felder aus dem UAV Editor, neueste zuerst, mit Filtern =================
+/** Namensanfang eines Feldes für Pakete: „Aumenau-1+2-M3T“ → „Aumenau“, „Schröter-Kerkerbach-6a“ → „Schröter-Kerkerbach“ */
+function fieldGroupKey(n) { const b = String(n).replace(/[-_\s]+(M3T|M4T|M30T|M3E)\s*$/i, '').replace(/[-_\s]+$/, ''); const m = /^(.*?[A-Za-zÄÖÜäöüß][^\s_-]*)[-_\s]+\d[\w+.]*$/.exec(b); return (m ? m[1] : b).trim(); }
+const SIDE = { q: '', year: null, stand: 'alle', drone: 'alle', sort: 'neu' };
+function catAll() { try { const d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); return d && Array.isArray(d.fields) ? d.fields : []; } catch (e) { return []; } }
+const cfTime = f => { const c = dOk(f.created || (f.meta || {}).created), l = dOk(f.lm); return Math.max(c ? +c : 0, l ? +l : 0); };
+const cfDrone = f => { const d = uaveInfo(f).drone, h = f.meta && f.meta.h; return d === 'M3T' || d === 'M4T' ? d : h ? (h < 60 ? 'M3T' : 'M4T') : ''; };
+const cfSel = cf => S.files.some(x => x.selected && (String((x.uave || {}).id || '') === String(cf.id) || x.title === cf.name));
+function sideInit() {
+  if ($('sidePanel')) return;
+  const p = document.createElement('div'); p.id = 'sidePanel';
+  p.innerHTML = `<button id="sideTab" title="Feldliste ein-/ausklappen"><span>Felder</span><b>›</b></button>
+    <div class="sph"><b>Felder aus dem UAV Editor</b><span id="sideN"></span></div>
+    <div class="spf"><input id="sideQ" type="search" placeholder="Name filtern…">
+      <select id="sideS"><option value="neu">Neueste zuerst</option><option value="name">Name A–Z</option></select>
+      <select id="sideY"></select><select id="sideD"><option value="alle">Alle Drohnen</option><option value="M3T">M3T</option><option value="M4T">M4T</option></select>
+      <select id="sideSt"><option value="alle">Aktiv + Archiv</option><option value="aktiv">Nur aktiv</option><option value="archiv">Nur Archiv</option></select></div>
+    <div class="spa"><button id="sideAll">Alle markieren</button><button id="sideNone">Keine</button><button id="sideNew" style="display:none">Nur neue</button></div>
+    <div id="sideList"></div>`;
+  document.body.appendChild(p);
+  const open = o => { p.classList.toggle('open', o); document.body.classList.toggle('side-open', o); setP('sideOpen', o ? '1' : '0'); $('sideTab').querySelector('b').textContent = o ? '‹' : '›'; if (o) sideRender(); };
+  $('sideTab').onclick = () => open(!p.classList.contains('open'));
+  $('sideQ').oninput = e => { SIDE.q = e.target.value; sideRender(); };
+  $('sideS').onchange = e => { SIDE.sort = e.target.value; sideRender(); };
+  $('sideY').onchange = e => { SIDE.year = e.target.value; sideRender(); };
+  $('sideD').onchange = e => { SIDE.drone = e.target.value; sideRender(); };
+  $('sideSt').onchange = e => { SIDE.stand = e.target.value; sideRender(); };
+  $('sideAll').onclick = () => { const fs = sideList().slice(0, 300).map(cf => webCatPick(cf, 'all')).filter(Boolean); if (fs.length) fitBounds(padBB(bounds(fs))); draw(); sideRender(); toast(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} markiert`, 'ok', 2000); };
+  $('sideNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); draw(); sideRender(); };
+  $('sideNew').onclick = () => { SIDE.onlyNew = !SIDE.onlyNew; sideRender(); };
+  p.addEventListener('pointerdown', e => e.stopPropagation());
+  if (P.sideOpen === '1') open(true);
+}
+function sideList() {
+  const all = catAll(), Y = new Date().getFullYear(); if (SIDE.year == null) SIDE.year = String(Y);
+  const fq = foldTxt(SIDE.q.trim()).replace(/[_\-]+/g, ' ');
+  return all.filter(f => (SIDE.year === 'alle' || String(CAT_YEAR(f)) === SIDE.year) && (SIDE.stand === 'alle' || (SIDE.stand === 'archiv') === !!f.arch)
+    && (SIDE.drone === 'alle' || !cfDrone(f) || cfDrone(f) === SIDE.drone) && (!fq || foldTxt(String(f.name)).replace(/[_\-]+/g, ' ').includes(fq))
+    && (!SIDE.onlyNew || (S.newIds && S.newIds.has(String(f.id)))))
+    .sort((a, b) => SIDE.sort === 'name' ? String(a.name).localeCompare(String(b.name), 'de', { numeric: true }) : (cfTime(b) - cfTime(a)) || String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
+}
+let sideRaf = 0;
+function sideRender() {
+  const p = $('sidePanel'); if (!p || !p.classList.contains('open')) return;
+  cancelAnimationFrame(sideRaf); sideRaf = requestAnimationFrame(() => {
+    const all = catAll(), Y = new Date().getFullYear(), years = [...new Set(all.map(CAT_YEAR).filter(Boolean))].sort((a, b) => b - a);
+    if (SIDE.year == null) SIDE.year = String(Y);
+    $('sideY').innerHTML = [String(Y), ...years.filter(y => y !== Y).map(String), 'alle'].map(v => `<option value="${v}"${v === SIDE.year ? ' selected' : ''}>${v === 'alle' ? 'Alle Jahre' : v === String(Y) ? 'Jahr ' + v : v}</option>`).join('');
+    const nb = $('sideNew'), nn = S.newIds ? S.newIds.size : 0; nb.style.display = nn ? '' : 'none'; nb.textContent = SIDE.onlyNew ? 'Alle zeigen' : `Nur neue (${nn})`; nb.classList.toggle('on', !!SIDE.onlyNew);
+    const list = sideList(), box = $('sideList'), st = box.scrollTop, dd = t => t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
+    $('sideN').textContent = list.length + ' Feld' + (list.length === 1 ? '' : 'er');
+    // Felder mit gleichem Namensanfang zu Paketen bündeln (z. B. „Aumenau-1…9“), Paket als Ganzes oder einzeln anwählbar
+    const gKey = n => fieldGroupKey(n).toLowerCase();
+    const groups = [], gi = new Map();
+    list.slice(0, 500).forEach((cf, k) => { const key = gKey(cf.name); let g = gi.get(key); if (!g) { g = { key, label: String(cf.name).replace(/[-_\s]+(M3T|M4T|M30T|M3E)\s*$/i, '').replace(/[-_\s]+\d[\w+.]*$/, '').replace(/[-_\s]+$/, ''), items: [] }; gi.set(key, g); groups.push(g); } g.items.push({ cf, k }); });
+    SIDE.openG = SIDE.openG || new Set();
+    const row = ({ cf, k }, sub) => { const t = cfTime(cf), c = dOk(cf.created || (cf.meta || {}).created), l = dOk(cf.lm), ch = l && +l === t && (!c || Math.abs(l - c) > 60000), isNew = S.newIds && S.newIds.has(String(cf.id));
+      return `<label class="spr${cfSel(cf) ? ' on' : ''}${sub ? ' sub' : ''}" data-k="${k}"><input type="checkbox"${cfSel(cf) ? ' checked' : ''}><div><b>${esc(cf.name)}</b>${isNew ? ' <i class="spnew">NEU</i>' : ''}<span>${t ? (ch ? 'geändert ' : 'erstellt ') + (SIDE.sort === 'neu' ? new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : dd(t)) : ''}${cf.area ? ' · ' + fieldArea(cf.area) : ''}${cfDrone(cf) ? ' · ' + cfDrone(cf) : ''}${cf.arch ? ' · Archiv' : ''}</span></div></label>`; };
+    let lastDay = '';
+    box.innerHTML = !all.length ? '<div class="meta" style="padding:12px">Noch keine Feldliste – „↻ UAV-Felder holen“ klicken.</div>'
+      : groups.length ? groups.map((g, gix) => { const t = cfTime(g.items[0].cf), day = SIDE.sort === 'neu' ? dd(t) : '';
+        const hd = day && day !== lastDay ? `<div class="spd">${t ? new Date(t).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : 'ohne Datum'}</div>` : ''; lastDay = day || lastDay;
+        if (g.items.length === 1) return hd + row(g.items[0]);
+        const nSel = g.items.filter(x => cfSel(x.cf)).length, op = SIDE.openG.has(g.key) || !!SIDE.q.trim(), nNew = g.items.filter(x => S.newIds && S.newIds.has(String(x.cf.id))).length;
+        return hd + `<div class="spg${nSel === g.items.length ? ' on' : ''}" data-g="${gix}"><input type="checkbox"${nSel === g.items.length ? ' checked' : ''} data-ind="${nSel && nSel < g.items.length ? 1 : 0}"><div class="spgn"><b>${esc(g.label)}</b> <em>${g.items.length} Felder${nSel ? ` · ${nSel} markiert` : ''}</em>${nNew ? ` <i class="spnew">${nNew} NEU</i>` : ''}</div><button class="spgx" title="Felder zeigen/verbergen">${op ? '▾' : '▸'}</button></div>`
+          + (op ? g.items.map(x => row(x, true)).join('') : ''); }).join('')
+      : '<div class="meta" style="padding:12px">Keine Felder für diese Filter.</div>';
+    box.querySelectorAll('[data-ind="1"]').forEach(c => c.indeterminate = true);
+    box.querySelectorAll('.spg').forEach(el => { const g = groups[+el.dataset.g];
+      el.querySelector('.spgx').onclick = e => { e.stopPropagation(); SIDE.openG.has(g.key) ? SIDE.openG.delete(g.key) : SIDE.openG.add(g.key); sideRender(); };
+      el.onclick = e => { e.preventDefault(); const allOn = g.items.every(x => cfSel(x.cf));   // ganzes Paket an/aus
+        if (allOn) { const nm = new Set(g.items.map(x => x.cf.name)); S.files.forEach(f => { if (nm.has(f.title)) f.selected = false; }); update(); }
+        else g.items.forEach(x => { if (!cfSel(x.cf)) webCatPick(x.cf, false); });
+        const sl = S.files.filter(x => x.selected && x.bounds); if (sl.length) fitBounds(padBB(bounds(sl))); draw(); sideRender(); }; });
+    box.scrollTop = st;
+    box.querySelectorAll('.spr').forEach(el => el.onclick = e => { e.preventDefault(); const cf = list[+el.dataset.k];
+      if (cfSel(cf)) { S.files.forEach(x => { if (x.title === cf.name) x.selected = false; }); update(); } else webCatPick(cf, false);
+      const sl = S.files.filter(x => x.selected && x.bounds); if (sl.length) fitBounds(padBB(bounds(sl))); draw(); sideRender(); });
+  });
+}
+/** Nach dem Holen aus dem UAV Editor: neue Felder erkennen (gegenüber dem letzten Stand) und anbieten, sie anzusehen */
+function newFieldsCheck(manual) {
+  const all = catAll(); if (!all.length) return;
+  const ids = all.map(f => String(f.id)); let known = null; try { known = JSON.parse(P.catKnown || 'null'); } catch (e) { }
+  setP('catKnown', JSON.stringify(ids));
+  if (!Array.isArray(known)) return;   // erstes Mal: nur merken
+  const ks = new Set(known), neu = all.filter(f => !ks.has(String(f.id)));
+  if (!neu.length) { if (manual) toast('Keine neuen Felder im UAV Editor.', 'ok', 2500); return; }
+  S.newIds = new Set([...(S.newIds || []), ...neu.map(f => String(f.id))]); sideRender();
+  const n = neu.length;
+  const pk = new Map(); neu.forEach(f => { const k = fieldGroupKey(f.name); pk.set(k, (pk.get(k) || []).concat(f.name)); });
+  const lines = [...pk.entries()].map(([k, ns]) => ns.length > 1 ? `${k}: ${ns.length} Felder` : ns[0]);
+  confirmDlg(`${n} neue${n === 1 ? 's' : ''} Feld${n === 1 ? '' : 'er'} entdeckt`, 'Im UAV Editor sind seit dem letzten Abruf dazugekommen:', lines.slice(0, 15).concat(lines.length > 15 ? [`… und ${lines.length - 15} weitere`] : []), 'Jetzt ansehen', () => {
+    S.files.forEach(f => f.selected = false);
+    const fs = neu.map(cf => webCatPick(cf, 'all')).filter(Boolean);
+    if (fs.length) fitBounds(padBB(bounds(fs))); draw();
+    SIDE.onlyNew = true; const sp = $('sidePanel'); if (sp && !sp.classList.contains('open')) $('sideTab').click(); else sideRender();
+  });
+  $('dNo').textContent = 'OK';
 }
 /** PC: im Hintergrund prüfen, ob durch neue/gesuchte Felder ein Netzbetreiber betroffen ist, mit dem noch keine Vereinbarung hinterlegt ist.
  *  Bekannte Betreiber mit Vereinbarung: nichts. Jeder neue Betreiber wird nur einmal gemeldet. */
@@ -7925,7 +8045,7 @@ function zoneBtnInit() {
 }
 function webInit() {
   setInterval(webOsmView, 2500);
-  zoneBtnInit();
+  zoneBtnInit(); sideInit();
   P.labels = '1';   // wie Lite: Feldnamen immer an, der Info-Knopf schaltet nur die Geozonen-Info
   $('bInfo').onclick = e => { e.stopPropagation(); liteGeoToggle(); }; $('bInfo').title = 'Geozonen-Info an/aus – danach in die Karte klicken';
   const seg = document.querySelector('#bar .srcseg');
@@ -8194,6 +8314,7 @@ window.onUave = raw => {
       if (ev.type === 'error') { if (man) toast('UAV Editor: ' + (ev.message || 'Fehler'), true, 7000); if (open) liteSearch(true); }
       else if (open) { liteSearch(true); if (man) toast('Neue Felder geholt – die Liste ist aktuell.', 'ok', 2500); } return; }
     if (ev.type === 'list' && P.fsrc === 'mix') load(true).then(() => { if (wr) toast(`Feldliste aktualisiert · ${S.files.filter(f => f.cat).length} Felder${P.webShow === '24h' ? ' aus den letzten 24 h' : ''} auf der Karte`, 'ok', 4000);
+      if (IS_WEB) newFieldsCheck(wr);   // neue Felder seit dem letzten Abruf melden
       if (IS_WEB) { let d = null; try { d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); } catch (e) { }   // alle Felder des Jahres auf neue Netzbetreiber prüfen
         const Y = String(new Date().getFullYear()); if (d && d.fields) opAutoCheck(d.fields.filter(f => String(CAT_YEAR(f)) === Y).map(f => catEntry(f, false)).filter(Boolean)); } });
     return;
@@ -9299,7 +9420,7 @@ loadNotams();
 geoBadge();
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
