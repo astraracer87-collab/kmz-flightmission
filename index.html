@@ -244,7 +244,8 @@
   .dlg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30}
   .dlg.open{display:flex}
   .dlg .box.wide{width:min(1700px,97%)}
-  .dlg .box.wide .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:8px;align-items:start}.dlg .box.wide .lgrid .lfld{margin:0}
+  .dlg .box.wide .lgrid{display:flex;flex-direction:column;gap:8px}.dlg .box.wide .lgrid .lfld{margin:0}   /* ein Feld je Zeile, Hinweise daneben in Spalten */
+  .dlg .box.wide .lchips{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:6px}.dlg .box.wide .lchips .lchip{margin:0}
   .dlg .box{background:var(--card);color:var(--txt);border-radius:14px;width:min(640px,94%);max-height:92%;display:flex;flex-direction:column;padding:16px;overflow:auto}
   .dlg h3{margin:0 0 8px;font-size:19px}
   .dlg .lst{overflow:auto;flex:1;margin:6px 0 12px;color:var(--muted);font-size:15px}
@@ -429,8 +430,9 @@
   .fthumb{position:relative;overflow:hidden;border-radius:10px;background:#5b6b4e;flex:none}.fthumb img{position:absolute;width:256px;height:256px;max-width:none}.fthumb svg{position:absolute;left:0;top:0;width:100%!important;height:100%!important;fill:initial;stroke:initial}
   .lfld{background:var(--card2);border-radius:12px;margin-bottom:8px;padding:8px}.lfld[open]{outline:2px solid #00a99d}
   .lfld summary{display:flex;gap:12px;align-items:flex-start;cursor:pointer;list-style:none}.lfld summary::-webkit-details-marker{display:none}
-  .lfld .lcheck{margin-top:10px}.lfi{flex:1;min-width:0}.lfn{font-size:18px;font-weight:800;margin-bottom:6px;overflow-wrap:anywhere}
-  .lchip{display:block;width:fit-content;font-size:14px;line-height:1.3;padding:3px 8px;margin:0 6px 6px 0;border-radius:8px;border-left:5px solid;background:var(--card)}
+  .lfld .lcheck{margin-top:10px}.lfi{flex:1;min-width:0}.lfn{font-size:18px;font-weight:800;margin-bottom:6px;overflow-wrap:anywhere;line-height:1.5}.lfn .lverd{font-size:12px;padding:2px 7px}
+  .lchip.linfo{background:transparent;border-left-color:var(--line);font-size:13px;color:var(--muted);padding:1px 8px}
+  .lchip{display:block;box-sizing:border-box;width:100%;font-size:14px;line-height:1.3;padding:3px 8px;margin:0 6px 6px 0;border-radius:8px;border-left:5px solid;background:var(--card)}
   .lfld1{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:10px}.lfld1 .fthumb{max-width:100%}
   #bar .srcseg button.lbtn{background:#00a99d;color:#fff;font-weight:800;display:flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(0,0,0,.25)}
   #bar .srcseg button.lbtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round}
@@ -1375,11 +1377,14 @@ function paintStatic() {
   if (P.showNotam !== '0') (S.lfa || []).forEach(drawLfa);   // Tieffluggebiete – egal ob gerade Betriebszeit (Ebenen-Knopf: ein/aus)
   if (P.showNotam !== '0' && S.notams.length) drawNotams(S.notams);
   const vis = S.files.filter(visible);
-  const ord = vis.filter(fieldOnScreen).sort(byAreaDesc);
+  const CL = V.z < LABEL_Z ? fieldClusters(vis) : null;   // weiter weg: nahe Felder als Kreis mit Anzahl
+  S.clHidden = new Set(CL ? CL.clusters.flatMap(c => c.fs) : []);
+  const ord = vis.filter(f => !S.clHidden.has(f)).filter(fieldOnScreen).sort(byAreaDesc);
   ord.forEach(f => { drawOutline(f); drawField(f); });
   ord.filter(f => f.selected).forEach(drawField);   // Route markierter Felder obenauf
   labelBoxes = [];
-  const drawLabels = () => { if (P.labels !== '1') return;   // ganz zum Schluss: Feldnamen über Windrädern/Masten
+  const drawLabels = () => { if (CL) { drawClusters(CL.clusters); if (P.labels === '1') { CL.singles.filter(f => f.selected).forEach(f => drawLabel(f, true)); CL.singles.filter(f => !f.selected).forEach(f => drawLabel(f, true)); } return; }
+    if (P.labels !== '1') return;   // ganz zum Schluss: Feldnamen über Windrädern/Masten
     if (V.z >= LABEL_Z) { vis.filter(f => f.selected).forEach(f => drawLabel(f)); vis.filter(f => !f.selected).forEach(f => drawLabel(f)); }
     else if (V.z >= LABEL_ZMIN) drawLabelGroups(vis);   // weiter weg: Namen trotzdem lesbar, dicht liegende als Liste
     else vis.filter(f => f.selected).forEach(f => drawLabel(f)); };
@@ -2080,6 +2085,33 @@ function drawPowerWarn(f) {
 }
 /** Weiter herausgezoomt: nahe beieinander liegende Felder als Liste untereinander (sonst wäre es nur ein Klecks) – jede Zeile antippbar */
 const LABEL_ZMIN = 10;
+/** Weiter herausgezoomt: nahe beieinander liegende Felder als ein Kreis mit Anzahl – Hineinzoomen teilt die Kreise auf, bis jedes Feld einzeln zu sehen ist */
+const CLUSTER_PX = 70;
+function fieldClusters(vis) {
+  const cl = [];
+  vis.filter(f => f.center).forEach(f => { const [x, y] = toScreen(f.center[0], f.center[1]); if (x < -300 || y < -300 || x > W + 300 || y > H + 300) return;
+    let best = null, bd = CLUSTER_PX; cl.forEach(c => { const d = Math.hypot(c.x - x, c.y - y); if (d < bd) { bd = d; best = c; } });
+    if (best) { best.fs.push(f); best.sx += x; best.sy += y; best.x = best.sx / best.fs.length; best.y = best.sy / best.fs.length; }
+    else cl.push({ fs: [f], x, y, sx: x, sy: y }); });
+  return { singles: cl.filter(c => c.fs.length === 1).map(c => c.fs[0]), clusters: cl.filter(c => c.fs.length > 1) };
+}
+function drawClusters(cls) {
+  resetTf();
+  cls.forEach(c => { const n = c.fs.length, nSel = c.fs.filter(f => f.selected).length, r = 15 + Math.min(17, Math.sqrt(n) * 3.4), x = c.x, y = c.y;
+    // abgerundetes Quadrat (nicht rund wie die Windrad-Symbole), Farbe wie die Felder
+    const rr = (q, rad) => { ctx.beginPath(); ctx.moveTo(x - q + rad, y - q); ctx.arcTo(x + q, y - q, x + q, y + q, rad); ctx.arcTo(x + q, y + q, x - q, y + q, rad); ctx.arcTo(x - q, y + q, x - q, y - q, rad); ctx.arcTo(x - q, y - q, x + q, y - q, rad); ctx.closePath(); };
+    rr(r + 5, 12); ctx.fillStyle = 'rgba(0,229,212,.28)'; ctx.fill();
+    rr(r, 9); ctx.fillStyle = nSel === n ? '#ff7a00' : '#00bfae'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
+    if (nSel && nSel < n) { const bw = 2 * r * nSel / n; ctx.fillStyle = '#ff7a00'; ctx.fillRect(x - r, y + r - 7, bw, 5); }   // Anteil markierter Felder als Balken
+    ctx.fillStyle = '#fff'; ctx.font = `800 ${n > 99 ? 13 : 15}px Roboto,system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(n), x, y + 1);
+    // gemeinsamer Name (z. B. „Aumenau“), wenn die meisten Felder so heißen
+    const cnt = {}; c.fs.forEach(f => { const k = typeof fieldGroupKey === 'function' ? fieldGroupKey(f.title) : shortTitle(f.title); cnt[k] = (cnt[k] || 0) + 1; });
+    const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0], nm = top && top[1] / n >= 0.6 ? top[0] + (top[1] < n ? ' …' : '') : '';
+    let box = { x: x - r - 5, y: y - r - 5, w: 2 * r + 10, h: 2 * r + 10 };
+    if (nm) { ctx.font = '700 12px Roboto,system-ui,sans-serif'; const tw = ctx.measureText(nm).width + 10, ty = y + r + 8;
+      ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fillRect(x - tw / 2, ty, tw, 17); ctx.fillStyle = '#15202b'; ctx.fillText(nm, x, ty + 9); box.h += 20; box.x = Math.min(box.x, x - tw / 2); box.w = Math.max(box.w, tw); }
+    labelBoxes.push(Object.assign(box, { cl: c.fs })); });
+}
 function drawLabelGroups(vis) {
   const pts = vis.filter(f => f.center).map(f => { const [x, y] = toScreen(f.center[0], f.center[1]); return { f, x, y }; })
     .filter(p => p.x > -200 && p.y > -100 && p.x < W + 200 && p.y < H + 100).sort((a, b) => a.y - b.y || a.x - b.x);
@@ -2288,14 +2320,17 @@ function hit(x, y) {
 }
 /** Feld an der Stelle markieren/abwählen; true wenn getroffen */
 function hitField(x, y) {
-  const vis = S.files.filter(visible);
+  // 0. Kreis mit mehreren Feldern: hineinzoomen, bis sie sich aufteilen
+  for (const b of [...labelBoxes].reverse()) if (b.cl && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
+    const z0 = V.z; fitBounds(padBB(bounds(b.cl))); if (V.z < z0 + 1.5) { const c = fromScreen(b.x + b.w / 2, b.y + b.h / 2); V.lat = c[0]; V.lon = c[1]; V.z = Math.min(18, z0 + 2); } draw(); return true; }
+  const vis = S.files.filter(visible).filter(f => !(S.clHidden && S.clHidden.has(f)));
   // 1. Die Wiesenfläche unter dem Finger gewinnt immer – auch wenn das Namensschild der Nachbarwiese darüber liegt
   const small = [...vis].sort(byAreaDesc).reverse();   // oben liegende (kleine) Felder zuerst
   for (const f of small) if (f.outline && inPoly(x, y, f.outline.map(p => toScreen(p[0], p[1])))) return toggle(f);
   for (const f of small) if (!f.outline) for (const s of f.shapes) if (s.type === 'poly' && inPoly(x, y, s.pts.map(p => toScreen(p[0], p[1])))) return toggle(f);
   // 2. Daneben (außerhalb jeder Wiese): Namensschild antippen
   if (P.labels === '1') for (const b of [...labelBoxes].reverse()) {   // nur sichtbare Etiketten
-    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return toggle(b.f);
+    if (!b.cl && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return toggle(b.f);
   }
   // 3. Felder ohne Umriss: nah an der Flugroute
   for (let i = vis.length - 1; i >= 0; i--) {
@@ -2916,7 +2951,7 @@ function sideTabSet(t) {
   p.querySelectorAll('[data-st]').forEach(b => b.classList.toggle('on', b.dataset.st === t));
   $('sideFelder').style.display = t === 'felder' ? 'flex' : 'none'; $('sidePlan').style.display = t === 'plan' ? 'flex' : 'none';
   p.classList.toggle('wide', t === 'plan'); $('sideTab').querySelector('span').textContent = t === 'plan' ? 'Planung' : 'Felder';
-  if (t === 'plan') planRender(); else sideRender();
+  if (t === 'plan') { if (!PL.cur) planNewFromSel(); planRender(); } else sideRender();
 }
 function sideList() {
   const all = catAll(), Y = new Date().getFullYear(); if (SIDE.year == null) SIDE.year = String(Y);
@@ -6956,11 +6991,13 @@ function paintSideFocus() {
 function paintSearchFocus() { paintFieldsOnly(S.searchFocus.files.map(x => S.files.find(g => g === x.real) || x.tmp).filter(f => f && f.center)); }
 function paintFieldsOnly(fs) {
   labelBoxes = [];
-  const ord = fs.filter(fieldOnScreen).sort(byAreaDesc);
+  const CL = V.z < LABEL_Z ? fieldClusters(fs) : null; S.clHidden = new Set(CL ? CL.clusters.flatMap(c => c.fs) : []);
+  const ord = fs.filter(f => !S.clHidden.has(f)).filter(fieldOnScreen).sort(byAreaDesc);
   ord.forEach(f => { drawOutline(f); drawField(f); }); ord.filter(f => f.selected).forEach(drawField);
   resetTf(); ctx.setLineDash([]);
-  if (V.z >= LABEL_Z) { fs.filter(f => f.selected).forEach(f => drawLabel(f, true)); fs.filter(f => !f.selected).forEach(f => drawLabel(f, true)); }
-  else drawLabelGroups(fs);
+  const one = CL ? CL.singles : fs;
+  one.filter(f => f.selected).forEach(f => drawLabel(f, true)); one.filter(f => !f.selected).forEach(f => drawLabel(f, true));
+  if (CL) drawClusters(CL.clusters);
 }
 function setSearchFocus(on) {
   const was = !!S.searchFocus; S.searchFocus = on || null;
@@ -7760,6 +7797,7 @@ function planRender() {
   ({ neu: planEditor, liste: planList, piloten: pilotList })[PL.tab]($('plBody'));
 }
 function planEditor(box) {
+  if (!PL.cur) planNewFromSel();
   const p = PL.cur, pil = plGet('pilots');
   if (!p.fields.length) { box.innerHTML = `<div class="zone"><h4>Erst Felder markieren</h4><div class="meta">Markiere auf der Karte oder in der Feldliste links die Wiesen für den Einsatz (z. B. ein ganzes Paket) und öffne dann wieder „📅 Planung“.</div></div>`; return; }
   const day = plDay(p.date);
@@ -8085,7 +8123,7 @@ function liteCheckInner(sel, opt) {
   }).sort((a, b) => b.r - a.r || b.its.filter(i => i.r === b.r).length - a.its.filter(i => i.r === a.r).length || ftitle(a.f).localeCompare(ftitle(b.f)));
   const note = rows.filter(x => x.r >= 1).length, bad = rows.filter(x => x.r >= 3).length;
   return `<div class="meta" style="margin:0 0 8px">${note ? `<b>${note} von ${sel.length} Feldern</b>: etwas zu beachten (Zonen, Auflagen, Umrechnung)${bad ? ` – <b>${bad}</b> davon mit Sperre oder Zustimmungspflicht` : ''}. Wichtigstes zuerst.` : 'An keinem Feld gibt es Zonen oder Auflagen.'} Antippen zeigt Einzelheiten.</div>` +
-    lgridHtml(rows, opt, x => `<details class="lfld"><summary>${fieldThumb(x.f, 120, 90)}<div class="lfi"><div class="lfn">${esc(x.f.title)}${x.v ? ` ${licBadges(x.v)}` : ''}</div>${x.v && x.v.why.length ? `<div class="lchip" style="border-color:#8a96a3">ℹ️ A1/A3 reicht nicht wegen: ${esc(x.v.why.map(whyShort).join(' · '))}<small>${x.v.onlyLic ? 'Mit A2 erlaubt (dort gilt nur 30 m Abstand zu Unbeteiligten).' : 'Mit A2 + Allgemeinerlaubnis bzw. Allgemeinverfügung erlaubt – liegt laut Einstellungen vor.'}</small></div>` : ''}${x.its.map(i => `<div class="lchip" style="border-color:${i.col}">${esc(i.ico)} ${esc(i.t)}${i.ru ? `<small>${i.ru}</small>` : ''}</div>`).join('')}</div></summary>${x.html}</details>`);
+    lgridHtml(rows, opt, x => `<details class="lfld"><summary>${fieldThumb(x.f, 120, 90)}<div class="lfi"><div class="lfn">${esc(x.f.title)}${x.v ? ` ${licBadges(x.v)}` : ''}</div>${x.v && x.v.why.length ? `<div class="lchip linfo">A1/A3 reicht nicht wegen: ${esc(x.v.why.map(whyShort).join(' · '))}<small>${x.v.onlyLic ? 'Mit A2 erlaubt (dort gilt nur 30 m Abstand zu Unbeteiligten).' : 'Mit A2 + Allgemeinerlaubnis bzw. Allgemeinverfügung erlaubt – liegt laut Einstellungen vor.'}</small></div>` : ''}<div class="lchips">${x.its.filter(i => !(x.v && i.t === 'Mit A2 sonst nichts Besonderes')).map(i => `<div class="lchip" style="border-color:${i.col}">${esc(i.ico)} ${esc(i.t)}${i.ru ? `<small>${i.ru}</small>` : ''}</div>`).join('')}</div></div></summary>${x.html}</details>`);
 }
 /** Kleines Luftbild eines Feldes mit seinem Umriss (nur in der App – nicht für E-Mails/Bilder an Dritte) */
 function fieldThumb(f, W, H) {
