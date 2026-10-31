@@ -275,6 +275,28 @@
   #infoPop button.on .ck{background:var(--acc);border-color:var(--acc)}
   #infoPop button.on .ck::after{content:'✓'}
   #infoPop .dot{width:12px;height:12px;border-radius:50%;flex:none}
+  .wxb{display:inline-block;padding:4px 12px;border-radius:14px;font-weight:800;font-size:15px;color:#fff}.wxb.l0{background:#13a538}.wxb.l1{background:#e07800}.wxb.l2{background:#c62828}.wxb.n{background:#8a96a3}
+  .tmwx .wxb{font-size:12.5px;padding:2px 9px}.tmwx{margin:-2px 0 6px}
+  .plwx.l0{border-left:6px solid #13a538}.plwx.l1{border-left:6px solid #e07800}.plwx.l2{border-left:6px solid #c62828}
+  .plwxh{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.plwxl{list-style:none;margin:8px 0 0;padding:0}.plwxl li{padding:3px 0 3px 26px;position:relative;font-size:14.5px;font-weight:600}
+  .plwxl li i{position:absolute;left:0;top:3px;width:19px;height:19px;border-radius:50%;color:#fff;font-style:normal;font-weight:900;font-size:12px;text-align:center;line-height:19px}.plwxl li.l1 i{background:#e07800}.plwxl li.l2 i{background:#c62828}.plwxl li.l0 i{background:#13a538}
+  #plWx .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:6px 0}#plWx .tile{border-radius:8px;background:var(--card2);padding:6px 9px;border-top:4px solid #0b63c5}
+  #plWx .tile small{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:800}#plWx .tile b{display:block;font-size:15px}#plWx .tile span{display:block;font-size:12px;color:var(--muted)}
+  #plWx .notes{list-style:none;margin:4px 0;padding:0}#plWx .notes li{padding:2px 0 2px 22px;position:relative;font-size:13.5px}#plWx .notes li i{position:absolute;left:0;font-style:normal}
+  #plWx .wx{width:100%;border-collapse:collapse;font-size:12.5px}#plWx .wx td,#plWx .wx th{padding:3px;text-align:center;border-bottom:1px solid var(--line)}#plWx .wx .o{background:rgba(255,170,0,.25)}#plWx .wx .r{background:rgba(220,40,40,.25)}#plWx .ok{color:#13a538;font-weight:800}
+  #sidePanel.wide{width:600px;max-width:calc(100vw - 80px)}
+  #sidePanel .sptabs{display:flex;gap:6px;padding:10px 14px 2px}#sidePanel .sptabs button{flex:1;height:36px;border-radius:18px;background:var(--sec);color:var(--acc);font-weight:800}#sidePanel .sptabs button.on{background:var(--acc);color:#fff}
+  #sidePlan #plRoot{flex:1;overflow-y:auto;padding:8px 14px 16px}#sidePanel.wide .plgrid{grid-template-columns:1fr 1fr}
+  body.side-open #notam{margin-left:360px}
+  .pltabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}.pltabs button{padding:8px 14px;border-radius:18px;background:var(--sec);color:var(--acc);font-weight:700}.pltabs button.on{background:var(--acc);color:#fff}
+  .plgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:8px}.plgrid label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:var(--muted)}
+  .plgrid input,.plgrid select,.plpil select,.plfr input,#plBody .nvt input,#plBody .nvt select{height:38px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--card);color:var(--txt);font-size:14px;min-width:0}
+  .plgrid small{font-weight:400}.plf{margin:6px 0 10px}.plf summary{cursor:pointer;font-weight:700;color:var(--acc)}.plfr{display:flex;gap:8px;align-items:center;padding:3px 0}.plfr span{flex:1}.plfr button{background:none;color:var(--muted)}
+  .plact{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.plact button{padding:8px 14px}
+  .plteam{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:var(--card)}.plth{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}.plth b{font-size:17px}
+  .plpil{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}.plpil label{display:flex;gap:6px;align-items:center;font-weight:700}.plst{width:12px;height:12px;border-radius:50%}
+  #plBody .pill{display:inline-block;padding:1px 7px;border-radius:9px;color:#fff;font-size:11.5px;font-weight:700;vertical-align:middle}
+  @media (max-width:900px){.plgrid{grid-template-columns:1fr 1fr}}
   #sidePanel{position:fixed;left:0;top:72px;bottom:0;width:360px;z-index:17;background:var(--card);box-shadow:3px 0 16px rgba(0,0,0,.25);display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .2s}
   #sidePanel.open{transform:none}
   body.side-open #notam{margin-left:360px}
@@ -285,6 +307,8 @@
   #sidePanel .spf input,#sidePanel .spf select{height:34px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--card);color:var(--txt);font-size:13px;min-width:0}
   #sidePanel .spa{display:flex;gap:6px;padding:4px 14px 8px;border-bottom:1px solid var(--line)}#sidePanel .spa button{flex:1;height:32px;border-radius:8px;background:var(--sec);color:var(--acc);font-weight:700;font-size:12.5px}
   #sidePanel .spa button.on{background:#ff7a00;color:#fff}
+  @media (max-width:1500px){#bPlanGo .bsl{display:none!important}}
+  #bPlanGo{height:44px;padding:0 12px;border-radius:12px;font-weight:800;font-size:15px}#bPlanGo:disabled{opacity:.45}
   #sideList{flex:1;overflow-y:auto;padding:4px 8px 12px}
   #sideList .spd{font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:10px 6px 3px}
   #sideList .spr{display:flex;gap:10px;align-items:flex-start;padding:7px 8px;border-radius:8px;cursor:pointer}#sideList .spr:hover{background:var(--card2)}#sideList .spr.on{background:rgba(255,122,0,.18)}
@@ -879,7 +903,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
+const DEF = { planTool: '0', sideGroup: '1', catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
 if (IS_LITE) {   // Lite: kein Flugradar, keine Wetterwarnungen; Felder erst über „UAV-Editor“ (Suche → Pre-Check → Import)
@@ -1285,7 +1309,7 @@ function geoKeep(z, x, y) {
 const zgSel = () => ZG.map(([g]) => g).filter(zgOn).join(',');
 const GEOR = makeTileLayer($('mapG'), { url: (z, x, y) => `https://dipul.local/${z}/${x}/${y}?g=${zgSel()}`, key: (z, x, y) => 'g' + zgSel() + z + '/' + x + '/' + y,
   maxz: () => 16, maxUp: 2.1, failDone: true, minz: 7, id: () => zgSel() + (P.geoOwn === '0' ? 'a' : 'o') + (S.geoBox ? S.geoBox.n : ''), keep: geoKeep,
-  off: () => !!S.opFocus || !!S.searchFocus || P.geo !== '1' || P.geoAll === '0' || !zgSel() });   // Netzbetreiber-Ansicht: keine Geozonen
+  off: () => !!S.opFocus || !!S.searchFocus || !!S.sideFocus || P.geo !== '1' || P.geoAll === '0' || !zgSel() });   // Netzbetreiber-Ansicht: keine Geozonen
 function zgSet(k, on) {
   const cur = ZG.map(([g]) => g).filter(g => g === k ? on : zgOn(g));
   setP('zg', cur.join(',')); applyGeoConfig(); drawLive(false); if (typeof zoneBtnState === 'function') zoneBtnState();
@@ -1342,7 +1366,8 @@ let obsIcons = [], obsLabels = [];
 function paintStatic() {
   obsIcons = []; obsLabels = [];
   if (S.opFocus) return paintOpFocus();
-  if (S.searchFocus) return paintSearchFocus();   // PC-Suche offen: nur die Felder aus der Suchliste   // Netzbetreiber-Ansicht: nur betroffene Felder und Leitungen
+  if (S.searchFocus) return paintSearchFocus();   // PC-Suche offen: nur die Felder aus der Suchliste
+  if (S.sideFocus) return paintSideFocus();   // Feldliste links offen: nur markierte Felder (sonst die Felder der Liste), keine Geozonen   // Netzbetreiber-Ansicht: nur betroffene Felder und Leitungen
   if (P.geo === '1' && P.geoOwn !== '0' && S.geo.length && V.z >= 9) paintGeo();
   // nur Anzeige: Pre-Check und Antippen prüfen Hindernisse/Leitungen immer, auch wenn sie ausgeblendet sind
   if (P.osmPower === '1' && P.showObs !== '0' && (S.obs.length || S.rails.length) && V.z >= 11) paintObstacles();
@@ -2126,9 +2151,10 @@ function panBy(dx, dy) {
 function fitBounds(b) {
   if (!b) return;
   const bx = lon2x(b.e) - lon2x(b.w), by = lat2y(b.s) - lat2y(b.n);
-  const k = Math.min((W - 100) / Math.max(bx, 1e-9), mapH() / Math.max(by, 1e-9)) * 0.85 / 256;
+  const sp = $('sidePanel'), L = sp && sp.classList.contains('open') ? sp.offsetWidth : 0, R = 0;   // PC: Leiste links verdeckt einen Teil der Karte
+  const k = Math.min((W - L - R - 100) / Math.max(bx, 1e-9), mapH() / Math.max(by, 1e-9)) * 0.85 / 256;
   V.z = Math.max(5, Math.min(18, Math.log2(k)));
-  V.lon = x2lon((lon2x(b.w) + lon2x(b.e)) / 2);
+  V.lon = x2lon((lon2x(b.w) + lon2x(b.e)) / 2 - ((L - R) / 2) / (256 * Math.pow(2, V.z)));   // Mitte in den sichtbaren Teil zwischen den Leisten
   V.lat = y2lat((lat2y(b.n) + lat2y(b.s)) / 2);
   draw();
 }
@@ -2644,7 +2670,7 @@ function visible(f) {
   return !visMemo.any || ftitle(f).includes(visMemo.q) || f.selected;   // nur Ort getippt: Felder nicht ausblenden
 }
 function update() {
-  if (IS_WEB) sideRender();
+  if (IS_WEB) { sideRender(); const gb = $('bPlanGo'); if (gb) gb.disabled = !S.files.some(f => f.selected); }
   const n = S.files.filter(f => f.selected).length;
   const dups = S.files.filter(f => f.dup).length;
   $('count').innerHTML = `${n} markiert<small>${S.files.length - dups} Felder</small>`;
@@ -2848,17 +2874,28 @@ const cfSel = cf => S.files.some(x => x.selected && (String((x.uave || {}).id ||
 function sideInit() {
   if ($('sidePanel')) return;
   const p = document.createElement('div'); p.id = 'sidePanel';
-  p.innerHTML = `<button id="sideTab" title="Feldliste ein-/ausklappen"><span>Felder</span><b>›</b></button>
+  p.innerHTML = `<button id="sideTab" title="Felder/Planung ein-/ausklappen"><span>Felder</span><b>›</b></button>
+    <div class="sptabs" id="sideTabs"><button data-st="felder" class="on">🌾 Felder</button><button data-st="plan">📅 Planung</button></div>
+    <div id="sideFelder" style="display:flex;flex-direction:column;flex:1;min-height:0">
     <div class="sph"><b>Felder aus dem UAV Editor</b><span id="sideN"></span></div>
     <div class="spf"><input id="sideQ" type="search" placeholder="Name filtern…">
       <select id="sideS"><option value="neu">Neueste zuerst</option><option value="name">Name A–Z</option></select>
       <select id="sideY"></select><select id="sideD"><option value="alle">Alle Drohnen</option><option value="M3T">M3T</option><option value="M4T">M4T</option></select>
       <select id="sideSt"><option value="alle">Aktiv + Archiv</option><option value="aktiv">Nur aktiv</option><option value="archiv">Nur Archiv</option></select></div>
-    <div class="spa"><button id="sideAll">Alle markieren</button><button id="sideNone">Keine</button><button id="sideNew" style="display:none">Nur neue</button></div>
-    <div id="sideList"></div>`;
+    <div class="spa"><button id="sideAll">Alle markieren</button><button id="sideNone">Keine</button><button id="sideGrp" title="Felder mit gleichem Namensanfang und nahem Planungsdatum zu Paketen bündeln">Pakete</button><button id="sideNew" style="display:none">Nur neue</button></div>
+    <div class="spa" id="sidePlanRow" style="display:none"><button id="sidePlanNew" class="on">📅 Neue Planung mit Auswahl</button></div>
+    <div id="sideList"></div></div>
+    <div id="sidePlan" style="display:none;flex:1;min-height:0;flex-direction:column"><div id="plRoot"></div></div>`;
   document.body.appendChild(p);
-  const open = o => { p.classList.toggle('open', o); document.body.classList.toggle('side-open', o); setP('sideOpen', o ? '1' : '0'); $('sideTab').querySelector('b').textContent = o ? '‹' : '›'; if (o) sideRender(); };
+  const open = o => { p.classList.toggle('open', o); document.body.classList.toggle('side-open', o);
+    // Feldliste offen: Karte zeigt nur die Felder – graue Karte (umschaltbar, z. B. Luftbild), keine Geozonen/Hindernisse
+    if (o && !S.sideFocus) { S.sideFocus = true; if (P.layer !== 'sat' && P.layer !== 'grey') { S.sidePrevLayer = P.layer; P.layer = 'grey'; } }
+    else if (!o && S.sideFocus) { S.sideFocus = false; if (S.sidePrevLayer && P.layer === 'grey') P.layer = S.sidePrevLayer; S.sidePrevLayer = null; }
+    GEOR.update && GEOR.update(false); draw(); setP('sideOpen', o ? '1' : '0'); $('sideTab').querySelector('b').textContent = o ? '‹' : '›'; if (o) sideRender(); };
+  S.sideShow = open;
   $('sideTab').onclick = () => open(!p.classList.contains('open'));
+  p.querySelectorAll('[data-st]').forEach(b => b.onclick = () => sideTabSet(b.dataset.st));
+  $('sidePlanNew').onclick = () => { PL.cur = null; planOpen('neu'); };
   $('sideQ').oninput = e => { SIDE.q = e.target.value; sideRender(); };
   $('sideS').onchange = e => { SIDE.sort = e.target.value; sideRender(); };
   $('sideY').onchange = e => { SIDE.year = e.target.value; sideRender(); };
@@ -2867,8 +2904,19 @@ function sideInit() {
   $('sideAll').onclick = () => { const fs = sideList().slice(0, 300).map(cf => webCatPick(cf, 'all')).filter(Boolean); if (fs.length) fitBounds(padBB(bounds(fs))); draw(); sideRender(); toast(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} markiert`, 'ok', 2000); };
   $('sideNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); draw(); sideRender(); };
   $('sideNew').onclick = () => { SIDE.onlyNew = !SIDE.onlyNew; sideRender(); };
+  $('sideGrp').onclick = () => { setP('sideGroup', P.sideGroup === '0' ? '1' : '0'); sideRender(); };
   p.addEventListener('pointerdown', e => e.stopPropagation());
+  planBtnState();
   if (P.sideOpen === '1') open(true);
+}
+/** Leiste links: Reiter „Felder“ oder „Planung“ (Planung nur, wenn das Planungstool eingeschaltet ist) */
+function sideTabSet(t) {
+  if (t === 'plan' && P.planTool !== '1') t = 'felder';
+  SIDE.tab = t; const p = $('sidePanel'); if (!p) return;
+  p.querySelectorAll('[data-st]').forEach(b => b.classList.toggle('on', b.dataset.st === t));
+  $('sideFelder').style.display = t === 'felder' ? 'flex' : 'none'; $('sidePlan').style.display = t === 'plan' ? 'flex' : 'none';
+  p.classList.toggle('wide', t === 'plan'); $('sideTab').querySelector('span').textContent = t === 'plan' ? 'Planung' : 'Felder';
+  if (t === 'plan') planRender(); else sideRender();
 }
 function sideList() {
   const all = catAll(), Y = new Date().getFullYear(); if (SIDE.year == null) SIDE.year = String(Y);
@@ -2885,13 +2933,22 @@ function sideRender() {
     const all = catAll(), Y = new Date().getFullYear(), years = [...new Set(all.map(CAT_YEAR).filter(Boolean))].sort((a, b) => b - a);
     if (SIDE.year == null) SIDE.year = String(Y);
     $('sideY').innerHTML = [String(Y), ...years.filter(y => y !== Y).map(String), 'alle'].map(v => `<option value="${v}"${v === SIDE.year ? ' selected' : ''}>${v === 'alle' ? 'Alle Jahre' : v === String(Y) ? 'Jahr ' + v : v}</option>`).join('');
+    const pOn = P.planTool === '1', nSel = S.files.filter(f => f.selected).length;
+    $('sidePlanRow').style.display = pOn && nSel ? '' : 'none'; $('sidePlanNew').textContent = `📅 Neue Planung mit ${nSel} markierten Feld${nSel === 1 ? '' : 'ern'}`;
     const nb = $('sideNew'), nn = S.newIds ? S.newIds.size : 0; nb.style.display = nn ? '' : 'none'; nb.textContent = SIDE.onlyNew ? 'Alle zeigen' : `Nur neue (${nn})`; nb.classList.toggle('on', !!SIDE.onlyNew);
     const list = sideList(), box = $('sideList'), st = box.scrollTop, dd = t => t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
     $('sideN').textContent = list.length + ' Feld' + (list.length === 1 ? '' : 'er');
     // Felder mit gleichem Namensanfang zu Paketen bündeln (z. B. „Aumenau-1…9“), Paket als Ganzes oder einzeln anwählbar
     const gKey = n => fieldGroupKey(n).toLowerCase();
+    // Pakete: gleicher Namensanfang UND Planung nah beieinander (Lücke über 12 h = neuer Termin, z. B. ein Landwirt mit mehreren Feldgruppen)
+    const grpOn = P.sideGroup !== '0'; $('sideGrp').classList.toggle('on', grpOn);
+    const tPlan = cf => { const c = dOk(cf.created || (cf.meta || {}).created), l = dOk(cf.lm); return c ? +c : l ? +l : 0; };
+    const ckey = new Map(), byP = new Map(), multi = new Set();
+    if (grpOn) { list.slice(0, 500).forEach(cf => { const k = gKey(cf.name); (byP.get(k) || byP.set(k, []).get(k)).push(cf); });
+      byP.forEach((arr, k) => { arr.sort((a, b) => tPlan(a) - tPlan(b)); let c = 0, last = null; arr.forEach(cf => { const t = tPlan(cf); if (last != null && t - last > 12 * 3600000) c++; last = t; ckey.set(cf, k + '#' + c); }); if (c > 0) multi.add(k); }); }
     const groups = [], gi = new Map();
-    list.slice(0, 500).forEach((cf, k) => { const key = gKey(cf.name); let g = gi.get(key); if (!g) { g = { key, label: String(cf.name).replace(/[-_\s]+(M3T|M4T|M30T|M3E)\s*$/i, '').replace(/[-_\s]+\d[\w+.]*$/, '').replace(/[-_\s]+$/, ''), items: [] }; gi.set(key, g); groups.push(g); } g.items.push({ cf, k }); });
+    list.slice(0, 500).forEach((cf, k) => { const key = grpOn ? ckey.get(cf) : 'id:' + cf.id; let g = gi.get(key); if (!g) { g = { key, label: String(cf.name).replace(/[-_\s]+(M3T|M4T|M30T|M3E)\s*$/i, '').replace(/[-_\s]+\d[\w+.]*$/, '').replace(/[-_\s]+$/, ''), items: [] }; gi.set(key, g); groups.push(g); } g.items.push({ cf, k }); });
+    if (grpOn) groups.forEach(g => { if (g.items.length > 1 && multi.has(gKey(g.items[0].cf.name))) { const t = tPlan(g.items[0].cf); if (t) g.label += ' · ' + new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }); } });   // gleicher Name, anderer Termin: Datum dazu
     SIDE.openG = SIDE.openG || new Set();
     const row = ({ cf, k }, sub) => { const t = cfTime(cf), c = dOk(cf.created || (cf.meta || {}).created), l = dOk(cf.lm), ch = l && +l === t && (!c || Math.abs(l - c) > 60000), isNew = S.newIds && S.newIds.has(String(cf.id));
       return `<label class="spr${cfSel(cf) ? ' on' : ''}${sub ? ' sub' : ''}" data-k="${k}"><input type="checkbox"${cfSel(cf) ? ' checked' : ''}><div><b>${esc(cf.name)}</b>${isNew ? ' <i class="spnew">NEU</i>' : ''}<span>${t ? (ch ? 'geändert ' : 'erstellt ') + (SIDE.sort === 'neu' ? new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : dd(t)) : ''}${cf.area ? ' · ' + fieldArea(cf.area) : ''}${cfDrone(cf) ? ' · ' + cfDrone(cf) : ''}${cf.arch ? ' · Archiv' : ''}</span></div></label>`; };
@@ -2901,12 +2958,15 @@ function sideRender() {
         const hd = day && day !== lastDay ? `<div class="spd">${t ? new Date(t).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : 'ohne Datum'}</div>` : ''; lastDay = day || lastDay;
         if (g.items.length === 1) return hd + row(g.items[0]);
         const nSel = g.items.filter(x => cfSel(x.cf)).length, op = SIDE.openG.has(g.key) || !!SIDE.q.trim(), nNew = g.items.filter(x => S.newIds && S.newIds.has(String(x.cf.id))).length;
-        return hd + `<div class="spg${nSel === g.items.length ? ' on' : ''}" data-g="${gix}"><input type="checkbox"${nSel === g.items.length ? ' checked' : ''} data-ind="${nSel && nSel < g.items.length ? 1 : 0}"><div class="spgn"><b>${esc(g.label)}</b> <em>${g.items.length} Felder${nSel ? ` · ${nSel} markiert` : ''}</em>${nNew ? ` <i class="spnew">${nNew} NEU</i>` : ''}</div><button class="spgx" title="Felder zeigen/verbergen">${op ? '▾' : '▸'}</button></div>`
+        return hd + `<div class="spg${nSel === g.items.length ? ' on' : ''}" data-g="${gix}"><input type="checkbox"${nSel === g.items.length ? ' checked' : ''} data-ind="${nSel && nSel < g.items.length ? 1 : 0}"><div class="spgn"><b>${esc(g.label)}</b> <em>${g.items.length} Felder${nSel ? ` · ${nSel} markiert` : ''}</em>${nNew ? ` <i class="spnew">${nNew} NEU</i>` : ''}</div>${P.planTool === '1' ? '<button class="spgx spgp" title="Neue Planung mit diesem Paket">📅</button>' : ''}<button class="spgx" title="Felder zeigen/verbergen">${op ? '▾' : '▸'}</button></div>`
           + (op ? g.items.map(x => row(x, true)).join('') : ''); }).join('')
       : '<div class="meta" style="padding:12px">Keine Felder für diese Filter.</div>';
     box.querySelectorAll('[data-ind="1"]').forEach(c => c.indeterminate = true);
     box.querySelectorAll('.spg').forEach(el => { const g = groups[+el.dataset.g];
-      el.querySelector('.spgx').onclick = e => { e.stopPropagation(); SIDE.openG.has(g.key) ? SIDE.openG.delete(g.key) : SIDE.openG.add(g.key); sideRender(); };
+      const gp = el.querySelector('.spgp'); if (gp) gp.onclick = e => { e.stopPropagation();   // nur dieses Paket markieren und planen
+        S.files.forEach(f => f.selected = false); g.items.forEach(x => webCatPick(x.cf, false)); const sl = S.files.filter(x => x.selected && x.bounds); if (sl.length) fitBounds(padBB(bounds(sl)));
+        PL.cur = null; planOpen('neu'); };
+      el.querySelector('.spgx:not(.spgp)').onclick = e => { e.stopPropagation(); SIDE.openG.has(g.key) ? SIDE.openG.delete(g.key) : SIDE.openG.add(g.key); sideRender(); };
       el.onclick = e => { e.preventDefault(); const allOn = g.items.every(x => cfSel(x.cf));   // ganzes Paket an/aus
         if (allOn) { const nm = new Set(g.items.map(x => x.cf.name)); S.files.forEach(f => { if (nm.has(f.title)) f.selected = false; }); update(); }
         else g.items.forEach(x => { if (!cfSel(x.cf)) webCatPick(x.cf, false); });
@@ -6887,8 +6947,14 @@ function paintOpFocus() {
   resetTf(); ctx.setLineDash([]);
 }
 /** PC-Suche: Karte grau, nur Felder aus der aktuellen Suchliste (markierte in Markierungsfarbe) – keine Geozonen, keine anderen Felder */
-function paintSearchFocus() {
-  const fs = S.searchFocus.files.map(x => S.files.find(g => g === x.real) || x.tmp).filter(f => f && f.center);
+function paintSideFocus() {
+  let fs = S.files.filter(f => f.selected && f.center);
+  if (!fs.length) { S.sideTmp = S.sideTmp || new Map(); fs = sideList().slice(0, 500).map(cf => S.files.find(x => (x.cat && String((x.uave || {}).id || x.id) === String(cf.id)) || x.title === cf.name)
+    || S.sideTmp.get(cf.id) || (() => { const t = catEntry(cf, false); if (t) S.sideTmp.set(cf.id, t); return t; })()).filter(f => f && f.center); }
+  paintFieldsOnly(fs);
+}
+function paintSearchFocus() { paintFieldsOnly(S.searchFocus.files.map(x => S.files.find(g => g === x.real) || x.tmp).filter(f => f && f.center)); }
+function paintFieldsOnly(fs) {
   labelBoxes = [];
   const ord = fs.filter(fieldOnScreen).sort(byAreaDesc);
   ord.forEach(f => { drawOutline(f); drawField(f); }); ord.filter(f => f.selected).forEach(drawField);
@@ -7388,10 +7454,26 @@ function briefRain(per) {
   let lv = 0, t = '';
   if (snow) { lv = 2; t = 'Schnee – nicht fliegen.'; }
   else if (!segs.length && !drz.length) t = 'trocken';
-  else if (!segs.length) t = `nur Niesel/leichter Regen (${drz.map(p => hm(p.t)).slice(0, 4).join(', ')}${drz.length > 4 ? ' …' : ''}, nur feiner Niesel) – <b>fliegbar</b>, Linse trocken halten, Wärmebild etwas schwächer.`;
+  else if (!segs.length) { lv = 1; t = `Nieselregen erwartet (${drz.map(p => hm(p.t)).slice(0, 4).join(', ')}${drz.length > 4 ? ' …' : ''}, nur feiner Niesel) – <b>fliegbar</b>, Linse trocken halten, Wärmebild etwas schwächer.`; }
   else if (longest >= 3 || tot >= Math.max(3, per.length * 0.5)) { lv = 2; t = `länger anhaltender Regen ${segs.map(sp).join(', ')} (bis ${mxr()}) – <b>eher nicht fliegen</b>: Drohne nicht wasserdicht, Wärmebild ohne Kontrast.`; }
   else { lv = 1; t = `Regen ${segs.map(sp).join(', ')} (${longest === 1 ? 'kurzer Schauer' : 'ca. ' + longest + ' Stunden'}, bis ${mxr()}) – <b>davor oder danach fliegen</b>, während des Regens landen.${segs.some(x => x.mx >= 10) ? ' Zeitweise Starkregen!' : ''}`; }
   return { lv, t, cls };
+}
+/** Wetter auf einen Blick: kurze Punkte ohne Tabelle – [Stufe 0/1/2, Text]; Stufe 1 = Hinweis (!), 2 = nicht fliegen */
+function wxSimpleItems(ev, rn, per, H) {
+  const out = [], sp = k => ev.span(k);
+  const drz = per.filter(p => rn.cls(p.rain) === 1), rain = per.filter(p => rn.cls(p.rain) >= 2), snow = per.some(p => p.snow > 0);
+  const hours = arr => { const s0 = arr[0].t, s1 = arr[arr.length - 1].t + 3600000; return `${hm(s0)}–${hm(s1)} Uhr`; };
+  if (snow) out.push([2, 'Schnee erwartet – nicht fliegen']);
+  else if (rain.length) out.push([rn.lv, `${rainWord(Math.max(...rain.map(p => p.rain)))} ${hours(rain)}${rn.lv === 2 ? ' – nicht fliegen' : ' – davor oder danach fliegen'}`]);
+  if (!snow && drz.length) out.push([1, `Nieselregen erwartet ${hours(drz)} – fliegbar, Linse trocken halten`]);
+  if (ev.top('wind')) out.push([ev.top('wind'), `Böen bis ${f1(ev.mx('g'))} m/s, in ${H} m bis ${f1(ev.mx('wH'))} m/s (${sp('wind')})`]);
+  if (ev.top('shear')) out.push([ev.top('shear'), `Scherwind: Wind nimmt bis ${H} m um ${f1(ev.mx('shear'))} m/s zu (${sp('shear')})`]);
+  if (ev.top('vis')) out.push([ev.top('vis'), `${ev.top('vis') === 2 ? 'Nebel' : 'Dunst'} – Sicht bis ${visTxt(ev.mn('vis'))} (${sp('vis')})`]);
+  if (ev.top('ice')) out.push([2, `Vereisungsgefahr an den Propellern (${sp('ice')}) – nicht fliegen`]);
+  if (ev.top('kp')) out.push([ev.top('kp'), `Sonnensturm (Kp ${f1(ev.mx('kp'))}) – GPS/Kompass ungenau`]);
+  if (!ev.top('ice') && ev.top('cold')) out.push([1, `Kalt (${f1(ev.mn('t2'))} °C) – Akkus vorwärmen`]);
+  return out.sort((a, b) => b[0] - a[0]);
 }
 /** Wetter-Bewertung für den Einsatzzeitraum: { html (Seite), sum (für die Übersicht) } */
 function briefWxWindow(hours, kpc, a, b, H) {
@@ -7418,6 +7500,7 @@ function briefWxWindow(hours, kpc, a, b, H) {
   const notes = items.map(it => `<li style="color:${['#1d2733', '#a35a00', '#c62828'][it[0]]}"><i>${it[0] === 2 ? '⛔' : it[0] === 1 ? '⚠️' : '✓'}</i><b>${it[1].replace(/^\S+\s/, '')}:</b> ${it[2]}</li>`).join('');
   return {
     sum: { lvl, head, flyTxt, rainSum, items: items.filter(it => it[0] > 0) },
+    simple: wxSimpleItems(ev, rn, per, H),
     tiles: `<div class="tiles"><div class="tile" style="border-top-color:${head[0]}"><small>Bewertung</small><b style="color:${head[0]}">${head[1]}</b></div>
       <div class="tile" style="border-top-color:${segs.length ? '#13a538' : '#c62828'}"><small>Fliegbar</small><b style="font-size:10.5pt">${flyTxt}</b></div>
       <div class="tile" style="border-top-color:${['#13a538', '#e07800', '#c62828'][Math.max(ev.top('wind'), ev.top('shear'))]}"><small>Wind ${H} m / Böen</small><b>${f1(ev.mx('wH'))} / ${f1(ev.mx('g'))} m/s</b><span>Scherwind bis +${f1(Math.max(0, ev.mx('shear') || 0))} m/s</span></div>
@@ -7449,11 +7532,11 @@ async function briefWeather(sel, win, top, foot) {
     <h2>Wetter für ${esc(dayTxt)}</h2><div class="sub">${hm(win.a)}–${hm(win.b)} Uhr · Mitte der Felder ${fmtLL(lat, lon)}${np ? ' (bei ' + esc(np.p.n) + ')' : ''} · Wind in ${H} m = höchste Missionshöhe${src ? ' · Quelle ' + src : ''} · Stand ${new Date().toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
     ${far ? '<div class="box" style="border-left-color:#e07800"><b>Mehr als 3 Tage voraus</b> – die Vorhersage ist noch unsicher. Am Vorabend neu erstellen.</div>' : ''}
     ${!w ? '<div class="box" style="border-left-color:#c62828"><b>Keine Wettervorhersage verfügbar</b> (offline oder zu weit voraus) – vor dem Einsatz Wetter prüfen.</div>'
-      : `${w.tiles}<div class="sec">Worauf achten</div>${w.notes}<div class="sec">Stunde für Stunde</div>${w.table}`}
+      : `<div class="box" style="border-left-color:${w.sum.head[0]}"><b style="font-size:12pt;color:${w.sum.head[0]}">${w.sum.lvl === 2 ? '✗ Wetter: nicht fliegen' : w.sum.lvl === 1 ? '! Wetter: Hinweise beachten' : '✓ Wetter okay'}</b>${w.simple.length ? `<ul>${w.simple.map(it => `<li style="color:${['#13a538', '#a35a00', '#c62828'][it[0]]}">${esc(it[1])}</li>`).join('')}</ul>` : ''}</div>${w.tiles}<div class="sec">Einzelheiten</div>${w.notes}<div class="sec">Stunde für Stunde</div>${w.table}`}
     <div class="sub" style="margin-top:8px">So wird bewertet: Niesel ist fliegbar · bei leichtem Regen, Regen oder Starkregen währenddessen nicht fliegen – kurzer Schauer: davor/danach fliegen, ab 3 Stunden: eher nicht ·
       Wind in Missionshöhe ab ${WX_THR.windH[0]} m/s Vorsicht, ab ${WX_THR.windH[1]} m/s kritisch · Böen ab ${WX_THR.gust[0]}/${WX_THR.gust[1]} m/s · Scherwind = Windzunahme zwischen 10 m und Missionshöhe (ab +${SHEAR[0]} m/s Vorsicht, ab +${SHEAR[1]} m/s kritisch).</div>
     </div>${foot('Nur Hinweis, keine Flugfreigabe – Wetter vor Ort vor dem Start prüfen.')}</div>`;
-  return { html, sum: w ? w.sum : null };
+  return { html, sum: w ? w.sum : null, simple: w ? w.simple : [] };
 }
 /** Einsatz-Zeitraum fürs Briefing: Standard = nächster Morgen 03–12 Uhr (nach 3 Uhr: morgen) */
 function briefWinDef(day) {
@@ -7463,8 +7546,9 @@ function briefWinDef(day) {
   return { a: a.getTime(), b: b.getTime(), day: dayStart(a.getTime()), sH, eH };
 }
 /** Dialog vor dem Briefing: Einsatztag (Kalender, nächste 2 Wochen) und Uhrzeit von–bis */
-function briefWinDlg(cb, onCancel) {
-  let w = briefWinDef(), weeks = 2;
+function briefWinDlg(cb, onCancel, preset) {
+  let w = briefWinDef(preset ? preset.day : undefined), weeks = 2;
+  if (preset) { w.sH = preset.sH; w.eH = Math.max(preset.eH, preset.sH + 1); const a = new Date(w.day); a.setHours(w.sH, 0, 0, 0); const b = new Date(w.day); b.setHours(w.eH, 0, 0, 0); w.a = +a; w.b = +b; }
   const box = document.createElement('div'); box.className = 'fw';
   const opts = (sel, from, to) => { let o = ''; for (let h = from; h <= to; h++) o += `<option value="${h}"${h === sel ? ' selected' : ''}>${String(h).padStart(2, '0')}:00</option>`; return o; };
   const paint = () => {
@@ -7488,7 +7572,8 @@ function briefWinDlg(cb, onCancel) {
   dlgOnCancel = onCancel || null;
 }
 /** Pilotenbriefing: Seite 1 Übersicht (Einsatz, Wetter, alle Felder mit Namen wie im UAV Editor, Hinweise, Übersichtskarte), dann je Feld eine Seite, zum Schluss das Wetter */
-async function briefingHtml(sel, win) {
+async function briefingHtml(sel, win, opt) {
+  opt = opt || {};
   win = win || briefWinDef();
   const created = new Date(), b = flightBriefing(sel), ops = netOps(sel), nz = mergeNat(b.zones.filter(z => NAT_LAYERS.includes(z.f.layer) && z.near == null));
   const vs = sel.map(fieldVerdict);
@@ -7507,19 +7592,21 @@ async function briefingHtml(sel, win) {
   const lic = n2 ? ['A2 + Allgemeinerl.', '#e07800', `${fz(n2)} nur mit A2`] : vs.every(v => v.k === 'a13') ? ['A1/A3 reicht', '#13a538', 'alle Felder'] : ['Sperren beachten', '#c62828', `${fz(nNo + nZ)} betroffen`];
   const ws = wx.sum;
   const notes = [
-    ...(ws ? ws.items.map(it => [it[0] === 2 ? '⛔' : '⚠️', `<b>Wetter – ${it[1].replace(/^\S+\s/, '')}:</b> ${String(it[2]).replace(/ – .*$/, '')}`, it[0] === 2 ? '#c62828' : '#a35a00']) : []),
+    ...(wx.simple || []).filter(it => it[0] > 0).map(it => [it[0] === 2 ? '⛔' : '⚠️', `<b>Wetter:</b> ${esc(it[1])}`, it[0] === 2 ? '#c62828' : '#a35a00']),
+    ...(ws && !(wx.simple || []).some(it => it[0] > 0) ? [['✅', '<b>Wetter okay</b> – kein Regen, kein starker Wind, kein Scherwind', '#13a538']] : []),
     ...(nZ ? [['✈️', `<b>${fz(nZ)} am Flugplatz</b> – vorher Zustimmung der Flugaufsicht bzw. des Betreibers einholen`, '#c62828']] : []),
     ...(nNo ? [['⛔', `<b>${fz(nNo)} mit gesperrten Teilen</b> (auch mit A2) – diese Teile nicht befliegen`, '#c62828']] : []),
     ...(low.length ? [['⚡', `<b>Zu niedrig über Stromleitung geplant:</b> ${low.map(f => esc(f.title) + ' (' + f.height + ' m)').join(', ')} – auf ${pwrH()} m`, '#c62828']] : []),
     ...(ops.length ? [['⚡', `<b>Netzbetreiber informieren:</b> ${ops.map(o => esc(o.name)).join(', ')}`, '#1d2733']] : []),
     ...(nz.length ? [['🌿', `<b>Schutzgebiete:</b> ${nz.map(z => esc((z.f.props || {}).name || natLbl(z))).join(', ')} – zuständige Stelle informieren`, '#1d2733']] : [])];
   let h = `<div class="page">${top('Übersicht')}<div class="body">
-    <h1>Pilotenbriefing</h1><div class="sub">${fz(sel.length)} · Einsatz ${esc(new Date(win.a).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }))}, ${hm(win.a)}–${hm(win.b)} Uhr</div>
+    <h1>Pilotenbriefing${opt.team ? ' – ' + esc(opt.team.name) : ''}</h1><div class="sub">${opt.team ? 'Pilot: ' + esc(plPilotName(opt.team.pilot) || 'noch offen') + ' · ' : ''}${fz(sel.length)} · Einsatz ${esc(new Date(win.a).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }))}, ${hm(win.a)}–${hm(win.b)} Uhr</div>
     <div class="tiles">
       <div class="tile"><small>Einsatz</small><b>${esc(dayTxt)}</b><span>${hm(win.a)}–${hm(win.b)} Uhr</span></div>
       <div class="tile" style="border-top-color:#00695c"><small>Felder</small><b>${sel.length}</b><span>zusammen ${ha.toFixed(1).replace('.', ',')} ha</span></div>
       <div class="tile" style="border-top-color:${ws ? ws.head[0] : '#8a96a3'}"><small>Erwartetes Wetter</small><b style="color:${ws ? ws.head[0] : '#5d6975'}">${ws ? ws.head[1] : 'keine Vorhersage'}</b><span>${ws ? 'fliegbar ' + ws.flyTxt : 'vor dem Einsatz prüfen'}</span></div>
       <div class="tile" style="border-top-color:${lic[1]}"><small>Fernpilotenzeugnis</small><b style="color:${lic[1]}">${lic[0]}</b><span>${lic[2]}</span></div></div>
+    ${opt.team ? `<div class="sec">Ablauf ${esc(opt.team.name)} (geplant)</div><table class="fl"><tr><th></th><th>Zeit</th><th>Feld</th><th>Flug</th><th>Mahd</th></tr>${opt.team.fields.map((r, i) => `<tr><td><span class="num">${i + 1}</span></td><td>${hm(r.start)}–${hm(r.end)}</td><td class="nm">${esc(r.name)}</td><td>${r.dur} min</td><td>${hm(r.mow)}${r.late ? ' ⚠' : ''}</td></tr>`).join('')}</table>` : ''}
     <div class="sec">Felder – Namen wie im UAV Editor</div>
     <table class="fl"><tr><th></th><th>Feldname</th><th>Drohne</th><th>Höhe</th><th>Fläche</th><th>Ort</th><th>Bewertung</th></tr>
     ${sel.map((f, i) => `<tr><td><span class="num">${i + 1}</span></td><td class="nm">${esc(f.title)}</td><td>${esc(drone(f))}</td><td>${f.height ? f.height + ' m' : '—'}</td><td>${area(f)}</td><td>${esc(place(f))}</td><td>${licBadges(vs[i]).replace(/class="lverd"/g, 'class="pill"')}</td></tr>`).join('')}</table>
@@ -7546,11 +7633,11 @@ async function briefingHtml(sel, win) {
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Pilotenbriefing ${created.toLocaleDateString('de-DE')}</title><style>${BRIEF_CSS}</style></head><body>${h}<script>${BRIEF_FIT}<\/script></body></html>`;
 }
 window.onBriefingPdf = r => { busy(''); r && r.ok ? toast('Pilotenbriefing gespeichert und geöffnet:\n' + r.file, 'ok', 9000) : toast('PDF konnte nicht erstellt werden: ' + ((r && r.error) || 'unbekannt'), true, 9000); };
-async function pilotBriefing(sel, win) {
+async function pilotBriefing(sel, win, opt) {
   if (!sel.length) return toast('Bitte zuerst Felder markieren.', true);
   busy('Erstelle Pilotenbriefing… (Karten und Wetter)');
   let html = '';
-  try { html = await briefingHtml(sel, win); } catch (e) { busy(''); return toast('Pilotenbriefing fehlgeschlagen: ' + e.message, true, 9000); }
+  try { html = await briefingHtml(sel, win, opt); } catch (e) { busy(''); return toast('Pilotenbriefing fehlgeschlagen: ' + e.message, true, 9000); }
   const d = new Date(), p2 = n => String(n).padStart(2, '0'), name = `Pilotenbriefing ${d.toISOString().slice(0, 10)} ${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
   if (A.briefingPdf) { let r = {}; try { r = JSON.parse(A.briefingPdf(JSON.stringify({ html, name })) || '{}'); } catch (e) { }
     if (r.ok) return;   // fertig meldet sich über onBriefingPdf
@@ -7559,6 +7646,256 @@ async function pilotBriefing(sel, win) {
   busy('');   // ohne Desktop-Programm: Druckdialog („Als PDF speichern“)
   const fr = document.createElement('iframe'); fr.style.cssText = 'position:fixed;width:0;height:0;border:0;right:0;bottom:0'; document.body.appendChild(fr);
   fr.srcdoc = html; fr.onload = () => setTimeout(() => { try { fr.contentWindow.print(); } catch (e) { } setTimeout(() => fr.remove(), 60000); }, 500);
+}
+// ================= PC: Planungstool (in den Einstellungen einschaltbar) – Piloten, Tagesplanung mit Teams, Briefing je Team =================
+// Gespeichert in der Adressdatei (pilots, plans) – lässt sich mit anderen Koordinatoren teilen.
+const PL = { tab: 'neu', cur: null };
+const plGet = k => { try { const v = JSON.parse(A.getPref(k, '[]') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+const plSet = (k, v) => A.setPref(k, JSON.stringify(v));
+const plId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const plHM = s => { const [h, m] = String(s || '0:0').split(':').map(Number); return (h || 0) * 3600000 + (m || 0) * 60000; };
+const plDay = iso => { const [y, mo, d] = String(iso).split('-').map(Number); return new Date(y, mo - 1, d).getTime(); };
+const plIso = ms => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const plFmt = ms => new Date(ms).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+const LIC_TXT = { A1A3: 'A1/A3', A2: 'A2' }, DRN_TXT = { M3T: 'Mavic 3T', M4T: 'Matrice 4T' };
+/** Feld eines Plans wiederfinden (Katalog-ID oder Name) – auch wenn es gerade nicht auf der Karte ist */
+function plField(ref) {
+  let f = S.files.find(x => (x.cat && String((x.uave || {}).id || '') === String(ref.id)) || x.title === ref.name);
+  if (f) return f;
+  const cf = catAll().find(c => String(c.id) === String(ref.id) || c.name === ref.name);
+  if (!cf) return null; S.plTmp = S.plTmp || new Map(); if (!S.plTmp.has(cf.id)) S.plTmp.set(cf.id, catEntry(cf, false)); return S.plTmp.get(cf.id);
+}
+/** Dauer am Feld in Minuten: Flugzeit aus dem UAV Editor (sonst grob aus der Fläche), dazu Aufbau/Akkuwechsel */
+function plDur(f) {
+  const ft = f.uave && f.uave.ft ? f.uave.ft / 60 : 0, ha = (f.areaM2 || 0) / 10000;
+  return Math.round((ft || Math.max(6, ha * 6)) + 8 + Math.floor((ft || ha * 6) / 25) * 4);   // je ~25 min Flug ein Akkuwechsel
+}
+/** Fahrzeit in Minuten zwischen zwei Punkten [lat,lon]: nebeneinander zu Fuß, sonst Auto (Luftlinie × 1,3, 40 km/h) + Ein-/Auspacken */
+function plTravel(a, b) { if (!a || !b) return 0; const d = distM(a[0], a[1], b[0], b[1]); return d < 400 ? 3 : Math.round(d * 1.3 / 1000 / 40 * 60 + 8); }
+function plNeeds(f) {
+  const v = fieldVerdict(f), d = f.drone === 'M3T' || f.drone === 'M4T' ? f.drone : f.height ? (f.height < 60 ? 'M3T' : 'M4T') : '';
+  return { lic: v.k === 'a13' ? 'A1A3' : 'A2', zust: v.k === 'zust', parts: v.k === 'no', drone: d, v };
+}
+/** Teams bilden: nahe Felder zusammen (Gruppen bis 1,5 km), jedes Feld vor seiner Mahd fertig; was zeitlich nicht passt, bekommt ein weiteres Team */
+function plCompute(plan, maxTeams) {
+  const day = plDay(plan.date), refs = plan.fields.map(r => ({ r, f: plField(r) })).filter(x => x.f && x.f.center);
+  if (!refs.length) return { teams: [], warn: ['Keine Felder gefunden.'] };
+  const c0 = refs[0].f.center, sd = sunDay(day + 12 * 3600000, c0[0], c0[1]);
+  let start = plan.start ? day + plHM(plan.start) : Math.max(day + 4 * 3600000, Math.round(((sd.sunrise || day + 6 * 3600000) - 45 * 60000) / 900000) * 900000);
+  plan.startAuto = hm(start);
+  const items = refs.map(({ r, f }) => { const n = plNeeds(f); const mow = day + plHM(r.mow || plan.mow);
+    return { r, f, c: f.center, dur: plDur(f), deadline: mow - 10 * 60000, mow, ...n }; });
+  // räumliche Gruppen (single linkage 1,5 km)
+  const cl = []; items.forEach(it => { const hit = cl.filter(g => g.some(x => distM(x.c[0], x.c[1], it.c[0], it.c[1]) < 1500));
+    if (!hit.length) cl.push([it]); else { hit[0].push(it); hit.slice(1).forEach(g => { hit[0].push(...g); cl.splice(cl.indexOf(g), 1); }); } });
+  cl.forEach(g => g.sort((a, b) => a.deadline - b.deadline));
+  cl.sort((a, b) => Math.min(...a.map(x => x.deadline)) - Math.min(...b.map(x => x.deadline)));
+  const teams = [], lim = maxTeams > 0 ? maxTeams : 99;
+  // Reihenfolge innerhalb einer Gruppe: nächstes Feld zuerst, aber knappe Mahd vorziehen
+  const seq = (from, t0, g) => { const rest = g.slice(), out = []; let t = t0, pos = from, late = 0, trav = 0;
+    while (rest.length) {
+      rest.sort((a, b) => a.deadline - b.deadline);
+      const cand = rest.filter(x => x.deadline <= rest[0].deadline + 30 * 60000);   // dringende zuerst, darunter das nächstgelegene
+      const n = cand.reduce((m, x) => plTravel(pos, x.c) < plTravel(pos, m.c) ? x : m, cand[0]); rest.splice(rest.indexOf(n), 1);
+      const tr = plTravel(pos, n.c); t += tr * 60000; trav += tr; const s0 = t; t += n.dur * 60000; if (t > n.deadline) late++; out.push({ it: n, start: s0, end: t }); pos = n.c; }
+    return { out, end: t, late, trav, pos }; };
+  const place = (g, allowLate) => {   // Gruppe g an ein bestehendes Team hängen (ohne Verspätung, kürzeste Anfahrt) – sonst null
+    let best = null;
+    teams.forEach(tm => { const r = seq(tm.pos, tm.t, g); const cost = r.trav + (tm.drone && g[0].drone && tm.drone !== g[0].drone ? 15 : 0) + (r.end - tm.t) / 60000 * 0.1;
+      if ((allowLate || !r.late) && (!best || r.late < best.r.late || (r.late === best.r.late && cost < best.cost))) best = { tm, r, cost }; });
+    return best; };
+  const add = (b) => { b.tm.items.push(...b.r.out); b.tm.t = b.r.end; b.tm.pos = b.r.pos; };
+  const newTeam = g => { const tm = { id: plId(), items: [], t: start, pos: null, drone: g[0].drone }; teams.push(tm); return { tm, r: seq(null, start, g) }; };
+  for (const g of cl) {
+    let b = place(g, false);
+    if (!b && teams.length < lim) { const r = seq(null, start, g); if (!r.late) b = newTeam(g); }
+    if (b) { add(b); continue; }
+    // Gruppe schafft ein Team nicht vor der Mahd: Feld für Feld verteilen (dringendste zuerst), bei Bedarf weitere Teams
+    for (const it of g.slice().sort((a, c) => a.deadline - c.deadline)) {
+      let bi = place([it], false);
+      if (!bi && teams.length < lim && !seq(null, start, [it]).late) bi = newTeam([it]);
+      if (!bi) bi = place([it], true) || newTeam([it]);   // schafft auch ein eigenes Team nicht (Mahd zu früh/Feld zu groß): geringste Verspätung, wird angezeigt
+      add(bi);
+    }
+  }
+  // Teams beschreiben: Zeugnis, Drohne, Zeiten
+  const out = teams.map((tm, i) => { const lic = tm.items.some(x => x.it.lic === 'A2') ? 'A2' : 'A1A3';
+    const dc = {}; tm.items.forEach(x => { if (x.it.drone) dc[x.it.drone] = (dc[x.it.drone] || 0) + 1; }); const drone = Object.keys(dc).sort((a, b) => dc[b] - dc[a])[0] || '';
+    return { id: tm.id, name: 'Team ' + (i + 1), lic, drone, pilot: '', status: 'offen',
+      fields: tm.items.map(x => ({ id: x.it.r.id, name: x.it.r.name, start: x.start, end: x.end, mow: x.it.mow, dur: x.it.dur, lic: x.it.lic, drone: x.it.drone, zust: x.it.zust, parts: x.it.parts, late: x.end > x.it.deadline })) }; });
+  return { teams: out, start };
+}
+/** Pilotenvorschlag je Team: passendes Zeugnis (A2 wo nötig), passende Drohne; A2-Piloten bleiben möglichst für A2-Teams frei; jeder Pilot nur einmal */
+function plSuggest(teams, keepAssigned) {
+  const pilots = plGet('pilots').filter(p => p.active !== false), used = new Set(keepAssigned ? teams.map(t => t.pilot).filter(Boolean) : []);
+  const score = (p, t) => (t.lic === 'A2' && p.lic !== 'A2' ? -1e6 : 0) + ((p.drones || []).includes(t.drone) ? 20 : (p.drones || []).length ? 5 : 0) + (t.lic !== 'A2' && p.lic === 'A2' ? -3 : 0);
+  teams.forEach(t => { t.sug = pilots.map(p => ({ p, s: score(p, t) })).filter(x => x.s > -1e5).sort((a, b) => b.s - a.s).map(x => x.p.id); t.rec = ''; });
+  // beste Paare zuerst vergeben (A2-Teams haben Vorrang), jeder Pilot nur einmal
+  const pairs = []; teams.forEach(t => { if (keepAssigned && t.pilot) return; pilots.forEach(p => { const sc = score(p, t); if (sc > -1e5) pairs.push({ t, p, sc: sc + (t.lic === 'A2' ? 100 : 0) }); }); });
+  const done = new Set(); pairs.sort((a, b) => b.sc - a.sc).forEach(x => { if (done.has(x.t) || used.has(x.p.id)) return; x.t.rec = x.p.id; done.add(x.t); used.add(x.p.id); });
+  return teams;
+}
+function plPilotName(id) { const p = plGet('pilots').find(x => x.id === id); return p ? p.name : ''; }
+// ---------- Seite ----------
+/** Planung im linken Reiter „Planung“ – die Karte bleibt rechts daneben sichtbar */
+function planOpen(tab) {
+  PL.tab = tab || PL.tab || 'neu';
+  const saved = PL.cur && plGet('plans').some(x => x.id === PL.cur.id);
+  if (PL.tab === 'neu' && (!PL.cur || (!saved && S.files.some(f => f.selected)))) planNewFromSel();   // ungespeicherter Entwurf folgt der aktuellen Auswahl
+  const p = $('sidePanel'); if (!p) return;
+  if (!p.classList.contains('open')) S.sideShow(true);
+  sideTabSet('plan');
+}
+function planNewFromSel() {
+  const sel = S.files.filter(f => f.selected);
+  const tm = new Date(); tm.setDate(tm.getDate() + 1);
+  PL.cur = { id: plId(), date: plIso(tm.getTime()), mow: '08:00', start: '', title: '', maxTeams: 0,
+    fields: sel.map(f => ({ id: String((f.uave || {}).id || f.id || ''), name: f.title, mow: '' })), teams: [], created: Date.now() };
+}
+function planRender() {
+  const root = $('plRoot'); if (!root) return;
+  const tabs = [['neu', PL.cur && plGet('plans').some(p => p.id === PL.cur.id) ? 'Planung bearbeiten' : 'Neue Planung'], ['liste', 'Gespeicherte Planungen'], ['piloten', 'Piloten']];
+  root.innerHTML = `<div class="pltabs">${tabs.map(([k, t]) => `<button data-plt="${k}" class="${PL.tab === k ? 'on' : ''}">${t}</button>`).join('')}</div><div id="plBody"></div>`;
+  root.querySelectorAll('[data-plt]').forEach(b => b.onclick = () => { PL.tab = b.dataset.plt; if (PL.tab === 'neu' && !PL.cur) planNewFromSel(); planRender(); });
+  ({ neu: planEditor, liste: planList, piloten: pilotList })[PL.tab]($('plBody'));
+}
+function planEditor(box) {
+  const p = PL.cur, pil = plGet('pilots');
+  if (!p.fields.length) { box.innerHTML = `<div class="zone"><h4>Erst Felder markieren</h4><div class="meta">Markiere auf der Karte oder in der Feldliste links die Wiesen für den Einsatz (z. B. ein ganzes Paket) und öffne dann wieder „📅 Planung“.</div></div>`; return; }
+  const day = plDay(p.date);
+  box.innerHTML = `<div class="plgrid">
+      <label>Mähdatum<input type="date" id="plDate" value="${p.date}"></label>
+      <label>Mähbeginn<input type="time" id="plMow" value="${p.mow}"></label>
+      <label>Einsatz ab<input type="time" id="plStart" value="${p.start}" placeholder="auto"><small>${p.start ? '' : 'automatisch: ' + (p.startAuto || 'Sonnenaufgang − 45 min')}</small></label>
+      <label>Teams<select id="plMax"><option value="0">automatisch</option>${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}"${+p.maxTeams === n ? ' selected' : ''}>höchstens ${n}</option>`).join('')}</select></label>
+      <label style="grid-column:1/-1">Bezeichnung (optional)<input id="plTitle" value="${esc(p.title || '')}" placeholder="z. B. Aumenau + Schwenk"></label></div>
+    <details class="plf"><summary>${p.fields.length} Felder – eigene Mähzeit je Feld (optional)</summary>${p.fields.map((r, i) => `<div class="plfr"><span>${esc(r.name)}</span><input type="time" data-fm="${i}" value="${r.mow || ''}" title="leer = Mähbeginn oben"><button data-fx="${i}" title="Aus der Planung nehmen">✕</button></div>`).join('')}
+      <div class="meta">Leer = Mähbeginn oben. Felder mit späterer Mahd können von einem Team nach einer anderen Gruppe angeflogen werden.</div></details>
+    <div class="plact"><button class="b-ok" id="plCalc">${p.teams.length ? '↻ Neu berechnen' : 'Vorschlag berechnen'}</button>${p.teams.length ? '<button class="b-sec" id="plSave">💾 Speichern</button>' : ''}<button class="b-sec" id="plAdd">+ markierte Felder dazu</button></div>
+    <div id="plWx" class="plteam"><div class="meta">Wetter wird geladen…</div></div>
+    <div id="plTeams"></div>`;
+  const rd = () => { p.date = $('plDate').value || p.date; p.mow = $('plMow').value || p.mow; p.start = $('plStart').value; p.maxTeams = +$('plMax').value; p.title = $('plTitle').value; };
+  const calc = () => { rd(); try { const r = plCompute(p, p.maxTeams); const old = new Map(p.teams.map(t => [t.fields.map(f => f.name).sort().join('|'), t]));
+    p.teams = plSuggest(r.teams, false); p.teams.forEach(t => { const o = old.get(t.fields.map(f => f.name).sort().join('|')); if (o) { t.pilot = o.pilot; t.status = o.status; } else if (t.rec) t.pilot = t.rec; }); } catch (e) { } planRender(); };
+  ['plDate', 'plMow', 'plStart', 'plMax'].forEach(id => $(id).onchange = calc);   // jede Änderung: sofort neu planen (Piloten/Status bleiben, wenn das Team gleich bleibt)
+  $('plTitle').onchange = rd;
+  box.querySelectorAll('[data-fm]').forEach(el => el.onchange = () => { p.fields[+el.dataset.fm].mow = el.value; calc(); });
+  box.querySelectorAll('[data-fx]').forEach(el => el.onclick = () => { p.fields.splice(+el.dataset.fx, 1); calc(); });
+  $('plAdd').onclick = () => { S.files.filter(f => f.selected).forEach(f => { if (!p.fields.some(r => r.name === f.title)) p.fields.push({ id: String((f.uave || {}).id || f.id || ''), name: f.title, mow: '' }); }); calc(); };
+  $('plCalc').onclick = calc;
+  if (!p.teams.length && p.fields.length) { setTimeout(calc, 0); return; }   // neue Planung: Vorschlag gleich berechnen
+  if ($('plSave')) $('plSave').onclick = () => { rd(); const all = plGet('plans').filter(x => x.id !== p.id); all.push(JSON.parse(JSON.stringify(p))); plSet('plans', all); toast('Planung gespeichert.', 'ok', 2000); planRender(); };
+  planTeamsHtml($('plTeams'), p, pil, day);
+  planWeather(p);
+}
+/** Wetter für den Einsatz: vom Einsatzbeginn bis zur spätesten Mahd (bzw. Ende des letzten Teams), Mitte der Felder */
+/** Ampel-Text für die Wetter-Bewertung */
+function wxBadge(w, small) {
+  if (!w) return `<span class="wxb n">? keine Vorhersage</span>`;
+  const l = w.sum.lvl, t = l === 2 ? '✗ Wetter: nicht fliegen' : l === 1 ? '! Wetter: Hinweise' : '✓ Wetter okay';
+  return `<span class="wxb l${l}">${small ? t.replace('Wetter: ', '').replace('Wetter okay', 'okay') : t}</span>`;
+}
+/** Wetter für die Planung – automatisch auf einen Blick: gesamt (Einsatzbeginn bis Mahd) und je Team für dessen Flugzeit */
+async function planWeather(p) {
+  const box = $('plWx'); if (!box) return;
+  const fs = p.fields.map(plField).filter(f => f && f.center); if (!fs.length) { box.remove(); return; }
+  const day = plDay(p.date), b0 = bounds(fs), lat = (b0.n + b0.s) / 2, lon = (b0.e + b0.w) / 2;
+  let a = p.start ? day + plHM(p.start) : 0;
+  if (!a) { const sd = sunDay(day + 12 * 3600000, lat, lon); a = Math.max(day + 4 * 3600000, Math.round(((sd.sunrise || day + 6 * 3600000) - 45 * 60000) / 900000) * 900000); }
+  const mows = p.fields.map(r => day + plHM(r.mow || p.mow)), ends = p.teams.flatMap(t => t.fields.map(f => f.end));
+  let b = Math.max(...mows, ...ends, a + 2 * 3600000); a = hourFloor(a); b = hourFloor(b + 3599999);
+  const H = Math.max(0, ...fs.map(f => f.height || 0)) || 50;
+  let r = null, kpc = null; try { kpc = await kpLoad(false); } catch (e) { } try { r = await wxHours(lat, lon, false); } catch (e) { }
+  if (!$('plWx') || PL.cur !== p) return;
+  const win = (x, y) => { const hs = r ? briefHours(r, hourFloor(x), hourFloor(y + 3599999)) : []; return hs.length > 1 ? briefWxWindow(hs, kpc, hourFloor(x), hourFloor(y + 3599999), H) : null; };
+  const w = win(a, b), far = b - Date.now() > 3 * 864e5;
+  p.wx = w ? { lvl: w.sum.lvl, items: w.simple, a, b } : null;   // für das Briefing
+  const li = it => `<li class="l${it[0]}"><i>${it[0] === 2 ? '✗' : it[0] === 1 ? '!' : '✓'}</i>${esc(it[1])}</li>`;
+  $('plWx').className = 'plteam plwx l' + (w ? w.sum.lvl : 'n');
+  $('plWx').innerHTML = `<div class="plwxh">${wxBadge(w)}<span class="meta">${plFmt(day)} · ${hm(a)}–${hm(b)} Uhr</span></div>`
+    + (!w ? `<div class="meta">${r ? 'Für diesen Tag gibt es noch keine Vorhersage (höchstens etwa 7 Tage voraus).' : 'Keine Wettervorhersage – offline? Vor dem Einsatz prüfen.'}</div>`
+      : (w.simple.length ? `<ul class="plwxl">${w.simple.map(li).join('')}</ul>` : '<div class="meta">Kein Regen, kein starker Wind, kein Scherwind, gute Sicht.</div>')
+        + (far ? '<div class="meta" style="color:#e07800">Mehr als 3 Tage voraus – Vorhersage noch unsicher.</div>' : ''));
+  // je Team: Wetter genau für seine Flugzeit
+  p.teams.forEach((t, ti) => { const el = document.querySelector(`.plteam[data-t="${ti}"] .tmwx`); if (!el || !t.fields.length) return;
+    const tw = win(t.fields[0].start, t.fields[t.fields.length - 1].end); t.wx = tw ? { lvl: tw.sum.lvl, items: tw.simple } : null;
+    el.innerHTML = wxBadge(tw, true) + (tw && tw.simple.length ? ' <span class="meta">' + tw.simple.filter(x => x[0]).map(x => esc(x[1].replace(/ – .*$/, ''))).join(' · ') + '</span>' : ''); });
+}
+function planTeamsHtml(box, p, pil, day) {
+  if (!p.teams.length) { box.innerHTML = '<div class="meta" style="margin-top:8px">„Vorschlag berechnen“ teilt die Felder auf Teams auf: nahe Felder zusammen, jedes Feld vor seiner Mahd fertig. Was zeitlich nicht passt, bekommt ein weiteres Team. Danach kannst du Felder verschieben und Piloten zuteilen.</div>'; return; }
+  const late = p.teams.flatMap(t => t.fields.filter(f => f.late).map(f => f.name));
+  const st = { offen: ['offen', '#8a96a3'], angefragt: ['angefragt', '#e07800'], zugesagt: ['zugesagt', '#13a538'], abgesagt: ['abgesagt', '#c62828'] };
+  box.innerHTML = (late.length ? `<div class="zone" style="border-left:5px solid #c62828"><b style="color:#c62828">⚠ ${late.length} Feld${late.length > 1 ? 'er' : ''} nicht vor der Mahd fertig:</b> ${late.map(esc).join(', ')} – mehr Teams erlauben, früher anfangen oder Mähzeit anpassen.</div>` : '')
+    + p.teams.map((t, ti) => { const a = t.fields[0], z = t.fields[t.fields.length - 1], noA2 = t.lic === 'A2' && !pil.some(x => x.lic === 'A2' && x.active !== false);
+      const opts = [`<option value="">— offen —</option>`].concat(pil.filter(x => x.active !== false).map(x => { const ok = t.lic !== 'A2' || x.lic === 'A2', rec = (t.sug || []).indexOf(x.id) === 0;
+        return `<option value="${x.id}"${t.pilot === x.id ? ' selected' : ''}${ok ? '' : ' disabled'}>${rec ? '★ ' : ''}${esc(x.name)} · ${LIC_TXT[x.lic] || x.lic}${(x.drones || []).length ? ' · ' + x.drones.join('/') : ''}${ok ? '' : ' (kein A2)'}</option>`; }));
+      return `<div class="plteam" data-t="${ti}"><div class="plth"><b>${esc(t.name)}</b> <span class="pill" style="background:${t.lic === 'A2' ? '#e07800' : '#13a538'}">${t.lic === 'A2' ? 'A2 nötig' : 'A1/A3 reicht'}</span>${t.drone ? ` <span class="pill" style="background:#455a64">${DRN_TXT[t.drone] || t.drone}</span>` : ''}
+          <span class="meta">${t.fields.length} Feld${t.fields.length > 1 ? 'er' : ''}${a ? ` · ${hm(a.start)}–${hm(z.end)} Uhr` : ''}</span></div><div class="tmwx"></div>
+        <div class="plpil"><label>Pilot <select data-tp="${ti}">${opts.join('')}</select></label><label>Status <select data-ts="${ti}">${Object.keys(st).map(k => `<option value="${k}"${t.status === k ? ' selected' : ''}>${st[k][0]}</option>`).join('')}</select></label><span class="plst" style="background:${st[t.status][1]}"></span>
+          ${noA2 ? '<span style="color:#c62828;font-weight:700">Kein Pilot mit A2 hinterlegt</span>' : ''}</div>
+        <table class="nvt"><tr><th>Zeit</th><th>Feld</th><th>Flug</th><th>Mahd</th><th></th><th></th></tr>${t.fields.map((f, fi) => `<tr${f.late ? ' style="color:#c62828;font-weight:700"' : ''}><td>${hm(f.start)}–${hm(f.end)}</td><td>${esc(f.name)}${f.lic === 'A2' ? ' <span class="pill" style="background:#e07800">A2</span>' : ''}${f.zust ? ' <span class="pill" style="background:#c62828">Zustimmung Flugplatz</span>' : ''}${f.parts ? ' <span class="pill" style="background:#c62828">Teile gesperrt</span>' : ''}${f.drone && t.drone && f.drone !== t.drone ? ` <span class="pill" style="background:#455a64">${f.drone} → umrechnen</span>` : ''}</td><td>${f.dur} min</td><td>${hm(f.mow)}${f.late ? ' ⚠' : ''}</td>
+          <td><select data-mv="${ti}:${fi}" title="In ein anderes Team verschieben"><option value="">verschieben…</option>${p.teams.map((o, oi) => oi === ti ? '' : `<option value="${oi}">→ ${esc(o.name)}</option>`).join('')}<option value="new">→ neues Team</option></select></td><td></td></tr>`).join('')}</table>
+        <div class="plact"><button class="b-sec" data-tm="${ti}">🗺 Auf Karte</button><button class="b-sec" data-tb="${ti}">📋 Briefing (PDF)</button></div></div>`; }).join('');
+  box.querySelectorAll('[data-tp]').forEach(el => el.onchange = () => { p.teams[+el.dataset.tp].pilot = el.value; });
+  box.querySelectorAll('[data-ts]').forEach(el => el.onchange = () => { p.teams[+el.dataset.ts].status = el.value; planRender(); });
+  box.querySelectorAll('[data-mv]').forEach(el => el.onchange = () => { const [ti, fi] = el.dataset.mv.split(':').map(Number); const f = p.teams[ti].fields.splice(fi, 1)[0];
+    let to = el.value === 'new' ? (p.teams.push({ id: plId(), name: 'Team ' + (p.teams.length + 1), lic: f.lic, drone: f.drone, pilot: '', status: 'offen', fields: [] }), p.teams.length - 1) : +el.value;
+    p.teams[to].fields.push(f); planRetime(p); planRender(); });
+  box.querySelectorAll('[data-tm]').forEach(el => el.onclick = () => { const t = p.teams[+el.dataset.tm]; S.files.forEach(f => f.selected = false);
+    const fs = t.fields.map(r => { const f = plField(r); if (f && !S.files.includes(f)) { f.extra = true; S.files.push(f); } if (f) f.selected = true; return f; }).filter(Boolean);
+    update(); if (fs.length) fitBounds(padBB(bounds(fs))); draw(); toast(`${t.name}: ${fs.length} Felder auf der Karte markiert`, 'ok', 2500); });
+  box.querySelectorAll('[data-tb]').forEach(el => el.onclick = () => { const t = p.teams[+el.dataset.tb], fs = t.fields.map(plField).filter(Boolean);
+    const a = t.fields[0], z = t.fields[t.fields.length - 1], win = { a: a ? a.start : plDay(p.date) + 3 * 3600000, b: z ? Math.max(z.end, z.mow) : plDay(p.date) + 12 * 3600000 };
+    briefWinDlgPreset(win, w => pilotBriefing(fs, w, { team: t, plan: p }).finally(() => planOpen('neu'))); });
+}
+/** Zeiten nach dem Verschieben neu rechnen (Reihenfolge im Team bleibt) */
+function planRetime(p) {
+  const day = plDay(p.date), start = p.start ? day + plHM(p.start) : plDay(p.date) + plHM(p.startAuto || '05:00');
+  p.teams = p.teams.filter(t => t.fields.length);
+  p.teams.forEach((t, i) => { t.name = 'Team ' + (i + 1); let tt = start, pos = null;
+    t.fields.forEach(r => { const f = plField(r); const c = f && f.center; tt += plTravel(pos, c) * 60000; r.start = tt; tt += r.dur * 60000; r.end = tt; r.late = r.end > r.mow - 10 * 60000; pos = c; });
+    t.lic = t.fields.some(r => r.lic === 'A2') ? 'A2' : 'A1A3'; });
+  plSuggest(p.teams, true);
+}
+function planList(box) {
+  const all = plGet('plans').sort((a, b) => plDay(b.date) - plDay(a.date) || b.created - a.created);
+  box.innerHTML = all.length ? all.map(p => { const nf = p.teams.reduce((m, t) => m + t.fields.length, 0) || p.fields.length;
+    return `<div class="plteam"><div class="plth"><b>${plFmt(plDay(p.date))}</b> <span class="meta">Mahd ${esc(p.mow)} Uhr · ${nf} Felder · ${p.teams.length} Team${p.teams.length === 1 ? '' : 's'}${p.title ? ' · ' + esc(p.title) : ''}</span></div>
+      <div class="meta">${p.teams.map(t => `${esc(t.name)}: ${esc(plPilotName(t.pilot) || 'Pilot offen')} (${t.status})`).join(' · ') || 'noch keine Teams'}</div>
+      <div class="plact"><button class="b-sec" data-po="${p.id}">Öffnen</button><button class="b-sec" data-pd="${p.id}">Löschen</button></div></div>`; }).join('')
+    : '<div class="meta">Noch keine Planung gespeichert.</div>';
+  box.querySelectorAll('[data-po]').forEach(b => b.onclick = () => { PL.cur = JSON.parse(JSON.stringify(plGet('plans').find(p => p.id === b.dataset.po))); PL.tab = 'neu'; planRender(); });
+  box.querySelectorAll('[data-pd]').forEach(b => b.onclick = () => deleteDlg('Planung löschen?', 'Die Planung wird aus der Adressdatei entfernt.', 'Löschen', () => { plSet('plans', plGet('plans').filter(p => p.id !== b.dataset.pd)); if (PL.cur && PL.cur.id === b.dataset.pd) PL.cur = null; planOpen('liste'); }));
+}
+function pilotList(box) {
+  const ps = plGet('pilots');
+  box.innerHTML = `<div class="meta" style="margin-bottom:8px">Piloten mit Fernpilotenzeugnis und eigenen Drohnen – daraus schlägt die Planung vor, wer welches Team fliegen kann. Gespeichert in der Adressdatei (teilbar).</div>
+    <table class="nvt"><tr><th>Name</th><th>Telefon (WhatsApp)</th><th>Zeugnis</th><th>Drohnen</th><th>Wohnort</th><th>aktiv</th><th></th></tr>${ps.map((p, i) => `<tr data-pi="${i}">
+      <td><input class="pln" value="${esc(p.name || '')}" placeholder="Name"></td><td><input class="plp" value="${esc(p.phone || '')}" placeholder="+49…"></td>
+      <td><select class="pll"><option value="A1A3"${p.lic !== 'A2' ? ' selected' : ''}>A1/A3</option><option value="A2"${p.lic === 'A2' ? ' selected' : ''}>A2</option></select></td>
+      <td>${['M3T', 'M4T'].map(d => `<label style="white-space:nowrap"><input type="checkbox" class="pld" value="${d}"${(p.drones || []).includes(d) ? ' checked' : ''}> ${d}</label>`).join(' ')}</td>
+      <td><input class="plo" value="${esc(p.ort || '')}" placeholder="Ort"></td><td><input type="checkbox" class="pla"${p.active !== false ? ' checked' : ''}></td><td><button class="b-sec plx" title="Löschen">✕</button></td></tr>`).join('')}</table>
+    <div class="plact"><button class="b-ok" id="plNew">+ Pilot hinzufügen</button></div>`;
+  const save = () => { const out = [...box.querySelectorAll('[data-pi]')].map(tr => { const o = ps[+tr.dataset.pi];
+    return Object.assign(o, { name: tr.querySelector('.pln').value.trim(), phone: tr.querySelector('.plp').value.trim(), lic: tr.querySelector('.pll').value, drones: [...tr.querySelectorAll('.pld:checked')].map(c => c.value), ort: tr.querySelector('.plo').value.trim(), active: tr.querySelector('.pla').checked }); });
+    plSet('pilots', out); };
+  box.querySelectorAll('input,select').forEach(el => el.onchange = save);
+  box.querySelectorAll('.plx').forEach(b => b.onclick = () => { const i = +b.closest('tr').dataset.pi; ps.splice(i, 1); plSet('pilots', ps); pilotList(box); });
+  $('plNew').onclick = () => { ps.push({ id: plId(), name: '', phone: '', lic: 'A1A3', drones: [], ort: '', active: true }); plSet('pilots', ps); pilotList(box); const n = box.querySelectorAll('.pln'); if (n.length) n[n.length - 1].focus(); };
+}
+/** Briefing-Zeitraum mit Vorbelegung aus der Planung (Tag/Uhrzeit änderbar) */
+function briefWinDlgPreset(win, cb) {
+  const a = new Date(win.a), b = new Date(win.b);
+  briefWinDlg(cb, () => planOpen('neu'), { day: dayStart(win.a), sH: a.getHours(), eH: Math.min(23, b.getHours() + (b.getMinutes() ? 1 : 0)) });
+}
+/** Planungstool ein/aus: Knopf in der Leiste */
+function planBtnState() {
+  const on = IS_WEB && P.planTool === '1', t = $('sideTabs');
+  let gb = $('bPlanGo');   // Knopf „Planen“ neben „Pre-Check“: markierte Felder → Planung (wie Pre-Check, nur für die Einsatzplanung)
+  if (!gb && on && $('bDl')) { gb = document.createElement('button'); gb.id = 'bPlanGo'; gb.className = 'b-sec'; gb.innerHTML = '📅<span class="bsl"> Planen</span>'; gb.title = 'Markierte Felder einplanen: Teams, Zeiten, Wetter, Piloten'; gb.onclick = () => { PL.cur = null; PL.tab = 'neu'; planOpen('neu'); }; $('bDl').before(gb); }
+  if (gb) { gb.style.display = on ? '' : 'none'; gb.disabled = !S.files.some(f => f.selected); }
+  if (!t) return;
+  t.style.display = on ? '' : 'none'; if (!on && SIDE.tab === 'plan') sideTabSet('felder'); else sideRender();
 }
 // ================= Lite-App: UAV-Editor-Suche → einfacher Pre-Check → Import =================
 const LITE_Y = () => new Date().getFullYear();
@@ -8091,6 +8428,11 @@ function webInit() {
     const nv = document.createElement('div'); nv.className = 'set'; nv.id = 'setNetOv';
     nv.innerHTML = '<div class="l"><div class="t">Betroffene Netzbetreiber ermitteln</div><div class="v">Listet alle Netzbetreiber, deren Freileitungen eure Felder berühren – mit E-Mail-Adresse und ob schon eine Vereinbarung besteht. So seht ihr, mit wem ihr noch sprechen müsst.</div></div><button class="b-sec" id="bNetOv">Ermitteln</button>';
     d.after(nv); $('bNetOv').onclick = () => webNetOverview();
+    const pt = document.createElement('div'); pt.className = 'set'; pt.id = 'setPlanTool';
+    pt.innerHTML = '<div class="l"><div class="t">Planungstool</div><div class="v">Einsatzplanung: markierte Wiesen mit Mähdatum und -zeit auf Teams aufteilen (nahe Felder zusammen, alles vor der Mahd fertig), Piloten mit passendem Zeugnis und Drohne vorschlagen, Briefing je Team. Dazu die Pilotenverwaltung. Knopf „📅 Planung“ oben in der Leiste.</div></div><label class="sw"><input type="checkbox" id="sPlanTool"><span></span></label>';
+    nv.after(pt); $('sPlanTool').checked = P.planTool === '1';
+    $('sPlanTool').onchange = e => { setP('planTool', e.target.checked ? '1' : '0'); planBtnState(); };
+    planBtnState();
     $('bShExp').onclick = () => { const txt = A.sharedExport ? A.sharedExport() : '{}', a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = `Kitzrettung-Adressen ${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); };
     $('bShImp').onclick = () => $('fShImp').click();
@@ -9420,7 +9762,7 @@ loadNotams();
 geoBadge();
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
