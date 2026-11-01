@@ -285,10 +285,42 @@
   #plWx .tile small{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:800}#plWx .tile b{display:block;font-size:15px}#plWx .tile span{display:block;font-size:12px;color:var(--muted)}
   #plWx .notes{list-style:none;margin:4px 0;padding:0}#plWx .notes li{padding:2px 0 2px 22px;position:relative;font-size:13.5px}#plWx .notes li i{position:absolute;left:0;font-style:normal}
   #plWx .wx{width:100%;border-collapse:collapse;font-size:12.5px}#plWx .wx td,#plWx .wx th{padding:3px;text-align:center;border-bottom:1px solid var(--line)}#plWx .wx .o{background:rgba(255,170,0,.25)}#plWx .wx .r{background:rgba(220,40,40,.25)}#plWx .ok{color:#13a538;font-weight:800}
+  #sidePanel .spck{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer}#sidePanel .spck input{all:revert;width:17px;height:17px;accent-color:#00a99d}
+  #sideWx{flex:1;overflow-y:auto;padding:8px 14px 16px}
+  #sideWx{padding:10px 12px 16px}
+  .wttop{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:8px}.wttop button{width:34px;height:34px;border-radius:17px;background:var(--sec);color:var(--acc);font-size:18px;font-weight:800}
+  .wc{position:relative;border-radius:18px;padding:12px 14px 12px;margin-bottom:10px;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25);overflow:hidden;transition:transform .12s}
+  .wc:hover{transform:translateY(-1px)}.wc.sel{box-shadow:0 0 0 3px #fff8,0 4px 14px rgba(0,0,0,.3)}
+  .wc.sky-sun{background:linear-gradient(140deg,#1e88e5,#4fc3f7)}.wc.sky-part{background:linear-gradient(140deg,#3d6fb0,#86b4e0)}
+  .wc.sky-cloud{background:linear-gradient(140deg,#56677a,#93a3b5)}.wc.sky-drizzle{background:linear-gradient(140deg,#465d75,#7f97b0)}
+  .wc.sky-rain{background:linear-gradient(140deg,#2c3e55,#5a7290)}.wc.sky-snow{background:linear-gradient(140deg,#6d86a3,#bfd0e2)}.wc.sky-fog{background:linear-gradient(140deg,#6f7c88,#a9b4be)}
+  .wcr1{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .wcd b{display:block;font-size:19px;line-height:1.1;text-shadow:0 1px 2px rgba(0,0,0,.2)}.wcd span{font-size:12px;opacity:.85}
+  .wcv{display:flex;align-items:center;gap:6px;background:#fff;border-radius:16px;padding:3px 10px 3px 3px;font-size:12.5px;font-weight:800;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+  .wcv i{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;color:#fff;font-size:14px;font-weight:900}
+  .wcv.v0{color:#13a538}.wcv.v0 i{background:#13a538}.wcv.v1{color:#d06c00}.wcv.v1 i{background:#f08c00}.wcv.v2{color:#c62828}.wcv.v2 i{background:#e53935}.wcv.vn{color:#5d6975}.wcv.vn i{background:#8a96a3}
+  .wci svg{width:62px;height:62px;stroke:none}
+  .wcr2{display:flex;align-items:center;gap:10px;margin:4px 0 6px}.wci{flex:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .wct{display:flex;flex-direction:column;line-height:1}.wct b{font-size:34px;font-weight:300}.wct span{font-size:16px;opacity:.8;margin-top:2px}
+  .wcs{margin-left:auto;display:flex;flex-direction:column;gap:3px;font-size:14px;font-weight:700;text-align:right}.wcs small{font-size:11px;font-weight:600;opacity:.85}
+  .wcbar{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;height:12px;padding:3px;background:rgba(0,0,0,.18);border-radius:8px}.wcbar i{border-radius:4px;background:#8a96a3}
+  .wcbar i.l0,.wtleg i.l0{background:#2ee26b}.wcbar i.l1,.wtleg i.l1{background:#ffb020}.wcbar i.l2,.wtleg i.l2{background:#ff4d4d}.wcbar i.past{background:rgba(255,255,255,.25)}.wcbar i.na{background:repeating-linear-gradient(45deg,rgba(255,255,255,.3) 0 3px,transparent 3px 6px)}
+  .wcax{display:flex;justify-content:space-between;font-size:10.5px;opacity:.8;margin:2px 2px 0}
+  .wcc{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.wcc span{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 9px 3px 7px;border-radius:12px;background:rgba(255,255,255,.2);backdrop-filter:blur(2px);white-space:nowrap}
+  .wcc i,.wcdet i{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}.d0{background:#2ee26b}.d1{background:#ffb020}.d2{background:#ff4d4d}
+  .wcdet{margin-top:10px;padding:9px 11px;border-radius:12px;background:rgba(0,0,0,.22);font-size:13px;line-height:1.4}.wcdet ul{list-style:none;margin:6px 0;padding:0}.wcdet li{display:flex;gap:7px;align-items:baseline;margin:3px 0}.wcdet i{transform:translateY(-1px)}
+  .wcm{margin-top:6px;opacity:.95}
+  .wtleg{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:11.5px;color:var(--muted)}.wtleg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  .wtoff{display:flex;flex-direction:column;align-items:center;gap:4px;padding:30px 10px;font-size:30px}.wtoff b{font-size:15px}.wtoff span{font-size:13px;color:var(--muted)}
   #sidePanel.wide{width:600px;max-width:calc(100vw - 80px)}
-  #sidePanel .sptabs{display:flex;gap:6px;padding:10px 14px 2px}#sidePanel .sptabs button{flex:1;height:36px;border-radius:18px;background:var(--sec);color:var(--acc);font-weight:800}#sidePanel .sptabs button.on{background:var(--acc);color:#fff}
   #sidePlan #plRoot{flex:1;overflow-y:auto;padding:8px 14px 16px}#sidePanel.wide .plgrid{grid-template-columns:1fr 1fr}
   body.side-open #notam{margin-left:360px}
+  .pcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}.pcard.off{opacity:.55}
+  .pcrow{display:flex;gap:10px;align-items:center;margin-bottom:8px}.pcrow .pbig{flex:1;height:40px;font-size:16px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:var(--card2);color:var(--txt)}
+  .pcx{width:38px;height:38px;border-radius:8px;background:var(--sec);font-size:16px}
+  .pcgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}.pcgrid label,.pclab{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:700;color:var(--muted)}
+  .pcgrid input{height:38px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:var(--card2);color:var(--txt);font-size:14px;min-width:0}
+  .pcseg{display:flex;gap:6px;margin-top:4px}.pcseg button{flex:1;height:36px;border-radius:8px;background:var(--sec);color:var(--acc);font-weight:700;font-size:14px}.pcseg button.on{background:var(--acc);color:#fff}
   .pltabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}.pltabs button{padding:8px 14px;border-radius:18px;background:var(--sec);color:var(--acc);font-weight:700}.pltabs button.on{background:var(--acc);color:#fff}
   .plgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:8px}.plgrid label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:var(--muted)}
   .plgrid input,.plgrid select,.plpil select,.plfr input,#plBody .nvt input,#plBody .nvt select{height:38px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--card);color:var(--txt);font-size:14px;min-width:0}
@@ -301,8 +333,11 @@
   #sidePanel{position:fixed;left:0;top:72px;bottom:0;width:360px;z-index:17;background:var(--card);box-shadow:3px 0 16px rgba(0,0,0,.25);display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .2s}
   #sidePanel.open{transform:none}
   body.side-open #notam{margin-left:360px}
-  #sideTab{position:absolute;right:-42px;top:120px;width:42px;height:92px;border-radius:0 12px 12px 0;background:var(--card);color:var(--acc);box-shadow:3px 0 10px rgba(0,0,0,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:800}
-  #sideTab span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:13px}#sideTab b{font-size:20px;line-height:1}
+  #sideTabs{position:absolute;left:100%;top:96px;display:flex;flex-direction:column;gap:8px}
+  #sideTabs button{width:44px;height:104px;border-radius:0 14px 14px 0;background:var(--card);color:var(--acc);box-shadow:3px 0 10px rgba(0,0,0,.22);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-weight:800;border-left:none}
+  #sideTabs button b{font-size:20px;line-height:1}#sideTabs button span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:13.5px;letter-spacing:.3px}
+  #sidePanel.open #sideTabs button:not(.on){visibility:hidden}   /* offenes Fach verdeckt die anderen Laschen */
+  #sideTabs button.on{background:var(--acc);color:#fff;width:48px}
   #sidePanel .sph{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px 4px;font-size:15px}#sidePanel .sph span{color:var(--muted);font-size:13px}
   #sidePanel .spf{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px 14px}#sidePanel .spf input{grid-column:1/-1}
   #sidePanel .spf input,#sidePanel .spf select{height:34px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--card);color:var(--txt);font-size:13px;min-width:0}
@@ -423,6 +458,28 @@
   #coachBub .cbx{background:none;color:var(--muted);font-weight:600;margin-left:auto;font-size:13px;text-decoration:underline}
   .nvd2{margin-top:6px}.nvd2 summary{cursor:pointer;color:var(--acc);font-size:13px}.nvi{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;padding:4px 0;border-top:1px dashed var(--line)}.nvi button{height:28px;padding:0 10px;font-size:12px}
   .nvt{width:100%;border-collapse:collapse;font-size:15px}.nvt th{text-align:left;color:var(--muted);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--line)}.nvt td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .pch{display:flex;gap:16px;align-items:center;padding:14px 16px;border-radius:16px;background:color-mix(in srgb,var(--c) 10%,var(--card2));border:2px solid color-mix(in srgb,var(--c) 45%,transparent);margin-bottom:12px}
+  .pchi{flex:none;width:86px;height:86px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--c) 18%,transparent)}
+  .pchi i{width:62px;height:62px;border-radius:50%;background:var(--c);color:#fff;font-style:normal;font-weight:900;font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px color-mix(in srgb,var(--c) 45%,transparent)}
+  .pcht{flex:1;min-width:0}.pcht>b{display:block;font-size:22px;color:var(--c)}.pcht>span{font-size:14px;color:var(--muted)}
+  .pcts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.pct{display:inline-flex;gap:6px;align-items:baseline;font-size:13px;padding:3px 10px;border-radius:12px;background:var(--card);border:1px solid color-mix(in srgb,var(--c) 40%,transparent)}.pct b{color:var(--c)}
+  .pcf{background:var(--card2);border-radius:14px;margin-bottom:8px;border:1px solid var(--line)}.pcf[open]{border-color:#00a99d;box-shadow:0 0 0 1px #00a99d}
+  .pcf>summary{display:flex;align-items:center;gap:12px;padding:8px 12px 8px 8px;cursor:pointer;list-style:none}.pcf>summary::-webkit-details-marker{display:none}
+  .pcf .fthumb{border-radius:10px;flex:none}
+  .pcn{flex:1;min-width:0}.pcn b{display:block;font-size:16.5px;overflow-wrap:anywhere}.pcn span{font-size:13px;color:var(--muted)}
+  .pcflags{display:flex;gap:5px}.pcflags i{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;color:#fff;font-size:14px;font-weight:900}
+  .pcv{display:flex;align-items:center;gap:8px;padding:4px 14px 4px 4px;border-radius:20px;background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c);font-weight:800;font-size:14.5px;white-space:nowrap}
+  .pcv i{min-width:30px;height:30px;padding:0 4px;box-sizing:border-box;border-radius:15px;background:var(--c);color:#fff;font-style:normal;font-size:13.5px;display:flex;align-items:center;justify-content:center}
+  .pcvs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .pcmore{font-size:13px;font-weight:700;color:var(--acc);white-space:nowrap}.pcmore::after{content:' ›';display:inline-block;transition:transform .15s}.pcf[open] .pcmore::after{transform:rotate(90deg)}
+  .pcd{display:grid;grid-template-columns:minmax(260px,1fr) 1.2fr;gap:14px;padding:4px 12px 12px}
+  @media (max-width:900px){.pcd{grid-template-columns:1fr}}
+  .pcmap .pccv{width:100%;height:auto;border-radius:10px;display:block}.pcleg{display:flex;flex-wrap:wrap;gap:8px;font-size:11.5px;color:var(--muted);margin-top:5px}.pcleg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  .pcwhy h5{margin:2px 0 6px;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}.pcwhy ul{list-style:none;margin:0 0 10px;padding:0}
+  .pcwhy li{display:flex;gap:10px;align-items:flex-start;margin-bottom:9px}.pci{flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px}
+  .pcwhy li b{display:block;font-size:14.5px}.pcwhy li span:not(.pci){display:block;font-size:13px;color:var(--muted);line-height:1.35}
+  .pcnote{font-size:12.5px;color:var(--muted);margin:-4px 0 10px 44px}
+  .pcall summary{cursor:pointer;font-size:13px;color:var(--acc);font-weight:700;margin-top:4px}
   .lgh{margin:14px 0 8px;padding-left:10px;border-left:6px solid;font-size:17px}.lgh span{color:var(--muted);font-weight:600}
   .lverd{display:inline-block;font-size:13px;font-weight:800;color:#fff;padding:2px 8px;border-radius:8px;margin:2px 0 2px 6px;vertical-align:middle;white-space:nowrap}
   .lchip small{display:block;font-size:13px;color:var(--muted);margin-top:1px}.lchip small b{color:var(--txt)}.lchip small span{font-weight:800}
@@ -684,7 +741,7 @@ body.bartop #trafWarn{top:84px}
   <button id="zIn" title="Vergrößern"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
   <button id="zOut" title="Verkleinern"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
   <button id="bSrcK" title="Felder: UAV-Editor → beides → Fernsteuerung → keine (Taste L3)"></button>
-  <button id="bFit" title="Alle Felder anzeigen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  <button id="bFit" title="Markierte Felder zeigen (ohne Auswahl: alle Felder)"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
   <button id="bLayer" title="Kartenart wechseln: Grau → Karte → Satellit"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/><path d="M3 17.5l9 5 9-5" opacity=".55"/></svg></button>
   <button id="bInfo" title="Infos: Geozonen und/oder Feldnamen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
   <button id="bLoc" title="Mein Standort"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span class="gpsb"><i></i>GPS</span></button>
@@ -1971,7 +2028,7 @@ let FC = FC0;
 const DRONE_HEIGHT = { M3T: 50, M4T: 70 };
 /** Prüft, ob ein Feld die falsche Drohne/Höhe für die eingestellte Drohne hat */
 function isDroneMismatch(f) {
-  if (!P.drone || f.cat || f.dup) return false;
+  if (IS_WEB || !P.drone || f.cat || f.dup) return false;   // PC: Drohne steht noch nicht fest
   const want = P.drone, wantH = DRONE_HEIGHT[want];
   if (!wantH) return false;
   // Fall 1: falsche Drohne erkannt
@@ -2106,10 +2163,15 @@ function drawClusters(cls) {
     ctx.fillStyle = '#fff'; ctx.font = `800 ${n > 99 ? 13 : 15}px Roboto,system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(n), x, y + 1);
     // gemeinsamer Name (z. B. „Aumenau“), wenn die meisten Felder so heißen
     const cnt = {}; c.fs.forEach(f => { const k = typeof fieldGroupKey === 'function' ? fieldGroupKey(f.title) : shortTitle(f.title); cnt[k] = (cnt[k] || 0) + 1; });
-    const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0], nm = top && top[1] / n >= 0.6 ? top[0] + (top[1] < n ? ' …' : '') : '';
+    // Namen der Gruppen im Kreis darunter: eine Zeile je Name (mit Anzahl, wenn gemischt), höchstens 3 Zeilen
+    const ents = Object.entries(cnt).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'de'));
+    const lines = ents.length === 1 ? [ents[0][0]] : ents.slice(0, ents.length > 3 ? 2 : 3).map(([k, v]) => `${k} (${v})`).concat(ents.length > 3 ? [`+${ents.length - 2} weitere`] : []);
     let box = { x: x - r - 5, y: y - r - 5, w: 2 * r + 10, h: 2 * r + 10 };
-    if (nm) { ctx.font = '700 12px Roboto,system-ui,sans-serif'; const tw = ctx.measureText(nm).width + 10, ty = y + r + 8;
-      ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fillRect(x - tw / 2, ty, tw, 17); ctx.fillStyle = '#15202b'; ctx.fillText(nm, x, ty + 9); box.h += 20; box.x = Math.min(box.x, x - tw / 2); box.w = Math.max(box.w, tw); }
+    ctx.font = '700 12px Roboto,system-ui,sans-serif';
+    const tw = Math.max(...lines.map(l => ctx.measureText(l).width)) + 10, ty = y + r + 8, lh = 16;
+    ctx.fillStyle = 'rgba(255,255,255,.93)'; ctx.fillRect(x - tw / 2, ty, tw, lines.length * lh + 2);
+    ctx.fillStyle = '#15202b'; lines.forEach((l, k) => ctx.fillText(l, x, ty + 9 + k * lh));
+    box.h += lines.length * lh + 6; box.x = Math.min(box.x, x - tw / 2); box.w = Math.max(box.w, tw);
     labelBoxes.push(Object.assign(box, { cl: c.fs })); });
 }
 function drawLabelGroups(vis) {
@@ -2754,8 +2816,10 @@ function toggle(f) {
   return true;
 }
 function fitAll() {
-  const sel = S.files.filter(f => f.selected && visible(f));
-  fitBounds(bounds(S.files.filter(visible)) || bounds(sel));
+  // markierte Felder vorrangig (auch wenn der Filter sie ausblendet) – sonst alle sichtbaren
+  const sel = S.files.filter(f => f.selected && f.bounds);
+  if (sel.length) return fitBounds(padBB(bounds(sel)));
+  fitBounds(bounds(S.files.filter(visible)));
 }
 
 $('zIn').onclick = () => zoomAt(V.z + 1, W / 2, mapCY());
@@ -2854,6 +2918,14 @@ function webCatHits(q) {
 }
 /** PC: Auswahlliste unter dem Suchfeld – Filter Jahr (Standard: aktuelles Jahr) und Stand (aktiv/archiviert), darunter alle Felder nach Namen sortiert */
 /** PC: aufgeklappte Liste unter dem Suchfeld schließen (Suchbegriff bleibt stehen) */
+/** PC: Suchbegriff oben → Feldliste links öffnen und danach filtern; markieren dort */
+function webSearchToSide() {
+  const box = $('qHits'); if (box) box.innerHTML = ''; setSearchFocus(null);
+  const sp = $('sidePanel'); if (!sp) return;
+  if (!sp.classList.contains('open')) S.sideShow(true);
+  if (SIDE.tab !== 'felder') sideTabSet('felder');
+  const q = $('q').value.trim(); if (SIDE.q !== q) { SIDE.q = q; $('sideQ').value = q; sideRender(); }
+}
 function webSearchClose() { S.qOpen = false; $('qHits').innerHTML = ''; $('q').blur(); setSearchFocus(null); }
 function webSearchPanel(box) {
   if (!S.qOpen) { box.innerHTML = ''; return; }
@@ -2901,7 +2973,7 @@ function webSearchPanel(box) {
 // ================= PC: Seitenleiste links – Felder aus dem UAV Editor, neueste zuerst, mit Filtern =================
 /** Namensanfang eines Feldes für Pakete: „Aumenau-1+2-M3T“ → „Aumenau“, „Schröter-Kerkerbach-6a“ → „Schröter-Kerkerbach“ */
 function fieldGroupKey(n) { const b = String(n).replace(/[-_\s]+(M3T|M4T|M30T|M3E)\s*$/i, '').replace(/[-_\s]+$/, ''); const m = /^(.*?[A-Za-zÄÖÜäöüß][^\s_-]*)[-_\s]+\d[\w+.]*$/.exec(b); return (m ? m[1] : b).trim(); }
-const SIDE = { q: '', year: null, stand: 'alle', drone: 'alle', sort: 'neu' };
+const SIDE = { tab: 'felder', q: '', year: null, stand: 'alle', drone: 'alle', sort: 'neu' };
 function catAll() { try { const d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); return d && Array.isArray(d.fields) ? d.fields : []; } catch (e) { return []; } }
 const cfTime = f => { const c = dOk(f.created || (f.meta || {}).created), l = dOk(f.lm); return Math.max(c ? +c : 0, l ? +l : 0); };
 const cfDrone = f => { const d = uaveInfo(f).drone, h = f.meta && f.meta.h; return d === 'M3T' || d === 'M4T' ? d : h ? (h < 60 ? 'M3T' : 'M4T') : ''; };
@@ -2909,27 +2981,29 @@ const cfSel = cf => S.files.some(x => x.selected && (String((x.uave || {}).id ||
 function sideInit() {
   if ($('sidePanel')) return;
   const p = document.createElement('div'); p.id = 'sidePanel';
-  p.innerHTML = `<button id="sideTab" title="Felder/Planung ein-/ausklappen"><span>Felder</span><b>›</b></button>
-    <div class="sptabs" id="sideTabs"><button data-st="felder" class="on">🌾 Felder</button><button data-st="plan">📅 Planung</button></div>
+  p.innerHTML = `<div id="sideTabs"><button data-st="felder" title="Felder ein-/ausklappen"><b>🌾</b><span>Felder</span></button><button data-st="wetter" title="Wetter ein-/ausklappen"><b>🌤</b><span>Wetter</span></button><button data-st="plan" title="Planung ein-/ausklappen"><b>📅</b><span>Planung</span></button></div>
     <div id="sideFelder" style="display:flex;flex-direction:column;flex:1;min-height:0">
     <div class="sph"><b>Felder aus dem UAV Editor</b><span id="sideN"></span></div>
     <div class="spf"><input id="sideQ" type="search" placeholder="Name filtern…">
       <select id="sideS"><option value="neu">Neueste zuerst</option><option value="name">Name A–Z</option></select>
       <select id="sideY"></select><select id="sideD"><option value="alle">Alle Drohnen</option><option value="M3T">M3T</option><option value="M4T">M4T</option></select>
-      <select id="sideSt"><option value="alle">Aktiv + Archiv</option><option value="aktiv">Nur aktiv</option><option value="archiv">Nur Archiv</option></select></div>
-    <div class="spa"><button id="sideAll">Alle markieren</button><button id="sideNone">Keine</button><button id="sideGrp" title="Felder mit gleichem Namensanfang und nahem Planungsdatum zu Paketen bündeln">Pakete</button><button id="sideNew" style="display:none">Nur neue</button></div>
+      <select id="sideSt"><option value="alle">Aktiv + Archiv</option><option value="aktiv">Nur aktiv</option><option value="archiv">Nur Archiv</option></select>
+      <label class="spck" title="Felder mit gleichem Namensanfang und nahem Planungsdatum (bis 12 h) zu einem Paket zusammenfassen"><input type="checkbox" id="sideGrp"> Gleiche Namen als Paket bündeln</label></div>
+    <div class="spa"><button id="sideAll">Alle markieren</button><button id="sideNone">Keine</button><button id="sideNew" style="display:none">Nur neue</button></div>
     <div class="spa" id="sidePlanRow" style="display:none"><button id="sidePlanNew" class="on">📅 Neue Planung mit Auswahl</button></div>
     <div id="sideList"></div></div>
+    <div id="sideWxBox" style="display:none;flex:1;min-height:0;flex-direction:column"><div id="sideWx"></div></div>
     <div id="sidePlan" style="display:none;flex:1;min-height:0;flex-direction:column"><div id="plRoot"></div></div>`;
   document.body.appendChild(p);
   const open = o => { p.classList.toggle('open', o); document.body.classList.toggle('side-open', o);
     // Feldliste offen: Karte zeigt nur die Felder – graue Karte (umschaltbar, z. B. Luftbild), keine Geozonen/Hindernisse
     if (o && !S.sideFocus) { S.sideFocus = true; if (P.layer !== 'sat' && P.layer !== 'grey') { S.sidePrevLayer = P.layer; P.layer = 'grey'; } }
     else if (!o && S.sideFocus) { S.sideFocus = false; if (S.sidePrevLayer && P.layer === 'grey') P.layer = S.sidePrevLayer; S.sidePrevLayer = null; }
-    GEOR.update && GEOR.update(false); draw(); setP('sideOpen', o ? '1' : '0'); $('sideTab').querySelector('b').textContent = o ? '‹' : '›'; if (o) sideRender(); };
+    GEOR.update && GEOR.update(false); draw(); setP('sideOpen', o ? '1' : '0'); sideLashState(); if (o) sideRender(); };
   S.sideShow = open;
-  $('sideTab').onclick = () => open(!p.classList.contains('open'));
-  p.querySelectorAll('[data-st]').forEach(b => b.onclick = () => sideTabSet(b.dataset.st));
+  // Laschen am linken Rand: Klick zieht das Fach heraus, nochmal Klick klappt es ein; andere Lasche wechselt das Fach
+  p.querySelectorAll('#sideTabs [data-st]').forEach(b => b.onclick = () => { const t = b.dataset.st, on = p.classList.contains('open');
+    if (on && SIDE.tab === t) open(false); else { sideTabSet(t); if (!on) open(true); } });
   $('sidePlanNew').onclick = () => { PL.cur = null; planOpen('neu'); };
   $('sideQ').oninput = e => { SIDE.q = e.target.value; sideRender(); };
   $('sideS').onchange = e => { SIDE.sort = e.target.value; sideRender(); };
@@ -2939,19 +3013,132 @@ function sideInit() {
   $('sideAll').onclick = () => { const fs = sideList().slice(0, 300).map(cf => webCatPick(cf, 'all')).filter(Boolean); if (fs.length) fitBounds(padBB(bounds(fs))); draw(); sideRender(); toast(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} markiert`, 'ok', 2000); };
   $('sideNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); draw(); sideRender(); };
   $('sideNew').onclick = () => { SIDE.onlyNew = !SIDE.onlyNew; sideRender(); };
-  $('sideGrp').onclick = () => { setP('sideGroup', P.sideGroup === '0' ? '1' : '0'); sideRender(); };
+  $('sideGrp').onchange = e => { setP('sideGroup', e.target.checked ? '1' : '0'); sideRender(); };
   p.addEventListener('pointerdown', e => e.stopPropagation());
   planBtnState();
   if (P.sideOpen === '1') open(true);
 }
+function sideLashState() { const p = $('sidePanel'); if (!p) return; const o = p.classList.contains('open'); p.querySelectorAll('#sideTabs [data-st]').forEach(b => b.classList.toggle('on', o && b.dataset.st === (SIDE.tab || 'felder'))); }
 /** Leiste links: Reiter „Felder“ oder „Planung“ (Planung nur, wenn das Planungstool eingeschaltet ist) */
 function sideTabSet(t) {
   if (t === 'plan' && P.planTool !== '1') t = 'felder';
   SIDE.tab = t; const p = $('sidePanel'); if (!p) return;
-  p.querySelectorAll('[data-st]').forEach(b => b.classList.toggle('on', b.dataset.st === t));
-  $('sideFelder').style.display = t === 'felder' ? 'flex' : 'none'; $('sidePlan').style.display = t === 'plan' ? 'flex' : 'none';
-  p.classList.toggle('wide', t === 'plan'); $('sideTab').querySelector('span').textContent = t === 'plan' ? 'Planung' : 'Felder';
-  if (t === 'plan') { if (!PL.cur) planNewFromSel(); planRender(); } else sideRender();
+  sideLashState();
+  $('sideFelder').style.display = t === 'felder' ? 'flex' : 'none'; $('sidePlan').style.display = t === 'plan' ? 'flex' : 'none'; $('sideWxBox').style.display = t === 'wetter' ? 'flex' : 'none';
+  p.classList.toggle('wide', t === 'plan');
+  if (t === 'plan') { if (!PL.cur) planNewFromSel(); planRender(); } else if (t === 'wetter') wxTabRender(); else sideRender();
+}
+// ================= PC: Wetter-Reiter – die nächsten 3 Morgen (03–12 Uhr) für den Flug, dazu Mähwetter =================
+/** Mähwetter für einen Tag: Silage braucht ~1–2 trockene Tage (Anwelken auf 30–40 % TS in 24–48 h), Heu eine Schönwetterphase von ~5 Tagen.
+ *  „trocken“ = über Tag (8–20 Uhr) zusammen unter 1 mm und keine Stunde mit Regen ab 0,5 mm. Liefert { lvl 0/1/2, t, sub, dry } */
+function mowOutlook(ico, day) {
+  if (!ico || !ico.time) return null;
+  const dayDry = d0 => { let sum = 0, mx = 0, n = 0;
+    ico.time.forEach((t, i) => { if (t < d0 + 8 * 3600000 || t >= d0 + 20 * 3600000) return; const r = ico.rain[i] || 0; sum += r; mx = Math.max(mx, r); n++; });
+    return n < 6 ? null : sum < 1 && mx < 0.5; };
+  const dry = []; for (let k = 0; k < 7; k++) dry.push(dayDry(addDays(day, k)));
+  if (dry[0] == null) return null;
+  let run = 0; for (const d of dry) { if (d === true) run++; else break; }
+  const known = dry.filter(d => d != null).length, nightRain = (() => { let s = 0; ico.time.forEach((t, i) => { if (t >= day - 6 * 3600000 && t < day + 8 * 3600000) s += ico.rain[i] || 0; }); return s; })();
+  const wet = nightRain >= 1 ? ' Nach Regen in der Nacht ist das Gras morgens nass – Mahd eher erst später am Tag.' : '';
+  if (!dry[0]) return { lvl: 2, t: 'Kein Mähwetter', sub: 'Regen am Tag – Mahd unwahrscheinlich.', run, wetM: nightRain >= 1 };
+  if (run >= 5 || (run >= Math.min(5, known) && known < 5 && run >= 3)) return { lvl: 0, t: 'Gutes Mähwetter (Heu und Silage)', sub: `${run >= known ? 'mindestens ' : ''}${run} trockene Tage am Stück – Mahd wahrscheinlich.${wet}`, run, wetM: nightRain >= 1 };
+  if (run >= 2) return { lvl: 0, t: 'Gutes Silagewetter', sub: `${run} trockene Tage – reicht zum Anwelken für Silage, für Heu zu kurz.${wet}`, run, wetM: nightRain >= 1 };
+  return { lvl: 1, t: 'Nur 1 trockener Tag', sub: `Danach Regen – Silage knapp, Heu nicht. Mahd eher unwahrscheinlich.${wet}`, run, wetM: nightRain >= 1 };
+}
+let wxTabBusy = false; const WXT = { open: null, data: null };
+/** Wetter-Fach: 4 Tage, je Kachel ein großes Symbol (✓ ! ✗), ein Stundenband 03–12 Uhr in Ampelfarben, kurze Stichworte, Mähwetter. Klick auf eine Kachel → Details */
+async function wxTabRender(force) {
+  const box = $('sideWx'); if (!box || wxTabBusy) return;
+  const sel = S.files.filter(f => f.selected && f.center), vis = S.files.filter(f => visible(f) && f.center);
+  let loc; if (sel.length) { const b = bounds(sel); loc = { lat: (b.n + b.s) / 2, lon: (b.e + b.w) / 2, what: 'markierte Felder' }; }
+  else if (vis.length) { const b = bounds(vis); loc = { lat: (b.n + b.s) / 2, lon: (b.e + b.w) / 2, what: 'Felder auf der Karte' }; }
+  else { const [lat, lon] = fromScreen(W / 2, mapCY()); loc = { lat, lon, what: 'Kartenmitte' }; }
+  const np = nearPlace(loc.lat, loc.lon), H = Math.max(0, ...sel.map(f => f.height || 0)) || flightHeight() || 50;
+  if (!WXT.data || force) box.innerHTML = `<div class="meta" style="padding:10px 2px">Lade Vorhersage…</div>`;
+  wxTabBusy = true; let r = null, kpc = null, ico = null;
+  try { try { kpc = await kpLoad(false); } catch (e) { } try { r = await wxHours(loc.lat, loc.lon, !!force); } catch (e) { } try { ico = await wxSource('icon', loc.lat, loc.lon, !!force); } catch (e) { } } finally { wxTabBusy = false; }
+  if (!$('sideWx')) return;
+  if (!r && !ico) { box.innerHTML = '<div class="wtoff">📡<b>Keine Vorhersage</b><span>offline? Später erneut versuchen.</span></div>'; return; }
+  const now = hourFloor(Date.now()), today = dayStart(Date.now()), first = new Date().getHours() >= 12 ? 1 : 0, days = [];
+  const rng = ts => { const s = []; ts.forEach(t => { const l = s[s.length - 1]; if (l && t - l[1] <= 3600000) l[1] = t; else s.push([t, t]); }); return s.map(x => `${String(new Date(x[0]).getHours()).padStart(2, '0')}–${String(new Date(x[1] + 3600000).getHours()).padStart(2, '0')}`).join(', '); };
+  for (let k = first; k < first + 4; k++) {
+    const d = addDays(today, k), a = d + 3 * 3600000, b = d + 12 * 3600000, src = { dip: r && r.dip, ico: (r && r.ico) || ico }, a0 = Math.max(a, now);
+    const hs = a0 < b ? briefHours(src, a0, b) : [], w = hs.length > 1 ? briefWxWindow(hs, kpc, a0, b, H) : null, ev = hs.length > 1 ? wxEval(hs, kpc, a0, b, H) : null;
+    const rn = ev ? briefRain(ev.per) : null, hrs = [];
+    for (let t = a; t < b; t += 3600000) {
+      const p = ev && ev.per.find(x => x.t === t);
+      if (t < now) { hrs.push({ t, c: 'past', tip: 'vorbei' }); continue; }
+      if (!p) { hrs.push({ t, c: 'na', tip: 'keine Daten' }); continue; }
+      const rc = rn.cls(p.rain), o = Math.max(p.L.wind, p.L.vis, p.L.ice, p.L.shear, p.L.kp), L = Math.max(o, rc >= 2 || p.snow > 0 ? 2 : rc === 1 ? 1 : 0);
+      const why = [p.snow > 0 ? 'Schnee' : rc >= 2 ? rainWord(p.rain) : rc === 1 ? 'Niesel' : '', p.L.wind ? `Böen ${f1(p.g)} m/s` : '', p.L.shear ? 'Scherwind' : '', p.L.vis ? 'Nebel/Dunst' : '', p.L.ice ? 'Vereisung' : ''].filter(Boolean);
+      hrs.push({ t, c: 'l' + L, tip: `${hm(t)} Uhr: ${why.join(', ') || 'gut'}` });
+    }
+    const chips = [];
+    if (ev) {
+      const P = ev.per;
+      if (P.some(p => p.snow > 0)) chips.push([2, '🌨', 'Schnee']);
+      const rh = P.filter(p => !(p.snow > 0) && rn.cls(p.rain) >= 2).map(p => p.t), dh = P.filter(p => rn.cls(p.rain) === 1).map(p => p.t);
+      if (rh.length) chips.push([rn.lv === 2 ? 2 : 1, '🌧', rng(rh) + ' Uhr']);
+      if (dh.length) chips.push([1, '🌦', rng(dh) + ' Uhr']);
+      if (ev.top('wind')) chips.push([ev.top('wind'), '💨', `Wind ${Math.round(Math.max(ev.mx('g') || 0, ev.mx('wH') || 0))} m/s`]);
+      if (ev.top('shear')) chips.push([ev.top('shear'), '↗', 'Scherwind']);
+      if (ev.top('vis')) chips.push([ev.top('vis'), '🌫', ev.top('vis') === 2 ? 'Nebel' : 'Dunst']);
+      if (ev.top('ice')) chips.push([2, '🧊', 'Vereisung']);
+      if (ev.top('kp')) chips.push([ev.top('kp'), '🧭', 'Kp ' + f1(ev.mx('kp'))]);
+      chips.sort((x, y) => y[0] - x[0]);
+    }
+    const t2 = ev ? ev.mn('t2') : null;
+    days.push({ k, d, w, hrs, chips, mow: mowOutlook(src.ico, d), t2, sky: wxSky(src.ico, a, b), lbl: k === 0 ? 'Heute' : k === 1 ? 'Morgen' : k === 2 ? 'Übermorgen' : new Date(d).toLocaleDateString('de-DE', { weekday: 'long' }) });
+  }
+  WXT.data = { days, loc, np, H };
+  wxTabPaint();
+}
+/** Wettersymbol als SVG: sun | part | cloud | drizzle | rain | snow | fog */
+function wxIcon(k, sz) {
+  const sun = (x, y, r) => `<g><circle cx="${x}" cy="${y}" r="${r}" fill="#FFD54A"/>${[0, 45, 90, 135, 180, 225, 270, 315].map(a => { const c = Math.cos(a * Math.PI / 180), s = Math.sin(a * Math.PI / 180); return `<line x1="${x + c * (r + 4)}" y1="${y + s * (r + 4)}" x2="${x + c * (r + 9)}" y2="${y + s * (r + 9)}" stroke="#FFD54A" stroke-width="3.2" stroke-linecap="round"/>`; }).join('')}</g>`;
+  const cloud = (dy, f) => `<path transform="translate(0 ${dy})" d="M19 48h28a11 11 0 0 0 1-22 15 15 0 0 0-28-4 10 10 0 0 0-1 26z" fill="${f || '#fff'}"/>`;
+  const drops = (n, sn) => [...Array(n)].map((_, i) => sn ? `<circle cx="${22 + i * 10}" cy="${58 + (i % 2) * 3}" r="2.6" fill="#fff"/>` : `<line x1="${24 + i * 9}" y1="54" x2="${21 + i * 9}" y2="61" stroke="#9fd3ff" stroke-width="3" stroke-linecap="round"/>`).join('');
+  const b = { sun: sun(32, 30, 12), part: sun(24, 22, 9) + cloud(4), cloud: cloud(-6, '#e9eef4') + cloud(2), drizzle: cloud(-4) + drops(2), rain: cloud(-4, '#dfe7ef') + drops(3), snow: cloud(-4) + drops(3, 1),
+    fog: cloud(-8) + [50, 56, 62].map((y, i) => `<line x1="${12 + i * 3}" y1="${y}" x2="${52 - i * 3}" y2="${y}" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/>`).join('') }[k] || sun(32, 30, 12);
+  return `<svg viewBox="0 0 64 66" width="${sz}" height="${sz}" aria-hidden="true">${b}</svg>`;
+}
+/** Himmel für 03–12 Uhr aus ICON: Temperatur, Wind, Regen, Bewölkung → Symbol + Hintergrund */
+function wxSky(ico, a, b) {
+  if (!ico || !ico.time) return null;
+  const ix = []; ico.time.forEach((t, i) => { if (t >= a && t < b) ix.push(i); }); if (!ix.length) return null;
+  const v = (arr, i) => arr && arr[i] != null ? +arr[i] : null, T = ix.map(i => v(ico.tempH && ico.tempH[2], i)).filter(x => x != null);
+  const rain = ix.reduce((m, i) => m + (v(ico.rain, i) || 0), 0), rmx = Math.max(0, ...ix.map(i => v(ico.rain, i) || 0)), snow = ix.some(i => (v(ico.snow, i) || 0) > 0);
+  const cl = ix.map(i => v(ico.cloud, i)).filter(x => x != null), cloud = cl.length ? cl.reduce((m, x) => m + x, 0) / cl.length : null;
+  const vis = Math.min(...ix.map(i => v(ico.vis, i)).filter(x => x != null)), gust = Math.max(0, ...ix.map(i => v(ico.gust, i) || 0)), wind = Math.max(0, ...ix.map(i => v(ico.wind && ico.wind[10], i) || 0));
+  const k = snow ? 'snow' : rmx >= 0.5 || rain >= 1 ? 'rain' : rmx >= 0.1 ? 'drizzle' : vis < 1000 ? 'fog' : cloud == null ? 'part' : cloud > 75 ? 'cloud' : cloud > 30 ? 'part' : 'sun';
+  return { k, tmin: T.length ? Math.min(...T) : null, tmax: T.length ? Math.max(...T) : null, rain, gust, wind, cloud };
+}
+function wxTabPaint() {
+  const box = $('sideWx'); if (!box || !WXT.data) return;
+  const { days, loc, np, H } = WXT.data, SYM = ['✓', '!', '✗'], VT = ['Fliegbar', 'Mit Hinweis', 'Nicht fliegen'];
+  const mowLbl = m => !m ? '' : m.lvl === 2 ? 'Kein Mähwetter' : m.lvl === 1 ? 'Mahd knapp' : m.run >= 5 ? 'Mähwetter Heu + Silage' : 'Mähwetter Silage';
+  const n0 = x => x == null ? '–' : Math.round(x);
+  const card = x => { const L = x.w ? x.w.sum.lvl : -1, s = x.sky || { k: 'part' }, open = WXT.open === x.k;
+    return `<div class="wc sky-${s.k}${open ? ' sel' : ''}" data-k="${x.k}">
+      <div class="wcr1"><div class="wcd"><b>${esc(x.lbl)}</b><span>${new Date(x.d).toLocaleDateString('de-DE', { weekday: x.k > 1 ? undefined : 'short', day: '2-digit', month: '2-digit' })} · 03–12 Uhr</span></div>
+        <div class="wcv v${L < 0 ? 'n' : L}"><i>${L < 0 ? '?' : SYM[L]}</i>${L < 0 ? 'keine Daten' : VT[L]}</div></div>
+      <div class="wcr2"><div class="wci">${wxIcon(s.k, 62)}</div>
+        <div class="wct"><b>${n0(s.tmax)}°</b><span>${n0(s.tmin)}°</span></div>
+        <div class="wcs"><span title="Wind am Boden / Böen">💨 ${n0(s.wind)}<small> m/s · Böen ${n0(s.gust)}</small></span><span title="Regen 03–12 Uhr">💧 ${s.rain == null ? '–' : s.rain < 0.1 ? '0' : f1(s.rain)}<small> mm</small></span>${s.cloud != null ? `<span title="Bewölkung">☁ ${Math.round(s.cloud)}<small> %</small></span>` : ''}</div></div>
+      <div class="wcbar">${x.hrs.map(h => `<i class="${h.c}" title="${esc(h.tip)}"></i>`).join('')}</div>
+      <div class="wcax"><span>03</span><span>06</span><span>09</span><span>12 Uhr</span></div>
+      ${x.chips.length || x.mow ? `<div class="wcc">${x.chips.slice(0, 3).map(c => `<span><i class="d${c[0]}"></i>${c[1]} ${esc(c[2])}</span>`).join('')}${x.mow ? `<span class="mw" title="${esc(x.mow.t + ' – ' + x.mow.sub)}"><i class="d${x.mow.lvl}"></i>🚜 ${esc(mowLbl(x.mow))}${x.mow.wetM && x.mow.lvl < 2 ? ' 💧' : ''}</span>` : ''}</div>` : ''}
+      ${open ? `<div class="wcdet">${x.w ? `<div>🕑 Fliegbar: <b>${esc(x.w.sum.flyTxt)}</b></div>` : ''}
+        ${x.w && x.w.simple.filter(y => y[0] > 0).length ? `<ul>${x.w.simple.filter(y => y[0] > 0).map(y => `<li><i class="d${y[0]}"></i>${esc(y[1])}</li>`).join('')}</ul>` : '<div>Keine Einschränkungen erwartet.</div>'}
+        ${x.t2 != null && x.t2 < 5 ? `<div>🔋 bis ${f1(x.t2)} °C – Akkus vorwärmen</div>` : ''}
+        ${x.mow ? `<div class="wcm"><b>🚜 ${esc(x.mow.t)}</b> ${esc(x.mow.sub)}</div>` : ''}</div>` : ''}
+    </div>`; };
+  box.innerHTML = `<div class="wttop"><span>📍 ${esc(np ? 'bei ' + np.p.n : loc.what)} · Wind in ${H} m</span><button id="wxRe" title="Neu laden">↻</button></div>
+    ${days.map(card).join('')}
+    <div class="wtleg"><span><i class="l0"></i>gut</span><span><i class="l1"></i>Hinweis</span><span><i class="l2"></i>nicht fliegen</span><span>· Karte antippen für Details</span></div>`;
+  $('wxRe').onclick = () => wxTabRender(true);
+  box.querySelectorAll('.wc').forEach(el => el.onclick = () => { const k = +el.dataset.k; WXT.open = WXT.open === k ? null : k; wxTabPaint(); });
 }
 function sideList() {
   const all = catAll(), Y = new Date().getFullYear(); if (SIDE.year == null) SIDE.year = String(Y);
@@ -2976,7 +3163,7 @@ function sideRender() {
     // Felder mit gleichem Namensanfang zu Paketen bündeln (z. B. „Aumenau-1…9“), Paket als Ganzes oder einzeln anwählbar
     const gKey = n => fieldGroupKey(n).toLowerCase();
     // Pakete: gleicher Namensanfang UND Planung nah beieinander (Lücke über 12 h = neuer Termin, z. B. ein Landwirt mit mehreren Feldgruppen)
-    const grpOn = P.sideGroup !== '0'; $('sideGrp').classList.toggle('on', grpOn);
+    const grpOn = P.sideGroup !== '0'; $('sideGrp').checked = grpOn;
     const tPlan = cf => { const c = dOk(cf.created || (cf.meta || {}).created), l = dOk(cf.lm); return c ? +c : l ? +l : 0; };
     const ckey = new Map(), byP = new Map(), multi = new Set();
     if (grpOn) { list.slice(0, 500).forEach(cf => { const k = gKey(cf.name); (byP.get(k) || byP.set(k, []).get(k)).push(cf); });
@@ -3024,13 +3211,13 @@ function newFieldsCheck(manual) {
   const n = neu.length;
   const pk = new Map(); neu.forEach(f => { const k = fieldGroupKey(f.name); pk.set(k, (pk.get(k) || []).concat(f.name)); });
   const lines = [...pk.entries()].map(([k, ns]) => ns.length > 1 ? `${k}: ${ns.length} Felder` : ns[0]);
-  confirmDlg(`${n} neue${n === 1 ? 's' : ''} Feld${n === 1 ? '' : 'er'} entdeckt`, 'Im UAV Editor sind seit dem letzten Abruf dazugekommen:', lines.slice(0, 15).concat(lines.length > 15 ? [`… und ${lines.length - 15} weitere`] : []), 'Jetzt ansehen', () => {
+  confirmDlg(`${n} neue${n === 1 ? 's' : ''} Feld${n === 1 ? '' : 'er'} entdeckt – ${n === 1 ? 'markieren' : 'alle markieren'}?`, 'Im UAV Editor sind seit dem letzten Abruf dazugekommen:', lines.slice(0, 15).concat(lines.length > 15 ? [`… und ${lines.length - 15} weitere`] : []), n === 1 ? 'Ja, markieren' : `Ja, alle ${n} markieren`, () => {
     S.files.forEach(f => f.selected = false);
     const fs = neu.map(cf => webCatPick(cf, 'all')).filter(Boolean);
     if (fs.length) fitBounds(padBB(bounds(fs))); draw();
-    SIDE.onlyNew = true; const sp = $('sidePanel'); if (sp && !sp.classList.contains('open')) $('sideTab').click(); else sideRender();
+    SIDE.onlyNew = true; const sp = $('sidePanel'); if (SIDE.tab !== 'felder') sideTabSet('felder'); if (sp && !sp.classList.contains('open')) S.sideShow(true); else sideRender();
   });
-  $('dNo').textContent = 'OK';
+  $('dNo').textContent = 'Nein';
 }
 /** PC: im Hintergrund prüfen, ob durch neue/gesuchte Felder ein Netzbetreiber betroffen ist, mit dem noch keine Vereinbarung hinterlegt ist.
  *  Bekannte Betreiber mit Vereinbarung: nichts. Jeder neue Betreiber wird nur einmal gemeldet. */
@@ -3063,7 +3250,7 @@ function searchHits() {
   const box = $('qHits'), q = $('q').value.trim().toLowerCase();
   $('bSearch').classList.toggle('on', !!q);
   if (!$('searchBox').classList.contains('open')) return;
-  if (IS_WEB && S.qMode !== 'ort') { webSearchPanel(box); return; }
+  if (IS_WEB && S.qMode !== 'ort') { webSearchToSide(); return; }   // PC: Feldsuche läuft über die Feldliste links (eine Liste statt zwei)
   if (IS_WEB && S.searchFocus) setSearchFocus(null);   // Orte-Suche: normale Karte   // Desktop, Modus „UAV-Editor“: Liste mit Filtern
   box.innerHTML = '';
   if (!q) return;
@@ -3113,7 +3300,7 @@ function openSearch() {
 function closeSearch(clear) {
   if (clear) { $('q').value = ''; if (IS_WEB && S.placePin) { S.placePin = null; draw(); } }   // ✕: Ort-Nadel weg
   $('q').blur();
-  if (IS_WEB) { $('qHits').innerHTML = ''; setSearchFocus(null); update(); return; }   // PC: Suchfeld bleibt in der Leiste, nur die Trefferliste schließt
+  if (IS_WEB) { $('qHits').innerHTML = ''; setSearchFocus(null); if (clear && $('sideQ') && SIDE.q) { SIDE.q = ''; $('sideQ').value = ''; sideRender(); } update(); return; }   // PC: Suchfeld bleibt in der Leiste, nur die Trefferliste schließt
   $('searchBox').classList.remove('open');
   update();
 }
@@ -3205,6 +3392,32 @@ function fieldSamples(f) {
   if (f.outline) add(f.outline, true);
   return out;
 }
+/** Straßen, Bahn, Wasserstraßen (§ 21h Abs. 3 Nr. 5): kleinster seitlicher Abstand der Flugbahn zur Zone in m (0 = Flugbahn berührt/quert die Zone)
+ *  und wie die Bahnen dazu liegen: { d, cross } – cross = Anzahl Bahnen, die quer auf die Zone zulaufen und an ihr wenden */
+function routeZoneInfo(f, zf, H) {
+  const g = flightGeom(f), bb = f.bounds; if (!bb || (!g.segs.length && !g.polys.length)) return null;
+  const pad = 0.004, poly = zf.type === 'Polygon' || zf.type === 'MultiPolygon';
+  // nur Zonenkanten in der Nähe des Feldes betrachten (Straßen-Zonen sind sehr lang)
+  const edges = []; zf.rings.forEach(r => { for (let i = 0; i < r.length - 1 + (poly ? 1 : 0); i++) { const a = r[i], b = r[(i + 1) % r.length];
+    if (Math.max(a[1], b[1]) < bb.s - pad || Math.min(a[1], b[1]) > bb.n + pad || Math.max(a[0], b[0]) < bb.w - pad * 1.6 || Math.min(a[0], b[0]) > bb.e + pad * 1.6) continue; edges.push([a, b]); } });
+  if (!edges.length) return { d: 1e9, cross: 0 };
+  const inZone = p => poly && zf.rings.reduce((ins, r) => inRing(p[1], p[0], r) ? !ins : ins, false);
+  const segs = g.segs.length ? g.segs : g.polys.flatMap(r => r.map((p, i) => [p, r[(i + 1) % r.length]]));
+  const near = p => { let best = 1e9, e = null; edges.forEach(([a, b]) => { const x = segDistM(p[1], p[0], a, b); if (x < best) { best = x; e = [a, b]; } }); return [best, e]; };
+  let d = 1e9;
+  for (const [a, b] of segs) {
+    if (inZone(a) || inZone(b)) return { d: 0, cross: 0 };
+    for (const [c, e] of edges) { if (segCross(a, b, c, e)) return { d: 0, cross: 0 }; d = Math.min(d, segDistM(c[1], c[0], a, b), segDistM(e[1], e[0], a, b)); }
+    d = Math.min(d, near(a)[0], near(b)[0]);
+  }
+  // Bahnen quer zur Zone, die an ihr wenden: lange Bahn, ein Ende nahe der Zone, Winkel zur Zonenkante über 40°
+  let cross = 0;
+  if (g.segs.length) g.segs.forEach(([a, b]) => { const k = Math.cos(a[1] * Math.PI / 180), vx = (b[0] - a[0]) * k, vy = b[1] - a[1], L = Math.hypot(vx, vy) * 111000; if (L < 50) return;
+    const [da, ea] = near(a), [db, eb] = near(b), [dm, e] = da < db ? [da, ea] : [db, eb]; if (!e || dm > H + 40) return;
+    const ex = (e[1][0] - e[0][0]) * k, ey = e[1][1] - e[0][1], cs = Math.abs(vx * ex + vy * ey) / (Math.hypot(vx, vy) * Math.hypot(ex, ey) || 1);
+    if (Math.acos(Math.min(1, cs)) * 180 / Math.PI > 40) cross++; });
+  return { d, cross };
+}
 function flightBriefing(sel) {
   const zones = new Map(), obs = new Map(), rails = new Map(), lines = new Map();
   sel.forEach(fl => {
@@ -3246,6 +3459,10 @@ function flightBriefing(sel) {
       if (z0 && z0.fields.has(fl.title) && !z0.near) continue;
       const touch = polyTouch(fr, f.rings);
       if (touch) { const z = z0 || { f, reg, fields: new Set() }; delete z.near; z.fields.add(fl.title); zones.set(key, z); continue; }
+      if ((LUFTVO_NR[f.layer] || [])[0] === 5) {   // Straße/Bahn/Wasserstraße nicht berührt: trotzdem melden, wenn die Flugbahn näher als die Flughöhe kommt (1:1-Regel)
+        const ri = routeZoneInfo(fl, f, fl.height || flightHeight() || 70);
+        if (ri && ri.d <= (fl.height || flightHeight() || 70)) { const z = z0 || { f, reg, fields: new Set() }; z.fields.add(fl.title); zones.set(key, z); }
+        continue; }
       if (!a3 || f.layer !== 'wohngrundstuecke' || (z0 && !z0.near)) continue;
       const d = polyDistM(fr, f.rings);
       if (d < 150) { const z = z0 || { f, reg, fields: new Set(), near: d }; z.near = Math.min(z.near, d); z.fields.add(fl.title); zones.set(key, z); }
@@ -7240,6 +7457,62 @@ function natAreas(z, sel) {
     return { lat: la, lon: lo, r: Math.max(150, Math.ceil((r0 + 60 + distM(lat, lon, la, lo)) / 50) * 50), ha: g.items.reduce((m, x) => m + x.ha, 0), fields: g.items.map(x => x.f) };
   }).sort((a, b) => b.lat - a.lat).map((a, i) => Object.assign(a, { no: i + 1 }));
 }
+// ================= PC: Flugplatz in der Nähe – Zustimmung per E-Mail einholen (wie Netzbetreiber/Schutzgebiete: Bild + E-Mail, ohne Feldnamen) =================
+/** Flugplatz-Zonen, für die eine Zustimmung nötig ist (gleicher Name = ein Eintrag) */
+function afZonesOf(b) {
+  const by = new Map();
+  b.zones.filter(z => z.f.layer === 'flugplaetze' && !isHeliZone(z.f) && covKind(z.f.layer, z.reg) === 'off').forEach(z => {
+    const k = String((z.f.props || {}).name || '').trim().toLowerCase() || '#' + by.size, h = by.get(k);
+    if (!h) by.set(k, Object.assign({}, z, { fields: new Set(z.fields) })); else z.fields.forEach(t => h.fields.add(t)); });
+  return [...by.values()];
+}
+const afName = z => (z.f.props || {}).name || 'Flugplatz';
+/** Rufnummer der Flugleitung: selbst eingetragen, sonst aus OpenStreetMap (DULV-Kontakte bewusst nicht – oft private Nummern) */
+const afPhoneKey = z => { const a = afRec(z); return 'afphone_' + (a ? a.id : 'n:' + afName(z)); };
+const afPhone = z => { const a = afRec(z); return A.getPref(afPhoneKey(z), '') || (a && a.phone) || ''; };
+/** passender Eintrag aus der Flugplatzliste (für Kennung) – Mitte der Zone */
+function afRec(z) { const r = (z.f.rings || [])[0] || []; if (!r.length) return null; const la = r.reduce((m, p) => m + p[1], 0) / r.length, lo = r.reduce((m, p) => m + p[0], 0) / r.length;
+  let best = null, bd = 4000; (S.airfields || []).forEach(a => { const d = distM(la, lo, a.lat, a.lon); if (d < bd) { bd = d; best = a; } }); return best; }
+function afHtml(az) {
+  if (!az.length) return '';
+  const mails = netMails();
+  return `<div class="zone" id="afZones" style="border:2px solid #d42020"><h4>✈️ Flugplatz – Zustimmung einholen (${az.length})</h4>
+    ${az.map((z, i) => { const a = afRec(z), mk = 'af|' + afName(z);
+      return `<div class="netop" data-af="${i}"><div class="netop-h"><b>${esc(afName(z))} ${a && a.icao ? `<span class="chip grey">${esc(a.icao)}</span>` : ''}</b>
+          <input type="email" class="netmail" placeholder="E-Mail-Adresse (Flugleitung bzw. Betreiber)" value="${esc(mails[mk] || '')}">
+          <input type="tel" class="netmail afphone" style="max-width:190px" placeholder="☎ Rufnummer Flugleitung" value="${esc(afPhone(z))}">
+          <button class="tdb afimg" title="Karte mit Flugplatzbereich und Einsatzbereichen als Bild speichern">🖼 Bild</button><button class="tdb afenv" title="Bitte um Zustimmung per E-Mail vorbereiten">✉ E-Mail</button></div>
+        ${mails[mk] ? '<div class="meta">✓ gespeicherte Adresse</div>' : '<div class="meta">Adresse der Flugleitung bzw. des Betreibers eintragen – sie wird für diesen Flugplatz gespeichert.</div>'}
+        ${afPhone(z) ? '' : '<div class="meta" style="color:#e07800">Keine Rufnummer bekannt – die E-Mail bittet deshalb um eine Nummer. Sobald sie da ist, hier eintragen: sie kommt dann ins Pilotenbriefing.</div>'}
+        <div class="meta">${sel2areas(z)}</div>
+        <div style="margin-top:4px;color:#d42020">Bis 1,5 km um den Flugplatz nur mit <b>Zustimmung</b> der Flugaufsicht, Flugleitung bzw. des Betreibers (§ 21h Abs. 3 Nr. 1 LuftVO) – vorher einholen, am Einsatztag vor dem Start zusätzlich kurz anrufen.</div></div>`; }).join('')}
+    <div class="meta">Bild und E-Mail enthalten keine Feldnamen und keine Feldumrisse – nur den Flugplatzbereich und grobe Kreise um die Einsatzorte (mind. 150 m Radius).</div></div>`;
+}
+async function afImage(z, sel) {
+  const ar = natAreas(z, sel), pts = [];
+  ar.forEach(a => { const dl = a.r / 111200, dn = a.r / (111200 * Math.cos(a.lat * Math.PI / 180)); pts.push([a.lat + dl, a.lon + dn], [a.lat - dl, a.lon - dn]); });
+  const rec = afRec(z); if (rec) pts.push([rec.lat, rec.lon]);
+  if (!pts.length) return null;
+  const b0 = bbOfPts(pts), pad = Math.max(0.004, (b0.n - b0.s) * 0.3), nm = afName(z);
+  return mapImage({ bb: { n: b0.n + pad, s: b0.s - pad, e: b0.e + pad * 1.6, w: b0.w - pad * 1.6 }, areas: [{ rings: z.f.rings, color: '#d32f2f' }],
+    circles: ar.map(a => ({ lat: a.lat, lon: a.lon, r: a.r, label: 'Bereich ' + a.no })),
+    title: `Drohnenflug Kitzrettung – Flugplatz ${nm}`,
+    legend: [`Rot: Flugplatzbereich ${nm}${rec && rec.icao ? ' (' + rec.icao + ')' : ''} laut dipul`, 'Orange Kreise: ungefähre Einsatzbereiche (Drohnenflüge innerhalb des Kreises)',
+      ...ar.map(a => `Bereich ${a.no}: Umkreis ca. ${a.r} m um ${a.lat.toFixed(3).replace('.', ',')}° N, ${a.lon.toFixed(3).replace('.', ',')}° O`)] });
+}
+const afSubject = z => `Bitte um Zustimmung – Drohnenflüge Kitzrettung am Flugplatz ${afName(z)}`;
+function afMailText(z, fields) {
+  const H = Math.max(0, ...fields.map(f => f.height || 0)) || flightHeight() || 70;
+  return ['Sehr geehrte Damen und Herren,', '',
+    `die Kitzrettung Limburg e.V. sucht vor der Mahd mit Wärmebilddrohnen nach Rehkitzen. Einige Einsatzbereiche liegen innerhalb von 1,5 km um den Flugplatz ${afName(z)}. Nach § 21h Abs. 3 Nr. 1 LuftVO bitten wir hiermit um Ihre Zustimmung zu folgenden Flügen:`, '',
+    `Zeitraum: ${flyWinText()}, in der Regel frühmorgens.`,
+    `Flughöhe: höchstens ${H} m über Grund.`,
+    'Betroffene Bereiche (ungefähr, Mittelpunkt WGS84):', ...natAreas(z, S.areaSel || fields).map(a => `- Bereich ${a.no}: Umkreis ca. ${a.r} m um ${a.lat.toFixed(3)}, ${a.lon.toFixed(3)}`), '',
+    'Wir fliegen nur in Sichtweite und weichen bemanntem Luftverkehr immer aus.', '',
+    ...(afPhone(z) ? [`Am Einsatztag rufen wir vor dem Start unter ${afPhone(z)} an. Falls dafür eine andere Nummer gilt, geben Sie uns bitte Bescheid.`, '', 'Bitte teilen Sie uns mit, ob Sie den Flügen zustimmen.']
+      : ['Uns liegt für den Flugplatz noch keine Rufnummer vor. Wir benötigen eine Telefonnummer, unter der wir die Flugleitung am Einsatztag vor dem Start erreichen – bitte teilen Sie uns diese zusammen mit Ihrer Zustimmung mit.']), '',
+    'Eine Karte fügen wir bei.', '', 'Mit freundlichen Grüßen', 'Kitzrettung Limburg e.V.'].join('\n');
+}
 async function natImage(z, sel) {
   const ar = natAreas(z, sel), pts = [];
   ar.forEach(a => { const dl = a.r / 111200, dn = a.r / (111200 * Math.cos(a.lat * Math.PI / 180)); pts.push([a.lat + dl, a.lon + dn], [a.lat - dl, a.lon - dn]); });
@@ -7358,11 +7631,11 @@ function flyWinDlg(cb, okLabel) {
   paint();
   confirmDlg('Wann wird geflogen?', 'Zeitraum für die E-Mails an Netzbetreiber und Forstamt/Naturschutz – wird gespeichert und für alle E-Mails übernommen:', [], okLabel || 'Übernehmen', () => { flyWinSet(w); cb(); }, box);
 }
-/** Desktop-Pre-Check: Zonen wie auf der RC, dazu Netzbetreiber-Zusammenfassung und Schutzgebiete zum Weitergeben */
+/** Desktop-Pre-Check: Zonen wie auf der RC, dazu Netzbetreiber-Zusammenfassung und Schutzgebiete als To-dos */
 function webPreCheck(sel) {
   if (!sel.length) return toast('Bitte zuerst Felder auf der Karte markieren.', true);
   S.areaNos = new Map(sel.map((f, i) => [f, i + 1])); S.areaSel = sel;   // neutrale Nummern für Bild und E-Mail
-  const b = flightBriefing(sel), ops = netOps(sel), nz = mergeNat(b.zones.filter(z => NAT_LAYERS.includes(z.f.layer) && z.near == null));
+  const b = flightBriefing(sel), ops = netOps(sel), nz = mergeNat(b.zones.filter(z => NAT_LAYERS.includes(z.f.layer) && z.near == null)), az = afZonesOf(b);
   S.hlLines = new Set(ops.flatMap(o => o.items.map(x => x.l)));
   S.hlSecs = ops.flatMap(o => o.items.flatMap(x => x.secs.map(sc => sc.pts)));
   draw();
@@ -7380,8 +7653,15 @@ function webPreCheck(sel) {
     + (nNo ? `<li style="color:#d42020"><b>${fz(nNo)}</b> mit Teilen, die auch mit A2 gesperrt sind – diese Teile nicht befliegen</li>` : '') + `</ul></div>`;
   const sv = P.lic; P.lic = 'A2'; let per = ''; try { per = liteCheckInner(sel, { verdict: true }); } finally { P.lic = sv; }
   const lowHtml = low.length ? `<div class="zone" style="border-left:5px solid #d32f2f"><h4 style="color:#d32f2f">⚠ ${fz(low.length)} falsch geplant: unter ${pwrH()} m, obwohl die Flugbahn eine Stromleitung überquert</h4><div class="meta">An Stromleitungen fliegen wir ${pwrH()} m hoch. Bitte im UAV Editor umplanen: ${low.map(f => `<b>${esc(f.title)}</b> (${f.height} m)`).join(', ')}</div></div>` : '';
-  box.innerHTML = (top ? `<div style="margin-bottom:8px">${top} – Zusammenfassung zum Weitergeben ganz unten</div>` : '') + lowHtml + lic + `<h3 style="margin:16px 0 8px">Feld für Feld</h3>` + per
-    + `<h3 style="margin:16px 0 8px">Zum Weitergeben</h3>` + netOpsHtml(ops) + natureHtml(nz);
+  const hk = nNo || nZ ? ['#d42020', '✗', nZ && !nNo ? 'Zustimmung des Flugplatzes nötig' : 'Teile gesperrt – auch mit A2', 'Betroffene Felder unten aufklappen: die Karte zeigt, wo das Problem liegt.']
+    : n2 ? ['#e07800', 'A2', vs.some(v => v.k === 'a2' && !v.onlyLic) ? 'A2 + Allgemeinerlaubnis' : 'A2', `${fz(n2)} – Piloten mit A2 einplanen${n13 ? ` · ${fz(n13)} auch mit A1/A3` : ''}.`]
+    : ['#13a538', '✓', 'A1/A3', sel.length > 1 ? `Alle ${sel.length} Felder.` : ''];
+  const tl = (n, ico, t, c) => n ? `<span class="pct" style="--c:${c}"><b>${ico} ${n}</b>${t}</span>` : '';
+  const heroHtml = `<div class="pch" style="--c:${hk[0]}"><div class="pchi"><i>${hk[1]}</i></div><div class="pcht"><b>${esc(hk[2])}</b><span>${esc(hk[3])}</span>
+    <div class="pcts">${tl(n13, '✓', 'A1/A3', '#13a538')}${tl(n2, '🪪', 'A2', '#e07800')}${tl(nZ + nNo, '✗', 'gesperrt/Zustimmung', '#d42020')}${tl(low.length, '⚠', 'zu niedrig', '#d42020')}${tl(ops.length, '⚡', 'Netzbetreiber informieren', '#8e24aa')}${tl(nz.length, '🌿', 'Schutzgebiet informieren', '#2e7d32')}${tl(az.length, '✈', 'Flugplatz um Zustimmung bitten', '#d42020')}</div></div></div>`;
+  box.innerHTML = heroHtml + lowHtml + `<h3 style="margin:16px 0 8px">Feld für Feld</h3>` + per
+    + `<h3 style="margin:16px 0 8px">✅ To-dos</h3>` + afHtml(az) + netOpsHtml(ops) + natureHtml(nz);
+  pcMapsWire(box, sel);
   box.querySelectorAll('[data-url]').forEach(a => a.onclick = () => A.openUrl ? A.openUrl(a.dataset.url) : window.open(a.dataset.url));
   const startNo = i => ops.slice(0, i).reduce((m, o) => m + o.items.reduce((k, x) => k + x.secs.length, 0), 0);
   box.querySelectorAll('[data-op]').forEach(el => {
@@ -7404,7 +7684,14 @@ function webPreCheck(sel) {
       await mailWithImage(inp.value.trim(), natSubject(z), natMailText(z, fields), cv, `${p.name || 'Schutzgebiet'} ${new Date().toISOString().slice(0, 10)}`);
     });
     el.querySelector('.natimg').onclick = async () => { busy('Erstelle Kartenbild…'); try { await saveCanvas(await natImage(z, sel), `${(z.f.props || {}).name || 'Schutzgebiet'} ${new Date().toISOString().slice(0, 10)}`); } finally { busy(''); } }; });
-  if (ops.length || nz.length) {   // nur wenn es E-Mails gibt: Zeitraum anzeigen bzw. vorab wählen
+  box.querySelectorAll('[data-af]').forEach(el => { const z = az[+el.dataset.af], mk = 'af|' + afName(z), inp = el.querySelector('.netmail'), fields = sel.filter(f => z.fields.has(f.title)), fn = `Flugplatz ${afName(z)} ${new Date().toISOString().slice(0, 10)}`;
+    inp.onchange = () => { const m = netMails(); m[mk] = inp.value.trim(); setP('netMail', JSON.stringify(m)); };
+    const ph = el.querySelector('.afphone'); ph.onchange = () => setP(afPhoneKey(z), ph.value.trim());
+    el.querySelector('.afenv').onclick = () => withFlyWin(async () => { inp.onchange(); busy('Bereite E-Mail vor…'); let cv = null;
+      try { cv = await afImage(z, sel); } catch (e) { } finally { busy(''); }
+      await mailWithImage(inp.value.trim(), afSubject(z), afMailText(z, fields), cv, fn); });
+    el.querySelector('.afimg').onclick = async () => { busy('Erstelle Kartenbild…'); try { await saveCanvas(await afImage(z, sel), fn); } finally { busy(''); } }; });
+  if (ops.length || nz.length || az.length) {   // nur wenn es E-Mails gibt: Zeitraum anzeigen bzw. vorab wählen
     const fw = flyWinGet(), fwc = document.createElement('div'); fwc.className = 'fwchip'; fwc.id = 'fwMail';
     fwc.innerHTML = fw ? `<span>🗓 <b>Zeitraum in den E-Mails:</b> ${esc(flyWinText(fw))}</span><button>Ändern</button>`
       : `<span>🗓 <b>Zeitraum für die E-Mails:</b> noch nicht gewählt – wird bei der ersten E-Mail abgefragt</span><button>Jetzt wählen</button>`;
@@ -7631,10 +7918,11 @@ async function briefingHtml(sel, win, opt) {
   const notes = [
     ...(wx.simple || []).filter(it => it[0] > 0).map(it => [it[0] === 2 ? '⛔' : '⚠️', `<b>Wetter:</b> ${esc(it[1])}`, it[0] === 2 ? '#c62828' : '#a35a00']),
     ...(ws && !(wx.simple || []).some(it => it[0] > 0) ? [['✅', '<b>Wetter okay</b> – kein Regen, kein starker Wind, kein Scherwind', '#13a538']] : []),
-    ...(nZ ? [['✈️', `<b>${fz(nZ)} am Flugplatz</b> – vorher Zustimmung der Flugaufsicht bzw. des Betreibers einholen`, '#c62828']] : []),
+    ...(nZ && !afZonesOf(b).length ? [['✈️', `<b>${fz(nZ)} am Flugplatz</b> – vorher Zustimmung der Flugaufsicht bzw. des Betreibers einholen`, '#c62828']] : []),
     ...(nNo ? [['⛔', `<b>${fz(nNo)} mit gesperrten Teilen</b> (auch mit A2) – diese Teile nicht befliegen`, '#c62828']] : []),
     ...(low.length ? [['⚡', `<b>Zu niedrig über Stromleitung geplant:</b> ${low.map(f => esc(f.title) + ' (' + f.height + ' m)').join(', ')} – auf ${pwrH()} m`, '#c62828']] : []),
     ...(ops.length ? [['⚡', `<b>Netzbetreiber informieren:</b> ${ops.map(o => esc(o.name)).join(', ')}`, '#1d2733']] : []),
+    ...afZonesOf(b).map(z => { const ph = afPhone(z); return ['✈️', `<b>Flugplatz ${esc(afName(z))}:</b> nur mit Zustimmung – ${ph ? `vor dem Start anrufen: <b>☎ ${esc(ph)}</b>` : '<b>Rufnummer fehlt noch</b> – vor dem Einsatz beim Koordinator erfragen, ohne Anruf nicht starten'}`, '#c62828']; }),
     ...(nz.length ? [['🌿', `<b>Schutzgebiete:</b> ${nz.map(z => esc((z.f.props || {}).name || natLbl(z))).join(', ')} – zuständige Stelle informieren`, '#1d2733']] : [])];
   let h = `<div class="page">${top('Übersicht')}<div class="body">
     <h1>Pilotenbriefing${opt.team ? ' – ' + esc(opt.team.name) : ''}</h1><div class="sub">${opt.team ? 'Pilot: ' + esc(plPilotName(opt.team.pilot) || 'noch offen') + ' · ' : ''}${fz(sel.length)} · Einsatz ${esc(new Date(win.a).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }))}, ${hm(win.a)}–${hm(win.b)} Uhr</div>
@@ -7664,6 +7952,7 @@ async function briefingHtml(sel, win, opt) {
         <div class="tile" style="border-top-color:#00695c"><small>Ort</small><b style="font-size:10.5pt">${esc(place(f))}</b>${f.center ? `<span>${fmtLL(f.center[0], f.center[1])}</span>` : ''}</div></div>
       ${mp ? `<div class="mapw"><img class="map" src="${jpg(mp)}"></div>${legend}` : ''}
       ${fo.length ? `<div class="box" style="border-left-color:#8e24aa"><b>⚡ Stromleitung – ${tp ? 'Flugbahn überquert die Leitung' : 'Flugbahn liegt daneben'}</b> · Netzbetreiber: ${fo.map(o => esc(o.name)).join(', ')}<br>${tp ? `In <b>${pwrH()} m</b> überfliegen, nie unter der Leitung durch.` : 'Nur heranfliegen, nicht überfliegen, Abstand halten.'}</div>` : ''}
+      ${afZonesOf(fb).map(z => { const ph = afPhone(z); return `<div class="box" style="border-left-color:#c62828"><b>✈️ Flugplatz ${esc(afName(z))}</b> – nur mit Zustimmung.<br>${ph ? `Vor dem Start anrufen: <b>☎ ${esc(ph)}</b>` : '<b>Rufnummer fehlt noch</b> – beim Koordinator erfragen. Ohne Anruf nicht starten.'}</div>`; }).join('')}
       <div class="sec">Was an diesem Feld gilt</div>${cards}</div>${foot()}</div>`;
   }
   h += wx.html;
@@ -7907,19 +8196,26 @@ function planList(box) {
 }
 function pilotList(box) {
   const ps = plGet('pilots');
-  box.innerHTML = `<div class="meta" style="margin-bottom:8px">Piloten mit Fernpilotenzeugnis und eigenen Drohnen – daraus schlägt die Planung vor, wer welches Team fliegen kann. Gespeichert in der Adressdatei (teilbar).</div>
-    <table class="nvt"><tr><th>Name</th><th>Telefon (WhatsApp)</th><th>Zeugnis</th><th>Drohnen</th><th>Wohnort</th><th>aktiv</th><th></th></tr>${ps.map((p, i) => `<tr data-pi="${i}">
-      <td><input class="pln" value="${esc(p.name || '')}" placeholder="Name"></td><td><input class="plp" value="${esc(p.phone || '')}" placeholder="+49…"></td>
-      <td><select class="pll"><option value="A1A3"${p.lic !== 'A2' ? ' selected' : ''}>A1/A3</option><option value="A2"${p.lic === 'A2' ? ' selected' : ''}>A2</option></select></td>
-      <td>${['M3T', 'M4T'].map(d => `<label style="white-space:nowrap"><input type="checkbox" class="pld" value="${d}"${(p.drones || []).includes(d) ? ' checked' : ''}> ${d}</label>`).join(' ')}</td>
-      <td><input class="plo" value="${esc(p.ort || '')}" placeholder="Ort"></td><td><input type="checkbox" class="pla"${p.active !== false ? ' checked' : ''}></td><td><button class="b-sec plx" title="Löschen">✕</button></td></tr>`).join('')}</table>
+  box.innerHTML = `<div class="meta" style="margin-bottom:10px">Piloten mit Zeugnis und Drohnen – daraus schlägt die Planung vor, wer welches Team fliegt. Gespeichert in der Adressdatei (teilbar).</div>
+    ${ps.map((p, i) => `<div class="pcard${p.active === false ? ' off' : ''}" data-pi="${i}">
+      <div class="pcrow"><input class="pln pbig" value="${esc(p.name || '')}" placeholder="Vor- und Nachname"><label class="sw" title="aktiv (wird eingeplant)"><input type="checkbox" class="pla"${p.active !== false ? ' checked' : ''}><span></span></label><button class="pcx" title="Pilot löschen">🗑</button></div>
+      <div class="pcgrid">
+        <label>Telefon (WhatsApp)<input class="plp" type="tel" value="${esc(p.phone || '')}" placeholder="+49 170 …"></label>
+        <label>Wohnort<input class="plo" value="${esc(p.ort || '')}" placeholder="z. B. Elz"></label>
+        <div><span class="pclab">Fernpilotenzeugnis</span><div class="pcseg">${['A1A3', 'A2'].map(l => `<button data-lic="${l}" class="${(p.lic || 'A1A3') === l ? 'on' : ''}">${LIC_TXT[l]}</button>`).join('')}</div></div>
+        <div><span class="pclab">Drohnen</span><div class="pcseg multi">${['M3T', 'M4T'].map(d => `<button data-dr="${d}" class="${(p.drones || []).includes(d) ? 'on' : ''}">${DRN_TXT[d]}</button>`).join('')}</div></div>
+      </div></div>`).join('') || '<div class="meta" style="margin:8px 0">Noch keine Piloten eingetragen.</div>'}
     <div class="plact"><button class="b-ok" id="plNew">+ Pilot hinzufügen</button></div>`;
-  const save = () => { const out = [...box.querySelectorAll('[data-pi]')].map(tr => { const o = ps[+tr.dataset.pi];
-    return Object.assign(o, { name: tr.querySelector('.pln').value.trim(), phone: tr.querySelector('.plp').value.trim(), lic: tr.querySelector('.pll').value, drones: [...tr.querySelectorAll('.pld:checked')].map(c => c.value), ort: tr.querySelector('.plo').value.trim(), active: tr.querySelector('.pla').checked }); });
-    plSet('pilots', out); };
-  box.querySelectorAll('input,select').forEach(el => el.onchange = save);
-  box.querySelectorAll('.plx').forEach(b => b.onclick = () => { const i = +b.closest('tr').dataset.pi; ps.splice(i, 1); plSet('pilots', ps); pilotList(box); });
-  $('plNew').onclick = () => { ps.push({ id: plId(), name: '', phone: '', lic: 'A1A3', drones: [], ort: '', active: true }); plSet('pilots', ps); pilotList(box); const n = box.querySelectorAll('.pln'); if (n.length) n[n.length - 1].focus(); };
+  const save = () => plSet('pilots', ps);
+  box.querySelectorAll('.pcard').forEach(c => { const p = ps[+c.dataset.pi];
+    c.querySelector('.pln').onchange = e => { p.name = e.target.value.trim(); save(); };
+    c.querySelector('.plp').onchange = e => { p.phone = e.target.value.trim(); save(); };
+    c.querySelector('.plo').onchange = e => { p.ort = e.target.value.trim(); save(); };
+    c.querySelector('.pla').onchange = e => { p.active = e.target.checked; c.classList.toggle('off', !p.active); save(); };
+    c.querySelectorAll('[data-lic]').forEach(b => b.onclick = () => { p.lic = b.dataset.lic; c.querySelectorAll('[data-lic]').forEach(x => x.classList.toggle('on', x === b)); save(); });
+    c.querySelectorAll('[data-dr]').forEach(b => b.onclick = () => { const s2 = new Set(p.drones || []); s2.has(b.dataset.dr) ? s2.delete(b.dataset.dr) : s2.add(b.dataset.dr); p.drones = [...s2]; b.classList.toggle('on', s2.has(b.dataset.dr)); save(); });
+    c.querySelector('.pcx').onclick = () => deleteDlg('Pilot löschen?', `${p.name || 'Dieser Pilot'} wird aus der Liste entfernt.`, 'Löschen', () => { ps.splice(ps.indexOf(p), 1); save(); planOpen('piloten'); }); });
+  $('plNew').onclick = () => { ps.push({ id: plId(), name: '', phone: '', lic: 'A1A3', drones: [], ort: '', active: true }); save(); pilotList(box); const n = box.querySelectorAll('.pln'); if (n.length) n[n.length - 1].focus(); };
 }
 /** Briefing-Zeitraum mit Vorbelegung aus der Planung (Tag/Uhrzeit änderbar) */
 function briefWinDlgPreset(win, cb) {
@@ -7933,7 +8229,7 @@ function planBtnState() {
   if (!gb && on && $('bDl')) { gb = document.createElement('button'); gb.id = 'bPlanGo'; gb.className = 'b-sec'; gb.innerHTML = '📅<span class="bsl"> Planen</span>'; gb.title = 'Markierte Felder einplanen: Teams, Zeiten, Wetter, Piloten'; gb.onclick = () => { PL.cur = null; PL.tab = 'neu'; planOpen('neu'); }; $('bDl').before(gb); }
   if (gb) { gb.style.display = on ? '' : 'none'; gb.disabled = !S.files.some(f => f.selected); }
   if (!t) return;
-  t.style.display = on ? '' : 'none'; if (!on && SIDE.tab === 'plan') sideTabSet('felder'); else sideRender();
+  t.querySelector('[data-st="plan"]').style.display = on ? '' : 'none'; if (!on && SIDE.tab === 'plan') sideTabSet('felder'); else sideRender();
 }
 // ================= Lite-App: UAV-Editor-Suche → einfacher Pre-Check → Import =================
 const LITE_Y = () => new Date().getFullYear();
@@ -8115,15 +8411,60 @@ function liteCheckInner(sel, opt) {
   const rows = sel.map(f => {
     const html = one(f), d = document.createElement('div'); d.innerHTML = html;
     const its = [...d.querySelectorAll('.lcard')].map(c => { const col = c.style.borderLeftColor, hex = '#' + (col.match(/\d+/g) || []).slice(0, 3).map(x => (+x).toString(16).padStart(2, '0')).join('');
-      const t = c.querySelector('b').textContent, ru = c.querySelector('.lrules');
-      return { ico: c.querySelector('.lico').textContent, t, ru: ru ? ru.innerHTML : '', col: col || '#888', r: t === 'Alles frei' ? 0 : RANK[hex] ?? 1 }; }).sort((a, b) => b.r - a.r);
+      const t = c.querySelector('b').textContent, ru = c.querySelector('.lrules'), pp = c.querySelector('p');
+      return { ico: c.querySelector('.lico').textContent, t, p: pp ? pp.textContent : '', ru: ru ? ru.innerHTML : '', col: col || '#888', r: t === 'Alles frei' ? 0 : RANK[hex] ?? 1 }; }).sort((a, b) => b.r - a.r);
     const v = opt.verdict ? fieldVerdict(f) : null;
     if (v && v.why.length) its.forEach(i => { if (i.t === 'Alles frei') i.t = 'Mit A2 sonst nichts Besonderes'; });   // „Alles frei“ wäre neben „A2 nötig“ missverständlich
     return { f, html, its, r: Math.max(its.length ? its[0].r : 0, v ? (v.k === 'no' || v.k === 'zust' ? 3 : v.k === 'a2' ? 2 : 0) : 0), v };
   }).sort((a, b) => b.r - a.r || b.its.filter(i => i.r === b.r).length - a.its.filter(i => i.r === a.r).length || ftitle(a.f).localeCompare(ftitle(b.f)));
   const note = rows.filter(x => x.r >= 1).length, bad = rows.filter(x => x.r >= 3).length;
   return `<div class="meta" style="margin:0 0 8px">${note ? `<b>${note} von ${sel.length} Feldern</b>: etwas zu beachten (Zonen, Auflagen, Umrechnung)${bad ? ` – <b>${bad}</b> davon mit Sperre oder Zustimmungspflicht` : ''}. Wichtigstes zuerst.` : 'An keinem Feld gibt es Zonen oder Auflagen.'} Antippen zeigt Einzelheiten.</div>` +
-    lgridHtml(rows, opt, x => `<details class="lfld"><summary>${fieldThumb(x.f, 120, 90)}<div class="lfi"><div class="lfn">${esc(x.f.title)}${x.v ? ` ${licBadges(x.v)}` : ''}</div>${x.v && x.v.why.length ? `<div class="lchip linfo">A1/A3 reicht nicht wegen: ${esc(x.v.why.map(whyShort).join(' · '))}<small>${x.v.onlyLic ? 'Mit A2 erlaubt (dort gilt nur 30 m Abstand zu Unbeteiligten).' : 'Mit A2 + Allgemeinerlaubnis bzw. Allgemeinverfügung erlaubt – liegt laut Einstellungen vor.'}</small></div>` : ''}<div class="lchips">${x.its.filter(i => !(x.v && i.t === 'Mit A2 sonst nichts Besonderes')).map(i => `<div class="lchip" style="border-color:${i.col}">${esc(i.ico)} ${esc(i.t)}${i.ru ? `<small>${i.ru}</small>` : ''}</div>`).join('')}</div></div></summary>${x.html}</details>`);
+    lgridHtml(rows, opt, opt.verdict ? x => pcFieldRow(x, sel.indexOf(x.f)) : x => `<details class="lfld"><summary>${fieldThumb(x.f, 120, 90)}<div class="lfi"><div class="lfn">${esc(x.f.title)}${x.v ? ` ${licBadges(x.v)}` : ''}</div>${x.v && x.v.why.length ? `<div class="lchip linfo">A1/A3 reicht nicht wegen: ${esc(x.v.why.map(whyShort).join(' · '))}<small>${x.v.onlyLic ? 'Mit A2 erlaubt (dort gilt nur 30 m Abstand zu Unbeteiligten).' : 'Mit A2 + Allgemeinerlaubnis bzw. Allgemeinverfügung erlaubt – liegt laut Einstellungen vor.'}</small></div>` : ''}<div class="lchips">${x.its.filter(i => !(x.v && i.t === 'Mit A2 sonst nichts Besonderes')).map(i => `<div class="lchip" style="border-color:${i.col}">${esc(i.ico)} ${esc(i.t)}${i.ru ? `<small>${i.ru}</small>` : ''}</div>`).join('')}</div></div></summary>${x.html}</details>`);
+}
+/** PC-Pre-Check: eine Zeile je Feld – nur das Ergebnis (welches Zeugnis), Details aufklappbar mit Vorschaukarte und Gründen */
+const PCB = (ok, t) => `<div class="pcv" style="--c:${ok ? '#13a538' : '#d42020'}"><i>${ok ? '✓' : '✗'}</i>${t}</div>`;
+/** Ergebnis je Feld als Plaketten: grün ✓ = reicht, rot ✗ = reicht nicht – ohne Zusatzwörter */
+const pcBadges = v => v.k === 'a13' ? PCB(true, 'A1/A3')
+  : v.k === 'a2' ? PCB(false, 'A1/A3') + PCB(true, v.onlyLic ? 'A2' : 'A2 + Allgemeinerlaubnis')
+  : v.k === 'zust' ? `<div class="pcv" style="--c:#d42020"><i>✈</i>Zustimmung Flugplatz</div>` : PCB(false, 'A1/A3') + PCB(false, 'A2');
+const pcAuto = i => i.r >= 3 && !/^Stromleitung/i.test(i.t) ? '' : /^Stromleitung|Hochspannung|Freileitung/i.test(i.t) || /⚡/.test(i.ico) ? 'pwr' : /🌿|🌳|🦅|🐦/.test(i.ico) || /Schutzgebiet|Naturschutz|Vogelschutz|FFH|Nationalpark|Biosphäre|Landschaftsschutz/i.test(i.t) ? 'nat' : '';
+const pcShort = s => { s = String(s || '').replace(/\s+/g, ' ').trim(); const m = s.match(/^.{20,140}?[.!](\s|$)/); return m ? m[0].trim() : s.length > 140 ? s.slice(0, 137) + '…' : s; };
+function pcFieldRow(x, idx) {
+  const v = x.v;
+  const its = x.its.filter(i => i.t !== 'Alles frei' && i.t !== 'Mit A2 sonst nichts Besonderes');
+  const info = i => /🔧/.test(i.ico) || /umgerechnet/.test(i.p || ''), auto = its.filter(pcAuto), prob = its.filter(i => !pcAuto(i) && !info(i) && i.r >= 2), ok = its.filter(i => !pcAuto(i) && (info(i) || i.r < 2));
+  const low = lowNearPower(x.f), np = x.f.center ? nearPlace(x.f.center[0], x.f.center[1]) : null;
+  const flags = [low ? ['⚠', `Unter ${pwrH()} m über Stromleitung geplant`, '#d42020'] : null,
+    auto.some(i => pcAuto(i) === 'pwr') ? ['⚡', 'Stromleitung – Netzbetreiber wird informiert', '#8e24aa'] : null,
+    auto.some(i => pcAuto(i) === 'nat') ? ['🌿', 'Schutzgebiet – zuständige Stelle wird informiert', '#2e7d32'] : null,
+    its.some(i => /Risikominimierung/.test(i.t)) ? ['↔', 'Risikominimierung angeraten: Bahnen parallel planen', '#c77800'] : null,
+    prob.length && v.k === 'a13' ? ['!', prob.length + ' Hinweis' + (prob.length > 1 ? 'e' : ''), '#e07800'] : null].filter(Boolean);
+  const li = (i, c) => `<li title="${esc(i.p || '')}"><span class="pci" style="background:${c}1f;color:${c}">${esc(i.ico)}</span><div><b>${esc(i.t)}</b><span>${esc(pcShort(i.p))}</span></div></li>`;
+  const why = v.why && v.why.length ? `<li><span class="pci" style="background:#e078001f;color:#e07800">🪪</span><div><b>A1/A3 reicht nicht</b><span>wegen ${esc(v.why.map(whyShort).join(', '))}. ${v.onlyLic ? 'Mit A2 erlaubt (30 m Abstand zu Unbeteiligten).' : 'Mit A2 und der Allgemeinerlaubnis bzw. -verfügung erlaubt.'}</span></div></li>` : '';
+  const sub = [np ? (np.d < 1 ? 'in ' : 'bei ') + np.p.n : '', x.f.height ? x.f.height + ' m' : '', x.f.drone || ''].filter(Boolean).join(' · ');
+  return `<details class="pcf" data-fi="${idx}"><summary>${fieldThumb(x.f, 96, 68)}
+    <div class="pcn"><b>${esc(x.f.title)}</b><span>${esc(sub)}</span></div>
+    <div class="pcflags">${flags.map(g => `<i title="${esc(g[1])}" style="background:${g[2]}">${g[0]}</i>`).join('')}</div>
+    <div class="pcvs">${pcBadges(v)}</div><span class="pcmore">Details</span></summary>
+    <div class="pcd"><div class="pcmap" data-map="${idx}"><div class="meta">Karte wird erstellt…</div></div>
+      <div class="pcwhy">
+        ${why || prob.length ? `<h5>${v.k === 'a13' ? 'Zu beachten' : 'Warum?'}</h5><ul>${why}${prob.map(i => li(i, i.r >= 3 ? '#d42020' : '#e07800')).join('')}</ul>` : `<h5>Warum?</h5><ul><li><span class="pci" style="background:#13a5381f;color:#13a538">✓</span><div><b>Keine Einschränkung</b><span>Auch mit A1/A3 fliegbar.</span></div></li></ul>`}
+        ${low && !its.some(i => /Falsch geplant/.test(i.t)) ? `<ul><li><span class="pci" style="background:#d420201f;color:#d42020">⚠</span><div><b>Zu niedrig geplant</b><span>Flugbahn überquert eine Stromleitung – im UAV Editor auf ${pwrH()} m umplanen (jetzt ${x.f.height} m).</span></div></li></ul>` : ''}
+        ${v.k === 'zust' ? '<div class="pcnote">✉ Bitte um Zustimmung: E-Mail und Bild unten bei „To-dos“.</div>' : ''}
+        ${auto.length ? `<h5>Automatisch ermittelt – nur informieren</h5><ul>${auto.map(i => li(i, pcAuto(i) === 'pwr' ? '#8e24aa' : '#2e7d32')).join('')}</ul><div class="pcnote">✉ E-Mails dazu unten bei „To-dos“.</div>` : ''}
+        ${ok.length ? `<h5>Gut zu wissen</h5><ul>${ok.map(i => li(i, '#13a538')).join('')}</ul>` : ''}
+        <details class="pcall"><summary>Alle Hinweise im Wortlaut</summary>${x.html}</details>
+      </div></div></details>`;
+}
+/** Vorschaukarte in den Details erst beim Aufklappen zeichnen */
+function pcMapsWire(box, sel) {
+  box.querySelectorAll('details.pcf').forEach(d => d.addEventListener('toggle', async () => {
+    const el = d.querySelector('[data-map]'); if (!d.open || !el || el.dataset.done) return; el.dataset.done = '1';
+    const f = sel[+d.dataset.fi]; if (!f) return;
+    try { const cv = await briefMap([f], [f], flightBriefing([f]).zones, 900); if (cv) { el.innerHTML = ''; cv.className = 'pccv'; el.appendChild(cv);
+      el.insertAdjacentHTML('beforeend', '<div class="pcleg"><span><i style="background:#00838f"></i>Feld</span><span><i style="background:#ff6f00"></i>Flugbahn</span><span><i style="background:#8e24aa"></i>Leitung</span><span><i style="background:#2e7d32"></i>Schutzgebiet</span><span><i style="background:#1565c0"></i>Geozone</span><span><i style="background:#d32f2f"></i>Flugplatz</span></div>'); } else el.innerHTML = '<div class="meta">Keine Karte verfügbar.</div>'; }
+    catch (e) { el.innerHTML = '<div class="meta">Karte konnte nicht erstellt werden.</div>'; }
+  }));
 }
 /** Kleines Luftbild eines Feldes mit seinem Umriss (nur in der App – nicht für E-Mails/Bilder an Dritte) */
 function fieldThumb(f, W, H) {
@@ -8175,15 +8516,22 @@ function liteCardsHtml(b, o) {
     const av = cov === 'avgi' ? avFor(z.f.layer, z.reg) : null, ru = cov === 'ae' ? rulesUl(z.f.layer) : cov === 'avgi' ? rulesUl(z.f.layer, av) : '';
     // Verbot: was wäre nötig? (z. B. mit A1/A3 → „mit A2 + Allgemeinerlaubnis erlaubt“)
     const c2 = !a2 ? covFor(z.f.layer, z.reg, 'A2') : {}, need = c2.ae || c2.av ? `mit <b>A2 + ${c2.ae ? 'Allgemeinerlaubnis' : 'Allgemeinverfügung'}</b>` : '';
+    // 1:1-Regel wirklich nachrechnen: seitlicher Abstand der Flugbahn zur Zone gegen die Missionshöhe des Feldes
+    const rz = nr5 && !pt ? sel.filter(f => z.fields.has(f.title)).map(f => { const h = f.height || H, ri = routeZoneInfo(f, z.f, h); return { f, h, d: ri ? ri.d : 0, cross: ri ? ri.cross : 0 }; }) : null;
+    const hx = rz && rz.length ? Math.max(...rz.map(x => x.h)) : H, dmin = rz && rz.length ? Math.min(...rz.map(x => x.d)) : 0;
+    if (rz && rz.length && rz.every(x => x.d > x.h)) return card('✅', '#13a538', `${esc(lbl)}: Abstand reicht (1:1)`, `${nm} – die Flugbahn bleibt mindestens <b>${m(dmin)}</b> weg, geflogen wird in <b>${hx} m</b>: seitlich weiter weg als hoch, also ohne Allgemeinerlaubnis erlaubt.${where(z.fields)}`);
+    const dTxt = rz && rz.length ? (dmin === 0 ? 'Die Flugbahn führt über die Zone.' : `Die Flugbahn kommt bis <b>${m(dmin)}</b> heran – bei ${hx} m Flughöhe müssten es mehr als ${hx} m sein.`) : '';
+    const crossN = rz ? rz.reduce((n, x) => n + (x.cross >= 2 ? 1 : 0), 0) : 0;
     if (k === 'on') { const info = (NAT_LAYERS.includes(z.f.layer) && !(av && av.link === LINK_AVGI)) || z.f.layer === 'stromleitungen';   // Wildtierrettung: steht schon in den Auflagen
-      card('✅', '#13a538', `${esc(lbl)}: erlaubt per ${cov === 'ae' ? 'Allgemeinerlaubnis' : cov === 'avgi' ? 'Allgemeinverfügung' : 'Genehmigung'}`, `${nm} – ${via}.${info ? ' Der Flug wird vorher gemeldet (nur Informationspflicht, keine Zustimmung nötig).' : ''}${where(z.fields)}`, ru); }
+      card('✅', '#13a538', `${esc(lbl)}: erlaubt per ${cov === 'ae' ? 'Allgemeinerlaubnis' : cov === 'avgi' ? 'Allgemeinverfügung' : 'Genehmigung'}`, `${nm} – ${via}.${info ? ' Der Flug wird vorher gemeldet (nur Informationspflicht, keine Zustimmung nötig).' : ''}${where(z.fields)}`, ru);
+      if (nr5 && crossN) card('↔️', '#c77800', `${esc(lbl)}: Risikominimierung angeraten`, `Die Flugbahn läuft quer auf die Zone zu und wendet immer wieder an ihr. Zur Risikominimierung wird angeraten, die Bahnen im UAV Editor <b>parallel zur ${esc(lbl)}</b> zu legen – dann fliegt die Drohne daran entlang statt immer wieder darauf zu.${where(new Set(rz.filter(x => x.cross >= 2).map(x => x.f.title)))}`); }
     else if (k === 'dist') card('↔️', '#e07800', `${esc(lbl)}: nur mit Abstand`, `${nm} – ${via}.${where(z.fields)}`, ru);
-    else if (nr5) card('⛔', '#d42020', `${esc(lbl)}: so nicht fliegen`, `${nm}. ${a2 ? 'Hier gilt keine Allgemeinerlaubnis.' : 'Mit A1/A3 gilt keine Allgemeinerlaubnis (die setzt A2 voraus).'} Erlaubt ist nur die <b>1:1-Regel</b>: seitlich immer weiter weg als die Flughöhe – bei ${H} m Flughöhe also <b>mehr als ${H} m Abstand</b>. ${pt ? '<b>Hier nicht fliegen.</b>' : 'Dieses Feld reicht in die Zone – <b>diesen Teil nicht befliegen</b>.'}${where(z.fields)}`,
-      `<div class="lrules"><span>Fliegen nur:</span> ${need ? need + ' · sonst ' : ''}<b>seitlich mehr als ${H} m</b> weg (1:1-Regel)</div>`);
+    else if (nr5) card('⛔', '#d42020', esc(lbl), `${nm}. ${dTxt ? dTxt + ' ' : ''}${a2 ? 'Hier gilt keine Allgemeinerlaubnis.' : 'Mit A1/A3 gilt keine Allgemeinerlaubnis (die setzt A2 voraus).'} Erlaubt ist nur die <b>1:1-Regel</b>: seitlich immer weiter weg als die Flughöhe. ${pt ? '<b>Hier nicht fliegen.</b>' : '<b>Diesen Teil nicht befliegen</b> oder die Bahnen weiter weg planen.'}${where(z.fields)}`,
+      `<div class="lrules"><span>Fliegen nur:</span> ${need ? need + ' · sonst ' : ''}<b>seitlich mehr als ${hx} m</b> weg (1:1-Regel)</div>`);
     else { const isAV = AV_ZONES.some(x => x[0] === z.f.layer), isAE = AE_LAYERS.includes(z.f.layer);
       const why = isAV ? 'Die Allgemeinverfügung gilt hier gerade nicht (Bundesland, Bezirk oder Saison).' : isAE && !a2 ? 'Mit A1/A3 gilt keine Allgemeinerlaubnis (die setzt A2 voraus).' : 'Für diese Zone gilt hier keine Ausnahme.';
       const br = (BLOCKED_RULES[z.f.layer] || '').replace(/^(Betrieb )?nur /i, '');   // „Fliegen nur: mit Zustimmung …“
-      card('⛔', '#d42020', `${esc(lbl)}: hier nicht fliegen`, `${nm}. ${why} ${notHere}${where(z.fields)}`, need || br ? `<div class="lrules"><span>Fliegen nur:</span> ${need || esc(br)}</div>` : ''); }
+      card('⛔', '#d42020', esc(lbl), `${nm}. ${why} ${notHere}${where(z.fields)}`, need || br ? `<div class="lrules"><span>Fliegen nur:</span> ${need || esc(br)}</div>` : ''); }
   });
   // Stromleitungen, Bahn, Hindernisse
   // Leitungen bis 20 kV: nur Hindernis-Hinweis (keine Betreiberanfrage, keine Höhenvorgabe)
@@ -8230,10 +8578,10 @@ function liteCardsHtml(b, o) {
       `<div class="lrules"><span>Hinweis:</span> Überflughöhe in den Einstellungen änderbar · nie unter der Leitung durch</div>`)
     : card('⚠️', '#e07800', `Falsch geplant: ${f.height} m über einer Stromleitung`, `${multi ? esc(f.title) + ' – ' : ''}An Stromleitungen fliegen wir <b>${pwrH()} m hoch</b>. Diese Mission im UAV Editor auf <b>${pwrH()} m</b> umplanen${IS_WEB ? '' : ' – oder in den Einstellungen „Überflughöhe an Stromleitungen“ einschalten'}.`,
       `<div class="lrules"><span>Zu tun:</span> im UAV Editor Flughöhe auf <b>${pwrH()} m</b> ändern und neu speichern</div>`));
-  // Falsche Drohne/Höhe: wird beim Import umgerechnet
+  // Falsche Drohne/Höhe: wird beim Import umgerechnet – nur auf der Fernsteuerung; am PC steht noch nicht fest, wer mit welcher Drohne fliegt
   const wantH = DRONE_HEIGHT[P.drone];   // auch UAV-Editor-Felder (Lite-Suche): andere Drohne/Höhe → wird beim Import umgerechnet
   const mm = sel.filter(f => isDroneMismatch(f) || (f.cat && P.drone && ((f.drone && f.drone !== P.drone) || (wantH && f.height && Math.abs(f.height - wantH) > 5))));
-  if (mm.length) card('🔧', '#e07800', 'Feld für andere Drohne/Höhe geplant', `${mm.map(f => esc(f.title)).join(', ')} – wird beim Import automatisch auf ${P.drone === 'M3T' ? 'Mavic 3T (50 m)' : 'Matrice 4T (70 m)'} umgerechnet.`);
+  if (mm.length && !IS_WEB) card('🔧', '#e07800', 'Feld für andere Drohne/Höhe geplant', `${mm.map(f => esc(f.title)).join(', ')} – wird beim Import automatisch auf ${P.drone === 'M3T' ? 'Mavic 3T (50 m)' : 'Matrice 4T (70 m)'} umgerechnet.`);
   if (!cards.length) card('✅', '#13a538', 'Alles frei', pt ? 'An dieser Stelle haben wir nichts Besonderes gefunden. Trotzdem: Himmel beobachten.' : 'An diesen Feldern haben wir nichts Besonderes gefunden. Trotzdem: Himmel beobachten.');
   return `<div class="lcheck">${cards.join('')}</div><div class="meta" style="margin-top:8px">Daten: dipul, OpenStreetMap · ohne Gewähr – im Zweifel nicht fliegen.</div>`;
 }
@@ -9307,7 +9655,7 @@ const TOUR = [
   ['#bSearch', 'Suchen', `Wiese per Name oder einen Ort (Dorf, Ortsteil, Hof) finden – auch offline. Die Treffer werden auf der Karte gezeigt, mit „Los“ springst du hin.`],
   ['#bInfo', 'Info-Modus', `Einschalten, dann auf die Karte tippen: eine Blase zeigt, was an dieser Stelle gilt – <b>Geozonen</b> (mit Bewertung für eure Genehmigung), <b>Stromleitungen</b> mit Spannung, <b>Windräder</b>, Masten, Bahn, Flugplätze.<br>„Details“ öffnet alles ausführlich: Regeln, Auflagen, Ansprechpartner, Masthöhen – und „Wie sieht so eine Leitung aus?“ mit Zeichnungen der Masttypen.`],
   ['#bLayer', 'Kartenart & Ebenen', `<b>Grau</b> (ruhig, Zonen gut lesbar), <b>Karte</b> (farbig) oder <b>Luftbild</b>.<br>Darunter: welche Geozonen-Gruppen eingeblendet sind (Luftfahrt, Natur, Verkehr, Energie, Sicherheit) sowie „NOTAMs &amp; Tiefflug“, „Stromleitungen“ und „Windräder &amp; Masten“ ein/aus. Ausblenden betrifft nur die Karte – der Pre-Check prüft trotzdem alles.`],
-  ['#bFit', 'Alles zeigen', `Zoomt so, dass alle Wiesen zu sehen sind. Darüber: hinein- und herauszoomen.`],
+  ['#bFit', 'Alles zeigen', `Zoomt auf die markierten Wiesen – ist nichts markiert, auf alle Wiesen. Darüber: hinein- und herauszoomen.`],
   ['#bLoc', 'Mein Standort', `Springt zu deinem GPS-Standort. Während gesucht wird, dreht sich die Anzeige im Knopf. Der blaue Kegel auf der Karte zeigt die Blickrichtung der Fernsteuerung.`],
   ['#wind', 'Wind & Wetter', `Wind in 10 m, Böen und Wind in 50/80/100/120 m, dazu Kp-Index (Störung von GPS/Kompass) und die Quelle.<br><b>Antippen</b> öffnet das Wetter: Einsatzfenster am Morgen bewertet, Stunde für Stunde, Sonnenlauf, Vorschau für die nächsten Tage – bei markierten Wiesen für genau diese.`],
   [null, 'Einsatz-Wächter', `Nach dem Pre-Check passt die App im Hintergrund auf eure Wiesen auf – auch wenn DJI Pilot 2 vorne ist. Alle 5 Minuten prüft sie und meldet sich per Benachrichtigung bei:<ul>
@@ -9433,9 +9781,12 @@ function webCoach() {
     ...coachLoginSteps(),
     { target: '#bSync', text: '<b>„UAV-Felder holen“</b> lädt die aktuelle Feldliste aus dem UAV Editor. Das passiert beim Start auch automatisch.', btn: 'Weiter' },
     { target: '#bar .srcseg', text: 'Hier stellst du ein, welche Felder auf der Karte stehen: angelegt oder geändert in den letzten <b>24 h</b> oder <b>48 h</b>, das <b>ganze Jahr</b> oder <b>alle</b>.', btn: 'Weiter' },
-    { target: '#searchBox', text: 'Markiere die Felder, die du prüfen willst: hier nach <b>Namen suchen</b> (Liste mit Jahr/Stand) – oder auf der Karte <b>Strg gedrückt halten</b> und einen <b>Rahmen ziehen</b>.<br>Markiere jetzt mindestens ein Feld.', done: () => S.files.some(f => f.selected) },
-    { target: '#bDl', text: 'Klicke auf <b>„Pre-Check“</b>.', done: () => $('dlg').classList.contains('open') },
-    { info: true, target: '#dlg .box', text: 'Oben siehst du, <b>welches Fernpilotenzeugnis</b> nötig ist, darunter <b>Feld für Feld</b> die Auflagen. Ganz unten <b>„Zum Weitergeben“</b>: Netzbetreiber und Forstämter – „✉ E-Mail“ erstellt einen fertigen Entwurf mit Karte.', btn: 'Fertig' }
+    { target: '#searchBox', get text() { const n = S.files.filter(visible).length;
+        return 'Markiere die Felder, die du prüfen willst: oben nach <b>Namen suchen</b> und anhaken, links in der <b>Feldliste</b> anklicken oder auf der Karte <b>Strg gedrückt halten</b> und einen <b>Rahmen ziehen</b>.<br>Markiere jetzt mindestens ein Feld – es geht dann von allein weiter.'
+          + (n ? '' : '<br><br><b>Gerade sind keine Felder auf der Karte</b> (in den letzten 24/48 h wurde nichts angelegt). Oben auf <b>„' + new Date().getFullYear() + '“</b> oder <b>„Alle“</b> klicken – oder einfach im Suchfeld tippen.'); },
+      done: () => S.files.some(f => f.selected), btn: 'Überspringen' },
+    { target: '#bDl', text: 'Klicke auf <b>„Pre-Check“</b>.', skip: () => !S.files.some(f => f.selected), done: () => $('dlg').classList.contains('open'), btn: 'Überspringen' },
+    { info: true, target: '#dlg .box', text: 'Oben siehst du, <b>welches Fernpilotenzeugnis</b> nötig ist, darunter <b>Feld für Feld</b> die Auflagen. Ganz unten <b>„To-dos“</b>: Netzbetreiber und Forstämter – „✉ E-Mail“ erstellt einen fertigen Entwurf mit Karte.', btn: 'Fertig' }
   ];
   coachStart(st, 'coachWeb');
 }
@@ -9800,7 +10151,7 @@ loadNotams();
 geoBadge();
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
