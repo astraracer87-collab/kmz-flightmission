@@ -1195,7 +1195,7 @@ const LAYERS = {
     if (S.regions.length) [[0, 0], [1, 0], [0, 1], [1, 1], [.5, .5]].forEach(([a, b]) => { const r = regionAt(y2lat((y + b) / n), x2lon((x + a) / n)); if (r.st) st.add(r.st); });
     else { st.add('HE'); st.add('RP'); }
     const s = [...st].filter(k => k === 'HE' || k === 'RP');
-    return s.length ? `https://dop.local/${z}/${x}/${y}?s=${s.join(',')}` : esri;   // nur den nötigen Landesdienst abfragen
+    return s.length ? `https://dop.local/${z}/${x}/${y}?s=${s.join(',')}&v=2` : esri;   // v=2: Lücken jetzt mit Esri statt Grau (alte graue Kacheln nicht weiterverwenden)   // nur den nötigen Landesdienst abfragen
   },
   osm: BM_URL('farbe'),
   grey: BM_URL('grau')
@@ -3014,7 +3014,7 @@ function uvMode(on) {
   const hint = document.querySelector('#uvHost .uvbar span'); if (hint) hint.textContent = uaveReady() ? 'Im UAV Editor Felder anhaken, dann hier übernehmen (oder dort „Check flight zone“ → direkt unser Pre-Check).' : 'Melde dich hier mit deinem UAV-Editor-Zugang an – das Programm übernimmt ihn (verschlüsselt auf diesem PC) und lädt danach die Feldliste.';
   UV.hid = false; requestAnimationFrame(uvPlace);
   // Popup (Pre-Check, Briefing, Einstellungen, Einführung) über dem UAV Editor: Standbild der Seite zeigen, echte Seite kurz ausblenden
-  UV.t = setInterval(() => { const cover = $('dlg').classList.contains('open') || !!document.querySelector('.page.open') || ($('coachBub') && $('coachBub').style.display === 'block');
+  UV.t = setInterval(() => { if (UV.shooting) return; const cover = $('dlg').classList.contains('open') || $('busy').style.display === 'block' || !!document.querySelector('.page.open') || ($('coachBub') && $('coachBub').style.display === 'block');
     if (cover === UV.hid) return; UV.hid = cover; const sl = $('uvSlot');
     if (cover) { if (A.uaveViewSnap) A.uaveViewSnap(); else uvPlace(); }
     else { uvPlace(); setTimeout(() => { if (!UV.hid && sl) { sl.style.backgroundImage = ''; sl.classList.remove('snap'); } }, 150); } }, 150);
@@ -4049,7 +4049,7 @@ function confirmDlg(title, text, list, okLabel, cb, extra) {
   $('dText').textContent = text; $('dText').style.whiteSpace = 'pre-line';
   $('dList').innerHTML = ''; list.forEach(n => { const d = document.createElement('div'); d.textContent = '• ' + n; $('dList').appendChild(d); });
   $('dYes').textContent = okLabel; $('dYes').disabled = false; dlgCb = cb; $('dlg').classList.add('open');
-  $('dlg').querySelector('.box').classList.remove('wide', 'auto'); S.dlgXClose = null;
+  $('dlg').querySelector('.box').classList.remove('wide', 'auto'); S.dlgXClose = null; S.dlgXYes = false;
 }
 // Fläche aus UAV Editor (m² oder ha) lesbar machen
 const fieldArea = a => a > 1000 ? (a / 10000).toFixed(2).replace('.', ',') + ' ha' : a.toFixed(2).replace('.', ',') + ' ha';
@@ -4157,7 +4157,7 @@ function pickDlg(title, text, items, okWord, cb) {
 }
 $('dNo').onclick = () => { dlgDanger(); $('dlg').classList.remove('open'); if (dlgOnCancel) { const c = dlgOnCancel; dlgOnCancel = null; c(); } };
 $('dYes').onclick = () => { $('dlg').classList.remove('open'); dlgOnCancel = null; dlgCb && dlgCb(); };
-$('dX').onclick = () => { if (S.dlgXClose) dlgOnCancel = S.dlgXClose; $('dNo').onclick(); };   // ✕ oben rechts = Abbrechen (bei „Feld für Feld“: ganz schließen)
+$('dX').onclick = e => { if (e) { e.preventDefault(); e.stopPropagation(); } if (S.dlgXYes) return $('dYes').onclick(); if (S.dlgXClose) dlgOnCancel = S.dlgXClose; $('dNo').onclick(); };   // ✕ oben rechts = Abbrechen (bei „Feld für Feld“: ganz schließen)
 $('permGo').onclick = () => A.requestAccess();
 
 // ================= Einstellungen =================
@@ -7687,8 +7687,8 @@ const MAPIMG = new Map();   // fertige Kartenbilder dieser Sitzung (Bild speiche
 /** PC: alle Kacheln eines Bildes in einem Rutsch vom Programm holen lassen (parallel, landen im Kartenspeicher) – der Browser lädt sonst nur ~6 gleichzeitig, dabei liefen Wartezeiten ab */
 async function tilePrefetch(urls, ms) {
   if (!window.KR_TILE || !urls.length) return;
-  const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms || 45000);
-  try { await fetch('/tb', { method: 'POST', body: JSON.stringify(urls.map(u => window.KR_TILE(u))), signal: ac.signal }); } catch (e) { } finally { clearTimeout(t); }
+  const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms || 20000);
+  try { const r = await fetch('/tb', { method: 'POST', body: JSON.stringify(urls.map(u => window.KR_TILE(u))), signal: ac.signal }); return r.ok ? await r.json() : null; } catch (e) { return { ok: 0, fail: urls.length, st: { zeit: 1 } }; } finally { clearTimeout(t); }
 }
 async function mapImage(o) {
   const mk = (() => { try { return JSON.stringify(o) + '|' + GSAT() + '|' + new Date().toDateString(); } catch (e) { return null; } })();
@@ -7709,11 +7709,19 @@ async function mapImage0(o) {
   c.fillStyle = '#f2f2ee'; c.fillRect(0, 0, CW, MH);
   const jobs = [], tl = [], src = (tx, ty) => LAYERS[o.base && LAYERS[o.base] ? o.base : 'osm'](Math.min(z, LAYER_MAXZ[o.base] || 18), tx, ty);
   for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + CW) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + MH) / 256); ty++) tl.push([tx, ty]);
-  await tilePrefetch(tl.map(([tx, ty]) => src(tx, ty)));   // danach kommen die Kacheln sofort aus dem Kartenspeicher
-  let miss = 0;   // Luftbild-Lücke: Esri als Ersatz
-  for (const [tx, ty] of tl)
-    jobs.push(loadImg(TSRC(src(tx, ty)), o.tileMs || 20000).then(im => im || (o.base === 'sat' ? loadImg(TSRC(ESRI_SAT(Math.min(z, 19), tx, ty)), o.tileMs) : null)).then(im => { if (im) { c.filter = (o.base && LAYER_FILTER[o.base]) || 'none'; c.drawImage(im, tx * 256 - ox, ty * 256 - oy, 256, 256); c.filter = 'none'; } else miss++; }));
-  await Promise.all(jobs); cv.__full = miss === 0;   // nur vollständige Bilder werden gemerkt
+  const pre = await tilePrefetch(tl.map(([tx, ty]) => src(tx, ty)));   // danach kommen die Kacheln sofort aus dem Kartenspeicher
+  const dead = pre && pre.ok === 0 && pre.fail > 0;   // Kartendienst antwortet gerade nicht: nicht auf jede Kachel warten
+  // fehlt eine Kachel: gröbere Kachel aus dem Kartenspeicher vergrößern (die Karte war dort meist schon mal), zuletzt Luftbild (Esri) – Hauptsache Orientierung
+  const coarse = async (tx, ty) => { const b = o.base && LAYERS[o.base] ? o.base : 'osm', zz = Math.min(z, LAYER_MAXZ[b] || 18);
+    for (let d = 1; d <= 4; d++) { const im = await loadImg(TSRC(LAYERS[b](zz - d, tx >> d, ty >> d)), 2500); if (im) { const k = 1 << d, sz = 256 / k; return { im, sx: (tx % k) * sz, sy: (ty % k) * sz, sz }; } }
+    const e = await loadImg(TSRC(ESRI_SAT(Math.min(z, 19), tx, ty)), 6000); return e ? { im: e, sx: 0, sy: 0, sz: 256 } : null; };
+  let miss = 0;
+  if (dead) for (const [tx, ty] of tl) jobs.push(coarse(tx, ty).then(r => { if (r) { c.filter = (o.base && LAYER_FILTER[o.base]) || 'none'; c.drawImage(r.im, r.sx, r.sy, r.sz, r.sz, tx * 256 - ox, ty * 256 - oy, 256, 256); c.filter = 'none'; } miss++; }));
+  else for (const [tx, ty] of tl)
+    jobs.push(loadImg(TSRC(src(tx, ty)), o.tileMs || 8000).then(im => im || (o.base === 'sat' ? loadImg(TSRC(ESRI_SAT(Math.min(z, 19), tx, ty)), o.tileMs) : null)).then(im => { if (im) { c.filter = (o.base && LAYER_FILTER[o.base]) || 'none'; c.drawImage(im, tx * 256 - ox, ty * 256 - oy, 256, 256); c.filter = 'none'; } else return coarse(tx, ty).then(r => { miss++; if (r) { c.drawImage(r.im, r.sx, r.sy, r.sz, r.sz, tx * 256 - ox, ty * 256 - oy, 256, 256); } }); }));
+  await Promise.all(jobs); cv.__full = miss === 0;
+  if (miss && pre && pre.fail && !S.tileWarned) { S.tileWarned = 1; const why = Object.entries(pre.st || {}).map(([k, v]) => (k === 'err' || k === '0' ? 'keine Verbindung' : k === 'zeit' ? 'Zeitüberschreitung' : 'HTTP ' + k) + ' ×' + v).join(', ');
+    toast(`Kartendienst (basemap.de) liefert gerade nicht alle Kacheln${why ? ' – ' + why : ''}. Fehlende Stellen mit gröberer Karte bzw. Luftbild gefüllt.`, true, 9000); }   // nur vollständige Bilder werden gemerkt
   c.fillStyle = 'rgba(255,255,255,.25)'; c.fillRect(0, 0, CW, MH);   // Karte etwas aufhellen, damit die Markierungen hervortreten
   c.save(); c.beginPath(); c.rect(0, 0, CW, MH); c.clip(); c.lineJoin = 'round'; c.lineCap = 'round';
   const path = pts => { c.beginPath(); pts.forEach((q, i) => { const [x, y] = pr(q[0], q[1]); i ? c.lineTo(x, y) : c.moveTo(x, y); }); };
@@ -7837,13 +7845,25 @@ function afHtml(az) {
         <div style="margin-top:4px;color:#d42020">Bis 1,5 km um den Flugplatz nur mit <b>Zustimmung</b> der Flugaufsicht, Flugleitung bzw. des Betreibers (§ 21h Abs. 3 Nr. 1 LuftVO) – vorher einholen, am Einsatztag vor dem Start zusätzlich kurz anrufen.</div></div>`; }).join('')}
     <div class="meta">Bild und E-Mail enthalten keine Feldnamen und keine Feldumrisse – nur den Flugplatzbereich und grobe Kreise um die Einsatzorte (mind. 150 m Radius).</div></div>`;
 }
+/** Bild für Flugplatz/Schutzgebiet: die ganze Zone zu sehen, auf sie zentriert, die Einsatzbereiche darin.
+ *  Sehr große Gebiete (über ~20 km): auf die Einsatzbereiche zentriert, damit die Kreise erkennbar bleiben */
+function zoneViewBB(z, pts) {
+  const fb = z.f.bb || bbOfPts(z.f.rings.flat().map(q => [q[1], q[0]])), kx = Math.cos(((fb.n + fb.s) / 2) * Math.PI / 180), big = (fb.n - fb.s) * 111 > 20 || (fb.e - fb.w) * 111 * kx > 20;
+  const b0 = bbOfPts(pts), ref = big ? b0 : fb, cLa = (ref.n + ref.s) / 2, cLo = (ref.e + ref.w) / 2;
+  const all = big ? pts : pts.concat([[fb.n, fb.e], [fb.s, fb.w]]);
+  let hLa = Math.max(...all.map(q => Math.abs(q[0] - cLa))) * 1.12, hLo = Math.max(...all.map(q => Math.abs(q[1] - cLo))) * 1.12;
+  if (big) { hLa *= 1.8; hLo *= 1.8; }
+  hLa = Math.max(hLa, 0.004); const asp = 1.6 / kx;   // Bild 1600×1000
+  if (hLo < hLa * asp) hLo = hLa * asp; else hLa = hLo / asp;
+  return { n: cLa + hLa, s: cLa - hLa, e: cLo + hLo, w: cLo - hLo };
+}
 async function afImage(z, sel) {
   const ar = natAreas(z, sel), pts = [];
   ar.forEach(a => { const dl = a.r / 111200, dn = a.r / (111200 * Math.cos(a.lat * Math.PI / 180)); pts.push([a.lat + dl, a.lon + dn], [a.lat - dl, a.lon - dn]); });
   const rec = afRec(z); if (rec) pts.push([rec.lat, rec.lon]);
   if (!pts.length) return null;
-  const b0 = bbOfPts(pts), pad = Math.max(0.004, (b0.n - b0.s) * 0.3), nm = afName(z);
-  return mapImage({ bb: { n: b0.n + pad, s: b0.s - pad, e: b0.e + pad * 1.6, w: b0.w - pad * 1.6 }, areas: [{ rings: z.f.rings, color: '#d32f2f' }],
+  const nm = afName(z);
+  return mapImage({ bb: zoneViewBB(z, pts), areas: [{ rings: z.f.rings, color: '#d32f2f' }],
     circles: ar.map(a => ({ lat: a.lat, lon: a.lon, r: a.r, label: 'Bereich ' + a.no })),
     title: `Drohnenflug Kitzrettung – Flugplatz ${nm}`,
     legend: [`Rot: Flugplatzbereich ${nm}${rec && rec.icao ? ' (' + rec.icao + ')' : ''} laut dipul`, 'Orange Kreise: ungefähre Einsatzbereiche (Drohnenflüge innerhalb des Kreises)',
@@ -7866,9 +7886,8 @@ async function natImage(z, sel) {
   const ar = natAreas(z, sel), pts = [];
   ar.forEach(a => { const dl = a.r / 111200, dn = a.r / (111200 * Math.cos(a.lat * Math.PI / 180)); pts.push([a.lat + dl, a.lon + dn], [a.lat - dl, a.lon - dn]); });
   if (!pts.length) return null;
-  const b0 = bbOfPts(pts), pad = Math.max(0.004, (b0.n - b0.s) * 0.3);
   const p = z.f.props || {}, lbl = LAYER_LABEL[z.f.layer] || z.f.layer;
-  return mapImage({ bb: { n: b0.n + pad, s: b0.s - pad, e: b0.e + pad * 1.6, w: b0.w - pad * 1.6 }, areas: [{ rings: z.f.rings, color: '#2e7d32' }],
+  return mapImage({ bb: zoneViewBB(z, pts), areas: [{ rings: z.f.rings, color: '#2e7d32' }],
     circles: ar.map(a => ({ lat: a.lat, lon: a.lon, r: a.r, label: 'Bereich ' + a.no })),
     title: `Drohnenflug Kitzrettung – ${lbl}${p.name ? ': ' + p.name : ''}`,
     legend: [`${lbl}${p.name ? ': ' + p.name : ''} · ${regionText(z.reg)}${altText(p) ? ' · ' + altText(p) : ''}`, 'Orange Kreise: ungefähre Einsatzbereiche (Drohnenflüge innerhalb des Kreises)',
@@ -7993,13 +8012,17 @@ function einsatzWins(w) {
 }
 /** Pilotenbriefing starten: Zeitraum je nach Einstellung abfragen (oder den gemeinsamen nehmen) – ohne Datum geht auch, dann ohne Wetter */
 function briefStart(sel, done) {
-  const go = wins => pilotBriefing(sel, wins).finally(() => done && done());
-  if (P.briefAsk === '0') return go(einsatzWins(flyWinGet()));
-  flyWinDlg(() => go(einsatzWins(flyWinGet())), 'PDF erstellen', () => go(null));
+  // aus dem Pre-Check: der bleibt offen – das Ladefenster liegt darüber, das PDF öffnet sich daneben
+  const go = wins => pilotBriefing(sel, wins);
+  if (P.briefAsk === '0' || (done && flyWinGet())) return go(einsatzWins(flyWinGet()));   // Zeitraum steht schon oben im Pre-Check
+  flyWinDlg(async () => { if (done) await done(); go(einsatzWins(flyWinGet())); }, 'PDF erstellen', async () => { if (done) await done(); go(null); });
 }
 /** Desktop-Pre-Check: Zonen wie auf der RC, dazu Netzbetreiber-Zusammenfassung und Schutzgebiete als To-dos */
-function webPreCheck(sel) {
+async function webPreCheck(sel) {
   if (!sel.length) return toast('Bitte zuerst Felder auf der Karte markieren.', true);
+  const tok = S.pcTok = (S.pcTok || 0) + 1, quick = $('dlg').classList.contains('open') && /^Pre-Check/.test($('dTitle').textContent);
+  if (!quick) busy('Pre-Check wird vorbereitet…');
+  await new Promise(r => setTimeout(r, 30));   // Ladefenster zeichnen lassen
   S.areaNos = new Map(sel.map((f, i) => [f, i + 1])); S.areaSel = sel;   // neutrale Nummern für Bild und E-Mail
   const b = flightBriefing(sel), ops = netOps(sel), nz = mergeNat(b.zones.filter(z => NAT_LAYERS.includes(z.f.layer) && z.near == null)), az = afZonesOf(b);
   S.hlLines = new Set(ops.flatMap(o => o.items.map(x => x.l)));
@@ -8027,7 +8050,7 @@ function webPreCheck(sel) {
     <div class="pcts">${tl(n13, '✓', 'A1/A3', '#13a538')}${tl(n2, '🪪', 'A2', '#e07800')}${tl(nZ + nNo, '✗', 'gesperrt/Zustimmung', '#d42020')}${tl(low.length, '⚠', 'zu niedrig', '#d42020')}${tl(ops.length, '⚡', 'Netzbetreiber informieren', '#8e24aa')}${tl(nz.length, '🌿', 'Schutzgebiet informieren', '#2e7d32')}${tl(az.length, '✈', 'Flugplatz um Zustimmung bitten', '#d42020')}</div></div></div>`;
   box.innerHTML = heroHtml + lowHtml + `<h3 style="margin:16px 0 8px">Feld für Feld</h3>` + per
     + `<h3 style="margin:16px 0 8px">✅ To-dos</h3>` + afHtml(az) + netOpsHtml(ops) + natureHtml(nz);
-  pcMapsWire(box, sel);
+  pcMapsWire(box, sel, true);
   box.querySelectorAll('[data-url]').forEach(a => a.onclick = () => A.openUrl ? A.openUrl(a.dataset.url) : window.open(a.dataset.url));
   const startNo = i => ops.slice(0, i).reduce((m, o) => m + o.items.reduce((k, x) => k + x.secs.length, 0), 0);
   box.querySelectorAll('[data-op]').forEach(el => {
@@ -8068,11 +8091,22 @@ function webPreCheck(sel) {
   pb.innerHTML = `<span>📋 <b>Pilotenbriefing</b> – PDF: Übersicht mit allen Feldnamen, je Feld eine Seite, Wetter 03–12 Uhr</span><button>PDF erstellen</button>`;
   pb.querySelector('button').onclick = () => briefStart(sel, () => webPreCheck(sel));
   box.prepend(pb);
+  // erst öffnen, wenn alles fertig ist: Vorschaukarten der Details und die kleinen Luftbilder
+  if (!quick) {
+    const todo = sel.slice(0, 40); let n = 0; const step = () => busy('Pre-Check wird vorbereitet…', { sub: 'Vorschaukarten und Luftbilder', done: n, total: todo.length });
+    step();
+    const imgs = [...box.querySelectorAll('img')].map(im => im.complete ? null : new Promise(r => { im.addEventListener('load', r, { once: true }); im.addEventListener('error', r, { once: true }); })).filter(Boolean);
+    let i = 0; const run = async () => { while (i < todo.length) { const f = todo[i++]; try { await pcMapMake(f); } catch (e) { } n++; step(); } };
+    await Promise.race([Promise.all([Promise.all(Array.from({ length: Math.min(3, todo.length) }, run)), Promise.all(imgs)]), new Promise(r => setTimeout(r, 60000))]);
+    if (tok !== S.pcTok) return;   // inzwischen neu angefordert
+    busy('');
+  }
+  await pcMapsFill(box, sel);   // fertige Karten gleich in die Details setzen
   confirmDlg(`Pre-Check – ${sel.length} Feld${sel.length > 1 ? 'er' : ''}`, 'Was an diesen Feldern gilt und wem Bescheid gesagt werden muss:', [], 'Schließen', null, box);
   { const bb = document.createElement('button'); bb.id = 'dBrief'; bb.className = 'b-ok'; bb.textContent = '📋 Pilotenbriefing erstellen';   // unten neben „Schließen“
     bb.onclick = () => briefStart(sel, () => webPreCheck(sel));
     $('dNo').style.display = 'none'; $('dYes').before(bb); }
-  dlgOnCancel = null; S.dlgXClose = () => { };   // ✕ oben = wie „Schließen“ – keine alte Abbrechen-Aktion (öffnete sonst nach 3 s wieder und startete das Briefing)
+  dlgOnCancel = null; S.dlgXClose = null; S.dlgXYes = true;   // ✕ oben = genau „Schließen“ unten   // ✕ oben = wie „Schließen“ – keine alte Abbrechen-Aktion (öffnete sonst nach 3 s wieder und startete das Briefing)
   $('dlg').querySelector('.box').classList.add('wide', 'auto');   // Desktop: ganze Fensterbreite nutzen – Felder in Spalten; Höhe nur so viel wie nötig
   $('dlg').querySelector('.box').scrollTop = 0;
 }
@@ -8111,13 +8145,33 @@ th{font-size:7pt;text-transform:uppercase;letter-spacing:.4px;color:#5d6975;bord
 .o{background:#ffefcc}.r{background:#fcdcdc}.ok{color:#13a538;font-weight:800}
 .foot{margin-top:auto;color:#8a96a3;font-size:7pt;border-top:1px solid #e1e6eb;padding-top:3px}`;
 /** passt jede Seite auf genau ein A4-Blatt: erst die Karte verkleinern, dann den Text */
-const BRIEF_FIT = `function fit(){document.querySelectorAll('.page').forEach(function(p){var im=p.querySelector('.mapw'),b=p.querySelector('.body')||p,w=100,z=1;
+const BRIEF_FIT = `function fit(){
+var p1=document.querySelector('.page'),ov=p1&&p1.querySelector('.ovblk'),op=document.querySelector('.ovpage');
+if(ov&&op){var b1=p1.querySelector('.body')||p1,im1=ov.querySelector('.mapw');var too=function(){return b1.scrollHeight>b1.clientHeight+1||p1.scrollHeight>p1.clientHeight+1;};
+if(im1){im1.style.width='80%';var o2=too();im1.style.width='';if(o2){op.querySelector('.body').appendChild(ov);op.style.display='';}}}
+document.querySelectorAll('.page').forEach(function(p){if(p.style.display==='none')return;var im=p.querySelector('.mapw'),b=p.querySelector('.body')||p,w=100,z=1;
 var over=function(){return b.scrollHeight>b.clientHeight+1||p.scrollHeight>p.clientHeight+1;};
 while(over()&&im&&w>45){w-=4;im.style.width=w+'%';}
 while(over()&&z>0.55){z-=0.03;b.style.zoom=z;}});document.body.setAttribute('data-fit','1');}
 if(document.readyState==='complete')fit();else window.addEventListener('load',fit);`;
 const jpg = cv => cv ? cv.toDataURL('image/jpeg', 0.82) : '';
 const lv2 = (v, t) => v == null ? 0 : v >= t[1] ? 2 : v >= t[0] ? 1 : 0;
+/** PC + UAV Editor im Programm: Satellitenbilder je Feld direkt aus der UAV-Editor-Karte (mit UAV Editor abgesprochen; wie deren „Screenshot“-Knopf).
+ *  Nur fürs interne Pilotenbriefing – die Bilder zeigen Feldnamen und Umrisse. list = [{ key, n, s, e, w }] → { key: dataUrl } */
+const UVSHOT = new Map(), UVSHOT_CB = {};
+window.onUvShot = (id, key, url) => { const c = UVSHOT_CB[id]; if (c && url) { c.out[key] = url; UVSHOT.set(key, url); } if (c && c.step) c.step(); };
+window.onUvShotDone = (id, err) => { const c = UVSHOT_CB[id]; if (!c) return; delete UVSHOT_CB[id]; clearTimeout(c.t); if (err) c.err = err; c.res(c.out); };
+function uvShots(list, step) {
+  if (!IS_WEB || !A.uvShotStart || !uvAvail() || P.briefUv === '0') return Promise.resolve({});
+  const out = {}, todo = list.filter(x => { if (UVSHOT.has(x.key)) { out[x.key] = UVSHOT.get(x.key); return false; } return true; });
+  if (!todo.length) return Promise.resolve(out);
+  UV.shooting = true;
+  return new Promise(res0 => { const id = 'S' + Date.now().toString(36), res = o => { UV.shooting = false; res0(o); };
+    UVSHOT_CB[id] = { out, res, step, t: setTimeout(() => window.onUvShotDone(id, 'Zeit abgelaufen'), 25000 + todo.length * 15000) };
+    A.uvShotStart(JSON.stringify({ id, list: todo })); });
+}
+const uvShotKey = (f, all) => 'uv|' + (all ? 'all|' : '') + JSON.stringify(f);
+const asCanvas = url => ({ toDataURL: () => url, __uv: true });
 /** Karte fürs Briefing: Felder (Umriss + Flugbahn), Geozonen am Feld, Freileitungen, Nummern mit Feldnamen – ohne Legendenstreifen */
 async function briefMap(fields, all, zones, mh, opt) {
   opt = opt || {};
@@ -8278,10 +8332,17 @@ async function briefingHtml(sel, win, opt) {
   // alles gleichzeitig vorbereiten: Wetter, Übersichtskarte, je Feld eine Karte (vorher nacheinander – dauerte lange)
   const fbs = sel.map(f => flightBriefing([f]));
   const pool = (jobs, n) => { const out = new Array(jobs.length); let i = 0; const run = async () => { while (i < jobs.length) { const k = i++; try { out[k] = await jobs[k](); } catch (e) { out[k] = null; } } }; return Promise.all(Array.from({ length: Math.min(n, jobs.length) }, run)).then(() => out); };
-  const [wxs, over, maps] = await Promise.all([
+  // Satellitenbilder aus dem UAV Editor (nacheinander – die Karte dort wird dafür kurz auf jedes Feld gestellt), danach unsere Karten nur noch als Ersatz
+  const bbOf = fs => { const b = bbOfPts(fs.flatMap(f => f.bounds ? [[f.bounds.n, f.bounds.e], [f.bounds.s, f.bounds.w]] : [])); const pa = Math.max(0.0008, (b.n - b.s) * 0.12); return { n: b.n + pa, s: b.s - pa, e: b.e + pa * 1.5, w: b.w - pa * 1.5 }; };
+  const uvList = sel.filter(f => f.bounds).map(f => Object.assign({ key: uvShotKey(f.bounds) }, bbOf([f])));
+  if (sel.some(f => f.bounds)) uvList.unshift(Object.assign({ key: uvShotKey(sel.map(f => f.title), true) }, bbOf(sel.filter(f => f.bounds))));
+  let shotN = 0; const shots = await uvShots(uvList, () => { shotN++; busy(`Satellitenbilder aus dem UAV Editor … ${shotN}/${uvList.length}`); });
+  const shotOf = (f, all) => { const u = shots[all ? uvShotKey(sel.map(x => x.title), true) : f.bounds ? uvShotKey(f.bounds) : '']; return u ? asCanvas(u) : null; };
+  const [wxs, over0, maps0] = await Promise.all([
     Promise.all(wins.slice(0, 4).map(w => briefWeather(sel, w, top, foot))),
-    briefMap(sel, sel, [], 1000, { cw: 1400, base: 'sat' }),   // Briefing: immer Luftbild als Hintergrund
-    pool(sel.map((f, i) => () => briefMap([f], sel, fbs[i].zones, 800, { cw: 1200, base: 'sat' })), 6)]);
+    shotOf(null, true) || briefMap(sel, sel, [], 1000, { cw: 1400, base: 'sat' }),   // Briefing: immer Luftbild als Hintergrund
+    pool(sel.map((f, i) => () => shotOf(f) || briefMap([f], sel, fbs[i].zones, 800, { cw: 1200, base: 'sat' })), 6)]);
+  const over = over0, maps = maps0;
   const wx = wxs[0] || { html: '', sum: null }; wx.html = wxs.map(x => x.html).join('');
   const drone = f => { const d = f.drone || (f.uave ? uaveInfo(f.uave).drone : ''); return d === 'M3T' ? 'Mavic 3T' : d === 'M4T' ? 'Matrice 4T' : d || '—'; };
   const area = f => { const a = (f.uave && f.uave.area) || f.areaM2; return a ? fieldArea(a) : '—'; };
@@ -8313,8 +8374,9 @@ async function briefingHtml(sel, win, opt) {
     <table class="fl"><tr><th></th><th>Feldname</th><th>Drohne</th><th>Höhe</th><th>Fläche</th><th>Ort</th><th>Bewertung</th></tr>
     ${sel.map((f, i) => `<tr><td><span class="num">${i + 1}</span></td><td class="nm">${esc(f.title)}</td><td>${esc(drone(f))}</td><td>${f.height ? f.height + ' m' : '—'}</td><td>${area(f)}</td><td>${esc(place(f))}</td><td>${licBadges(vs[i]).replace(/class="lverd"/g, 'class="pill"')}</td></tr>`).join('')}</table>
     ${notes.length ? `<div class="sec">Wichtig</div><ul class="notes">${notes.map(n => `<li style="color:${n[2]}"><i>${n[0]}</i>${n[1]}</li>`).join('')}</ul>` : ''}
-    <div class="sec">Übersichtskarte</div>
-    ${over ? `<div class="mapw"><img class="map" src="${jpg(over)}"></div>${legend}` : ''}</div>${foot()}</div>`;
+    <div class="ovblk"><div class="sec">Übersichtskarte</div>
+    ${over ? `<div class="mapw"><img class="map" src="${jpg(over)}"></div>${legend}` : ''}</div></div>${foot()}</div>
+    <div class="page ovpage" style="display:none">${top('Übersichtskarte')}<div class="body"></div>${foot()}</div>`;   // lange Feldliste: Karte bekommt eine eigene Seite (bleibt groß)
   for (let i = 0; i < sel.length; i++) {
     const f = sel[i], v = vs[i], fb = fbs[i];
     const cards = liteCardsHtml(fb, { sel: [f], centers: f.center ? [f.center] : [] });
@@ -8333,6 +8395,7 @@ async function briefingHtml(sel, win, opt) {
       <div class="sec">Was an diesem Feld gilt</div>${cards}</div>${foot()}</div>`;
   }
   h += wx.html;
+  if (Object.keys(shots).length) h = h.split(GSAT() ? 'Luftbild: Bilder © Google' : 'Luftbild © GeoBasis-DE / Esri').join('Luftbild aus dem UAV Editor (Bilder © Google)');
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Pilotenbriefing ${created.toLocaleDateString('de-DE')}</title><style>${BRIEF_CSS}</style></head><body>${h}<script>${BRIEF_FIT}<\/script></body></html>`;
 }
 window.onBriefingPdf = r => { busy(''); r && r.ok ? toast('Pilotenbriefing gespeichert und geöffnet:\n' + r.file, 'ok', 9000) : toast('PDF konnte nicht erstellt werden: ' + ((r && r.error) || 'unbekannt'), true, 9000); };
@@ -8839,6 +8902,12 @@ function pcFieldRow(x, idx) {
 /** Vorschaukarte in den Details: grauer Hintergrund (bester Kontrast, einstellbar), betroffene Geozonen rot.
  *  Einmal erstellt bleibt sie gespeichert (auch nach Schließen/Öffnen des Pre-Checks); im Hintergrund werden alle Felder vorbereitet. */
 const PCMAP = new Map();
+let PCSHOW = null;
+/** fertige Vorschaukarten direkt in die Details setzen (beim Aufklappen ist dann nichts mehr zu laden) */
+async function pcMapsFill(box, sel) {
+  for (const d of box.querySelectorAll('details.pcf')) { const el = d.querySelector('[data-map]'), f = sel[+d.dataset.fi]; if (!el || !f || !PCMAP.has(pcMapKey(f))) continue;
+    try { const r = await PCMAP.get(pcMapKey(f)); if (r && PCSHOW) { PCSHOW(el, r); el.dataset.done = '1'; } } catch (e) { } }
+}
 const pcMapKey = f => [f.title, (f.bounds && f.bounds.n) || 0, P.pcMapBase || 'grey', P.lic].join('|');
 async function pcMapMake(f) {
   const k = pcMapKey(f); if (PCMAP.has(k)) return PCMAP.get(k);
@@ -8852,15 +8921,15 @@ async function pcMapMake(f) {
   })();
   PCMAP.set(k, p); try { return await p; } catch (e) { PCMAP.delete(k); return null; }
 }
-function pcMapsWire(box, sel) {
-  const show = (el, r) => { el.innerHTML = r ? `<img class="pccv" src="${r.url}" alt=""><div class="pcleg"><span><i style="background:#00838f"></i>Feld</span><span><i style="background:#e53935"></i>betroffene Zone</span><span><i style="background:#1565c0"></i>Geozone</span><span><i style="background:#2e7d32"></i>Schutzgebiet</span><span><i style="background:#8e24aa"></i>Leitung</span><span><i style="background:#ff6f00"></i>Flugbahn</span></div>` : '<div class="meta">Keine Karte verfügbar.</div>'; el.dataset.done = '1'; };
+function pcMapsWire(box, sel, pre) {
+  const show = PCSHOW = (el, r) => { el.innerHTML = r ? `<img class="pccv" src="${r.url}" alt=""><div class="pcleg"><span><i style="background:#00838f"></i>Feld</span><span><i style="background:#e53935"></i>betroffene Zone</span><span><i style="background:#1565c0"></i>Geozone</span><span><i style="background:#2e7d32"></i>Schutzgebiet</span><span><i style="background:#8e24aa"></i>Leitung</span><span><i style="background:#ff6f00"></i>Flugbahn</span></div>` : '<div class="meta">Keine Karte verfügbar.</div>'; el.dataset.done = '1'; };
   box.querySelectorAll('details.pcf').forEach(d => d.addEventListener('toggle', async () => {
     const el = d.querySelector('[data-map]'); if (!d.open || !el || el.dataset.done) return;
     const f = sel[+d.dataset.fi]; if (!f) return;
     try { show(el, await pcMapMake(f)); } catch (e) { el.innerHTML = '<div class="meta">Karte konnte nicht erstellt werden.</div>'; }
   }));
-  // im Hintergrund vorbereiten – nacheinander, damit der Pre-Check flüssig bleibt
-  (async () => { for (const f of sel.slice(0, 40)) { if (!$('dlg').classList.contains('open')) break; try { await pcMapMake(f); } catch (e) { } await new Promise(r => setTimeout(r, 30)); } })();
+  // im Hintergrund vorbereiten – nacheinander, damit der Pre-Check flüssig bleibt (beim Öffnen sind sie meist schon fertig)
+  if (!pre) (async () => { for (const f of sel.slice(0, 40)) { if (!$('dlg').classList.contains('open')) break; try { await pcMapMake(f); } catch (e) { } await new Promise(r => setTimeout(r, 30)); } })();
 }
 /** Kleines Luftbild eines Feldes mit seinem Umriss (nur in der App – nicht für E-Mails/Bilder an Dritte) */
 function fieldThumb(f, W, H) {
@@ -10622,7 +10691,7 @@ loadNotams();
 geoBadge();
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
