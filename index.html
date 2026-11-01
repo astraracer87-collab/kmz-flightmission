@@ -1003,7 +1003,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
+const DEF = { uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
    planTool: '0', sideGroup: '1', catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
@@ -3124,6 +3124,32 @@ window.onUaveCredCaptured = () => {
 };
 /** Ergebnis aus der UAV-Editor-Seite: Felder per Name (+ Drohne, Jahr) in unserer Liste finden und markieren */
 const uvInfo = (t, x, l) => { confirmDlg(t, x, l, 'OK', null); const n = $('dNo'); if (n) n.style.display = 'none'; };
+/** Live: Auswahl im UAV Editor sofort spiegeln (anhaken und abhaken). Bei sehr vielen (z. B. „alle markieren“) nicht übernehmen – nur Hinweis. */
+window.onUaveLive = r => {
+  if (!r || P.uvLive === '0' || !uvAvail()) return;
+  const hint = (t, bad) => { const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.color = bad ? '#c43e00' : ''; h.style.fontWeight = bad ? '800' : ''; } };
+  if (r.tooMany) return hint(`${r.tooMany} Felder im UAV Editor markiert – zu viele, um sie automatisch zu übernehmen. Weniger markieren oder „Markierte Felder übernehmen“ drücken.`, true);
+  let rows = r.rows;
+  if (!r.ok) { if (/Kein Feld markiert/.test(r.error || '')) rows = []; else return; }
+  const all = catAll(); if (!all.length) return;
+  const nm = t => foldTxt(t).replace(/\s+/g, ' ').trim(), drOf = t => /4/.test(t) ? 'M4T' : /3/.test(t) ? 'M3T' : '';
+  const now = new Set();
+  rows.forEach(x => { let c = all.filter(cf => nm(cf.name) === nm(x.name));
+    if (c.length > 1) { const y = c.filter(cf => !x.year || String(CAT_YEAR(cf)) === x.year.slice(0, 4)); if (y.length) c = y; }
+    if (c.length > 1) { const d = c.filter(cf => !drOf(x.drone) || cfDrone(cf) === drOf(x.drone)); if (d.length) c = d; }
+    if (c.length > 1) c = c.filter(cf => !cf.arch).concat(c.filter(cf => cf.arch));
+    const cf = c[0]; if (!cf) return;
+    let f = S.files.find(y => y.cat && String((y.uave || {}).id || y.id) === String(cf.id)) || S.files.find(y => y.title === cf.name);
+    if (!f) { f = catEntry(cf, true); if (!f) return; f.extra = true; S.files.push(f); }
+    now.add(f); });
+  const partial = r.want != null && rows.length < r.want;   // nicht alle lesbar: nur dazunehmen, nichts abwählen
+  const prev = UV.live || new Set(); let ch = false;
+  now.forEach(f => { if (!f.selected) { f.selected = true; ch = true; } });
+  if (!partial) prev.forEach(f => { if (!now.has(f) && f.selected) { f.selected = false; ch = true; } });
+  UV.live = partial ? new Set([...prev, ...now]) : now;
+  if (ch) { const add = [...now].filter(f => !prev.has(f)); if (add.length) opAutoCheck(add); update(); draw(); sideRender(); }
+  hint(now.size ? `✓ ${now.size} Feld${now.size > 1 ? 'er' : ''} aus dem UAV Editor markiert – live, auch in der Missionsplanung.` : 'Im UAV Editor Felder anhaken – sie werden sofort auch in der Missionsplanung markiert.');
+};
 window.onUaveSel = r => {
   const tb = $('uvTake'); if (tb) { tb.disabled = false; tb.textContent = '✔ Markierte Felder übernehmen'; }
   // Hinweise im UAV-Editor-Tab direkt in der Leiste zeigen (kein Dialog – der läge sonst unter der eingebetteten Seite)
