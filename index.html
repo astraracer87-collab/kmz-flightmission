@@ -285,7 +285,7 @@
   #plWx .tile small{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:800}#plWx .tile b{display:block;font-size:15px}#plWx .tile span{display:block;font-size:12px;color:var(--muted)}
   #plWx .notes{list-style:none;margin:4px 0;padding:0}#plWx .notes li{padding:2px 0 2px 22px;position:relative;font-size:13.5px}#plWx .notes li i{position:absolute;left:0;font-style:normal}
   #plWx .wx{width:100%;border-collapse:collapse;font-size:12.5px}#plWx .wx td,#plWx .wx th{padding:3px;text-align:center;border-bottom:1px solid var(--line)}#plWx .wx .o{background:rgba(255,170,0,.25)}#plWx .wx .r{background:rgba(220,40,40,.25)}#plWx .ok{color:#13a538;font-weight:800}
-  #sidePanel .spck{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer}#sidePanel .spck input{all:revert;width:17px;height:17px;accent-color:#00a99d}
+  #sideFelder .spck{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer}#sideFelder .spck input{all:revert;width:17px;height:17px;accent-color:#00a99d}
   #sideWx{flex:1;overflow-y:auto;padding:8px 14px 16px}
   #sideWx{padding:10px 12px 16px}
   .wttop{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:8px}.wttop button{width:34px;height:34px;border-radius:17px;background:var(--sec);color:var(--acc);font-size:18px;font-weight:800}
@@ -338,14 +338,27 @@
   #sideTabs button b{font-size:20px;line-height:1}#sideTabs button span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:13.5px;letter-spacing:.3px}
   #sidePanel.open #sideTabs button:not(.on){visibility:hidden}   /* offenes Fach verdeckt die anderen Laschen */
   #sideTabs button.on{background:var(--acc);color:#fff;width:48px}
-  #sidePanel .sph{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px 4px;font-size:15px}#sidePanel .sph span{color:var(--muted);font-size:13px}
-  #sidePanel .spf{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px 14px}#sidePanel .spf input{grid-column:1/-1}
-  #sidePanel .spf input,#sidePanel .spf select{height:34px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--card);color:var(--txt);font-size:13px;min-width:0}
-  #sidePanel .spa{display:flex;gap:6px;padding:4px 14px 8px;border-bottom:1px solid var(--line)}#sidePanel .spa button{flex:1;height:32px;border-radius:8px;background:var(--sec);color:var(--acc);font-weight:700;font-size:12.5px}
-  #sidePanel .spa button.on{background:#ff7a00;color:#fff}
+  #sideFelder .sph{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px 4px;font-size:15px}#sideFelder .sph span{color:var(--muted);font-size:13px}
+  #sideFelder .spf{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px 14px}#sideFelder .spf input{grid-column:1/-1}
+  #sideFelder .spf input,#sideFelder .spf select{height:34px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--card);color:var(--txt);font-size:13px;min-width:0}
+  #sideFelder .spa{display:flex;gap:6px;padding:4px 14px 8px;border-bottom:1px solid var(--line)}#sideFelder .spa button{flex:1;height:32px;border-radius:8px;background:var(--sec);color:var(--acc);font-weight:700;font-size:12.5px}
+  #sideFelder .spa button.on{background:#ff7a00;color:#fff}
   @media (max-width:1500px){#bPlanGo .bsl{display:none!important}}
   #bPlanGo{height:44px;padding:0 12px;border-radius:12px;font-weight:800;font-size:15px}#bPlanGo:disabled{opacity:.45}
   #sideList{flex:1;overflow-y:auto;padding:4px 8px 12px}
+  #uvHost{position:fixed;left:0;right:0;top:72px;bottom:0;z-index:30;background:var(--bg);display:none;flex-direction:column}#uvHost.open{display:flex}
+  #uvHost .uvbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--line)}#uvHost .uvbar span{flex:1;font-size:13px;color:var(--muted)}#uvHost .uvbar button{height:40px;padding:0 14px}
+  #uvSlot{flex:1;min-height:0}
+  #bUv{display:flex;align-self:flex-end;gap:2px;height:52px;margin-bottom:-1px}
+  #bUv button{height:52px;padding:0 16px;border-radius:12px 12px 0 0;background:var(--sec);color:var(--muted);font-weight:800;font-size:15px;border:1px solid var(--line);border-bottom:none}
+  #bUv button.on{background:var(--card);color:var(--acc);box-shadow:0 -2px 0 var(--acc) inset}
+  /* UAV Editor aktiv: Leiste zeigt nur Tabs (Filter, Suche, Pre-Check gehören zur Karte) */
+  body.uv-on #bar > :not(#bUv):not(.logo):not([data-logo]):not(#bSet){visibility:hidden}
+  .spsim{margin:14px 4px 6px;padding:7px 10px;border-radius:8px;background:rgba(224,120,0,.12);border-left:4px solid #e07800;color:#c46a00;font-size:12.5px;font-weight:800}
+  #topFelder{position:absolute;top:58px;right:0;width:min(760px,94vw);height:min(74vh,780px);background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.35);display:none;flex-direction:column;z-index:40;overflow:hidden}
+  #topFelder.open{display:flex}#topFelder #sideFelder{flex:1;min-height:0}#topFelder #sideQ{display:none}#topFelder .sph{padding-right:56px}
+  #topFelder #sideFelder .spf{grid-template-columns:repeat(4,1fr)}#topFelder #sideFelder .spck{grid-column:span 2}
+  #tfX{position:absolute;top:8px;right:10px;width:36px;height:36px;border-radius:10px;background:var(--sec);color:var(--txt);display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1;padding:0;z-index:2}
   #sideList .spd{font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:10px 6px 3px}
   #sideList .spr{display:flex;gap:10px;align-items:flex-start;padding:7px 8px;border-radius:8px;cursor:pointer}#sideList .spr:hover{background:var(--card2)}#sideList .spr.on{background:rgba(255,122,0,.18)}
   #sideList .spr input{all:revert;width:17px;height:17px;margin:2px 0 0;accent-color:#ff7a00;flex:none}#sideList .spr b{font-size:14px;word-break:break-all}#sideList .spr span{display:block;color:var(--muted);font-size:12px}
@@ -672,7 +685,7 @@ body.bartop #trafWarn{top:84px}
   .licbox{margin-top:6px;border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--card2)}
   .licbox summary{font-weight:700;cursor:pointer;padding:4px 0}
   .licbox ul{margin:4px 0 4px 18px;padding:0}
-  .cbadge.lic.y{background:#0e7a2c}.cbadge.lic.n{background:#8a2a2a}
+  .cbadge.lic.y{background:#0e7a2c}.cbadge.lic.n{background:#d42020}
   .cbadge.lic.mine{box-shadow:0 0 0 2px #fff,0 0 0 4px #1e7bff}
   #geoBub{position:fixed;z-index:19;display:none;width:min(380px,calc(100vw - 110px));background:var(--card);color:var(--txt);border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:10px 12px;font-size:14px}
   #geoBub .gbh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;color:var(--muted)}
@@ -1445,7 +1458,8 @@ function paintStatic() {
     if (V.z >= LABEL_Z) { vis.filter(f => f.selected).forEach(f => drawLabel(f)); vis.filter(f => !f.selected).forEach(f => drawLabel(f)); }
     else if (V.z >= LABEL_ZMIN) drawLabelGroups(vis);   // weiter weg: Namen trotzdem lesbar, dicht liegende als Liste
     else vis.filter(f => f.selected).forEach(f => drawLabel(f)); };
-  if (!pwrAutoRaise()) ord.filter(lowNearPower).forEach(drawPowerWarn);   // zu niedrig geplant, aber Stromleitung am Feld (in den Apps nur, wenn nicht automatisch angehoben wird)   // PC: auf 50 m geplant, aber Stromleitung am Feld
+  if (!pwrAutoRaise()) ord.filter(lowNearPower).forEach(drawPowerWarn);
+  ord.filter(f => !lowNearPower(f) && heightIssue(f)).forEach(drawPowerWarn);   // PC: Name und Höhe passen nicht (M4T unter 70 m, M3T unnötig auf 70 m)   // zu niedrig geplant, aber Stromleitung am Feld (in den Apps nur, wenn nicht automatisch angehoben wird)   // PC: auf 50 m geplant, aber Stromleitung am Feld
   // dipul ist maßgeblich: Symbol und Vincenz-Ringe in der Mitte des dipul-Kreises; OSM-Marker nur, wo dipul keinen Platz hat
   const icons = P.geo === '1' && S.geo.length && V.z >= 9 ? geoAirIcons() : [];
   const nearIcon = a => icons.some(g => Math.hypot((a.lat - g.lat) * 111.2, (a.lon - g.lon) * 71) < 0.6);
@@ -2037,6 +2051,16 @@ function isDroneMismatch(f) {
   if (f.height && Math.abs(f.height - wantH) > 5) return true;
   return false;
 }
+/** PC: Name und Höhe passen nicht zusammen – „…-M4T“ unter 70 m geplant, oder „…-M3T“ auf 70 m, obwohl die Flugbahn keine Stromleitung überquert.
+ *  (M3T auf 50 m über einer Stromleitung meldet schon lowNearPower.) Liefert { t, why } oder null */
+function heightIssue(f) {
+  if (!IS_WEB || !f || f.dup) return null;
+  const d = nameDrone(f.title) || f.drone, h = f.height; if (!d || !h) return null;
+  if (d === 'M4T' && h < DRONE_HEIGHT.M4T - 5) return { t: 'Höhe falsch', why: `Als M4T benannt, aber auf ${h} m geplant – die Matrice 4T fliegt ${DRONE_HEIGHT.M4T} m. Im UAV Editor auf ${DRONE_HEIGHT.M4T} m ändern oder als M3T benennen.` };
+  if (d === 'M3T' && h > DRONE_HEIGHT.M3T + 5 && !touchesPower(f)) return { t: 'Höhe falsch', why: `Als M3T benannt, aber auf ${h} m geplant – ohne Stromleitung auf der Flugbahn fliegt die Mavic 3T ${DRONE_HEIGHT.M3T} m. Im UAV Editor auf ${DRONE_HEIGHT.M3T} m ändern.` };
+  return null;
+}
+const fieldWrong = f => isDroneMismatch(f) || !!heightIssue(f);
 /** Feldkontur aus UAV Editor als Hintergrund der Flugroute (nicht eigenständig wählbar) */
 function drawOutline(f) {
   if (!f.outline) return;
@@ -2065,7 +2089,7 @@ function fieldOnScreen(f) {
   return !(x1 < -20 || y1 < -20 || x0 > W + 20 || y0 > H + 20);
 }
 function drawField(f) {
-  FC = isDroneMismatch(f) ? FCW : (f.cat || f.ue) ? (f.inDst ? FCD : FCC) : FC0;
+  FC = fieldWrong(f) ? FCW : (f.cat || f.ue) ? (f.inDst ? FCD : FCC) : FC0;
   if (f.outline && !f.selected && !f.cat) return;   // nicht markiert: nur die Fläche (drawOutline), Flugroute erst beim Markieren
   ctx.lineJoin = 'round';
   for (const s of f.shapes) {
@@ -2212,10 +2236,10 @@ function drawLabel(f, force) {
   if (x < -150 || y < -30 || x > W + 150 || y > H + 30) return;
   // Kurzname auf der Karte (ohne „_0.443ha_8WP“ und Drohnen-Kürzel) – der volle Name steht in Liste und Details
   const sn = shortTitle(f.title), fs = f.selected ? 15 : 13, hh = f.selected ? 24 : 20;
-  const mm = isDroneMismatch(f);
+  const hi = heightIssue(f), mm = isDroneMismatch(f) || !!hi;
   FC = mm ? FCW : (f.cat || f.ue) ? (f.inDst ? FCD : FCC) : FC0;
   ctx.font = `700 ${fs}px Roboto,system-ui,sans-serif`;
-  const t = f.selected && f.height ? `${mm ? '⚠ ' : ''}${sn} · ${f.height} m${f.drone ? ' · ' + f.drone : ''}` : (mm ? `⚠ ${sn}` : sn);   // markiert: Flughöhe anzeigen; Mismatch: ⚠ voranstellen
+  const t = (f.selected && f.height ? `${mm ? '⚠ ' : ''}${sn} · ${f.height} m${f.drone ? ' · ' + f.drone : ''}` : (mm ? `⚠ ${sn}` : sn)) + (hi ? ' · Höhe falsch' : '');   // markiert: Flughöhe anzeigen; Mismatch: ⚠ voranstellen   // markiert: Flughöhe anzeigen; Mismatch: ⚠ voranstellen
   const w = ctx.measureText(t).width + 12;
   const box = { x: x - w / 2, y: y - hh / 2, w, h: hh };
   if (!f.selected && labelBoxes.some(b => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y)) return;   // kein Platz – Name weglassen
@@ -2570,10 +2594,12 @@ function markDups() {
 }
 function bounds(list) {
   let b = null;
-  for (const f of list) for (const s of f.shapes) for (const [la, lo] of s.pts) {
-    if (!b) b = { n: la, s: la, e: lo, w: lo };
-    else { b.n = Math.max(b.n, la); b.s = Math.min(b.s, la); b.e = Math.max(b.e, lo); b.w = Math.min(b.w, lo); }
-  }
+  const add = (la, lo) => { if (!b) b = { n: la, s: la, e: lo, w: lo }; else { b.n = Math.max(b.n, la); b.s = Math.min(b.s, la); b.e = Math.max(b.e, lo); b.w = Math.min(b.w, lo); } };
+  for (const f of list) { let any = false;
+    for (const s of (f.shapes || [])) for (const [la, lo] of s.pts) { add(la, lo); any = true; }
+    // Felder aus der UAV-Editor-Liste haben teils noch keine Formen geladen – dann Umriss bzw. gespeicherte Grenzen nehmen
+    if (!any && f.bounds) { add(f.bounds.n, f.bounds.e); add(f.bounds.s, f.bounds.w); any = true; }
+    if (!any && f.center) add(f.center[0], f.center[1]); }
   return b;
 }
 
@@ -2762,12 +2788,13 @@ function visible(f) {
   if (!raw) return true;
   if (visMemo.raw !== raw || visMemo.n !== S.files.length) {   // einmal je Suchbegriff: passt überhaupt ein Feld?
     const q = foldTxt(raw);
-    visMemo = { raw, n: S.files.length, q, any: S.files.some(g => !g.dup && ftitle(g).includes(q)) };
+    visMemo = { raw, n: S.files.length, q, any: S.files.some(g => !g.dup && fuzzyHas(ftitle(g), q)) };
   }
-  return !visMemo.any || ftitle(f).includes(visMemo.q) || f.selected;   // nur Ort getippt: Felder nicht ausblenden
+  return !visMemo.any || fuzzyHas(ftitle(f), visMemo.q) || f.selected;   // nur Ort getippt: Felder nicht ausblenden
 }
 function update() {
-  if (IS_WEB) { sideRender(); const gb = $('bPlanGo'); if (gb) gb.disabled = !S.files.some(f => f.selected); }
+  if (IS_WEB) { if (S.files.some(f => f.extra && !f.selected)) S.files = S.files.filter(f => !f.extra || f.selected);   // abgewählt: Felder außerhalb des Filters oben verschwinden wieder
+    sideRender(); const gb = $('bPlanGo'); if (gb) gb.disabled = !S.files.some(f => f.selected); }
   const n = S.files.filter(f => f.selected).length;
   const dups = S.files.filter(f => f.dup).length;
   $('count').innerHTML = `${n} markiert<small>${S.files.length - dups} Felder</small>`;
@@ -2913,14 +2940,89 @@ function goPlace(p) {
 function webCatHits(q) {
   let d = null; try { d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); } catch (e) { }
   const fq = foldTxt(q).replace(/[_\-]+/g, ' '); if (!d || !Array.isArray(d.fields) || fq.length < 2) return [];
-  return d.fields.filter(f => foldTxt(String(f.name)).replace(/[_\-]+/g, ' ').includes(fq))
+  return d.fields.filter(f => fuzzyHas(foldTxt(String(f.name)).replace(/[_\-]+/g, ' '), fq))
     .sort((a, b) => CAT_YEAR(b) - CAT_YEAR(a) || String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
 }
 /** PC: Auswahlliste unter dem Suchfeld – Filter Jahr (Standard: aktuelles Jahr) und Stand (aktiv/archiviert), darunter alle Felder nach Namen sortiert */
 /** PC: aufgeklappte Liste unter dem Suchfeld schließen (Suchbegriff bleibt stehen) */
 /** PC: Suchbegriff oben → Feldliste links öffnen und danach filtern; markieren dort */
+// ================= PC: UAV Editor im Programm (umschaltbar) – dort angehakte Felder hier übernehmen =================
+const UV = { on: false, hid: false, t: 0 };
+const uvAvail = () => IS_WEB && !!A.uaveViewSet && P.uaveView === '1';
+function uvInit() {
+  let b = $('bUv');
+  if (!uvAvail()) { if (b) b.style.display = 'none'; if (UV.on) uvMode(false); return; }
+  if (!b) { b = document.createElement('div'); b.id = 'bUv'; b.title = 'Zwischen Programm und UAV-Editor-Webseite umschalten';   // Tabs ganz links in der Leiste
+    b.innerHTML = '<button data-uv="0">🗺<span class="bsl"> Kitzrettung</span></button><button data-uv="1">🌐<span class="bsl"> UAV Editor</span></button>';
+    const lg = document.querySelector('#bar .logo, #bar [data-logo]'); lg ? lg.after(b) : $('bar').prepend(b);
+    b.querySelectorAll('[data-uv]').forEach(x => x.onclick = () => uvMode(x.dataset.uv === '1')); }
+  b.style.display = ''; uvBtn();
+  if (!$('uvHost')) { const h = document.createElement('div'); h.id = 'uvHost';
+    h.innerHTML = `<div class="uvbar"><button class="b-ok" id="uvTake">✔ Markierte Felder übernehmen</button><span>Im UAV Editor Felder anhaken, dann hier übernehmen – sie werden auf der Karte markiert.</span><button class="b-sec" id="uvRe" title="UAV Editor neu laden">↻ Neu laden</button></div><div id="uvSlot"><div class="meta" style="padding:30px;text-align:center">UAV Editor wird geladen …</div></div>`;
+    document.body.appendChild(h);
+    $('uvRe').onclick = () => A.uaveViewReload && A.uaveViewReload();
+    $('uvTake').onclick = () => { $('uvTake').disabled = true; $('uvTake').textContent = '… liest Auswahl'; A.uaveViewRead(); };
+    addEventListener('resize', () => { if (UV.on) uvPlace(); }); }
+}
+const uvBtn = () => { const b = $('bUv'); if (b) b.querySelectorAll('[data-uv]').forEach(x => x.classList.toggle('on', (x.dataset.uv === '1') === UV.on)); document.body.classList.toggle('uv-on', UV.on); };
+/** eingebettete Seite genau über den Platzhalter legen (sie liegt immer obenauf – Dialoge/Seiten blenden sie kurz aus) */
+function uvPlace() { const s = $('uvSlot'); if (!s) return; const r = s.getBoundingClientRect(); A.uaveViewSet(JSON.stringify({ on: !UV.hid, x: r.left, y: r.top, w: r.width, h: r.height })); }
+function uvMode(on) {
+  UV.on = !!on && uvAvail(); const h = $('uvHost'); if (h) h.classList.toggle('open', UV.on); uvBtn();
+  clearInterval(UV.t);
+  if (!UV.on) { A.uaveViewSet && A.uaveViewSet(JSON.stringify({ on: false })); return; }
+  UV.hid = false; requestAnimationFrame(uvPlace);
+  UV.t = setInterval(() => { const cover = $('dlg').classList.contains('open') || !!document.querySelector('.page.open') || ($('coachBub') && $('coachBub').style.display === 'block');
+    if (cover !== UV.hid) { UV.hid = cover; uvPlace(); } }, 300);
+}
+/** Ergebnis aus der UAV-Editor-Seite: Felder per Name (+ Drohne, Jahr) in unserer Liste finden und markieren */
+const uvInfo = (t, x, l) => { confirmDlg(t, x, l, 'OK', null); const n = $('dNo'); if (n) n.style.display = 'none'; };
+window.onUaveSel = r => {
+  const tb = $('uvTake'); if (tb) { tb.disabled = false; tb.textContent = '✔ Markierte Felder übernehmen'; }
+  if (!r || !r.ok) return uvInfo('Übernehmen nicht möglich', (r && r.error) || 'Die Auswahl konnte nicht gelesen werden.', []);
+  if (!r.rows.length) return uvInfo('Nichts angehakt', 'Im UAV Editor ist in der Feldliste noch kein Feld angehakt.', []);
+  const all = catAll(), nm = t => foldTxt(t).replace(/\s+/g, ' ').trim(), drOf = t => /4/.test(t) ? 'M4T' : /3/.test(t) ? 'M3T' : '';
+  if (!all.length) return uvInfo('Feldliste fehlt', 'Bitte zuerst „↻ UAV-Felder holen“ – dann können die Felder zugeordnet werden.', []);
+  const found = [], miss = [];
+  r.rows.forEach(x => { let c = all.filter(cf => nm(cf.name) === nm(x.name));
+    if (c.length > 1) { const y = c.filter(cf => !x.year || String(CAT_YEAR(cf)) === x.year.slice(0, 4)); if (y.length) c = y; }
+    if (c.length > 1) { const d = c.filter(cf => !drOf(x.drone) || cfDrone(cf) === drOf(x.drone)); if (d.length) c = d; }
+    if (c.length > 1) c = c.filter(cf => !cf.arch).concat(c.filter(cf => cf.arch));
+    c.length ? found.push(c[0]) : miss.push(x.name); });
+  S.files.forEach(f => f.selected = false);
+  const fs = found.map(cf => webCatPick(cf, 'all')).filter(Boolean);
+  uvMode(false); if (fs.length) fitBounds(padBB(bounds(fs))); update(); draw(); sideRender();
+  const part = r.want != null && r.rows.length < r.want ? `Nur ${r.rows.length} von ${r.want} angehakten Feldern gelesen – bitte im UAV Editor einmal durch die Liste scrollen und erneut übernehmen.` : '';
+  if (miss.length || part) uvInfo(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} übernommen`, [part, miss.length ? `Nicht in unserer Feldliste (evtl. „↻ UAV-Felder holen“):` : ''].filter(Boolean).join('\n\n'), miss.slice(0, 20));
+  else toast(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} aus dem UAV Editor übernommen`, 'ok', 3500);
+};
+// ================= PC: Feldsuche oben in der Leiste ODER links zum Ausklappen (Einstellung) – beide nutzen dieselbe Liste mit allen Filtern =================
+const searchTop = () => IS_WEB && P.searchUi === 'top';
+function topFelderInit() {
+  let t = $('topFelder'); if (t) return t; const sbx = $('searchBox'); if (!sbx) return null;
+  t = document.createElement('div'); t.id = 'topFelder'; t.innerHTML = '<button id="tfX" title="Liste schließen">✕</button>'; sbx.appendChild(t);
+  t.addEventListener('pointerdown', e => e.stopPropagation());
+  $('tfX').onclick = e => { e.stopPropagation(); topFelderClose(); };
+  return t;
+}
+function topFelderClose() { const t = $('topFelder'); if (t) t.classList.remove('open'); S.qOpen = false; }
+/** Liste an den gewählten Ort hängen: oben unter die Suche oder links ins Fach (Lasche „Felder“ nur dann) */
+function fieldUiApply() {
+  const sf = $('sideFelder'), p = $('sidePanel'); if (!sf || !p) return;
+  const lash = p.querySelector('#sideTabs [data-st="felder"]');
+  if (searchTop()) { const t = topFelderInit(); if (!t) return; if (!t.contains(sf)) t.appendChild(sf); sf.style.display = 'flex';
+    if (lash) lash.style.display = 'none'; if (SIDE.tab === 'felder') { SIDE.tab = 'wetter'; if (p.classList.contains('open')) S.sideShow(false); } }
+  else { topFelderClose(); if (!p.contains(sf)) p.insertBefore(sf, $('sideWxBox')); if (lash) lash.style.display = ''; sf.style.display = SIDE.tab === 'felder' ? 'flex' : 'none'; }
+  sideLashState();
+}
+/** Feldliste zeigen – wo immer sie gerade wohnt */
+function fieldListOpen() {
+  if (searchTop()) { const t = topFelderInit(); if (t) { t.classList.add('open'); S.qOpen = true; sideRender(); } return; }
+  const sp = $('sidePanel'); if (!sp) return; if (SIDE.tab !== 'felder') sideTabSet('felder'); if (!sp.classList.contains('open')) S.sideShow(true); else sideRender();
+}
 function webSearchToSide() {
   const box = $('qHits'); if (box) box.innerHTML = ''; setSearchFocus(null);
+  if (searchTop()) { fieldListOpen(); const q = $('q').value.trim(); if (SIDE.q !== q) { SIDE.q = q; $('sideQ').value = q; sideRender(); } return; }
   const sp = $('sidePanel'); if (!sp) return;
   if (!sp.classList.contains('open')) S.sideShow(true);
   if (SIDE.tab !== 'felder') sideTabSet('felder');
@@ -2943,7 +3045,7 @@ function webSearchPanel(box) {
     return (l && +l === t && (!c || Math.abs(l - c) > 60000) ? 'geändert ' : 'erstellt ') + new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }); };
   const list = all.filter(f => (S.qYear === 'alle' || String(CAT_YEAR(f)) === S.qYear) && (S.qStand === 'alle' || (S.qStand === 'archiv') === !!f.arch)
     && (qD === 'alle' || !dOf(f) || dOf(f) === qD)
-    && (!fq || foldTxt(String(f.name)).replace(/[_\-]+/g, ' ').includes(fq)))
+    && (!fq || fuzzyHas(foldTxt(String(f.name)).replace(/[_\-]+/g, ' '), fq)))
     .sort((a, b) => P.wsSort === 'neu' ? (cfT(b) - cfT(a)) || String(a.name).localeCompare(String(b.name), 'de', { numeric: true })
       : String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
   const isSel = cf => S.files.some(x => x.selected && (String((x.uave || {}).id || '') === String(cf.id) || x.title === cf.name));
@@ -2988,7 +3090,8 @@ function sideInit() {
       <select id="sideS"><option value="neu">Neueste zuerst</option><option value="name">Name A–Z</option></select>
       <select id="sideY"></select><select id="sideD"><option value="alle">Alle Drohnen</option><option value="M3T">M3T</option><option value="M4T">M4T</option></select>
       <select id="sideSt"><option value="alle">Aktiv + Archiv</option><option value="aktiv">Nur aktiv</option><option value="archiv">Nur Archiv</option></select>
-      <label class="spck" title="Felder mit gleichem Namensanfang und nahem Planungsdatum (bis 12 h) zu einem Paket zusammenfassen"><input type="checkbox" id="sideGrp"> Gleiche Namen als Paket bündeln</label></div>
+      <label class="spck" title="Felder zu Paketen zusammenfassen"><input type="checkbox" id="sideGrp"> Als Pakete bündeln</label>
+      <select id="sideGm" title="Wonach gebündelt wird"><option value="namedate">nach Name + Datum</option><option value="name">nur nach Name</option><option value="date">nur nach Datum</option></select></div>
     <div class="spa"><button id="sideAll">Alle markieren</button><button id="sideNone">Keine</button><button id="sideNew" style="display:none">Nur neue</button></div>
     <div class="spa" id="sidePlanRow" style="display:none"><button id="sidePlanNew" class="on">📅 Neue Planung mit Auswahl</button></div>
     <div id="sideList"></div></div>
@@ -3010,13 +3113,14 @@ function sideInit() {
   $('sideY').onchange = e => { SIDE.year = e.target.value; sideRender(); };
   $('sideD').onchange = e => { SIDE.drone = e.target.value; sideRender(); };
   $('sideSt').onchange = e => { SIDE.stand = e.target.value; sideRender(); };
-  $('sideAll').onclick = () => { const fs = sideList().slice(0, 300).map(cf => webCatPick(cf, 'all')).filter(Boolean); if (fs.length) fitBounds(padBB(bounds(fs))); draw(); sideRender(); toast(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} markiert`, 'ok', 2000); };
+  $('sideAll').onclick = () => { const fx = foldTxt(SIDE.q.trim()).replace(/[_\-]+/g, ' '); const fs = sideList().filter(cf => !fx || foldTxt(String(cf.name)).replace(/[_\-]+/g, ' ').includes(fx)).slice(0, 300).map(cf => webCatPick(cf, 'all')).filter(Boolean); if (fs.length) fitBounds(padBB(bounds(fs))); draw(); sideRender(); toast(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} markiert`, 'ok', 2000); };
   $('sideNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); draw(); sideRender(); };
   $('sideNew').onclick = () => { SIDE.onlyNew = !SIDE.onlyNew; sideRender(); };
   $('sideGrp').onchange = e => { setP('sideGroup', e.target.checked ? '1' : '0'); sideRender(); };
+  $('sideGm').onchange = e => { setP('sideGroupBy', e.target.value); SIDE.openG = new Set(); sideRender(); };
   p.addEventListener('pointerdown', e => e.stopPropagation());
-  planBtnState();
-  if (P.sideOpen === '1') open(true);
+  planBtnState(); fieldUiApply();
+  if (P.sideOpen === '1' && !(searchTop() && SIDE.tab === 'felder')) open(true);
 }
 function sideLashState() { const p = $('sidePanel'); if (!p) return; const o = p.classList.contains('open'); p.querySelectorAll('#sideTabs [data-st]').forEach(b => b.classList.toggle('on', o && b.dataset.st === (SIDE.tab || 'felder'))); }
 /** Leiste links: Reiter „Felder“ oder „Planung“ (Planung nur, wenn das Planungstool eingeschaltet ist) */
@@ -3024,7 +3128,7 @@ function sideTabSet(t) {
   if (t === 'plan' && P.planTool !== '1') t = 'felder';
   SIDE.tab = t; const p = $('sidePanel'); if (!p) return;
   sideLashState();
-  $('sideFelder').style.display = t === 'felder' ? 'flex' : 'none'; $('sidePlan').style.display = t === 'plan' ? 'flex' : 'none'; $('sideWxBox').style.display = t === 'wetter' ? 'flex' : 'none';
+  if (!searchTop()) $('sideFelder').style.display = t === 'felder' ? 'flex' : 'none'; $('sidePlan').style.display = t === 'plan' ? 'flex' : 'none'; $('sideWxBox').style.display = t === 'wetter' ? 'flex' : 'none';
   p.classList.toggle('wide', t === 'plan');
   if (t === 'plan') { if (!PL.cur) planNewFromSel(); planRender(); } else if (t === 'wetter') wxTabRender(); else sideRender();
 }
@@ -3144,13 +3248,14 @@ function sideList() {
   const all = catAll(), Y = new Date().getFullYear(); if (SIDE.year == null) SIDE.year = String(Y);
   const fq = foldTxt(SIDE.q.trim()).replace(/[_\-]+/g, ' ');
   return all.filter(f => (SIDE.year === 'alle' || String(CAT_YEAR(f)) === SIDE.year) && (SIDE.stand === 'alle' || (SIDE.stand === 'archiv') === !!f.arch)
-    && (SIDE.drone === 'alle' || !cfDrone(f) || cfDrone(f) === SIDE.drone) && (!fq || foldTxt(String(f.name)).replace(/[_\-]+/g, ' ').includes(fq))
+    && (SIDE.drone === 'alle' || !cfDrone(f) || cfDrone(f) === SIDE.drone) && (!fq || fuzzyHas(foldTxt(String(f.name)).replace(/[_\-]+/g, ' '), fq))
     && (!SIDE.onlyNew || (S.newIds && S.newIds.has(String(f.id)))))
     .sort((a, b) => SIDE.sort === 'name' ? String(a.name).localeCompare(String(b.name), 'de', { numeric: true }) : (cfTime(b) - cfTime(a)) || String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
 }
 let sideRaf = 0;
+const fieldListShown = () => { const p = $('sidePanel'), t = $('topFelder'); return !!((t && t.classList.contains('open')) || (p && p.classList.contains('open') && $('sideFelder') && p.contains($('sideFelder')))); };
 function sideRender() {
-  const p = $('sidePanel'); if (!p || !p.classList.contains('open')) return;
+  const p = $('sidePanel'); if (!p || !fieldListShown()) return;
   cancelAnimationFrame(sideRaf); sideRaf = requestAnimationFrame(() => {
     const all = catAll(), Y = new Date().getFullYear(), years = [...new Set(all.map(CAT_YEAR).filter(Boolean))].sort((a, b) => b - a);
     if (SIDE.year == null) SIDE.year = String(Y);
@@ -3159,29 +3264,40 @@ function sideRender() {
     $('sidePlanRow').style.display = pOn && nSel ? '' : 'none'; $('sidePlanNew').textContent = `📅 Neue Planung mit ${nSel} markierten Feld${nSel === 1 ? '' : 'ern'}`;
     const nb = $('sideNew'), nn = S.newIds ? S.newIds.size : 0; nb.style.display = nn ? '' : 'none'; nb.textContent = SIDE.onlyNew ? 'Alle zeigen' : `Nur neue (${nn})`; nb.classList.toggle('on', !!SIDE.onlyNew);
     const list = sideList(), box = $('sideList'), st = box.scrollTop, dd = t => t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
-    $('sideN').textContent = list.length + ' Feld' + (list.length === 1 ? '' : 'er');
+    { const fx = foldTxt(SIDE.q.trim()).replace(/[_\-]+/g, ' '), ne = fx ? list.filter(cf => foldTxt(String(cf.name)).replace(/[_\-]+/g, ' ').includes(fx)).length : list.length;
+      $('sideN').textContent = ne + ' Feld' + (ne === 1 ? '' : 'er') + (ne < list.length ? ` + ${list.length - ne} ähnliche` : ''); }
     // Felder mit gleichem Namensanfang zu Paketen bündeln (z. B. „Aumenau-1…9“), Paket als Ganzes oder einzeln anwählbar
     const gKey = n => fieldGroupKey(n).toLowerCase();
     // Pakete: gleicher Namensanfang UND Planung nah beieinander (Lücke über 12 h = neuer Termin, z. B. ein Landwirt mit mehreren Feldgruppen)
-    const grpOn = P.sideGroup !== '0'; $('sideGrp').checked = grpOn;
-    const tPlan = cf => { const c = dOk(cf.created || (cf.meta || {}).created), l = dOk(cf.lm); return c ? +c : l ? +l : 0; };
+    const grpOn = P.sideGroup !== '0', gBy = ['name', 'date'].includes(P.sideGroupBy) ? P.sideGroupBy : 'namedate'; $('sideGrp').checked = grpOn;
+    $('sideGm').value = gBy; $('sideGm').style.display = grpOn ? '' : 'none';
+    const tPlan = cf => cfTime(cf);   // wie die Tagesüberschriften: zuletzt angelegt/geändert (manche Felder tragen als „angelegt“ nur den 01.01.)
     const ckey = new Map(), byP = new Map(), multi = new Set();
-    if (grpOn) { list.slice(0, 500).forEach(cf => { const k = gKey(cf.name); (byP.get(k) || byP.set(k, []).get(k)).push(cf); });
+    // Bündeln nach: Name + Datum (gleicher Namensanfang, Termin bis 12 h auseinander) · nur Name · nur Datum (gleicher Tag)
+    const dayKey = cf => { const t = tPlan(cf); return t ? new Date(t).toDateString() : 'ohne'; };
+    if (grpOn && gBy === 'date') list.slice(0, 500).forEach(cf => ckey.set(cf, 'd:' + dayKey(cf)));
+    else if (grpOn && gBy === 'name') list.slice(0, 500).forEach(cf => ckey.set(cf, 'n:' + gKey(cf.name)));
+    else if (grpOn) { list.slice(0, 500).forEach(cf => { const k = gKey(cf.name); (byP.get(k) || byP.set(k, []).get(k)).push(cf); });
       byP.forEach((arr, k) => { arr.sort((a, b) => tPlan(a) - tPlan(b)); let c = 0, last = null; arr.forEach(cf => { const t = tPlan(cf); if (last != null && t - last > 12 * 3600000) c++; last = t; ckey.set(cf, k + '#' + c); }); if (c > 0) multi.add(k); }); }
+    const fqx = foldTxt(SIDE.q.trim()).replace(/[_\-]+/g, ' '), isEx = cf => !fqx || foldTxt(String(cf.name)).replace(/[_\-]+/g, ' ').includes(fqx);
+    const simil = list.slice(0, 500).map((cf, k) => ({ cf, k })).filter(x => !isEx(x.cf));   // nur über die Tippfehler-Suche gefunden
     const groups = [], gi = new Map();
-    list.slice(0, 500).forEach((cf, k) => { const key = grpOn ? ckey.get(cf) : 'id:' + cf.id; let g = gi.get(key); if (!g) { g = { key, label: String(cf.name).replace(/[-_\s]+(M3T|M4T|M30T|M3E)\s*$/i, '').replace(/[-_\s]+\d[\w+.]*$/, '').replace(/[-_\s]+$/, ''), items: [] }; gi.set(key, g); groups.push(g); } g.items.push({ cf, k }); });
-    if (grpOn) groups.forEach(g => { if (g.items.length > 1 && multi.has(gKey(g.items[0].cf.name))) { const t = tPlan(g.items[0].cf); if (t) g.label += ' · ' + new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }); } });   // gleicher Name, anderer Termin: Datum dazu
+    list.slice(0, 500).forEach((cf, k) => { if (!isEx(cf)) return; const key = grpOn ? ckey.get(cf) : 'id:' + cf.id; let g = gi.get(key); if (!g) { g = { key, label: String(cf.name).replace(/[-_\s]+(M3T|M4T|M30T|M3E)\s*$/i, '').replace(/[-_\s]+\d[\w+.]*$/, '').replace(/[-_\s]+$/, ''), items: [] }; gi.set(key, g); groups.push(g); } g.items.push({ cf, k }); });
+    if (grpOn && gBy === 'date') groups.forEach(g => { const t = tPlan(g.items[0].cf); g.label = t ? new Date(t).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : 'ohne Datum'; });
+    if (grpOn && gBy === 'namedate') groups.forEach(g => { if (g.items.length > 1 && multi.has(gKey(g.items[0].cf.name))) { const t = tPlan(g.items[0].cf); if (t) g.label += ' · ' + new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }); } });   // gleicher Name, anderer Termin: Datum dazu
     SIDE.openG = SIDE.openG || new Set();
     const row = ({ cf, k }, sub) => { const t = cfTime(cf), c = dOk(cf.created || (cf.meta || {}).created), l = dOk(cf.lm), ch = l && +l === t && (!c || Math.abs(l - c) > 60000), isNew = S.newIds && S.newIds.has(String(cf.id));
       return `<label class="spr${cfSel(cf) ? ' on' : ''}${sub ? ' sub' : ''}" data-k="${k}"><input type="checkbox"${cfSel(cf) ? ' checked' : ''}><div><b>${esc(cf.name)}</b>${isNew ? ' <i class="spnew">NEU</i>' : ''}<span>${t ? (ch ? 'geändert ' : 'erstellt ') + (SIDE.sort === 'neu' ? new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : dd(t)) : ''}${cf.area ? ' · ' + fieldArea(cf.area) : ''}${cfDrone(cf) ? ' · ' + cfDrone(cf) : ''}${cf.arch ? ' · Archiv' : ''}</span></div></label>`; };
     let lastDay = '';
     box.innerHTML = !all.length ? '<div class="meta" style="padding:12px">Noch keine Feldliste – „↻ UAV-Felder holen“ klicken.</div>'
-      : groups.length ? groups.map((g, gix) => { const t = cfTime(g.items[0].cf), day = SIDE.sort === 'neu' ? dd(t) : '';
+      : groups.length ? groups.map((g, gix) => { const t = cfTime(g.items[0].cf), day = SIDE.sort === 'neu' && !(grpOn && gBy === 'date' && g.items.length > 1) ? dd(t) : '';
         const hd = day && day !== lastDay ? `<div class="spd">${t ? new Date(t).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : 'ohne Datum'}</div>` : ''; lastDay = day || lastDay;
         if (g.items.length === 1) return hd + row(g.items[0]);
         const nSel = g.items.filter(x => cfSel(x.cf)).length, op = SIDE.openG.has(g.key) || !!SIDE.q.trim(), nNew = g.items.filter(x => S.newIds && S.newIds.has(String(x.cf.id))).length;
         return hd + `<div class="spg${nSel === g.items.length ? ' on' : ''}" data-g="${gix}"><input type="checkbox"${nSel === g.items.length ? ' checked' : ''} data-ind="${nSel && nSel < g.items.length ? 1 : 0}"><div class="spgn"><b>${esc(g.label)}</b> <em>${g.items.length} Felder${nSel ? ` · ${nSel} markiert` : ''}</em>${nNew ? ` <i class="spnew">${nNew} NEU</i>` : ''}</div>${P.planTool === '1' ? '<button class="spgx spgp" title="Neue Planung mit diesem Paket">📅</button>' : ''}<button class="spgx" title="Felder zeigen/verbergen">${op ? '▾' : '▸'}</button></div>`
           + (op ? g.items.map(x => row(x, true)).join('') : ''); }).join('')
+        + (simil.length ? `<div class="spsim">Ähnliche Treffer – vielleicht vertippt?</div>` + simil.map(x => row(x)).join('') : '')
+      : simil.length ? `<div class="spsim">Kein genauer Treffer. Ähnliche Treffer – vielleicht vertippt?</div>` + simil.map(x => row(x)).join('')
       : '<div class="meta" style="padding:12px">Keine Felder für diese Filter.</div>';
     box.querySelectorAll('[data-ind="1"]').forEach(c => c.indeterminate = true);
     box.querySelectorAll('.spg').forEach(el => { const g = groups[+el.dataset.g];
@@ -3215,7 +3331,7 @@ function newFieldsCheck(manual) {
     S.files.forEach(f => f.selected = false);
     const fs = neu.map(cf => webCatPick(cf, 'all')).filter(Boolean);
     if (fs.length) fitBounds(padBB(bounds(fs))); draw();
-    SIDE.onlyNew = true; const sp = $('sidePanel'); if (SIDE.tab !== 'felder') sideTabSet('felder'); if (sp && !sp.classList.contains('open')) S.sideShow(true); else sideRender();
+    SIDE.onlyNew = true; fieldListOpen();
   });
   $('dNo').textContent = 'Nein';
 }
@@ -3255,7 +3371,7 @@ function searchHits() {
   box.innerHTML = '';
   if (!q) return;
   const fq = foldTxt(q);
-  const hits = S.files.filter(f => !f.dup && ftitle(f).includes(fq))   // Umlaute/Groß-Klein egal
+  const hits = S.files.filter(f => !f.dup && fuzzyHas(ftitle(f), fq))   // Umlaute/Groß-Klein egal
     .sort((a, b) => a.title.localeCompare(b.title, 'de', { numeric: true }));
   const loc = placeHits(q);
   const raw = $('q').value.trim();
@@ -4226,10 +4342,12 @@ function covBadges(layer, reg) {
   const basisOf = c => c.av ? 'AV ' + (/wildtier|kitz/i.test(c.av.name || '') ? 'Wildtierrettung' : (c.av.name || '').slice(0, 24)) : c.ae ? 'Allgemeinerlaubnis' : '';
   const titleOf = c => c.av ? (c.av.name || 'Allgemeinverfügung') : c.ae ? 'Allgemeinerlaubnis der Landesluftfahrtbehörde – nur mit A2-Fernpilotenzeugnis' : '';
   const ok1 = !!(c1.ae || c1.av), ok2 = !!(c2.ae || c2.av);
-  if (!ok1 && !ok2) return '';
+  // nicht möglich: rot mit ✗ (z. B. „A1/A3 ✗“ neben „A2 + Allgemeinerlaubnis ✓“)
+  const no = (k, title) => `<i class="cbadge lic n${k === mine ? ' mine' : ''}" title="${esc(title)}">${k === 'A2' ? 'A2' : 'A1/A3'} ✗</i>`;
+  if (!ok1 && !ok2) return no('A1A3', 'Mit A1/A3 keine Ausnahme – nur mit Zustimmung der zuständigen Stelle') + no('A2', 'Auch mit A2 keine Allgemeinerlaubnis/-verfügung – nur mit Zustimmung der zuständigen Stelle');
   const b1 = ok1 ? basisOf(c1) : null, b2 = ok2 ? basisOf(c2) : null;
   if (ok1 && ok2 && b1 === b2) return badge(['A1A3', 'A2'], b1, titleOf(c2));
-  return (ok1 ? badge(['A1A3'], b1, titleOf(c1)) : '') + (ok2 ? badge(['A2'], b2, titleOf(c2)) : '');
+  return (ok1 ? badge(['A1A3'], b1, titleOf(c1)) : no('A1A3', 'Mit A1/A3 nicht erlaubt – die Allgemeinerlaubnis setzt A2 voraus')) + (ok2 ? badge(['A2'], b2, titleOf(c2)) : no('A2', 'Mit A2 keine Allgemeinerlaubnis/-verfügung'));
 }
 // Erlaubt, aber nur mit seitlichem Abstand (1:1-Regel bzw. kein direkter Überflug) → orange statt grün
 const AE_DIST = ['kraftwerke', 'umspannwerke', 'stromleitungen', 'windkraftanlagen', 'industrieanlagen', 'behoerden', 'polizei'];
@@ -4772,6 +4890,25 @@ window.onOsmLines = () => { loadOsmLines(); loadObstacles(); };
 // ---------- Hindernisse aus OSM: Windräder, Masten/Türme/Schornsteine, Bahnstrecken ----------
 S.obs = []; S.rails = []; S.places = [];
 function foldTxt(t) { return String(t || "").toLowerCase().replace(/ß/g, "ss").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+/** Suche mit Tippfehlern: „aumen“ findet auch „Amenau“. Erst normal (enthält), ab 4 Buchstaben ein Fehler erlaubt, ab 8 zwei
+ *  (Buchstabe fehlt, zu viel, falsch oder zwei vertauscht). hay und q schon mit foldTxt vereinfacht. */
+function fuzzyHas(hay, q) {
+  if (!q) return true; if (hay.includes(q)) return true;
+  const m = q.length; if (m < 4) return false;
+  const K = m >= 8 ? 2 : 1;
+  for (let i = 0; i < hay.length; i++) for (let L = Math.max(1, m - K); L <= m + K && i + L <= hay.length; L++) if (editDist(hay.substr(i, L), q, K) <= K) return true;
+  return false;
+}
+/** Abstand zweier kurzer Wörter (Einfügen, Löschen, Ersetzen, Vertauschen), bricht ab, sobald mehr als K */
+function editDist(a, b, K) {
+  const n = a.length, m = b.length; if (Math.abs(n - m) > K) return K + 1;
+  let p2 = null, p = Array.from({ length: m + 1 }, (_, j) => j);
+  for (let i = 1; i <= n; i++) { const c = [i]; let mn = i;
+    for (let j = 1; j <= m; j++) { let v = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (p2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, p2[j - 2] + 1); c.push(v); mn = Math.min(mn, v); }
+    if (mn > K) return K + 1; p2 = p; p = c; }
+  return p[m];
+}
 function loadObstacles() {
   if (!A.osmObstacles) { S.obs = []; mergeMastrWind(); draw(); return; }
   try {
@@ -7201,7 +7338,8 @@ function paintOpFocus() {
 /** PC-Suche: Karte grau, nur Felder aus der aktuellen Suchliste (markierte in Markierungsfarbe) – keine Geozonen, keine anderen Felder */
 function paintSideFocus() {
   let fs = S.files.filter(f => f.selected && f.center);
-  if (!fs.length) { S.sideTmp = S.sideTmp || new Map(); fs = sideList().slice(0, 500).map(cf => S.files.find(x => (x.cat && String((x.uave || {}).id || x.id) === String(cf.id)) || x.title === cf.name)
+  if (!fs.length && SIDE.tab !== 'plan') fs = S.files.filter(f => visible(f) && f.center);   // nichts markiert: Felder nach dem Filter oben (24 h, 48 h, Jahr, Alle)
+  if (!fs.length && SIDE.tab === 'plan') { S.sideTmp = S.sideTmp || new Map(); fs = sideList().slice(0, 500).map(cf => S.files.find(x => (x.cat && String((x.uave || {}).id || x.id) === String(cf.id)) || x.title === cf.name)
     || S.sideTmp.get(cf.id) || (() => { const t = catEntry(cf, false); if (t) S.sideTmp.set(cf.id, t); return t; })()).filter(f => f && f.center); }
   paintFieldsOnly(fs);
 }
@@ -7212,6 +7350,7 @@ function paintFieldsOnly(fs) {
   const ord = fs.filter(f => !S.clHidden.has(f)).filter(fieldOnScreen).sort(byAreaDesc);
   ord.forEach(f => { drawOutline(f); drawField(f); }); ord.filter(f => f.selected).forEach(drawField);
   resetTf(); ctx.setLineDash([]);
+  ord.filter(f => lowNearPower(f) || heightIssue(f)).forEach(drawPowerWarn);
   const one = CL ? CL.singles : fs;
   one.filter(f => f.selected).forEach(f => drawLabel(f, true)); one.filter(f => !f.selected).forEach(f => drawLabel(f, true));
   if (CL) drawClusters(CL.clusters);
@@ -8279,12 +8418,14 @@ function liteSearch(afterRefresh) {
     return `<label class="lrow${on ? ' on' : ''}"><input type="checkbox" data-id="${esc(f.id)}"${on ? ' checked' : ''}><span><b>${esc(f.name)}</b><em>${[f.area ? fieldArea(f.area) : '', dd ? DN[dd] || dd : '', h ? h + ' m' : ''].filter(Boolean).join(' · ')}${conv}</em></span></label>`; };
   const render = () => {
     const t = fold(q.value.trim()), picked = all.filter(f => sel.has(String(f.id)));
-    const hits = t.length >= 3 ? all.filter(f => !sel.has(String(f.id)) && fold(f.name + ' ' + ((f.meta || {}).by || '')).includes(t)) : [];
+    const hits = t.length >= 3 ? all.filter(f => !sel.has(String(f.id)) && fuzzyHas(fold(f.name + ' ' + ((f.meta || {}).by || '')), t)) : [];
     $('lInfo').textContent = !d ? 'Noch keine Feldliste – mit Internet ↻ tippen.' : t.length >= 3 && !hits.length ? 'Kein Feld gefunden.' : '';
     if (S.liteRefresh && d) $('lInfo').textContent = ($('lInfo').textContent ? $('lInfo').textContent + ' ' : '') + 'Suche im Hintergrund nach neuen Feldern…';
-    list.innerHTML = (picked.length ? picked.map(row).join('') + (hits.length ? '<div class="lsep"></div>' : '') : '') + hits.slice(0, 100).map(row).join('');
-    allB.disabled = !hits.length; allB.textContent = hits.length ? `Alle markieren (${Math.min(hits.length, 100)})` : 'Alle markieren';
-    allB.onclick = () => { hits.slice(0, 100).forEach(f => sel.add(String(f.id))); render(); };
+    const exact = hits.filter(f => fold(f.name + ' ' + ((f.meta || {}).by || '')).includes(t)), sim = hits.filter(f => !exact.includes(f));   // genaue Treffer oben, ähnliche (Tippfehler) abgesetzt darunter
+    list.innerHTML = (picked.length ? picked.map(row).join('') + (hits.length ? '<div class="lsep"></div>' : '') : '') + exact.slice(0, 100).map(row).join('')
+      + (sim.length ? `<div class="spsim">${exact.length ? '' : 'Kein genauer Treffer. '}Ähnliche Treffer – vielleicht vertippt?</div>` + sim.slice(0, 30).map(row).join('') : '');
+    allB.disabled = !exact.length; allB.textContent = exact.length ? `Alle markieren (${Math.min(exact.length, 100)})` : 'Alle markieren';
+    allB.onclick = () => { exact.slice(0, 100).forEach(f => sel.add(String(f.id))); render(); };
     list.querySelectorAll('input[data-id]').forEach(cb => cb.onchange = () => { cb.checked ? sel.add(cb.dataset.id) : sel.delete(cb.dataset.id); render(); });
     upd();
   };
@@ -8437,6 +8578,7 @@ function pcFieldRow(x, idx) {
   const flags = [low ? ['⚠', `Unter ${pwrH()} m über Stromleitung geplant`, '#d42020'] : null,
     auto.some(i => pcAuto(i) === 'pwr') ? ['⚡', 'Stromleitung – Netzbetreiber wird informiert', '#8e24aa'] : null,
     auto.some(i => pcAuto(i) === 'nat') ? ['🌿', 'Schutzgebiet – zuständige Stelle wird informiert', '#2e7d32'] : null,
+    heightIssue(x.f) && !low ? ['⚠', 'Höhe falsch – ' + heightIssue(x.f).why, '#d42020'] : null,
     its.some(i => /Risikominimierung/.test(i.t)) ? ['↔', 'Risikominimierung angeraten: Bahnen parallel planen', '#c77800'] : null,
     prob.length && v.k === 'a13' ? ['!', prob.length + ' Hinweis' + (prob.length > 1 ? 'e' : ''), '#e07800'] : null].filter(Boolean);
   const li = (i, c) => `<li title="${esc(i.p || '')}"><span class="pci" style="background:${c}1f;color:${c}">${esc(i.ico)}</span><div><b>${esc(i.t)}</b><span>${esc(pcShort(i.p))}</span></div></li>`;
@@ -8578,6 +8720,7 @@ function liteCardsHtml(b, o) {
       `<div class="lrules"><span>Hinweis:</span> Überflughöhe in den Einstellungen änderbar · nie unter der Leitung durch</div>`)
     : card('⚠️', '#e07800', `Falsch geplant: ${f.height} m über einer Stromleitung`, `${multi ? esc(f.title) + ' – ' : ''}An Stromleitungen fliegen wir <b>${pwrH()} m hoch</b>. Diese Mission im UAV Editor auf <b>${pwrH()} m</b> umplanen${IS_WEB ? '' : ' – oder in den Einstellungen „Überflughöhe an Stromleitungen“ einschalten'}.`,
       `<div class="lrules"><span>Zu tun:</span> im UAV Editor Flughöhe auf <b>${pwrH()} m</b> ändern und neu speichern</div>`));
+  sel.forEach(f => { const hi = heightIssue(f); if (hi && !lowNearPower(f)) card('⚠️', '#e07800', `Höhe falsch: ${f.height} m`, `${multi ? esc(f.title) + ' – ' : ''}${esc(hi.why)}`, `<div class="lrules"><span>Zu tun:</span> im UAV Editor die Flughöhe korrigieren und neu speichern</div>`); });
   // Falsche Drohne/Höhe: wird beim Import umgerechnet – nur auf der Fernsteuerung; am PC steht noch nicht fest, wer mit welcher Drohne fliegt
   const wantH = DRONE_HEIGHT[P.drone];   // auch UAV-Editor-Felder (Lite-Suche): andere Drohne/Höhe → wird beim Import umgerechnet
   const mm = sel.filter(f => isDroneMismatch(f) || (f.cat && P.drone && ((f.drone && f.drone !== P.drone) || (wantH && f.height && Math.abs(f.height - wantH) > 5))));
@@ -8787,6 +8930,7 @@ function webInit() {
     });
     ui();
   }
+  setTimeout(uvInit, 0);
   const sb = $('bSync');
   if (sb) {
     sb.style.display = ''; sb.innerHTML = '↻ <span class="bsl">UAV-Felder holen</span><span class="bss">UAV-Felder</span>'; sb.title = 'Feldliste aus dem UAV Editor neu holen (neue und geänderte Felder)';
@@ -8814,6 +8958,13 @@ function webInit() {
     const nv = document.createElement('div'); nv.className = 'set'; nv.id = 'setNetOv';
     nv.innerHTML = '<div class="l"><div class="t">Betroffene Netzbetreiber ermitteln</div><div class="v">Listet alle Netzbetreiber, deren Freileitungen eure Felder berühren – mit E-Mail-Adresse und ob schon eine Vereinbarung besteht. So seht ihr, mit wem ihr noch sprechen müsst.</div></div><button class="b-sec" id="bNetOv">Ermitteln</button>';
     d.after(nv); $('bNetOv').onclick = () => webNetOverview();
+    const su = document.createElement('div'); su.className = 'set'; su.id = 'setSearchUi';
+    su.innerHTML = '<div class="l"><div class="t">Feldsuche</div><div class="v">Wo die Feldliste aus dem UAV Editor erscheint: aufklappend <b>oben unter dem Suchfeld</b> oder <b>links als Lasche</b> zum Herausziehen. Beide können dasselbe (Filter, Bündeln, Alle markieren).</div></div><div class="seg"><button data-sui="top">Oben in der Leiste</button><button data-sui="side">Links zum Ausklappen</button></div>';
+    nv.after(su); const suUi = () => su.querySelectorAll('[data-sui]').forEach(b => b.classList.toggle('on', b.dataset.sui === (P.searchUi === 'top' ? 'top' : 'side')));
+    su.querySelectorAll('[data-sui]').forEach(b => b.onclick = () => { setP('searchUi', b.dataset.sui); suUi(); fieldUiApply(); }); suUi();
+    if (A.uaveViewSet) { const uv = document.createElement('div'); uv.className = 'set'; uv.id = 'setUaveView';
+      uv.innerHTML = '<div class="l"><div class="t">UAV Editor im Programm</div><div class="v">Oben in der Leiste zwischen Karte und UAV-Editor-Webseite umschalten. Dort angehakte Felder übernimmt „✔ Markierte Felder übernehmen“ hierher. Im UAV Editor meldest du dich einmal selbst an – die Anmeldung bleibt gespeichert.</div></div><label class="sw"><input type="checkbox" id="sUaveView"><span></span></label>';
+      su.after(uv); $('sUaveView').checked = P.uaveView === '1'; $('sUaveView').onchange = e => { setP('uaveView', e.target.checked ? '1' : '0'); uvInit(); }; }
     const pt = document.createElement('div'); pt.className = 'set'; pt.id = 'setPlanTool';
     pt.innerHTML = '<div class="l"><div class="t">Planungstool</div><div class="v">Einsatzplanung: markierte Wiesen mit Mähdatum und -zeit auf Teams aufteilen (nahe Felder zusammen, alles vor der Mahd fertig), Piloten mit passendem Zeugnis und Drohne vorschlagen, Briefing je Team. Dazu die Pilotenverwaltung. Knopf „📅 Planung“ oben in der Leiste.</div></div><label class="sw"><input type="checkbox" id="sPlanTool"><span></span></label>';
     nv.after(pt); $('sPlanTool').checked = P.planTool === '1';
@@ -8833,14 +8984,23 @@ function webInit() {
   const bn = $('bNone'); if (bn) { bn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="bsl">Auswahl aufheben</span><span class="bss">Aufheben</span>'; bn.title = 'Alle markierten Felder abwählen'; }
   if (sbx) { const sp = document.querySelector('#bar .sp'); if (sp) sp.after(sbx); sbx.classList.add('open', 'inbar');
     $('q').onfocus = () => { S.qOpen = true; searchHits(); };
-    document.addEventListener('pointerdown', e => { if (!sbx.contains(e.target) && S.qOpen) { S.qOpen = false; $('qHits').innerHTML = ''; setSearchFocus(null); } }, true); }
+    document.addEventListener('pointerdown', e => { if (!sbx.contains(e.target) && !e.target.closest('#dlg') && S.qOpen) { S.qOpen = false; $('qHits').innerHTML = ''; setSearchFocus(null); topFelderClose(); } }, true); }
   if (sbx && !$('qMode')) { S.qMode = 'uave'; const m = document.createElement('div'); m.id = 'qMode'; m.className = 'seg';
     m.innerHTML = '<button data-qm="uave" class="on">UAV-Editor</button><button data-qm="ort">Orte</button>'; sbx.querySelector('.row').appendChild(m);
     const ph = () => { $('q').placeholder = S.qMode === 'ort' ? 'Ort suchen…' : 'Feldname aus dem UAV Editor…'; };
     m.querySelectorAll('[data-qm]').forEach(b => b.onclick = () => { if (b.dataset.qm === 'uave' && S.placePin && $('q').value.trim() === S.placePin.n) { $('q').value = ''; S.placePin = null; draw(); }   // zurück zur Feldsuche: Ort raus
       S.qMode = b.dataset.qm; m.querySelectorAll('[data-qm]').forEach(x => x.classList.toggle('on', x === b)); ph(); update(); if (S.qMode === 'ort') photonSearch($('q').value.trim()); $('q').focus(); });
     ph(); }
-  const h1 = $('sc-drohne'); if (h1) h1.textContent = 'UAV Editor'; const n1 = document.querySelector('.setnav [data-sc="drohne"]'); if (n1) n1.textContent = 'UAV Editor';
+  // Oben das, was man oft braucht (Netzbetreiber, Planungstool, Tag/Nacht) – ganz unten das, was man meist nur einmal einrichtet (UAV-Editor-Zugang, Adressdatei)
+  const h1 = $('sc-drohne'); if (h1) h1.textContent = 'Einsatz'; const n1 = document.querySelector('.setnav [data-sc="drohne"]'); if (n1) n1.textContent = 'Einsatz';
+  if (h1 && !$('sc-setup')) {
+    const setOf = t => [...document.querySelectorAll('#pgSet .set')].find(el => { const x = el.querySelector('.t'); return x && x.textContent.trim().startsWith(t); });
+    let at = h1; ['setNetOv', 'setSearchUi', 'setUaveView', 'setPlanTool'].map(id => $(id)).concat([setOf('Tag- / Nachtmodus')]).filter(Boolean).forEach(el => { at.after(el); at = el; });
+    const info = $('sc-info'), hs = document.createElement('h3'); hs.className = 'setcat'; hs.id = 'sc-setup'; hs.textContent = 'Einrichtung – meist nur einmal';
+    if (info) { info.before(hs); let b2 = hs; [$('uUser') && $('uUser').closest('.set'), $('setShared')].filter(Boolean).forEach(el => { b2.after(el); b2 = el; }); }
+    const ni = document.querySelector('.setnav [data-sc="info"]'), nav = document.querySelector('#pgSet .setnav');
+    if (nav) { const nb = document.createElement('button'); nb.dataset.sc = 'setup'; nb.textContent = 'Einrichtung'; nb.onclick = () => hs.scrollIntoView({ behavior: 'smooth', block: 'start' }); ni ? ni.before(nb) : nav.appendChild(nb); }
+  }
   document.querySelectorAll('#pgSet .set').forEach(el => { const t = el.querySelector('.t'); if (t && HIDE.some(h => t.textContent.trim().startsWith(h))) el.classList.add('vhide'); });
   // Kartentyp wählt man über den Ebenen-Knopf – hier bleibt nur der Kartenspeicher (Größe, Leeren)
   document.querySelectorAll('#pgSet .set').forEach(el => { const t = el.querySelector('.t'); if (!t || !t.textContent.trim().startsWith('Kartentyp')) return;
@@ -9716,7 +9876,7 @@ function coachRect(sels) {
   return { l: Math.min(...rs.map(r => r.left)), t: Math.min(...rs.map(r => r.top)), r: Math.max(...rs.map(r => r.right)), b: Math.max(...rs.map(r => r.bottom)) };
 }
 function coachStart(steps, key) {
-  coachEnd(true); coach = { steps, i: 0, key };
+  coachEnd(true); coach = { steps, i: 0, key, n: 0 };
   coach.timer = setInterval(coachTick, 300); coachShow();
 }
 function coachEnd(silent) {
@@ -9725,9 +9885,13 @@ function coachEnd(silent) {
   const [r, b] = coachEls(); r.style.display = 'none'; b.style.display = 'none';
   if (!silent) toast('Einführung beendet – jederzeit wieder unter Einstellungen → „Einführung“.', false, 4000);
 }
-function coachNext() { if (!coach) return; coach.i++; if (coach.i >= coach.steps.length) return coachEnd(true); while (coach && coach.steps[coach.i] && coach.steps[coach.i].skip && coach.steps[coach.i].skip()) coach.i++; if (coach.i >= coach.steps.length) return coachEnd(true); coachShow(); }
+const coachSkip = x => (x.skip && x.skip()) || (!x.info && x.done && x.done());   // übersprungen: passt nicht oder schon erledigt (z. B. Felder schon markiert)
+function coachNext() { if (!coach) return; coach.i++; if (coach.i >= coach.steps.length) return coachEnd(true); while (coach && coach.steps[coach.i] && coachSkip(coach.steps[coach.i])) coach.i++; if (coach.i >= coach.steps.length) return coachEnd(true); coachShow(); }
 function coachShow() {
-  const st = coach.steps[coach.i], [r, b] = coachEls(), n = coach.steps.filter(x => !x.info).length, k = coach.steps.slice(0, coach.i + 1).filter(x => !x.info).length;
+  const st = coach.steps[coach.i], [r, b] = coachEls();
+  // Nummer nur für wirklich gezeigte Schritte – sonst springt es (z. B. 2 → 4), wenn einer übersprungen wurde
+  if (!st.info && coach.shownAt !== coach.i) { coach.n = (coach.n || 0) + 1; coach.shownAt = coach.i; }
+  const k = coach.n || 0, n = k + coach.steps.slice(coach.i + 1).filter(x => !x.info).length;   // Gesamtzahl bleibt stabil; gezeigte Nummern laufen lückenlos
   b.innerHTML = `<div class="cbn">${st.info ? '' : `Schritt ${k} von ${n}`}</div><div class="cbt">${st.text}</div><div class="cbb">${st.btn ? `<button class="b-ok" id="cbGo">${st.btn}</button>` : ''}<button class="cbx" id="cbX">Einführung beenden</button></div>`;
   if (st.btn) $('cbGo').onclick = () => { if (st.onBtn) st.onBtn(); coachNext(); };
   $('cbX').onclick = () => coachEnd(false);
@@ -9776,17 +9940,28 @@ function liteCoach() {
   S.liteImportedAt = 0; coachStart(st, 'coachLite');
 }
 function webCoach() {
+  const side = t => '#sideTabs [data-st="' + t + '"]', sideOpen = t => $('sidePanel') && $('sidePanel').classList.contains('open') && SIDE.tab === t;
   const st = [
-    { info: true, text: '<b>Willkommen bei Mission Kitzrettung für Koordinatoren!</b><br>Kurzer Rundgang: Felder finden, prüfen und die Netzbetreiber bzw. Forstämter informieren.', btn: 'Los geht’s' },
+    { info: true, text: '<b>Willkommen bei Mission Kitzrettung für Koordinatoren!</b><br>Kurzer Rundgang (ca. 2 Minuten): Felder finden, Wetter und Geozonen prüfen, Pre-Check, Netzbetreiber/Forstamt/Flugplatz informieren und Pilotenbriefing.', btn: 'Los geht’s' },
     ...coachLoginSteps(),
-    { target: '#bSync', text: '<b>„UAV-Felder holen“</b> lädt die aktuelle Feldliste aus dem UAV Editor. Das passiert beim Start auch automatisch.', btn: 'Weiter' },
-    { target: '#bar .srcseg', text: 'Hier stellst du ein, welche Felder auf der Karte stehen: angelegt oder geändert in den letzten <b>24 h</b> oder <b>48 h</b>, das <b>ganze Jahr</b> oder <b>alle</b>.', btn: 'Weiter' },
+    { target: '#bSync', text: '<b>„UAV-Felder holen“</b> lädt die aktuelle Feldliste aus dem UAV Editor. Das passiert beim Start auch automatisch. Sind neue Felder dazugekommen, fragt das Programm, ob es sie alle markieren soll.', btn: 'Weiter' },
+    { target: '#bar .srcseg', text: 'Welche Felder auf der Karte stehen: angelegt oder geändert in den letzten <b>24 h</b> oder <b>48 h</b>, das <b>ganze Jahr</b> oder <b>alle</b>. „Keine“ blendet sie aus.', btn: 'Weiter', onBtn: () => S.sideShow && S.sideShow(false) },
+    { target: side('felder'), skip: () => searchTop(), text: 'Die Lasche <b>„Felder“</b> zieht links die Feldliste heraus: neueste zuerst, filtern nach Jahr und Drohne, gleiche Namen als Paket bündeln, „Alle markieren“. Nochmal auf die Lasche klicken klappt sie wieder ein.<br>Klick jetzt einmal darauf.', done: () => sideOpen('felder'), btn: 'Weiter' },
+    { info: true, target: '#sidePanel', skip: () => !sideOpen('felder'), text: 'Ein Klick auf einen Namen <b>markiert</b> das Feld und zeigt es auf der Karte. Die obere Suche filtert diese Liste gleich mit.', btn: 'Weiter', onBtn: () => S.sideShow && S.sideShow(false) },
+    { target: side('wetter'), text: 'Die Lasche <b>„Wetter“</b>: die nächsten 4 Tage für 03–12 Uhr – auf einen Blick ✓ fliegbar, ! mit Hinweis, ✗ nicht fliegen, dazu ob Mähwetter ist. Eine Tageskarte anklicken zeigt die Gründe.<br>Klick jetzt einmal darauf.', done: () => sideOpen('wetter'), btn: 'Weiter' },
+    { info: true, target: '#sidePanel', skip: () => !sideOpen('wetter'), text: 'Die bunte Leiste ist Stunde für Stunde von 3 bis 12 Uhr. Das Wetter gilt für die markierten Felder – oder, wenn nichts markiert ist, für die Felder auf der Karte.', btn: 'Weiter', onBtn: () => S.sideShow && S.sideShow(false) },
+    { target: '#bInfo', text: '<b>Geozonen prüfen:</b> auf ⓘ klicken und dann <b>irgendeinen Punkt auf der Karte anklicken</b>. Du siehst, welche Zonen dort gelten und mit welchem Zeugnis man fliegen darf – grün ✓ geht, rot ✗ geht nicht (z. B. „A1/A3 ✗ · A2 + Allgemeinerlaubnis ✓“). Nochmal ⓘ schaltet es aus.', btn: 'Weiter' },
+    { target: '#bZones', skip: () => !$('bZones'), text: 'Hier blendest du <b>Zonenarten</b> ein und aus (Natur, Verkehr, Energie …). Ein rotes <b>!</b> heißt: gerade ist nicht alles eingeblendet.', btn: 'Weiter' },
+    { target: '#bLayer', text: '<b>Kartenart</b>: Karte, Grau oder Luftbild – und welche Ebenen (Leitungen, Hindernisse) zu sehen sind.', btn: 'Weiter' },
     { target: '#searchBox', get text() { const n = S.files.filter(visible).length;
-        return 'Markiere die Felder, die du prüfen willst: oben nach <b>Namen suchen</b> und anhaken, links in der <b>Feldliste</b> anklicken oder auf der Karte <b>Strg gedrückt halten</b> und einen <b>Rahmen ziehen</b>.<br>Markiere jetzt mindestens ein Feld – es geht dann von allein weiter.'
+        return 'Jetzt <b>Felder markieren</b>: oben nach <b>Namen suchen</b>, links in der <b>Feldliste</b> anklicken oder auf der Karte <b>Strg gedrückt halten</b> und einen <b>Rahmen ziehen</b>.<br>Markiere mindestens ein Feld – es geht dann von allein weiter.'
           + (n ? '' : '<br><br><b>Gerade sind keine Felder auf der Karte</b> (in den letzten 24/48 h wurde nichts angelegt). Oben auf <b>„' + new Date().getFullYear() + '“</b> oder <b>„Alle“</b> klicken – oder einfach im Suchfeld tippen.'); },
       done: () => S.files.some(f => f.selected), btn: 'Überspringen' },
     { target: '#bDl', text: 'Klicke auf <b>„Pre-Check“</b>.', skip: () => !S.files.some(f => f.selected), done: () => $('dlg').classList.contains('open'), btn: 'Überspringen' },
-    { info: true, target: '#dlg .box', text: 'Oben siehst du, <b>welches Fernpilotenzeugnis</b> nötig ist, darunter <b>Feld für Feld</b> die Auflagen. Ganz unten <b>„To-dos“</b>: Netzbetreiber und Forstämter – „✉ E-Mail“ erstellt einen fertigen Entwurf mit Karte.', btn: 'Fertig' }
+    { info: true, target: '#dlg .box', skip: () => !$('dlg').classList.contains('open'), text: 'Ganz oben: <b>welches Zeugnis</b> nötig ist. Darunter jedes Feld mit grün ✓ / rot ✗ – <b>„Details“</b> zeigt eine kleine Karte und warum.', btn: 'Weiter' },
+    { info: true, target: '#dlg .box', skip: () => !$('dlg').classList.contains('open'), text: 'Unten bei <b>„To-dos“</b>: Netzbetreiber, Forstämter und Flugplätze. „🖼 Bild“ speichert eine Karte (ohne Feldnamen), „✉ E-Mail“ erstellt einen fertigen Entwurf mit Karte als Anhang. Adressen und Telefonnummern werden gespeichert.', btn: 'Weiter' },
+    { info: true, target: '#briefBar', skip: () => !$('briefBar'), text: '<b>Pilotenbriefing</b>: ein PDF mit allen Feldnamen, je Feld eine Seite mit Karte und das Wetter für den Einsatzmorgen – zum Weitergeben an die Piloten (intern).', btn: 'Weiter' },
+    { info: true, target: '#bSet', onBtn: () => { if ($('dlg').classList.contains('open') && $('dNo')) $('dNo').click(); }, text: 'In den <b>Einstellungen</b> ⚙: oben „Betroffene Netzbetreiber ermitteln“, Planungstool und Tag-/Nachtmodus, ganz unten der UAV-Editor-Zugang und die Adressdatei zum Weitergeben. Diese Einführung findest du dort auch wieder.', btn: 'Fertig' }
   ];
   coachStart(st, 'coachWeb');
 }
@@ -10151,7 +10326,7 @@ loadNotams();
 geoBadge();
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
