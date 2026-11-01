@@ -394,6 +394,12 @@
   #sideList .spg input{all:revert;width:17px;height:17px;margin:0;accent-color:#ff7a00;flex:none}#sideList .spgn{flex:1;min-width:0}#sideList .spgn b{font-size:14px}#sideList .spgn em{font-style:normal;color:var(--muted);font-size:12px}
   #sideList .spgx{width:30px;height:30px;border-radius:8px;background:transparent;color:var(--txt);font-size:16px;flex:none}#sideList .spgx:hover{background:var(--sec)}
   #sideList .spr.sub{margin-left:22px}
+  .srcb{display:inline-flex;gap:3px;margin-left:6px;vertical-align:1px}
+  .srcb i{font-style:normal;font-size:10px;font-weight:800;line-height:15px;padding:0 5px;border-radius:5px;border:1px solid #c9ced6;color:#a7adb6;background:transparent;opacity:.75;white-space:nowrap}
+  .srcb i.on{border-color:#2e7d32;color:#fff;background:#2e7d32;opacity:1}
+  .srcb i.dj.on{border-color:#1565c0;background:#1565c0}
+  .srcb i.dj.part{border-color:#1565c0;color:#1565c0;opacity:1}
+  .srcb i.up{cursor:pointer}.srcb i.up:hover{border-color:#1565c0;color:#1565c0;opacity:1;background:rgba(21,101,192,.08)}
   #sideList .spnew{font-style:normal;background:#ff7a00;color:#fff;border-radius:6px;padding:0 5px;font-size:10.5px;font-weight:800}
   #zonePop{position:fixed;display:none;flex-direction:column;gap:6px;padding:10px;background:var(--ctrl);border-radius:16px;box-shadow:0 3px 14px rgba(0,0,0,.35);z-index:30;width:290px}
   #zonePop.open{display:flex}
@@ -1912,7 +1918,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
+const DEF = { djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
    planTool: '0', sideGroup: '0', catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
@@ -3884,6 +3890,56 @@ function goPlace(p) {
   draw();
 }
 /** Desktop: Suche „UAV-Editor“ – alle Feldnamen aus dem UAV Editor (auch außerhalb des Filters 24 h/48 h/Jahr) */
+// ---------- DJI Cloud (über UAV Editor): nur Felder anzeigen und laden, die dort liegen ----------
+const djiNorm = t => String(t || '').toLowerCase().replace(/\.kmz$/, '').replace(/[\s_]+/g, '-').trim();
+/** an = Lite-App mit Einstellung „Nur Felder aus der DJI Cloud“ (Standard an) */
+const djiWanted = () => IS_LITE && !!A.uaveDjiDownload && P.djiOnly !== '0';   // nur die Lite-App – PC/Koordinator lädt und verschickt KMZ weiter über den UAV-Editor-Export
+function djiState() {
+  if (!S.dji && A.uaveDjiCached) { try { const o = JSON.parse(A.uaveDjiCached() || 'null'); if (o && Array.isArray(o.list)) S.dji = { list: o.list, at: o.at || 0, names: new Set(o.list.map(w => djiNorm(w.name))) }; } catch (e) { } }
+  return S.dji || null;
+}
+const djiOn = () => djiWanted() && !!djiState();
+const djiHas = f => { const d = djiState(); return !!d && d.names.has(djiNorm(f.name)); };
+/** DJI-Cloud-Liste neu holen (im Hintergrund); cb nach Eingang */
+function djiRefresh(cb) { if (!A.uaveDjiList) return; S.djiCb = cb || null; S.djiBusy = true; A.uaveDjiList(); }
+window.onDjiCloud = r => { S.djiBusy = false;
+  if (r && Array.isArray(r.list)) S.dji = { list: r.list, at: r.ok ? Date.now() : (r.at || 0), names: new Set(r.list.map(w => djiNorm(w.name))), err: r.ok ? '' : r.error };
+  else if (r && !r.ok) S.djiErr = r.error;
+  if (r && !r.ok && djiWanted()) toast('DJI Cloud: ' + (r.error || 'nicht erreichbar') + (S.dji ? ' – zeige die zuletzt geladene Liste.' : ''), true, 7000);
+  const cb = S.djiCb; S.djiCb = null; try { cb && cb(r); } catch (e) { } try { sideRender(); } catch (e) { } };
+/** Felder laden: aus der DJI Cloud (wenn eingestellt), sonst wie bisher über den UAV-Editor-Export */
+/** Herkunfts-Abzeichen: „UAV“ = liegt im UAV Editor, „☁ DJI“ = liegt in der DJI Cloud; ausgegraut = dort nicht vorhanden. Nur Anzeige – der PC lädt weiter über den UAV-Editor-Export. */
+function srcBadges(cf, uav = true) { const d = djiState(); if (!d) return '';
+  const c = djiHas(cf), up = !c && uav && !!A.uaveDjiUpload;
+  return `<span class="srcb"><i class="${uav ? 'on' : ''}" title="${uav ? 'Liegt im UAV Editor' : 'Nicht im UAV Editor'}">UAV</i><i class="dj${c ? ' on' : ''}${up ? ' up' : ''}"${up ? ' data-djup="1"' : ''} title="${c ? 'Liegt in der DJI Cloud (Pilot findet es in DJI Pilot 2)' : up ? 'Nicht in der DJI Cloud – klicken zum Hochladen' : 'Nicht in der DJI Cloud – im UAV Editor noch hochladen'}">☁ DJI</i></span>`; }
+function srcBadgesGrp(items) { const d = djiState(); if (!d) return ''; const n = items.filter(x => djiHas(x.cf)).length, all = n === items.length;
+  const up = !all && !!A.uaveDjiUpload;
+  return `<span class="srcb"><i class="on" title="Liegen im UAV Editor">UAV</i><i class="dj${all ? ' on' : n ? ' part' : ''}${up ? ' up' : ''}"${up ? ' data-djup="1"' : ''} title="${n} von ${items.length} Feldern in der DJI Cloud${up ? ' – klicken, um die fehlenden hochzuladen' : ''}">☁ ${all ? 'DJI' : n + '/' + items.length}</i></span>`; }
+/** Felder (Katalog-Einträge {id,name}) in die DJI Cloud hochladen – wie „In DJI Cloud hochladen“ im UAV Editor. after() danach. */
+function djiUpload(cfs, after) {
+  if (!A.uaveDjiUpload) return toast('Hochladen in die DJI Cloud geht nur im Desktop-Programm.', true);
+  const st = djiState(), todo = cfs.filter(cf => cf && cf.id && !djiHas(cf)), have = cfs.length - todo.length;
+  if (!todo.length) return toast(st ? 'Alle diese Felder liegen schon in der DJI Cloud.' : 'DJI-Cloud-Liste noch nicht geladen – bitte kurz warten.', !st, 5000);
+  const box = document.createElement('div');
+  box.innerHTML = `<div class="meta">Die Flugrouten werden wie im UAV Editor („In DJI Cloud hochladen“) übertragen. Danach findet der Pilot sie in DJI Pilot 2 unter <b>Cloud</b>${have ? ` · ${have} Feld${have > 1 ? 'er liegen' : ' liegt'} schon dort und ${have > 1 ? 'werden' : 'wird'} übersprungen` : ''}.</div>`;
+  confirmDlg('In die DJI Cloud hochladen', `${todo.length} Feld${todo.length > 1 ? 'er' : ''}:`, todo.slice(0, 12).map(cf => cf.name).concat(todo.length > 12 ? ['… und ' + (todo.length - 12) + ' weitere'] : []), 'Hochladen', () => {
+    S.djiUpAfter = after || null;
+    busy('In die DJI Cloud hochladen …', { sub: todo[0].name, done: 0, total: todo.length });
+    A.uaveDjiUpload(JSON.stringify(todo.map(cf => ({ id: String(cf.id), name: String(cf.name) }))));
+  }, box);
+}
+window.onDjiUpload = r => {
+  if (!r) return;
+  if (r.type === 'progress') return busy('In die DJI Cloud hochladen …', { sub: r.name, done: r.done, total: r.total });
+  busy('');
+  if (r.type === 'error') return toast('DJI Cloud: ' + (r.message || 'Hochladen fehlgeschlagen'), true, 9000);
+  const ok = r.ok || [], er = r.errors || [];
+  toast(ok.length ? `☁ ${ok.length} Feld${ok.length > 1 ? 'er' : ''} in die DJI Cloud hochgeladen${er.length ? ' – ' + er.length + ' fehlgeschlagen: ' + er.join('; ') : ''}.` : 'Nichts hochgeladen: ' + er.join('; '), !ok.length || er.length, er.length ? 12000 : 6000);
+  const a = S.djiUpAfter; S.djiUpAfter = null; try { sideRender(); } catch (e) { } try { a && a(); } catch (e) { } };
+/** PC/Koordinator: DJI-Cloud-Liste nur zur Anzeige im Hintergrund aktuell halten (höchstens alle 5 min) */
+function djiKeepFresh() { if (!A.uaveDjiList || S.djiBusy || IS_LITE) return; const st = djiState(), now = Date.now();
+  if (st && now - st.at < 5 * 60000) return; if (S.djiTry && now - S.djiTry < 5 * 60000) return; S.djiTry = now; djiRefresh(); }
+function uaveDl(ids) { if (djiWanted() && A.uaveDjiDownload) A.uaveDjiDownload(JSON.stringify(ids), P.src); else A.uaveDownload(JSON.stringify(ids), P.src, String(new Date().getTimezoneOffset())); }
 function webCatHits(q) {
   let d = null; try { d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); } catch (e) { }
   const fq = foldTxt(q).replace(/[_\-]+/g, ' '); if (!d || !Array.isArray(d.fields) || fq.length < 2) return [];
@@ -4229,6 +4285,7 @@ function sideInit() {
       <label class="spck" title="Felder zu Paketen zusammenfassen"><input type="checkbox" id="sideGrp"> Als Pakete bündeln</label>
       <select id="sideGm" title="Wonach gebündelt wird"><option value="namedate">nach Name + Datum</option><option value="name">nur nach Name</option><option value="date">nur nach Datum</option></select></div>
     <div class="spa"><button id="sideAll">Alle markieren</button><button id="sideNone">Keine</button><button id="sideNew" style="display:none">Nur neue</button></div>
+    <div class="spa" id="sideDjiRow" style="display:none"><button id="sideDjiUp"></button></div>
     <div class="spa" id="sidePlanRow" style="display:none"><button id="sidePlanNew" class="on">📅 Neue Planung mit Auswahl</button></div>
     <div id="sideList"></div></div>
     <div id="sideWxBox" style="display:none;flex:1;min-height:0;flex-direction:column"><div id="sideWx"></div></div>
@@ -4244,6 +4301,7 @@ function sideInit() {
   p.querySelectorAll('#sideTabs [data-st]').forEach(b => b.onclick = () => { const t = b.dataset.st, on = p.classList.contains('open');
     if (on && SIDE.tab === t) open(false); else { sideTabSet(t); if (!on) open(true); } });
   $('sidePlanNew').onclick = () => { PL.cur = null; planOpen('neu'); };
+  $('sideDjiUp').onclick = () => djiUpload(catAll().filter(cfSel));
   $('sideQ').oninput = e => { SIDE.q = e.target.value; sideRender(); };
   $('sideS').onchange = e => { SIDE.sort = e.target.value; setP('sideSort', SIDE.sort); sideRender(); };
   $('sideY').onchange = e => { SIDE.year = e.target.value; setP('sideYear', SIDE.year === String(new Date().getFullYear()) ? '' : SIDE.year); sideRender(); };   // aktuelles Jahr nicht festschreiben (sonst nächstes Jahr veraltet)
@@ -4396,7 +4454,8 @@ function wxTabPaint() {
 function sideList() {
   const all = catAll(), Y = new Date().getFullYear(); if (SIDE.year == null) SIDE.year = String(Y);
   const fq = foldTxt(SIDE.q.trim()).replace(/[_\-]+/g, ' ');
-  return all.filter(f => (SIDE.year === 'alle' || String(CAT_YEAR(f)) === SIDE.year) && (SIDE.stand === 'alle' || (SIDE.stand === 'archiv') === !!f.arch)
+  const dj = djiOn();
+  return all.filter(f => (!dj || djiHas(f)) && (dj || SIDE.year === 'alle' || String(CAT_YEAR(f)) === SIDE.year) && (SIDE.stand === 'alle' || (SIDE.stand === 'archiv') === !!f.arch)
     && (SIDE.drone === 'alle' || !cfDrone(f) || cfDrone(f) === SIDE.drone) && (!fq || fuzzyHas(foldTxt(String(f.name)).replace(/[_\-]+/g, ' '), fq))
     && (!SIDE.onlyNew || (S.newIds && S.newIds.has(String(f.id)))))
     .sort((a, b) => SIDE.sort === 'name' ? String(a.name).localeCompare(String(b.name), 'de', { numeric: true }) : (cfTime(b) - cfTime(a)) || String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
@@ -4405,12 +4464,15 @@ let sideRaf = 0;
 const fieldListShown = () => { const p = $('sidePanel'), t = $('topFelder'); return !!((t && t.classList.contains('open')) || (p && p.classList.contains('open') && $('sideFelder') && p.contains($('sideFelder')))); };
 function sideRender() {
   const p = $('sidePanel'); if (!p || !fieldListShown()) return;
+  try { djiKeepFresh(); } catch (e) { }
   cancelAnimationFrame(sideRaf); sideRaf = requestAnimationFrame(() => {
     const all = catAll(), Y = new Date().getFullYear(), years = [...new Set(all.map(CAT_YEAR).filter(Boolean))].sort((a, b) => b - a);
     if (SIDE.year == null) SIDE.year = String(Y);
     $('sideY').innerHTML = [String(Y), ...years.filter(y => y !== Y).map(String), 'alle'].map(v => `<option value="${v}"${v === SIDE.year ? ' selected' : ''}>${v === 'alle' ? 'Alle Jahre' : v === String(Y) ? 'Jahr ' + v : v}</option>`).join('');
     $('sideS').value = SIDE.sort; $('sideD').value = SIDE.drone; $('sideSt').value = SIDE.stand;   // gespeicherte Auswahl anzeigen
     const pOn = P.planTool === '1', nSel = S.files.filter(f => f.selected).length;
+    { const miss = A.uaveDjiUpload && djiState() && nSel ? catAll().filter(cf => cfSel(cf) && !djiHas(cf)).length : 0;
+      $('sideDjiRow').style.display = miss ? '' : 'none'; $('sideDjiUp').textContent = `☁ ${miss} markierte${miss === 1 ? 's Feld' : ' Felder'} in die DJI Cloud hochladen`; }
     $('sidePlanRow').style.display = pOn && nSel ? '' : 'none'; $('sidePlanNew').textContent = `📅 Neue Planung mit ${nSel} markierten Feld${nSel === 1 ? '' : 'ern'}`;
     const nb = $('sideNew'), nn = S.newIds ? S.newIds.size : 0; nb.style.display = nn ? '' : 'none'; nb.textContent = SIDE.onlyNew ? 'Alle zeigen' : `Nur neue (${nn})`; nb.classList.toggle('on', !!SIDE.onlyNew);
     const list = sideList(), box = $('sideList'), st = box.scrollTop, dd = t => t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
@@ -4437,14 +4499,14 @@ function sideRender() {
     if (grpOn && gBy === 'namedate') groups.forEach(g => { if (g.items.length > 1 && multi.has(gKey(g.items[0].cf.name))) { const t = tPlan(g.items[0].cf); if (t) g.label += ' · ' + new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }); } });   // gleicher Name, anderer Termin: Datum dazu
     SIDE.openG = SIDE.openG || new Set();
     const row = ({ cf, k }, sub) => { const t = cfTime(cf), c = dOk(cf.created || (cf.meta || {}).created), l = dOk(cf.lm), ch = l && +l === t && (!c || Math.abs(l - c) > 60000), isNew = S.newIds && S.newIds.has(String(cf.id));
-      return `<label class="spr${cfSel(cf) ? ' on' : ''}${sub ? ' sub' : ''}" data-k="${k}"><input type="checkbox"${cfSel(cf) ? ' checked' : ''}><div><b>${esc(cf.name)}</b>${isNew ? ' <i class="spnew">NEU</i>' : ''}<span>${t ? (ch ? 'geändert ' : 'erstellt ') + (SIDE.sort === 'neu' && !(grpOn && gBy === 'name') ? new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : dd(t) + ' ' + new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })) : ''}${cf.area ? ' · ' + fieldArea(cf.area) : ''}${cfDrone(cf) ? ' · ' + cfDrone(cf) : ''}${cf.arch ? ' · Archiv' : ''}</span></div></label>`; };
+      return `<label class="spr${cfSel(cf) ? ' on' : ''}${sub ? ' sub' : ''}" data-k="${k}"><input type="checkbox"${cfSel(cf) ? ' checked' : ''}><div><b>${esc(cf.name)}</b>${isNew ? ' <i class="spnew">NEU</i>' : ''}${srcBadges(cf)}<span>${t ? (ch ? 'geändert ' : 'erstellt ') + (SIDE.sort === 'neu' && !(grpOn && gBy === 'name') ? new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : dd(t) + ' ' + new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })) : ''}${cf.area ? ' · ' + fieldArea(cf.area) : ''}${cfDrone(cf) ? ' · ' + cfDrone(cf) : ''}${cf.arch ? ' · Archiv' : ''}</span></div></label>`; };
     let lastDay = '';
     box.innerHTML = !all.length ? '<div class="meta" style="padding:12px">Noch keine Feldliste – „↻ UAV-Felder holen“ klicken.</div>'
       : groups.length ? groups.map((g, gix) => { const t = cfTime(g.items[0].cf), day = SIDE.sort === 'neu' && !(grpOn && gBy === 'name') && !(grpOn && gBy === 'date' && g.items.length > 1) ? dd(t) : '';   // „nur nach Name“: keine Tages-Überschriften – Pakete gehen über mehrere Tage
         const hd = day && day !== lastDay ? `<div class="spd">${t ? new Date(t).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : 'ohne Datum'}</div>` : ''; lastDay = day || lastDay;
         if (g.items.length === 1) return hd + row(g.items[0]);
         const nSel = g.items.filter(x => cfSel(x.cf)).length, op = SIDE.openG.has(g.key) || !!SIDE.q.trim(), nNew = g.items.filter(x => S.newIds && S.newIds.has(String(x.cf.id))).length;
-        return hd + `<div class="spg${nSel === g.items.length ? ' on' : ''}" data-g="${gix}"><input type="checkbox"${nSel === g.items.length ? ' checked' : ''} data-ind="${nSel && nSel < g.items.length ? 1 : 0}"><div class="spgn"><b>${esc(g.label)}</b> <em>${g.items.length} Felder${grpOn && gBy === 'name' ? ' · zuletzt ' + dd(Math.max(...g.items.map(x => cfTime(x.cf)))) : ''}${nSel ? ` · ${nSel} markiert` : ''}</em>${nNew ? ` <i class="spnew">${nNew} NEU</i>` : ''}</div>${P.planTool === '1' ? '<button class="spgx spgp" title="Neue Planung mit diesem Paket">📅</button>' : ''}<button class="spgx" title="Felder zeigen/verbergen">${op ? '▾' : '▸'}</button></div>`
+        return hd + `<div class="spg${nSel === g.items.length ? ' on' : ''}" data-g="${gix}"><input type="checkbox"${nSel === g.items.length ? ' checked' : ''} data-ind="${nSel && nSel < g.items.length ? 1 : 0}"><div class="spgn"><b>${esc(g.label)}</b> <em>${g.items.length} Felder${grpOn && gBy === 'name' ? ' · zuletzt ' + dd(Math.max(...g.items.map(x => cfTime(x.cf)))) : ''}${nSel ? ` · ${nSel} markiert` : ''}</em>${nNew ? ` <i class="spnew">${nNew} NEU</i>` : ''}${srcBadgesGrp(g.items)}</div>${P.planTool === '1' ? '<button class="spgx spgp" title="Neue Planung mit diesem Paket">📅</button>' : ''}<button class="spgx" title="Felder zeigen/verbergen">${op ? '▾' : '▸'}</button></div>`
           + (op ? g.items.map(x => row(x, true)).join('') : ''); }).join('')
         + (simil.length ? `<div class="spsim">Ähnliche Treffer – vielleicht vertippt?</div>` + simil.map(x => row(x)).join('') : '')
       : simil.length ? `<div class="spsim">Kein genauer Treffer. Ähnliche Treffer – vielleicht vertippt?</div>` + simil.map(x => row(x)).join('')
@@ -4457,6 +4519,7 @@ function sideRender() {
         box.querySelectorAll('.spplace').forEach(b => b.onclick = () => { const i = +b.dataset.pi; if (i >= 0) goPlace(ph[i]); else if (isOnline()) geocodeOnline(q); else toast('Offline – nur Orte aus dem gespeicherten Einsatzgebiet.', true); }); } }
     box.querySelectorAll('[data-ind="1"]').forEach(c => c.indeterminate = true);
     box.querySelectorAll('.spg').forEach(el => { const g = groups[+el.dataset.g];
+      const du = el.querySelector('[data-djup]'); if (du) du.onclick = e => { e.preventDefault(); e.stopPropagation(); djiUpload(g.items.map(x => x.cf)); };
       const gp = el.querySelector('.spgp'); if (gp) gp.onclick = e => { e.stopPropagation();   // nur dieses Paket markieren und planen
         S.files.forEach(f => f.selected = false); g.items.forEach(x => webCatPick(x.cf, false)); const sl = S.files.filter(x => x.selected && x.bounds); if (sl.length) fitBounds(padBB(bounds(sl)));
         PL.cur = null; planOpen('neu'); };
@@ -4467,6 +4530,7 @@ function sideRender() {
         const sl = S.files.filter(x => x.selected && x.bounds); if (sl.length) fitBounds(padBB(bounds(sl))); draw(); sideRender(); }; });
     box.scrollTop = st;
     box.querySelectorAll('.spr').forEach(el => el.onclick = e => { e.preventDefault(); const cf = list[+el.dataset.k];
+      if (e.target.closest && e.target.closest('[data-djup]')) return djiUpload([cf]);
       if (cfSel(cf)) { S.files.forEach(x => { if (x.title === cf.name) x.selected = false; }); update(); } else webCatPick(cf, false);
       const sl = S.files.filter(x => x.selected && x.bounds); if (sl.length) fitBounds(padBB(bounds(sl))); draw(); sideRender(); });
   });
@@ -4944,7 +5008,7 @@ function catDownload(cs) {
   if (syncing) return toast('Es läuft gerade schon ein Abgleich.', true);
   syncing = true; syncStop = false; S.catDl = true;
   busy('Lade ' + cs.length + ' Feld' + (cs.length > 1 ? 'er' : '') + ' aus UAV Editor…', { cancel: syncAbort });
-  A.uaveDownload(JSON.stringify(cs.map(f => f.id)), P.src, String(new Date().getTimezoneOffset()));
+  uaveDl(cs.map(f => f.id));
 }
 function openCopyDialog(sel, clean) {
   const move = false;   // immer kopieren
@@ -5022,13 +5086,13 @@ function deleteDlg(title, text, okLabel, cb) {
 function dlgDanger() { const y = $('dYes'); if (y._hold) y._hold(); y.classList.remove('danger'); }
 function confirmDlg(title, text, list, okLabel, cb, extra) {
   dlgDanger(); const ob = $('dBrief'); if (ob) ob.remove(); $('dNo').style.display = '';
-  $('dNo').textContent = 'Abbrechen';
+  $('dNo').textContent = 'Abbrechen'; $('dNo').title = '';
   $('dExtra').innerHTML = ''; if (extra) $('dExtra').appendChild(extra);
   $('dTitle').textContent = title;
   $('dText').textContent = text; $('dText').style.whiteSpace = 'pre-line';
   $('dList').innerHTML = ''; list.forEach(n => { const d = document.createElement('div'); d.textContent = '• ' + n; $('dList').appendChild(d); });
   $('dYes').textContent = okLabel; $('dYes').disabled = false; dlgCb = cb; $('dlg').classList.add('open');
-  $('dlg').querySelector('.box').classList.remove('wide', 'auto'); S.dlgXClose = null; S.dlgXYes = false;
+  $('dlg').querySelector('.box').classList.remove('wide', 'auto'); S.dlgXClose = null; S.dlgXYes = false; S.dNoAlt = null; S.dlgValidate = null;
 }
 // Fläche aus UAV Editor (m² oder ha) lesbar machen
 const fieldArea = a => a > 1000 ? (a / 10000).toFixed(2).replace('.', ',') + ' ha' : a.toFixed(2).replace('.', ',') + ' ha';
@@ -5134,9 +5198,11 @@ function pickDlg(title, text, items, okWord, cb) {
   refilter(); upd();
   dlgCb = () => cb(items.map((x, i) => x.on ? i : -1).filter(i => i >= 0));
 }
-$('dNo').onclick = () => { dlgDanger(); $('dlg').classList.remove('open'); if (dlgOnCancel) { const c = dlgOnCancel; dlgOnCancel = null; c(); } };
-$('dYes').onclick = () => { $('dlg').classList.remove('open'); dlgOnCancel = null; dlgCb && dlgCb(); };
-$('dX').onclick = e => { if (e) { e.preventDefault(); e.stopPropagation(); } if (S.dlgXYes) return $('dYes').onclick(); if (S.dlgXClose) dlgOnCancel = S.dlgXClose; $('dNo').onclick(); };   // ✕ oben rechts = Abbrechen (bei „Feld für Feld“: ganz schließen)
+$('dNo').onclick = () => { dlgDanger(); $('dlg').classList.remove('open'); if (S.dNoAlt) { const a = S.dNoAlt; S.dNoAlt = null; dlgOnCancel = null; return a(); }   // zweiter Knopf mit eigener Aktion (z. B. „Ohne Datum“) – nur für diesen einen Dialog
+  if (dlgOnCancel) { const c = dlgOnCancel; dlgOnCancel = null; c(); } };
+$('dYes').onclick = () => { if (S.dlgValidate && S.dlgValidate() === false) return;   // Eingaben unvollständig: Dialog bleibt offen
+  $('dlg').classList.remove('open'); dlgOnCancel = null; dlgCb && dlgCb(); };
+$('dX').onclick = e => { if (e) { e.preventDefault(); e.stopPropagation(); } S.dNoAlt = null; if (S.dlgXYes) return $('dYes').onclick(); if (S.dlgXClose) dlgOnCancel = S.dlgXClose; $('dNo').onclick(); };   // ✕ oben rechts = Abbrechen (bei „Feld für Feld“: ganz schließen)
 $('permGo').onclick = () => A.requestAccess();
 
 // ================= Einstellungen =================
@@ -5160,7 +5226,7 @@ function osmStatesUi() {
 let osmStT = 0;
 function osmStatesChanged() { clearTimeout(osmStT); osmStT = setTimeout(() => { if (isOnline()) geoSyncNow(false, true); }, 4000); }   // nach kurzer Pause neu abgleichen
 function fillSettings() {
-  try { const sp = $('setPilots'); if (sp && !sp.contains(document.activeElement)) pilotList(sp); } catch (e) { }   // Pilotenliste aktuell (auch nach Änderungen in der Planung)
+  try { pilotsSum(); } catch (e) { }   // Pilotenzahl aktuell (auch nach Änderungen in der Planung)
   try { catFilterUi(); } catch (e) { }
   try { watchUi(); } catch (e) { }
   try { trafUi(); } catch (e) { }
@@ -9015,7 +9081,7 @@ function flyWinDlg(cb, okLabel, noDate) {
   };
   paint();
   confirmDlg('Wann wird geflogen?', 'Einsatzzeitraum – gilt gemeinsam für Pilotenbriefing und alle E-Mails (Netzbetreiber, Flugplatz, Naturschutz), bis er abläuft:', [], okLabel || 'Übernehmen', () => { flyWinSet(w); cb(); }, box);
-  if (noDate) { const n = $('dNo'); n.textContent = 'Ohne Datum'; n.title = 'Ohne Einsatzzeitraum weiter (Pilotenbriefing dann ohne Wetter)'; n.onclick = () => { $('dlg').classList.remove('open'); noDate(); }; }
+  if (noDate) { const n = $('dNo'); n.textContent = 'Ohne Datum'; n.title = 'Ohne Einsatzzeitraum weiter (Pilotenbriefing dann ohne Wetter)'; S.dNoAlt = noDate; }   // nicht den Knopf dauerhaft umbelegen – sonst löste später jedes ✕/Abbrechen „Ohne Datum“ aus (Briefing + Pre-Check öffneten sich wieder)
 }
 /** Einsatzzeitraum → Morgen-Fenster (03–12 Uhr) fürs Briefing-Wetter: bei 24/48/72 h die Morgen darin, bei Datum die Tage von–bis (höchstens 4) */
 function einsatzWins(w) {
@@ -9032,11 +9098,15 @@ function briefStart(sel, done) {
   const go = wins => pilotBriefing(sel, wins);
   if (P.briefAsk === '0' || (done && flyWinGet())) return go(einsatzWins(flyWinGet()));   // Zeitraum steht schon oben im Pre-Check
   flyWinDlg(async () => { if (done) await done(); go(einsatzWins(flyWinGet())); }, 'PDF erstellen', async () => { if (done) await done(); go(null); });
+  if (done) dlgOnCancel = () => done();   // ✕ bzw. Abbrechen: zurück zum Pre-Check, ohne Briefing
 }
 /** Desktop-Pre-Check: Zonen wie auf der RC, dazu Netzbetreiber-Zusammenfassung und Schutzgebiete als To-dos */
 /** Pre-Check starten – Fehler nicht verschlucken: Ladefenster schließen und sagen, was los ist (statt „startet nicht“) */
+const pcKey = sel => [sel.map(f => f.title + '@' + (f.height || '') + (f.bounds ? f.bounds.n : '')).join('|'), P.lic, P.aeStates, P.avs, P.power, JSON.stringify(flyWinGet() || null), S.regions.length, (S.geo || []).length, (S.osm || []).length].join('#');
 async function webPreCheck(sel) {
   sel = (sel || []).filter(Boolean);
+  // derselbe Pre-Check war gerade schon fertig (z. B. zurück vom Briefing- oder E-Mail-Dialog): sofort wieder zeigen statt neu prüfen
+  const c = S.pcCache; if (c && c.key === pcKey(sel) && Date.now() - c.t < 30 * 60000 && !$('dlg').classList.contains('open')) { S.pcTok = (S.pcTok || 0) + 1; busy(''); pcShow(sel, c.box); return; }
   try { return await webPreCheck0(sel); }
   catch (e) { console.error('Pre-Check', e); busy(''); S.pcTok = (S.pcTok || 0) + 1;
     toast('Pre-Check konnte nicht starten: ' + (e && e.message || e) + (sel.length ? ` (${sel.length} Felder)` : ''), true, 12000); }
@@ -9150,16 +9220,34 @@ async function webPreCheck0(sel) {
     busy('');
   }
   await pcMapsFill(box, sel);   // fertige Karten gleich in die Details setzen
+  S.pcCache = { key: pcKey(sel), box, t: Date.now() };   // fertigen Pre-Check merken: zurück aus Briefing/E-Mail/Zeitraum ohne alles neu zu prüfen
+  pcShow(sel, box);
+  setTimeout(async () => { const jobs = [...ops.map((o, i) => () => opImage(ops, i)), ...az.map(z => () => afImage(z, sel)), ...nz.map(z => () => natImage(z, sel))];
+    for (const j of jobs) { if (tok !== S.pcTok || !$('dlg').classList.contains('open')) break; try { await j(); } catch (e) { } } }, 400);
+}
+/** Pre-Check-Fenster zeigen (frisch gebaut oder gemerkt) */
+function pcShow(sel, box) {
   confirmDlg(`Pre-Check – ${sel.length} Feld${sel.length > 1 ? 'er' : ''}`, 'Was an diesen Feldern gilt und wem Bescheid gesagt werden muss:', [], 'Schließen', null, box);
   { const bb = document.createElement('button'); bb.id = 'dBrief'; bb.className = 'b-ok'; bb.textContent = '📋 Pilotenbriefing erstellen';   // unten neben „Schließen“
     bb.onclick = () => briefStart(sel, () => webPreCheck(sel));
     $('dNo').style.display = 'none'; $('dYes').before(bb); }
-  dlgOnCancel = null; S.dlgXClose = null; S.dlgXYes = true;   // ✕ oben = genau „Schließen“ unten   // ✕ oben = wie „Schließen“ – keine alte Abbrechen-Aktion (öffnete sonst nach 3 s wieder und startete das Briefing)
-  // Kartenbilder für „Bild“ und „E-Mail“ schon im Hintergrund vorbereiten – beim Klick sind sie dann meist fertig
-  setTimeout(async () => { const jobs = [...ops.map((o, i) => () => opImage(ops, i)), ...az.map(z => () => afImage(z, sel)), ...nz.map(z => () => natImage(z, sel))];
-    for (const j of jobs) { if (tok !== S.pcTok || !$('dlg').classList.contains('open')) break; try { await j(); } catch (e) { } } }, 400);
+  dlgOnCancel = null; S.dlgXClose = null; S.dlgXYes = true;   // ✕ oben = genau „Schließen“ unten (keine alte Abbrechen-Aktion)
   $('dlg').querySelector('.box').classList.add('wide', 'auto');   // Desktop: ganze Fensterbreite nutzen – Felder in Spalten; Höhe nur so viel wie nötig
   $('dlg').querySelector('.box').scrollTop = 0;
+  pcDjiChip(sel, box);
+}
+/** Pre-Check (PC): Hinweis, welche Felder noch nicht in der DJI Cloud liegen – mit „Hochladen“ */
+function pcDjiChip(sel, box) {
+  const old = box.querySelector('#pcDji'); if (old) old.remove();
+  try { djiKeepFresh(); } catch (e) { }
+  if (!A.uaveDjiUpload || !djiState()) return;
+  const cfs = sel.filter(f => f.uave && f.uave.id).map(f => ({ id: String(f.uave.id), name: f.title })), miss = cfs.filter(cf => !djiHas(cf));
+  if (!cfs.length) return;
+  const c = document.createElement('div'); c.className = 'fwchip'; c.id = 'pcDji';
+  c.innerHTML = miss.length ? `<span>☁ <b>DJI Cloud</b>: ${miss.length} von ${cfs.length} Feld${cfs.length > 1 ? 'ern' : ''} fehl${miss.length > 1 ? 'en' : 't'} noch (${esc(fieldsShort(miss.map(x => x.name)))}) – der Pilot findet ${miss.length > 1 ? 'sie' : 'es'} sonst nicht in DJI Pilot 2</span><button>☁ Hochladen</button>`
+    : `<span>☁ <b>DJI Cloud</b>: alle ${cfs.length} Feld${cfs.length > 1 ? 'er liegen' : ' liegt'} in der Cloud ✓</span>`;
+  const b = c.querySelector('button'); if (b) b.onclick = () => djiUpload(miss, () => webPreCheck(sel));
+  const bb = box.querySelector('#briefBar'); bb ? bb.after(c) : box.prepend(c);
 }
 
 // ================= Desktop: Pilotenbriefing als PDF (intern, mit Feldnamen wie im UAV Editor) =================
@@ -9225,7 +9313,27 @@ const uvShotKey = (f, all) => 'uv|' + (all ? 'all|' : '') + JSON.stringify(f);
 const asCanvas = url => ({ toDataURL: () => url, __uv: true });
 /** Karte fürs Briefing: Felder (Umriss + Flugbahn), Geozonen am Feld, Freileitungen, Nummern mit Feldnamen – ohne Legendenstreifen */
 /** Treffpunkt / Startpunkt eines Feldes aus dem UAV Editor (falls dort hinterlegt) */
-const meetStart = f => { const m = (f.uave && f.uave.meta) || f.meta || {}; return { mp: m.mp || null, mpTxt: m.mpTxt || '', sp: m.sp || null }; };
+const uvPts = () => { if (!S.uvPts) { try { S.uvPts = JSON.parse((A.uavePointsAll && A.uavePointsAll()) || '{}') || {}; } catch (e) { S.uvPts = {}; } } return S.uvPts; };
+const meetStart = f => { const m = (f.uave && f.uave.meta) || f.meta || {}, pt = (f.uave && uvPts()[String(f.uave.id)]) || {};
+  let sp = m.sp || pt.sp || null, sp1 = false;
+  if (!sp) {   // kein Startpunkt hinterlegt: erster Wegpunkt der Flugbahn (dort beginnt die Mission)
+    const r = m.route, rt = f.route || (f.shapes || []).filter(x => x.type === 'line').flatMap(x => x.pts);
+    if (Array.isArray(r) && r.length >= 2) { const a = +r[0], b = +r[1]; sp = Math.abs(a) > Math.abs(b) ? [a, b] : [b, a]; sp1 = true; }
+    else if (rt && rt.length) { sp = rt[0]; sp1 = true; }
+    if (sp && !(sp[0] > 46 && sp[0] < 56 && sp[1] > 5 && sp[1] < 16)) { sp = null; sp1 = false; } }
+  return { mp: m.mp || null, mpTxt: m.mpTxt || '', sp, sp1 }; };
+/** Start-/Parkplatz-Punkte aus dem UAV Editor für diese Felder holen (falls noch nicht gespeichert) – höchstens ~1,5 min warten */
+function uvPointsFor(sel) {
+  const ids = sel.filter(f => f.cat && f.uave && f.uave.id && !uvPts()[String(f.uave.id)]).map(f => String(f.uave.id));
+  if (!ids.length || !A.uavePoints) return Promise.resolve();
+  busy('Startpunkte aus dem UAV Editor …', { sub: `${ids.length} Feld${ids.length > 1 ? 'er' : ''}` });
+  return new Promise(res => { const tag = 'p' + Date.now().toString(36), t = setTimeout(() => { delete BRIEF_WAIT[tag]; res(); }, 90000);
+    BRIEF_WAIT[tag] = all => { clearTimeout(t); S.uvPts = all || S.uvPts; res(); }; A.uavePoints(JSON.stringify(ids), String(new Date().getTimezoneOffset()), tag); });
+}
+/** Flughöhe aus den UAV-Editor-Missionsdaten übernehmen, wo sie fehlt (Briefing zeigte sonst „—“) */
+function uvApplyHeights(sel) { sel.forEach(f => { const pt = f.uave && uvPts()[String(f.uave.id)]; if (!f.height && pt && pt.h) f.height = pt.h; }); }
+window.onUvPoints = (tag, all) => { const w = BRIEF_WAIT[tag]; if (w) { delete BRIEF_WAIT[tag]; w(all); } else S.uvPts = all; };
+window.onUvExportSaved = r => { S.uvPts = null; toast(`Export gespeichert in „Downloads“: ${String(r.file || '').split(/[\\/]/).pop()}${r.points ? ' – Startpunkt übernommen' : ''}`, 'ok', 8000); };
 const navLink = (la, lo) => `https://www.google.com/maps/dir/?api=1&destination=${(+la).toFixed(6)},${(+lo).toFixed(6)}`;
 const appleLink = (la, lo) => `https://maps.apple.com/?daddr=${(+la).toFixed(6)},${(+lo).toFixed(6)}&dirflg=d`;
 /** Routenplanung: Google Maps und Apple Karten (öffnet die Navigation zum Punkt) */
@@ -9392,7 +9500,8 @@ async function briefingHtml(sel, win, opt) {
   const created = new Date(), b = flightBriefing(sel), ops = netOps(sel), nz = mergeNat(b.zones.filter(z => NAT_LAYERS.includes(z.f.layer) && z.near == null));
   const vs = sel.map(fieldVerdict);
   const fz = n => n + ' Feld' + (n > 1 ? 'er' : ''), n2 = vs.filter(v => v.k === 'a2').length, nNo = vs.filter(v => v.k === 'no').length, nZ = vs.filter(v => v.k === 'zust').length;
-  const top = r => `<div class="top"><span class="brand">PILOTENBRIEFING · Kitzrettung Limburg e.V.</span><span class="pg">${r}</span></div>`;
+  const logo = (document.querySelector('[data-logo]') || {}).src || '';   // Vereinslogo im Kopf jeder Seite
+  const top = r => `<div class="top"><span class="brand" style="display:flex;align-items:center;gap:9px">${/^data:image/.test(logo) ? `<img src="${logo}" alt="" style="height:30px;width:30px;border-radius:50%;background:#fff;padding:1px;flex:none">` : ''}PILOTENBRIEFING · Kitzrettung Limburg e.V.</span><span class="pg">${r}</span></div>`;
   const foot = extra => `<div class="foot">${extra ? extra + ' · ' : ''}Intern – enthält Feldnamen, nicht an Dritte weitergeben · Erstellt ${created.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} · ${GSAT() ? 'Luftbild: Bilder © Google' : 'Luftbild © GeoBasis-DE / Esri'}, Leitungen © OpenStreetMap, Geozonen © DFS dipul</div>`;
   const legend = `<div class="legend"><span><i style="background:#00838f"></i>Feld</span><span><i style="background:#ff6f00"></i>Flugbahn</span><span><i style="background:#8e24aa"></i>Freileitung</span><span><i style="background:#2e7d32"></i>Schutzgebiet</span><span><i style="background:#1565c0"></i>Geozone</span><span><i style="background:#d32f2f"></i>Flugplatz</span></div>`;
   // alles gleichzeitig vorbereiten: Wetter, Übersichtskarte, je Feld eine Karte (vorher nacheinander – dauerte lange)
@@ -9459,7 +9568,7 @@ async function briefingHtml(sel, win, opt) {
         <div class="tile" style="border-top-color:#00695c"><small>Fläche</small><b>${area(f)}</b></div>
         <div class="tile" style="border-top-color:#00695c"><small>Ort</small><b style="font-size:10.5pt">${esc(place(f))}</b>${f.center ? `<span>${fmtLL(f.center[0], f.center[1])}<br>Route: ${(m => m ? navLinks(m[0], m[1]) : '')(meetStart(f).mp || f.center)}</span>` : ''}</div></div>
       ${(ms => (ms.mp || ms.sp || f.center) ? `<div class="tiles" style="margin-top:6px">${(q => q ? `<div class="tile qrt" style="border-top-color:#1d2733;display:flex;gap:8px;align-items:center;flex:0 0 auto">${qrSvg(navLink(q[0], q[1]), 84)}<span style="max-width:90px">Handy-Kamera drauf → Route zum ${ms.mp ? 'Treffpunkt' : 'Feld'}</span></div>` : '')(ms.mp || f.center)}${ms.mp ? `<div class="tile" style="border-top-color:#1565c0;flex:2"><small>Treffpunkt (T)</small><b style="font-size:10.5pt">${ms.mpTxt ? esc(ms.mpTxt) : esc(fmtLL(ms.mp[0], ms.mp[1]))}</b><span>${ms.mpTxt ? esc(fmtLL(ms.mp[0], ms.mp[1])) + '<br>' : ''}${navLinks(ms.mp[0], ms.mp[1])}</span></div>` : ''}
-        ${ms.sp ? `<div class="tile" style="border-top-color:#c43e00;flex:2"><small>Startpunkt (S)</small><b style="font-size:10.5pt">${esc(fmtLL(ms.sp[0], ms.sp[1]))}</b><span>${navLinks(ms.sp[0], ms.sp[1])}</span></div>` : ''}</div>` : '')(meetStart(f))}
+        ${ms.sp ? `<div class="tile" style="border-top-color:#c43e00;flex:2"><small>Startpunkt (S)${ms.sp1 ? ' – 1. Wegpunkt' : ''}</small><b style="font-size:10.5pt">${esc(fmtLL(ms.sp[0], ms.sp[1]))}</b><span>${navLinks(ms.sp[0], ms.sp[1])}</span></div>` : ''}</div>` : '')(meetStart(f))}
       ${mp ? `<div class="mapw"><img class="map" src="${jpg(mp)}"></div>${legend}` : ''}
       ${fo.length ? `<div class="box" style="border-left-color:#8e24aa"><b>⚡ Stromleitung – ${tp ? 'Flugbahn überquert die Leitung' : 'Flugbahn liegt daneben'}</b> · Netzbetreiber: ${fo.map(o => esc(o.name)).join(', ')}<br>${tp ? `In <b>${pwrH()} m</b> überfliegen, nie unter der Leitung durch.` : 'Nur heranfliegen, nicht überfliegen, Abstand halten.'}</div>` : ''}
       ${afZonesOf(fb).map(z => { const ph = afPhone(z); return `<div class="box" style="border-left-color:#c62828"><b>✈️ Flugplatz ${esc(afName(z))}</b> – nur mit Zustimmung.<br>${ph ? `Vor dem Start anrufen: <b>☎ ${esc(ph)}</b>` : '<b>Rufnummer fehlt noch</b> – beim Koordinator erfragen. Ohne Anruf nicht starten.'}</div>`; }).join('')}
@@ -9491,24 +9600,38 @@ function fieldsShort(names) {
 function briefMailDlg(sel, back) {
   if (!A.mailDraft || !A.briefingPdf) return toast('Nur im Desktop-Programm möglich.', true);
   const ps = plGet('pilots').filter(p => p.active !== false), needA2 = sel.some(f => fieldVerdict(f).k === 'a2'), vs = sel.map(fieldVerdict);
-  const box = document.createElement('div'), chosen = new Set();
+  const reach = p => /@/.test(p.email || '');
+  if (!ps.some(reach)) {   // noch kein Pilot mit E-Mail bzw. Handynummer: direkt zur Pilotenliste bzw. zum Anlegen, danach weiter zum Versand
+    toast('Zuerst Piloten mit E-Mail-Adresse anlegen – danach geht es direkt weiter zum Versand.', 'ok', 6000);
+    const again = () => briefMailDlg(sel, back);
+    return plGet('pilots').length ? pilotsDlg(again) : pilotForm(null, () => pilotsDlg(again));
+  }
+  const box = document.createElement('div'), chosen = new Set(), okA13 = new Set(), a2f = sel.filter(f => fieldVerdict(f).k === 'a2').map(f => f.title);
   const paint = () => {
     box.innerHTML = `<div class="meta" style="margin-bottom:8px">${sel.length} Feld${sel.length > 1 ? 'er' : ''}: <b>${esc(fieldsShort(sel.map(f => f.title)))}</b>${needA2 ? ' · <b style="color:#e07800">mindestens ein Feld nur mit A2</b>' : ''}</div>
-      ${ps.length ? ps.map((p, i) => { const noMail = !/@/.test(p.email || ''), warn = needA2 && p.lic !== 'A2';
+      ${ps.length ? ps.map((p, i) => { const noMail = !reach(p), warn = needA2 && p.lic !== 'A2';
         return `<label class="bmrow${noMail ? ' off' : ''}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin:5px 0;cursor:${noMail ? 'default' : 'pointer'};${noMail ? 'opacity:.55' : ''}">
           <input type="checkbox" data-bp="${i}"${chosen.has(i) ? ' checked' : ''}${noMail ? ' disabled' : ''} style="all:revert;width:18px;height:18px">
           <div style="flex:1"><b>${esc(p.name || 'ohne Namen')}</b> <span class="cbadge lic ${p.lic === 'A2' ? 'y' : ''}" style="background:${p.lic === 'A2' ? '#0e7a2c' : '#5d6975'};color:#fff;border-radius:8px;padding:1px 7px;font-size:12px;font-weight:800">${LIC_TXT[p.lic || 'A1A3']}</span>
             ${(p.drones || []).map(d => `<span class="meta" style="margin-left:4px">${DRN_TXT[d] || d}</span>`).join('')}
-            <div class="meta">${noMail ? 'keine E-Mail-Adresse – in den Einstellungen unter „Piloten“ eintragen' : esc(p.email)}${warn ? ' · <b style="color:#e07800">nur A1/A3 – nicht alle Felder fliegbar</b>' : ''}</div></div></label>`; }).join('')
+            <div class="meta">${noMail ? 'keine E-Mail-Adresse – in den Einstellungen unter „Piloten“ eintragen' : esc(p.email)}${warn ? ' · <b style="color:#c62828">⚠ nur A1/A3</b>' : ''}</div></div></label>
+          ${warn && chosen.has(i) ? `<div style="margin:-2px 0 8px 0;padding:10px 12px;border-radius:10px;background:#fdecea;border:2px solid #c62828;color:#8e1b1b">
+            <b>⚠ ${esc(p.name || 'Dieser Pilot')} hat nur A1/A3.</b> ${a2f.length} Feld${a2f.length > 1 ? 'er gehen' : ' geht'} nur mit A2 + Allgemeinerlaubnis/-verfügung: <b>${esc(fieldsShort(a2f))}</b> – diese darf ${esc((p.name || '').split(' ')[0] || 'er/sie')} nicht fliegen.
+            <label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-weight:800;cursor:pointer"><input type="checkbox" data-ok13="${i}"${okA13.has(i) ? ' checked' : ''} style="all:revert;width:18px;height:18px"> Ich weiß das – trotzdem schicken (nur die A1/A3-Felder fliegen)</label></div>` : ''}`; }).join('')
       : '<div class="meta" style="padding:10px">Noch keine Piloten eingetragen – in den Einstellungen unter „Piloten“ anlegen (mit E-Mail-Adresse).</div>'}
+      <button class="b-sec" id="bmPil" style="margin:6px 0 0;height:36px;padding:0 12px">👤 Piloten verwalten / hinzufügen</button>
       <label class="spck2" style="margin:12px 2px 2px"><input type="checkbox" id="bmKmz"${P.briefKmz === '1' ? ' checked' : ''}> Flugdateien (KMZ) aus dem UAV Editor anhängen</label>
       <div class="meta" style="margin-left:30px">Je Feld eine KMZ-Datei zum Import in DJI Pilot 2. Wird gemerkt.</div>`;
-    box.querySelectorAll('[data-bp]').forEach(c => c.onchange = () => { c.checked ? chosen.add(+c.dataset.bp) : chosen.delete(+c.dataset.bp); });
+    box.querySelectorAll('[data-bp]').forEach(c => c.onchange = () => { c.checked ? chosen.add(+c.dataset.bp) : (chosen.delete(+c.dataset.bp), okA13.delete(+c.dataset.bp)); paint(); });
+    box.querySelectorAll('[data-ok13]').forEach(c => c.onchange = () => { c.checked ? okA13.add(+c.dataset.ok13) : okA13.delete(+c.dataset.ok13); });
     box.querySelector('#bmKmz').onchange = e => setP('briefKmz', e.target.checked ? '1' : '0');
+    box.querySelector('#bmPil').onclick = () => pilotsDlg(() => briefMailDlg(sel, back));
   };
   paint();
   confirmDlg('Pilotenbriefing per E-Mail', 'Wer soll das Briefing bekommen?', [], 'E-Mails erstellen', () => {
-    const to = [...chosen].map(i => ps[i]).filter(p => /@/.test(p.email || ''));
+    const bad = [...chosen].filter(i => needA2 && ps[i].lic !== 'A2' && !okA13.has(i));
+    if (bad.length) { toast(`${bad.map(i => ps[i].name || 'Pilot').join(', ')}: nur A1/A3 – bitte bewusst bestätigen („trotzdem schicken“) oder abwählen.`, true, 8000); return setTimeout(() => { briefMailDlg(sel, back); }, 50); }
+    const to = [...chosen].map(i => ps[i]).filter(reach);
     if (!to.length) { toast('Bitte mindestens einen Piloten mit E-Mail-Adresse auswählen.', true); return setTimeout(() => briefMailDlg(sel, back), 50); }
     const go = wins => briefMailSend(sel, wins, to, P.briefKmz === '1', back);
     if (P.briefAsk === '0' || flyWinGet()) return go(einsatzWins(flyWinGet()));
@@ -9521,6 +9644,7 @@ async function briefMailSend(sel, wins, pilots, withKmz, back) {
   await new Promise(r => setTimeout(r, 80));
   busy('Briefing für die E-Mail wird erstellt …', { sub: 'Karten und Wetter' });
   try {
+    await uvPointsFor(sel); uvApplyHeights(sel); busy('Briefing für die E-Mail wird erstellt …', { sub: 'Karten und Wetter' });
     const html = await briefingHtml(sel, wins, {});
     const tag = 'm' + Date.now().toString(36), short = fieldsShort(sel.map(f => f.title));
     const name = (`Pilotenbriefing ${fileStamp()} – ${short}`).replace(/[\\/:*?"<>|]/g, '_').slice(0, 150);
@@ -9536,7 +9660,7 @@ async function briefMailSend(sel, wins, pilots, withKmz, back) {
         kmz.files.push(...(r.files || [])); kmz.errors = r.errors || []; }
     }
     busy('');
-    const files = [pdf.file, ...kmz.files], fn = p => String(p).split(/[\\/]/).pop();
+    const files = [pdf.file, ...kmz.files], fn = p => String(p).split(/[\\/]/).pop(), a2s = sel.filter(f => fieldVerdict(f).k === 'a2').map(f => f.title);
     const zr = wins && wins.length ? (wins.length > 1 ? `${new Date(wins[0].a).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })} – ${new Date(wins[wins.length - 1].a).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}` : new Date(wins[0].a).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })) : '';
     let n = 0;
     for (const p of pilots) {
@@ -9546,6 +9670,9 @@ async function briefMailSend(sel, wins, pilots, withKmz, back) {
 anbei das Pilotenbriefing für ${sel.length > 1 ? 'die ' + sel.length + ' Felder' : 'das Feld'} ${short}${zr ? ' – Einsatz ' + zr : ''}.
 `
         + (kmz.files.length ? `Die Flugplanung (KMZ) für DJI Pilot 2 ist angehängt.
+` : '')
+        + (p.lic !== 'A2' && a2s.length ? `
+WICHTIG: Du hast das Fernpilotenzeugnis A1/A3. Diese Felder erfordern A2 (mit Allgemeinerlaubnis/-verfügung): ${fieldsShort(a2s)}.
 ` : '')
         + `
 Angehängte Dateien:
@@ -9570,7 +9697,7 @@ async function pilotBriefing(sel, win, opt) {
   if (!sel.length) return toast('Bitte zuerst Felder markieren.', true);
   busy('Erstelle Pilotenbriefing… (Karten und Wetter)');
   let html = '';
-  try { html = await briefingHtml(sel, win, opt); } catch (e) { busy(''); return toast('Pilotenbriefing fehlgeschlagen: ' + e.message, true, 9000); }
+  try { await uvPointsFor(sel); uvApplyHeights(sel); busy('Erstelle Pilotenbriefing… (Karten und Wetter)'); html = await briefingHtml(sel, win, opt); } catch (e) { busy(''); return toast('Pilotenbriefing fehlgeschlagen: ' + e.message, true, 9000); }
   // Dateiname mit den Feldern (wie im UAV Editor), bei vielen die ersten drei + Anzahl
   const fl = fieldsShort(sel.map(f => f.title));
   const name = (`Pilotenbriefing ${fileStamp()} – ${opt && opt.team ? opt.team.name + ' – ' : ''}${fl}`).replace(/[\\/:*?"<>|]/g, '_').slice(0, 150);
@@ -9803,13 +9930,59 @@ function planList(box) {
   box.querySelectorAll('[data-po]').forEach(b => b.onclick = () => { PL.cur = JSON.parse(JSON.stringify(plGet('plans').find(p => p.id === b.dataset.po))); PL.tab = 'neu'; planRender(); });
   box.querySelectorAll('[data-pd]').forEach(b => b.onclick = () => deleteDlg('Planung löschen?', 'Die Planung wird aus der Adressdatei entfernt.', 'Löschen', () => { plSet('plans', plGet('plans').filter(p => p.id !== b.dataset.pd)); if (PL.cur && PL.cur.id === b.dataset.pd) PL.cur = null; planOpen('liste'); }));
 }
+/** Einstellungen: Kurzinfo zur Pilotenliste */
+function pilotsSum() { const v = $('vPilots'); if (!v) return; const ps = plGet('pilots'), a2 = ps.filter(p => p.lic === 'A2').length, nm = ps.filter(p => !/@/.test(p.email || '')).length;
+  v.textContent = ps.length ? `${ps.length} Pilot${ps.length > 1 ? 'en' : ''} · ${a2} mit A2${nm ? ` · ${nm} ohne E-Mail` : ''} – für „Briefing per E-Mail versenden“ und die Planung` : 'Noch keine Piloten – für „Briefing per E-Mail versenden“: Name, E-Mail und Fernpilotenzeugnis eintragen.';
+  const b = $('bPilots'); if (b) b.textContent = ps.length ? 'Piloten verwalten' : 'Pilot hinzufügen'; }
+/** Pilotenliste (wie bei den Netzbetreibern): alle Piloten, Bearbeiten/Löschen, „+ Pilot hinzufügen“. after = zurück, wohin danach (z. B. Briefing-Versand) */
+function pilotsDlg(after) {
+  const ps = plGet('pilots'), box = document.createElement('div');
+  const adr = p => [[p.street, p.no].filter(Boolean).join(' '), [p.zip, p.city || p.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  box.innerHTML = (ps.length ? ps.map((p, i) => `<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;margin:5px 0;${p.active === false ? 'opacity:.55' : ''}">
+      <div style="flex:1;min-width:0"><b>${esc(p.name || 'ohne Namen')}</b> <span style="background:${p.lic === 'A2' ? '#0e7a2c' : '#5d6975'};color:#fff;border-radius:8px;padding:1px 7px;font-size:12px;font-weight:800">${LIC_TXT[p.lic] || '?'}</span>${p.active === false ? ' <span class="meta">(inaktiv)</span>' : ''}
+        <div class="meta">${esc(p.email || 'keine E-Mail')}${p.phone ? ' · ' + esc(p.phone) : ''}${adr(p) ? ' · ' + esc(adr(p)) : ''}${(p.drones || []).length ? ' · ' + p.drones.map(d => DRN_TXT[d] || d).join(', ') : ''}</div></div>
+      <button class="b-sec" data-pe="${i}" style="height:38px;padding:0 12px">Bearbeiten</button><button class="b-sec" data-px="${i}" style="height:38px;width:38px;padding:0" title="Löschen">✕</button></div>`).join('')
+    : '<div class="meta" style="padding:8px">Noch keine Piloten eingetragen.</div>') + `<button class="b-ok" id="pNew" style="margin-top:10px;width:100%;height:46px">+ Pilot hinzufügen</button>`;
+  confirmDlg('Piloten', 'Kontaktliste der Piloten – für das Pilotenbriefing per E-Mail und die Einsatzplanung. Gespeichert in der Adressdatei (mit anderen Koordinatoren teilbar).', [], after ? 'Weiter' : 'Fertig', () => { pilotsSum(); if (after) after(); }, box);
+  $('dNo').style.display = 'none';
+  box.querySelector('#pNew').onclick = () => pilotForm(null, () => pilotsDlg(after));
+  box.querySelectorAll('[data-pe]').forEach(b => b.onclick = () => pilotForm(ps[+b.dataset.pe], () => pilotsDlg(after)));
+  box.querySelectorAll('[data-px]').forEach(b => b.onclick = () => { const p = ps[+b.dataset.px]; deleteDlg('Pilot löschen?', `${p.name || 'Dieser Pilot'} wird aus der Liste entfernt.`, 'Löschen', () => { plSet('pilots', ps.filter(x => x !== p)); pilotsSum(); pilotsDlg(after); }); });
+  dlgOnCancel = () => pilotsSum();
+}
+/** Pilot anlegen/bearbeiten – Pflicht: Name, E-Mail, Fernpilotenzeugnis; Adresse mit Straße, Hausnummer, PLZ, Ort */
+function pilotForm(p0, back) {
+  const p = Object.assign({ id: plId(), name: '', email: '', phone: '', lic: '', drones: [], street: '', no: '', zip: '', city: '', active: true }, p0 ? JSON.parse(JSON.stringify(p0)) : {});
+  if (!p.city && p.ort) p.city = p.ort;
+  const box = document.createElement('div'), inp = (k, l, ph, t, st) => `<label style="display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:700;${st || ''}">${l}<input data-k="${k}" type="${t || 'text'}" value="${esc(p[k] || '')}" placeholder="${ph || ''}" style="height:42px;font-size:15px;font-weight:400;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--txt)"></label>`;
+  box.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      ${inp('name', 'Vor- und Nachname *', 'z. B. Anna Beispiel', 'text', 'grid-column:1/3')}
+      ${inp('email', 'E-Mail *', 'name@beispiel.de', 'email')}${inp('phone', 'Telefon', '+49 170 …', 'tel')}
+      <div style="grid-column:1/3"><div style="font-size:13px;font-weight:700;margin-bottom:4px">Fernpilotenzeugnis *</div><div class="pcseg" id="pfLic">${['A1A3', 'A2'].map(l => `<button data-lic="${l}" class="${p.lic === l ? 'on' : ''}">${LIC_TXT[l]}</button>`).join('')}</div></div>
+      ${inp('street', 'Straße', 'z. B. Hauptstraße')}<div style="display:grid;grid-template-columns:110px 1fr;gap:10px">${inp('no', 'Hausnr.', '12a')}<span></span></div>
+      ${inp('zip', 'PLZ', '65549', 'text')}${inp('city', 'Ort', 'Limburg')}
+      <div style="grid-column:1/3"><div style="font-size:13px;font-weight:700;margin-bottom:4px">Drohnen</div><div class="pcseg multi" id="pfDr">${['M3T', 'M4T'].map(d => `<button data-dr="${d}" class="${(p.drones || []).includes(d) ? 'on' : ''}">${DRN_TXT[d]}</button>`).join('')}</div></div>
+      <label class="spck2" style="grid-column:1/3"><input type="checkbox" id="pfAct"${p.active !== false ? ' checked' : ''}> aktiv (wird für Briefing und Planung angeboten)</label></div>
+    <div id="pfErr" style="color:#c62828;font-weight:700;margin-top:8px"></div>`;
+  box.querySelectorAll('#pfLic [data-lic]').forEach(b => b.onclick = () => { p.lic = b.dataset.lic; box.querySelectorAll('#pfLic [data-lic]').forEach(x => x.classList.toggle('on', x === b)); });
+  box.querySelectorAll('#pfDr [data-dr]').forEach(b => b.onclick = () => { const s2 = new Set(p.drones || []); s2.has(b.dataset.dr) ? s2.delete(b.dataset.dr) : s2.add(b.dataset.dr); p.drones = [...s2]; b.classList.toggle('on', s2.has(b.dataset.dr)); });
+  const save = () => {
+    box.querySelectorAll('[data-k]').forEach(i => p[i.dataset.k] = i.value.trim()); p.active = box.querySelector('#pfAct').checked; p.ort = p.city;
+    const err = [!p.name && 'Name', !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(p.email) && 'gültige E-Mail', !p.lic && 'Fernpilotenzeugnis', p.zip && !/^\d{5}$/.test(p.zip) && 'PLZ (5 Ziffern)'].filter(Boolean);
+    if (err.length) { box.querySelector('#pfErr').textContent = 'Bitte ausfüllen: ' + err.join(', '); return false; }
+    const ps = plGet('pilots'), i = ps.findIndex(x => x.id === p.id); i >= 0 ? ps[i] = p : ps.push(p); plSet('pilots', ps); return true; };
+  confirmDlg(p0 ? 'Pilot bearbeiten' : 'Pilot hinzufügen', '* Pflichtfelder', [], 'Speichern', () => { toast('Pilot gespeichert.', 'ok'); back && back(); }, box);
+  S.dlgValidate = () => save();
+  dlgOnCancel = () => back && back(); $('dNo').textContent = 'Zurück';
+  setTimeout(() => { const n = box.querySelector('[data-k="name"]'); if (n && !p0) n.focus(); }, 50);
+}
 function pilotList(box) {
   const ps = plGet('pilots');
   box.innerHTML = `<div class="meta" style="margin-bottom:10px">Piloten mit Zeugnis und Drohnen – daraus schlägt die Planung vor, wer welches Team fliegt. Gespeichert in der Adressdatei (teilbar).</div>
     ${ps.map((p, i) => `<div class="pcard${p.active === false ? ' off' : ''}" data-pi="${i}">
       <div class="pcrow"><input class="pln pbig" value="${esc(p.name || '')}" placeholder="Vor- und Nachname"><label class="sw" title="aktiv (wird eingeplant)"><input type="checkbox" class="pla"${p.active !== false ? ' checked' : ''}><span></span></label><button class="pcx" title="Pilot löschen">🗑</button></div>
       <div class="pcgrid">
-        <label>Telefon (WhatsApp)<input class="plp" type="tel" value="${esc(p.phone || '')}" placeholder="+49 170 …"></label>
+        <label>Telefon<input class="plp" type="tel" value="${esc(p.phone || '')}" placeholder="+49 170 …"></label>
         <label>E-Mail (für das Briefing)<input class="plm" type="email" value="${esc(p.email || '')}" placeholder="name@beispiel.de"></label>
         <label>Wohnort<input class="plo" value="${esc(p.ort || '')}" placeholder="z. B. Elz"></label>
         <div><span class="pclab">Fernpilotenzeugnis</span><div class="pcseg">${['A1A3', 'A2'].map(l => `<button data-lic="${l}" class="${(p.lic || 'A1A3') === l ? 'on' : ''}">${LIC_TXT[l]}</button>`).join('')}</div></div>
@@ -9862,7 +10035,9 @@ function liteSearch(afterRefresh) {
   const want = P.drone || '', wantH = DRONE_HEIGHT[want], DN = { M3T: 'Mavic 3T', M4T: 'Matrice 4T', M3E: 'Mavic 3E', M4E: 'Matrice 4E' };
   const byH = f => { const h = f.meta && +f.meta.h; return h >= 45 && h <= 55 ? 'M3T' : h >= 65 && h <= 75 ? 'M4T' : ''; };   // ohne Kürzel: über die Flughöhe
   const dr = f => { let x = ''; try { x = uaveInfo(f).drone; } catch (e) { } return x || nameDrone(f.name) || byH(f); };
-  let all = (d ? d.fields : []).filter(f => !f.arch && CAT_YEAR(f) === y).sort((a, b) => String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
+  if (djiWanted() && afterRefresh !== true && A.uaveDjiList && !S.djiBusy && (!djiState() || Date.now() - djiState().at > 5 * 60000)) djiRefresh(() => { if ($('lList')) liteSearch(true); });   // Liste der DJI Cloud aktuell halten
+  const dj = djiOn();
+  let all = (d ? d.fields : []).filter(f => dj ? djiHas(f) : (!f.arch && CAT_YEAR(f) === y)).sort((a, b) => String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
   // Gibt es ein Feld für mehrere Drohnen (…-M3T / …-M4T), nur die Version für die eigene Drohne zeigen
   if (want) { const ctr = new Map(), c = f => { if (!ctr.has(f)) { const e = catEntry(f); ctr.set(f, e ? e.center : null); } return ctr.get(f); };
     const byBase = new Map(); all.forEach(f => { const k = baseName(f.name); (byBase.get(k) || byBase.set(k, []).get(k)).push(f); });
@@ -9887,11 +10062,14 @@ function liteSearch(afterRefresh) {
   const row = f => { const on = sel.has(String(f.id)), dd = dr(f), h = f.meta && f.meta.h ? Math.round(f.meta.h) : 0;
     // andere Drohne oder andere Höhe: wird beim Import automatisch auf die eigene Drohne umgerechnet
     const conv = want && wantH && ((dd && dd !== want) || (h && Math.abs(h - wantH) > 5)) ? ` <span style="color:#e07800;font-weight:700">→ wird für ${DN[want] || want} (${wantH} m) umgerechnet</span>` : '';
-    return `<label class="lrow${on ? ' on' : ''}"><input type="checkbox" data-id="${esc(f.id)}"${on ? ' checked' : ''}><span><b>${esc(f.name)}</b><em>${[f.area ? fieldArea(f.area) : '', dd ? DN[dd] || dd : '', h ? h + ' m' : ''].filter(Boolean).join(' · ')}${conv}</em></span></label>`; };
+    return `<label class="lrow${on ? ' on' : ''}"><input type="checkbox" data-id="${esc(f.id)}"${on ? ' checked' : ''}><span><b>${esc(f.name)}</b>${dj ? '' : srcBadges(f)}<em>${[f.area ? fieldArea(f.area) : '', dd ? DN[dd] || dd : '', h ? h + ' m' : ''].filter(Boolean).join(' · ')}${conv}</em></span></label>`; };
   const render = () => {
     const t = fold(q.value.trim()), picked = all.filter(f => sel.has(String(f.id)));
-    const hits = t.length >= 3 ? all.filter(f => !sel.has(String(f.id)) && fuzzyHas(fold(f.name + ' ' + ((f.meta || {}).by || '')), t)) : [];
+    const hits = t.length >= 3 ? all.filter(f => !sel.has(String(f.id)) && fuzzyHas(fold(f.name + ' ' + ((f.meta || {}).by || '')), t)) : dj ? all.filter(f => !sel.has(String(f.id))) : [];   // DJI Cloud: gleich alle Felder zeigen
     $('lInfo').textContent = !d ? 'Noch keine Feldliste – mit Internet ↻ tippen.' : t.length >= 3 && !hits.length ? 'Kein Feld gefunden.' : '';
+    if (dj && d && t.length >= 3 && !hits.length) { const nd = (d.fields || []).filter(f => !djiHas(f) && fuzzyHas(fold(f.name), t)).slice(0, 3);   // gibt es das Feld nur im UAV Editor?
+      if (nd.length) $('lInfo').textContent = `Nicht in der DJI Cloud, aber im UAV Editor: ${nd.map(f => f.name).join(', ')} – zuerst im UAV Editor in die DJI Cloud hochladen.`; }
+    if (dj && d) { const st = djiState(); $('lInfo').textContent = `☁ ${all.length} Feld${all.length === 1 ? '' : 'er'} aus der DJI Cloud${st && st.at ? ' · Stand ' + new Date(st.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : ''}${S.djiBusy ? ' · wird aktualisiert…' : ''} ` + $('lInfo').textContent; }
     if (S.liteRefresh && d) $('lInfo').textContent = ($('lInfo').textContent ? $('lInfo').textContent + ' ' : '') + 'Suche im Hintergrund nach neuen Feldern…';
     const exact = hits.filter(f => fold(f.name + ' ' + ((f.meta || {}).by || '')).includes(t)), sim = hits.filter(f => !exact.includes(f));   // genaue Treffer oben, ähnliche (Tippfehler) abgesetzt darunter
     list.innerHTML = (picked.length ? picked.map(row).join('') + (hits.length ? '<div class="lsep"></div>' : '') : '') + exact.slice(0, 100).map(row).join('')
@@ -9952,7 +10130,7 @@ function liteLoadStart() {
   if (syncing) return toast('Es läuft gerade noch ein Abgleich – bitte gleich nochmal.', true, 5000);
   syncing = true; syncStop = false; S.liteDl = { ids, done: 0, total: ids.length };
   busy('Felder werden auf die Fernsteuerung geladen…', { done: 0, total: ids.length });
-  A.uaveDownload(JSON.stringify(ids), P.src, String(new Date().getTimezoneOffset()));
+  uaveDl(ids);
 }
 /** Ereignisse des Hintergrund-Downloads; true = erledigt */
 function liteUaveEvent(ev) {
@@ -10542,9 +10720,15 @@ function webInit() {
   document.querySelectorAll('#pgSet .set').forEach(el => { const t = el.querySelector('.t'); if (!t || !t.textContent.trim().startsWith('Kartentyp')) return;
     t.textContent = 'Kartenspeicher'; el.querySelectorAll('.seg').forEach(sg => { if (sg.querySelector('[data-layer],[data-ly]') || /Luftbild/.test(sg.textContent)) sg.style.display = 'none'; }); });
   gmapsUi();
+  // Fehlersuche: Aufbau der UAV-Editor-Felddaten (nur Feldnamen und Datentypen, keine Inhalte) – z. B. um Start-/Treffpunkt zu finden
+  if (A.uaveSkeleton && !$('setUvSkel')) { const k = $('sc-karte'); if (k) { const el = document.createElement('div'); el.className = 'set'; el.id = 'setUvSkel';
+      el.innerHTML = '<div class="l"><div class="t">UAV-Editor-Datenaufbau</div><div class="v">Zur Fehlersuche: zeigt nur, wie die Felddaten aufgebaut sind (Feldnamen und Datentypen, keine Inhalte). Erst nach „UAV-Felder holen“ verfügbar.</div></div><button class="b-sec" id="bUvSkel">Anzeigen</button>';
+      k.before(el); el.querySelector('#bUvSkel').onclick = () => { const t = A.uaveSkeleton() || 'null', box = document.createElement('div');
+        box.innerHTML = t === 'null' ? '<div class="meta">Noch keine Daten – zuerst „↻ UAV-Felder holen“.</div>' : `<pre style="max-height:55vh;overflow:auto;font-size:12px;background:var(--card2,#f3f5f8);padding:10px;border-radius:8px;white-space:pre-wrap">${esc(t)}</pre>`;
+        confirmDlg('UAV-Editor-Datenaufbau', 'Nur Feldnamen und Datentypen – zum Weitergeben an den Entwickler (enthält keine Feld- oder Personendaten).', [], 'Kopieren', () => { try { navigator.clipboard.writeText(t); toast('In die Zwischenablage kopiert.', 'ok'); } catch (e) { } }, box); $('dNo').textContent = 'Schließen'; }; } }
   // Piloten-Kontaktliste (Name, E-Mail, Telefon, Zeugnis, Drohnen) – für „Briefing per E-Mail versenden“ und die Planung
-  if (!$('setPilots')) { const k = $('sc-karte'); if (k) { k.insertAdjacentHTML('beforebegin', '<h3 class="setcat" id="sc-piloten">Piloten</h3><div class="set" id="setPilots" style="flex-direction:column;align-items:stretch"></div>');
-      pilotList($('setPilots'));
+  if (!$('setPilots')) { const k = $('sc-karte'); if (k) { k.insertAdjacentHTML('beforebegin', '<h3 class="setcat" id="sc-piloten">Piloten</h3><div class="set" id="setPilots"><div class="l"><div class="t">Piloten</div><div class="v" id="vPilots"></div></div><button class="b-ok" id="bPilots">Pilot hinzufügen</button></div>');
+      $('bPilots').onclick = () => pilotsDlg(); pilotsSum();
       const nav = document.querySelector('#pgSet .setnav'), kb = nav && nav.querySelector('[data-sc="karte"]');
       if (nav) { const nb = document.createElement('button'); nb.dataset.sc = 'piloten'; nb.textContent = 'Piloten'; nb.onclick = () => $('sc-piloten').scrollIntoView({ behavior: 'smooth', block: 'start' }); kb ? kb.before(nb) : nav.appendChild(nb); } } }
   // Technisches (Daten, Bundesland-Erkennung, Verbindungstest) zugeklappt unter „Erweitert“
@@ -10769,7 +10953,7 @@ window.onUave = raw => {
         const ids = idx.map(i => todo[i].id);
         syncStop = false; syncing = true;
         busy('Starte Export…', { cancel: syncAbort });
-        A.uaveDownload(JSON.stringify(ids), P.src, String(new Date().getTimezoneOffset()));
+        uaveDl(ids);
       });
     dlgOnCancel = syncEnd;
     return;
@@ -10855,6 +11039,12 @@ function suSaveStep() {   // Eingaben des aktuellen Schritts übernehmen
 function suDone() { suSaveStep(); setP('setupDone', 1); $('pgSetup').classList.remove('open'); }
 $('suNext').onclick = () => { suSaveStep(); if (suStep === SU_STEPS.length - 1) { suDone(); toast('Eingerichtet – alles lässt sich in den Einstellungen ändern.'); } else showSetup(suStep + 1); };
 $('suBack').onclick = () => { suSaveStep(); showSetup(suStep - 1); };
+// Einstellung: nur Felder aus der DJI Cloud (Liste und Download über UAV Editor → DJI Cloud)
+if (IS_LITE && A.uaveDjiDownload && $('uUser') && !$('setDji')) { const host = $('uUser').closest('.set'), el = document.createElement('div'); el.className = 'set'; el.id = 'setDji';
+  el.innerHTML = '<div class="l"><div class="t">Nur Felder aus der DJI Cloud</div><div class="v" id="vDji"></div></div><label class="sw"><input type="checkbox" id="sDji"><span></span></label>';
+  host.after(el); const paint = () => { const st = djiState(); $('sDji').checked = djiWanted();
+    $('vDji').textContent = (djiWanted() ? 'An: ' : 'Aus: ') + 'Die Feldliste zeigt nur Flugrouten, die im UAV Editor unter „DJI Cloud“ liegen, und lädt sie auch von dort.' + (st ? ` Zuletzt ${st.list.length} Routen (${new Date(st.at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}).` : ''); };
+  paint(); $('sDji').onchange = e => { setP('djiOnly', e.target.checked ? '1' : '0'); if (e.target.checked) djiRefresh(paint); paint(); try { sideRender(); } catch (e2) { } }; }
 if (IS_LITE || IS_WEB) { const v = $('bTour').closest('.set').querySelector('.v'); if (v) v.textContent = IS_LITE ? 'Schritt für Schritt: Felder aus dem UAV Editor holen, prüfen und für DJI Pilot 2 bereitlegen' : 'Schritt für Schritt: Felder finden, Pre-Check, Netzbetreiber und Forstämter informieren'; }
 $('bTour').onclick = () => { if (IS_LITE || IS_WEB) { $('pgSet').classList.remove('open'); IS_LITE ? liteCoach() : webCoach(); } else tourStart(); };
 $('bSetup').onclick = () => { $('pgSet').classList.remove('open'); showSetup(0); };
@@ -11869,7 +12059,7 @@ loadNotams();
 geoBadge();
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();

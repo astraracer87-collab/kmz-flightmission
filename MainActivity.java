@@ -998,6 +998,17 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             new Thread(() -> uaveDownloadImpl(idsJson, srcDir, tzOffset)).start();
         }
 
+        /** DJI-Cloud-Liste (über UAV Editor) → window.onDjiCloud({ok, list, error}) */
+        @JavascriptInterface
+        public void uaveDjiList() { new Thread(MainActivity.this::djiListImpl).start(); }
+
+        @JavascriptInterface
+        public String uaveDjiCached() { try { File f = dataFile("dji_cloud.json"); return f.isFile() ? readFile(f) : ""; } catch (Exception e) { return ""; } }
+
+        /** Felder aus der DJI Cloud laden statt über den Export – gleiche Rückmeldungen wie uaveDownload */
+        @JavascriptInterface
+        public void uaveDjiDownload(String idsJson, String srcDir) { new Thread(() -> djiDownloadImpl(idsJson, srcDir)).start(); }
+
         /** Mähdatum/Flugzeit je Datei aus dem letzten Abgleich: {datei:{id,cut,ft,name}} */
         @JavascriptInterface
         public String uaveFieldMeta() {
@@ -2371,6 +2382,102 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         long srv = uf != null ? Math.max(parseIso(uf.optString("lastModified", null)), parseIso(uf.optString("createdAt", null))) : 0;
         man.put(id, withMeta(new JSONObject().put("file", file).put("mod", Math.max(System.currentTimeMillis(), srv)).put("srv", srv), uf));
         prefs.edit().putString("uave_manifest", man.toString()).apply();
+    }
+
+    // ---------- DJI Cloud (über UAV Editor): Liste der Flugrouten + KMZ-Download, wie im UAV Editor unter „DJI Cloud“ ----------
+    // 1) GraphQL getDjiCloudInfo → workspaceId + token  2) GET …/workspaces/{ws}/waylines (X-Auth-Token)  3) GET …/waylines/{id}/url → Weiterleitung auf die KMZ
+    private static final String DJI_API = "https://dji-cloud.uaveditor.com/uav/wayline/api/v1/workspaces/";
+    private String djiWs, djiTok; private long djiAt;
+
+    private void djiInfo(boolean force) throws Exception {
+        if (!force && djiTok != null && System.currentTimeMillis() - djiAt < 20 * 60000L) return;
+        if (uaveToken == null) uaveLogin();
+        List<String[]> variants = new ArrayList<>();
+        if (uaveAuthHeader != null) variants.add(uaveAuthHeader);
+        variants.add(new String[]{"login", uaveToken}); variants.add(new String[]{"authorization", uaveToken}); variants.add(new String[]{"authorization", "Bearer " + uaveToken});
+        String last = null;
+        for (String[] v : variants) {
+            JSONObject res = gql("{ getDjiCloudInfo { workspaceId token username } }", new JSONObject(), v);
+            String err = gqlError(res); JSONObject data = res.optJSONObject("data"); JSONObject d = data != null ? data.optJSONObject("getDjiCloudInfo") : null;
+            if (err == null && d != null && !d.optString("workspaceId", "").isEmpty() && !d.optString("token", "").isEmpty()) {
+                uaveAuthHeader = v; djiWs = d.getString("workspaceId"); djiTok = d.getString("token"); djiAt = System.currentTimeMillis(); return; }
+            last = err;
+        }
+        throw new Exception("DJI Cloud nicht erreichbar" + (last != null ? ": " + last : " – ist im UAV Editor eine DJI Cloud eingerichtet?"));
+    }
+
+    private Resp djiGet(String pathq, boolean retry) throws Exception {
+        djiInfo(retry);
+        Map<String, String> h = new HashMap<>(); h.put("X-Auth-Token", djiTok); h.put("Accept", "application/json, */*");
+        Resp r = http("GET", DJI_API + java.net.URLEncoder.encode(djiWs, "UTF-8") + pathq, h, null);
+        if ((r.code == 401 || r.code == 403) && !retry) { djiTok = null; return djiGet(pathq, true); }
+        return r;
+    }
+
+    private static String djiDrone(String k) {
+        switch (k == null ? "" : k) { case "0-77-1": return "M3T"; case "0-77-0": return "M3E"; case "0-99-1": return "M4T"; case "0-99-0": return "M4E"; default: return k == null ? "" : k; }
+    }
+
+    private JSONArray djiFetchList() throws Exception {
+        Resp r = djiGet("/waylines?order_by=update_time%20desc&page=1&page_size=1000", false);
+        if (r.code >= 400) throw new Exception("DJI Cloud antwortet mit " + r.code);
+        JSONObject j = new JSONObject(r.text());
+        if (j.has("code") && j.optInt("code", 0) != 0) throw new Exception("DJI Cloud: " + j.optString("message", String.valueOf(j.optInt("code"))));
+        JSONArray L = j.optJSONObject("data") != null ? j.optJSONObject("data").optJSONArray("list") : null, out = new JSONArray();
+        if (L != null) for (int i = 0; i < L.length(); i++) { JSONObject w = L.optJSONObject(i); if (w == null) continue;
+            out.put(new JSONObject().put("id", w.optString("id")).put("name", w.optString("name")).put("drone", djiDrone(w.optString("drone_model_key"))).put("update", w.optLong("update_time")).put("create", w.optLong("create_time"))); }
+        return out;
+    }
+
+    private void djiListImpl() {
+        try {
+            JSONArray list = djiFetchList();
+            writeFileAtomic(dataFile("dji_cloud.json"), new JSONObject().put("at", System.currentTimeMillis()).put("list", list).toString());
+            js("window.onDjiCloud && window.onDjiCloud(" + new JSONObject().put("ok", true).put("list", list) + ")");
+        } catch (Exception e) {
+            try { JSONObject o = new JSONObject().put("ok", false).put("error", friendlyError(e));
+                File f = dataFile("dji_cloud.json"); if (f.isFile()) { JSONObject old = new JSONObject(readFile(f)); o.put("list", old.optJSONArray("list")).put("at", old.optLong("at")); }
+                js("window.onDjiCloud && window.onDjiCloud(" + o + ")"); } catch (Exception ignored) { }
+        }
+    }
+
+    private static String djiNorm(String t) { return (t == null ? "" : t).toLowerCase(Locale.ROOT).replaceAll("\\.kmz$", "").replaceAll("[\\s_]+", "-").trim(); }
+
+    private String djiKmz(String id, String name, File dir) throws Exception {
+        Resp r = djiGet("/waylines/" + java.net.URLEncoder.encode(id, "UTF-8") + "/url", false);   // folgt der Weiterleitung auf den Speicher
+        if (r.code >= 400 || r.body.length == 0) throw new Exception("Download fehlgeschlagen (" + r.code + ")");
+        if (!zipHas(r.body, ".kml") && !zipHas(r.body, ".wpml")) throw new Exception("keine KMZ erhalten");
+        String fname = safeFileName((name == null || name.isEmpty() ? id : name).replaceAll("(?i)\\.kmz$", "") + ".kmz");
+        if (!dir.isDirectory()) dir.mkdirs();
+        File tmp = new File(dir, fname + ".tmp");
+        try (OutputStream o = new FileOutputStream(tmp)) { o.write(r.body); }
+        File f = new File(dir, fname); if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f); }
+        return fname;
+    }
+
+    private void djiDownloadImpl(String idsJson, String srcDir) {
+        if (uaveBusy) return;
+        uaveBusy = true; uaveCancel = false;
+        try {
+            JSONArray ids = new JSONArray(idsJson); File dir = new File(srcDir); JSONObject man = manifest(), files = new JSONObject(); JSONArray errors = new JSONArray(); int ok = 0, done = 0;
+            if (uaveToken == null) { uaveProgress("Anmeldung bei UAV Editor…"); uaveLogin(); }
+            uaveProgress("DJI-Cloud-Liste wird geladen…");
+            JSONArray list = djiFetchList(); Map<String, JSONObject> by = new HashMap<>();
+            for (int i = 0; i < list.length(); i++) { JSONObject w = list.getJSONObject(i); String k = djiNorm(w.optString("name")); if (!by.containsKey(k)) by.put(k, w); }   // neueste zuerst
+            for (int i = 0; i < ids.length(); i++) {
+                if (uaveCancel) break;
+                String id = ids.getString(i), name = nameOf(id); JSONObject w = by.get(djiNorm(name));
+                uaveEvent(new JSONObject().put("type", "progress").put("done", done).put("total", ids.length()).put("name", name));
+                try {
+                    if (w == null) throw new Exception("nicht in der DJI Cloud");
+                    String file; try { file = djiKmz(w.getString("id"), name, dir); } catch (Exception first) { if (uaveCancel) break; djiTok = null; file = djiKmz(w.getString("id"), name, dir); }
+                    remember(man, id, file, dir); files.put(id, file); ok++;
+                } catch (Exception e) { errors.put(name + ": " + friendlyError(e)); }
+                done++;
+            }
+            uaveEvent(new JSONObject().put("ok", ok).put("errors", errors).put("files", files).put("cancelled", uaveCancel).put("type", "done").put("via", "dji"));
+        } catch (Exception e) { uaveError(friendlyError(e)); }
+        finally { uaveBusy = false; }
     }
 
     private void uaveDownloadImpl(String idsJson, String srcDir, String tzOffset) {
