@@ -3035,22 +3035,42 @@ window.onUvBounds = b => {
     A.uvOverlay(JSON.stringify(uvOverlayFC(b)));
   }, 250);
 };
+/** Bundesland einer Geozone – fest, nicht vom Kartenausschnitt abhängig. Bestimmt über bis zu 48 Punkte der Zone (Mehrheit, damit ungenaue Grenzen
+ *  an einzelnen Ecken nichts kippen). Liegt die Zone wirklich in zwei Ländern (lange Straße, großes Gebiet): das Land an der Stelle, die unseren Feldern
+ *  am nächsten ist. Ergebnis wird gespeichert (bis neue Landesgrenzen geladen werden). */
+let ZREG = null, ZREG_T = 0;
+function zoneRegion(f) {
+  if (!S.regions.length) return featRegion(f);
+  if (!ZREG) { try { const o = JSON.parse(A.getPref('zoneReg', '') || '{}'); ZREG = o.v === S.regFetched ? o.m || {} : {}; } catch (e) { ZREG = {}; } }
+  const k = featKey(f), hit = ZREG[k];
+  const R = c => ({ st: c.split(':')[0] || null, rbGi: c.split(':')[1] === '1', fallback: false });
+  if (hit && !hit.startsWith('mix')) return R(hit);
+  const pts = f.rings.flat(), n = pts.length, step = Math.max(1, Math.floor(n / 48)), votes = {};
+  for (let i = 0; i < n; i += step) { const r = regionAt(pts[i][1], pts[i][0]); const c = (r.st || '') + ':' + (r.rbGi ? 1 : 0); votes[c] = (votes[c] || 0) + 1; }
+  const tot = Object.values(votes).reduce((a, v) => a + v, 0), ord = Object.entries(votes).sort((a, c) => c[1] - a[1]);
+  const mixed = ord.length > 1 && ord[1][1] / tot >= 0.2;
+  let code = ord.length ? ord[0][0] : ':0';
+  if (mixed) {   // wirklich in zwei Ländern: Punkt nahe unseren Feldern
+    const cs = S.files.filter(x => x.center).map(x => x.center); let best = null, bd = Infinity;
+    if (cs.length) pts.forEach(q => cs.forEach(c => { const d = (q[1] - c[0]) ** 2 + ((q[0] - c[1]) * 0.64) ** 2; if (d < bd) { bd = d; best = q; } }));
+    if (best) { const r = regionAt(best[1], best[0]); code = (r.st || '') + ':' + (r.rbGi ? 1 : 0); }
+  }
+  ZREG[k] = (mixed ? 'mix' : '') + code;   // gemischte nur als Hinweis merken (hängt von den Feldern ab)
+  clearTimeout(ZREG_T); ZREG_T = setTimeout(() => { try { A.setPref('zoneReg', JSON.stringify({ v: S.regFetched, m: ZREG })); } catch (e) { } }, 1500);
+  return R(code);
+}
 function uvOverlayFC(b) {
   const feats = [], my = (b.n - b.s) * 0.15, mx = (b.e - b.w) * 0.15, inB = bb => bb && !(bb.s > b.n + my || bb.n < b.s - my || bb.w > b.e + mx || bb.e < b.w - mx);
   // Farben nach nötigem Zeugnis: grün = mit A1/A3 möglich, gelb = mit A2 + Allgemeinerlaubnis/-verfügung, rot = nur mit Antrag/Zustimmung
-  // Bundesland der Zone dort, wo man sie gerade sieht: Punkt der Zone nächst der Kartenmitte (lange Straßen/große Wohngebiete reichen über Landesgrenzen –
-  // der Mittelpunkt der ganzen Zone lag z. B. bei der B417 in Rheinland-Pfalz, obwohl der Abschnitt bei Limburg in Hessen ist)
-  const cLa = (b.n + b.s) / 2, cLo = (b.e + b.w) / 2, regC = new Map();
-  const regOf = f => { if (regC.has(f)) return regC.get(f); let best = null, bd = Infinity;
-    if (f.bb && (f.bb.n - f.bb.s > 0.01 || f.bb.e - f.bb.w > 0.015)) f.rings.forEach(r => r.forEach(q => { const d = (q[1] - cLa) ** 2 + ((q[0] - cLo) * 0.64) ** 2; if (d < bd) { bd = d; best = q; } }));
-    const r = best ? regionAt(best[1], best[0]) : featRegion(f); regC.set(f, r); return r; };
+  // Bundesland je Zone: einmal bestimmt und gespeichert (zoneRegion) – ändert sich beim Verschieben der Karte nicht mehr
+  const regC = new Map(), regOf = f => { if (!regC.has(f)) regC.set(f, zoneRegion(f)); return regC.get(f); };
   const kindFor = (f, lic) => { const sv = P.lic; P.lic = lic; try { return covKind(f.layer, regOf(f)); } finally { P.lic = sv; } };
-  const colOf = f => kindFor(f, 'A1A3') !== 'off' ? '#13a538' : kindFor(f, 'A2') !== 'off' ? '#f2b600' : '#e53935';
+  const colOf = f => kindFor(f, 'A1A3') !== 'off' ? '#13a538' : kindFor(f, 'A2') !== 'off' ? '#f2b600' : '#c43e00';
   // Infotext fürs Anklicken: Name, Art, mit welchem Zeugnis, Auflagen
   const info = f => { const p = f.props || {}, lbl = LAYER_LABEL[f.layer] || f.layer, reg = regOf(f), k1 = kindFor(f, 'A1A3'), k2 = kindFor(f, 'A2');
     const c2 = covFor(f.layer, reg, 'A2'), basis = c2.av ? 'Allgemeinverfügung' : c2.ae ? 'Allgemeinerlaubnis' : P.power === '1' && f.layer === 'stromleitungen' ? 'Genehmigung Netzbetreiber' : '';
     const nr5 = (LUFTVO_NR[f.layer] || [])[0] === 5;
-    const c1 = covFor(f.layer, reg, 'A1A3'), verdict = k1 !== 'off' ? `<b style="color:#13a538">✓ mit A1/A3 möglich${c1.av ? ' (Allgemeinverfügung Wildtierrettung)' : ''}</b>` : k2 !== 'off' ? `<b style="color:#b38600">✓ mit A2${basis ? ' + ' + basis : ''}</b> · <span style="color:#c62828">✗ A1/A3</span>` : '<b style="color:#c62828">✗ nur mit Antrag bzw. Zustimmung</b>';
+    const c1 = covFor(f.layer, reg, 'A1A3'), verdict = k1 !== 'off' ? `<b style="color:#13a538">✓ mit A1/A3 möglich${c1.av ? ' (Allgemeinverfügung Wildtierrettung)' : ''}</b>` : k2 !== 'off' ? `<b style="color:#b38600">✓ mit A2${basis ? ' + ' + basis : ''}</b> · <span style="color:#c62828">✗ A1/A3</span>` : '<b style="color:#c43e00">✗ nur mit Antrag bzw. Zustimmung</b>';
     const rule = nr5 ? '1:1-Regel: seitlich immer weiter weg als hoch (z. B. 50 m hoch → mehr als 50 m Abstand zur Fahrbahn bzw. zum Gleis).'
       : (k1 === 'dist' || k2 === 'dist') ? 'Nur mit Abstand, nicht direkt darüber.' : (k1 === 'off' && k2 === 'off' && BLOCKED_RULES[f.layer]) ? BLOCKED_RULES[f.layer] : '';
     return `<div style="font-weight:800;font-size:14px">${esc(p.name || lbl)}</div><div style="color:#5d6975">${esc(lbl)} · ${esc(regionText(reg))}</div><div style="margin-top:4px">${verdict}</div>${rule ? `<div style="margin-top:4px">${esc(rule)}</div>` : ''}`; };
@@ -4456,7 +4476,7 @@ const regCache = new Map();
 function loadRegions() {
   regCache.clear();
   if (A.regions) try { const r = JSON.parse(A.regions() || '{}'); S.regions = r.list || []; S.regFetched = r.fetched || 0; } catch (e) { S.regions = []; }
-  S.geo.forEach(f => { delete f.reg; delete f.regs; delete f._split; }); covCellCache.clear(); segIdx = null; splitJobs.clear();
+  S.geo.forEach(f => { delete f.reg; delete f.regs; delete f._split; }); covCellCache.clear(); segIdx = null; splitJobs.clear(); ZREG = null;
   draw();
 }
 window.onRegions = () => { loadRegions(); if ($('pgSet').classList.contains('open')) fillRules(); };
@@ -7692,10 +7712,11 @@ async function tilePrefetch(urls, ms) {
 }
 async function mapImage(o) {
   const mk = (() => { try { return JSON.stringify(o) + '|' + GSAT() + '|' + new Date().toDateString(); } catch (e) { return null; } })();
-  if (mk && MAPIMG.has(mk)) return MAPIMG.get(mk);
-  const r = await mapImage0(o);
-  if (mk && r && r.__full) { MAPIMG.set(mk, r); if (MAPIMG.size > 40) MAPIMG.delete(MAPIMG.keys().next().value); }
-  return r;
+  // dasselbe Bild nur einmal bauen: läuft es schon (z. B. im Hintergrund vorbereitet), auf dasselbe Ergebnis warten
+  const hit = mk && MAPIMG.get(mk); if (hit && (hit.full || Date.now() - hit.t < 180000)) return hit.p;   // unvollständige Bilder 3 min merken, dann neu versuchen
+  const p = mapImage0(o), ent = { p, t: Date.now(), full: false };
+  if (mk) { MAPIMG.set(mk, ent); if (MAPIMG.size > 40) MAPIMG.delete(MAPIMG.keys().next().value); }
+  try { const r = await p; ent.full = !!(r && r.__full); if (!r && mk) MAPIMG.delete(mk); return r; } catch (e) { if (mk) MAPIMG.delete(mk); throw e; }
 }
 async function mapImage0(o) {
   const CW = o.cw || 1600, MH = o.mh || 1000, cv = document.createElement('canvas');
@@ -7707,18 +7728,25 @@ async function mapImage0(o) {
   const ox = (mX(o.bb.e, z) + mX(o.bb.w, z)) / 2 - CW / 2, oy = (mY(o.bb.s, z) + mY(o.bb.n, z)) / 2 - MH / 2;
   const pr = (la, lo) => [mX(lo, z) - ox, mY(la, z) - oy];
   c.fillStyle = '#f2f2ee'; c.fillRect(0, 0, CW, MH);
-  const jobs = [], tl = [], src = (tx, ty) => LAYERS[o.base && LAYERS[o.base] ? o.base : 'osm'](Math.min(z, LAYER_MAXZ[o.base] || 18), tx, ty);
-  for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + CW) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + MH) / 256); ty++) tl.push([tx, ty]);
-  const pre = await tilePrefetch(tl.map(([tx, ty]) => src(tx, ty)));   // danach kommen die Kacheln sofort aus dem Kartenspeicher
+  // Kacheln höchstens aus Zoom 17 (bzw. o.tileZ) holen und vergrößert zeichnen: nur ¼ der Kacheln, Schrift größer und lesbar – vorher fehlten bei Zoom 18
+  // regelmäßig ganze Reihen, weil der Kartendienst für die vielen Kacheln zu lange brauchte
+  const bk = o.base && LAYERS[o.base] ? o.base : 'osm', zt = Math.min(z, o.tileZ || 17, LAYER_MAXZ[bk] || 18), K = Math.pow(2, z - zt), TS = 256 * K;
+  const jobs = [], tl = [], src = (tx, ty) => LAYERS[bk](zt, tx, ty);
+  for (let tx = Math.floor(ox / TS); tx <= Math.floor((ox + CW) / TS); tx++) for (let ty = Math.floor(oy / TS); ty <= Math.floor((oy + MH) / TS); ty++) tl.push([tx, ty]);
+  const pre = await tilePrefetch(tl.map(([tx, ty]) => src(tx, ty)), 40000);   // danach kommen die Kacheln sofort aus dem Kartenspeicher
   const dead = pre && pre.ok === 0 && pre.fail > 0;   // Kartendienst antwortet gerade nicht: nicht auf jede Kachel warten
-  // fehlt eine Kachel: gröbere Kachel aus dem Kartenspeicher vergrößern (die Karte war dort meist schon mal), zuletzt Luftbild (Esri) – Hauptsache Orientierung
-  const coarse = async (tx, ty) => { const b = o.base && LAYERS[o.base] ? o.base : 'osm', zz = Math.min(z, LAYER_MAXZ[b] || 18);
-    for (let d = 1; d <= 4; d++) { const im = await loadImg(TSRC(LAYERS[b](zz - d, tx >> d, ty >> d)), 2500); if (im) { const k = 1 << d, sz = 256 / k; return { im, sx: (tx % k) * sz, sy: (ty % k) * sz, sz }; } }
-    const e = await loadImg(TSRC(ESRI_SAT(Math.min(z, 19), tx, ty)), 6000); return e ? { im: e, sx: 0, sy: 0, sz: 256 } : null; };
+  const put = (im, sx, sy, sz, tx, ty) => { c.filter = LAYER_FILTER[bk] || 'none'; c.drawImage(im, sx, sy, sz, sz, tx * TS - ox, ty * TS - oy, TS, TS); c.filter = 'none'; };
+  // fehlt eine Kachel: gröbere Kachel vergrößern (meist schon im Kartenspeicher), zuletzt Luftbild (Esri) – Hauptsache Orientierung
+  const coarse = async (tx, ty) => {
+    for (let d = 1; d <= 3; d++) { const im = await loadImg(TSRC(LAYERS[bk](zt - d, tx >> d, ty >> d)), 3000); if (im) { const k = 1 << d, sz = 256 / k; return { im, sx: (tx % k) * sz, sy: (ty % k) * sz, sz }; } }
+    const e = await loadImg(TSRC(ESRI_SAT(zt, tx, ty)), 6000); return e ? { im: e, sx: 0, sy: 0, sz: 256, esri: true } : null; };
   let miss = 0;
-  if (dead) for (const [tx, ty] of tl) jobs.push(coarse(tx, ty).then(r => { if (r) { c.filter = (o.base && LAYER_FILTER[o.base]) || 'none'; c.drawImage(r.im, r.sx, r.sy, r.sz, r.sz, tx * 256 - ox, ty * 256 - oy, 256, 256); c.filter = 'none'; } miss++; }));
-  else for (const [tx, ty] of tl)
-    jobs.push(loadImg(TSRC(src(tx, ty)), o.tileMs || 8000).then(im => im || (o.base === 'sat' ? loadImg(TSRC(ESRI_SAT(Math.min(z, 19), tx, ty)), o.tileMs) : null)).then(im => { if (im) { c.filter = (o.base && LAYER_FILTER[o.base]) || 'none'; c.drawImage(im, tx * 256 - ox, ty * 256 - oy, 256, 256); c.filter = 'none'; } else return coarse(tx, ty).then(r => { miss++; if (r) { c.drawImage(r.im, r.sx, r.sy, r.sz, r.sz, tx * 256 - ox, ty * 256 - oy, 256, 256); } }); }));
+  const one = async (tx, ty) => {
+    let im = dead ? null : await loadImg(TSRC(src(tx, ty)), o.tileMs || 10000);
+    if (!im && bk === 'sat') im = await loadImg(TSRC(ESRI_SAT(zt, tx, ty)), 6000);
+    if (im) return put(im, 0, 0, 256, tx, ty);
+    miss++; const r = await coarse(tx, ty); if (r) { if (r.esri) { c.drawImage(r.im, tx * TS - ox, ty * TS - oy, TS, TS); } else put(r.im, r.sx, r.sy, r.sz, tx, ty); } };
+  for (const [tx, ty] of tl) jobs.push(one(tx, ty));
   await Promise.all(jobs); cv.__full = miss === 0;
   if (miss && pre && pre.fail && !S.tileWarned) { S.tileWarned = 1; const why = Object.entries(pre.st || {}).map(([k, v]) => (k === 'err' || k === '0' ? 'keine Verbindung' : k === 'zeit' ? 'Zeitüberschreitung' : 'HTTP ' + k) + ' ×' + v).join(', ');
     toast(`Kartendienst (basemap.de) liefert gerade nicht alle Kacheln${why ? ' – ' + why : ''}. Fehlende Stellen mit gröberer Karte bzw. Luftbild gefüllt.`, true, 9000); }   // nur vollständige Bilder werden gemerkt
@@ -7745,6 +7773,9 @@ async function mapImage0(o) {
     c.beginPath(); c.arc(x, y, 9 * k, 0, 7); c.fillStyle = '#00695c'; c.fill(); c.lineWidth = 3; c.strokeStyle = '#fff'; c.stroke();
     c.font = `700 ${16 * k}px Roboto,Arial,sans-serif`; c.textAlign = 'left'; c.textBaseline = 'middle'; const tw = c.measureText(sp.label).width + 12;
     c.fillStyle = 'rgba(255,255,255,.94)'; c.fillRect(x + 14 * k, y - 13 * k, tw, 26 * k); c.fillStyle = '#00695c'; c.fillText(sp.label, x + 14 * k + 6, y + 1); });
+  (o.labels || []).forEach(t => { const [x, y] = pr(t.lat, t.lon); c.font = '700 20px Roboto,Arial,sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
+    const tw = c.measureText(t.text).width + 16, lx = Math.min(CW - tw - 8, x + 14); c.fillStyle = 'rgba(255,255,255,.95)'; c.fillRect(lx, y - 15, tw, 30);
+    c.strokeStyle = t.color || '#333'; c.lineWidth = 2; c.strokeRect(lx, y - 15, tw, 30); c.fillStyle = t.color || '#333'; c.fillText(t.text, lx + 8, y + 1); });
   (o.lines || []).forEach(l => { if (!l.no) return; const m = l.pts[Math.max(0, Math.floor(l.pts.length / 3))], [x, y] = pr(m[0], m[1]);
     c.beginPath(); c.arc(x, y, 15, 0, 7); c.fillStyle = l.color; c.fill(); c.lineWidth = 3; c.strokeStyle = '#fff'; c.stroke();
     c.fillStyle = '#fff'; c.font = '700 16px Roboto,Arial,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(l.no), x, y + 1); });
@@ -7783,8 +7814,13 @@ async function opImage(ops, i) {
   o.items.forEach(x => x.secs.forEach(sc => { no++; lines.push({ pts: sc.pts, color: col, no }); pts.push(...sc.pts);
     leg.push(`${no}. ${secPlace(sc) ? 'bei ' + secPlace(sc) + ' – ' : ''}${lineLbl(x.l)} · ca. ${Math.round(sc.len)} m · von ${fmtLL(...sc.pts[0])} bis ${fmtLL(...sc.pts[sc.pts.length - 1])}${x.l.id ? ' · OSM-Weg ' + x.l.id : ''}`); }));
   // Für den Netzbetreiber zählen nur die Leitungsabschnitte – keine Einsatzbereiche/Felder im Bild
-  const bb0 = bbOfPts(pts), pad = Math.max(0.002, (bb0.n - bb0.s) * 0.15, (bb0.e - bb0.w) * 0.15);
-  return mapImage({ bb: { n: bb0.n + pad, s: bb0.s - pad, e: bb0.e + pad * 1.5, w: bb0.w - pad * 1.5 }, spots: [], lines, title: `Drohnenüberflug Kitzrettung – ${o.name}${opPlaces(o).length ? ' – bei ' + opPlaces(o).slice(0, 4).join(', ') : ''} – ${new Date().toLocaleDateString('de-DE')}`, legend: leg });
+  const bb0 = bbOfPts(pts), pad = Math.max(0.003, (bb0.n - bb0.s) * 0.2, (bb0.e - bb0.w) * 0.2);
+  const bbx = { n: bb0.n + pad, s: bb0.s - pad, e: bb0.e + pad * 1.5, w: bb0.w - pad * 1.5 };
+  // ganze Leitung dünn als Orientierung, mit Bezeichnung aus OpenStreetMap (Spannung, Name/Nummer) – die gemeldeten Abschnitte dick und nummeriert
+  const ctxL = [], labels = []; [...new Set(o.items.map(x => x.l))].forEach(l => { ctxL.push({ pts: l.pts, color: '#8e24aa', w: 5 });
+    const inV = l.pts.filter(q => q[0] < bbx.n && q[0] > bbx.s && q[1] < bbx.e && q[1] > bbx.w), m = inV[Math.floor(inV.length * 0.75)];
+    if (m) labels.push({ lat: m[0], lon: m[1], text: [lineLbl(l), l.n].filter(Boolean).join(' · '), color: '#6a1b9a' }); });
+  return mapImage({ bb: bbx, base: 'grey', spots: [], lines: ctxL.concat(lines), labels, title: `Drohnenüberflug Kitzrettung – ${o.name}${opPlaces(o).length ? ' – bei ' + opPlaces(o).slice(0, 4).join(', ') : ''} – ${new Date().toLocaleDateString('de-DE')}`, legend: leg });
 }
 /** Teil des Einsatzbereichs, der im Schutzgebiet liegt: Rasterpunkte (ca. 8 m) in Feld UND Zone → konvexe Hülle [[lat,lon]] – neutral, ohne Feldumriss */
 function overlapHull(f, rings) {
@@ -7863,7 +7899,7 @@ async function afImage(z, sel) {
   const rec = afRec(z); if (rec) pts.push([rec.lat, rec.lon]);
   if (!pts.length) return null;
   const nm = afName(z);
-  return mapImage({ bb: zoneViewBB(z, pts), areas: [{ rings: z.f.rings, color: '#d32f2f' }],
+  return mapImage({ bb: zoneViewBB(z, pts), base: 'grey', areas: [{ rings: z.f.rings, color: '#d32f2f' }],
     circles: ar.map(a => ({ lat: a.lat, lon: a.lon, r: a.r, label: 'Bereich ' + a.no })),
     title: `Drohnenflug Kitzrettung – Flugplatz ${nm}`,
     legend: [`Rot: Flugplatzbereich ${nm}${rec && rec.icao ? ' (' + rec.icao + ')' : ''} laut dipul`, 'Orange Kreise: ungefähre Einsatzbereiche (Drohnenflüge innerhalb des Kreises)',
@@ -7887,7 +7923,7 @@ async function natImage(z, sel) {
   ar.forEach(a => { const dl = a.r / 111200, dn = a.r / (111200 * Math.cos(a.lat * Math.PI / 180)); pts.push([a.lat + dl, a.lon + dn], [a.lat - dl, a.lon - dn]); });
   if (!pts.length) return null;
   const p = z.f.props || {}, lbl = LAYER_LABEL[z.f.layer] || z.f.layer;
-  return mapImage({ bb: zoneViewBB(z, pts), areas: [{ rings: z.f.rings, color: '#2e7d32' }],
+  return mapImage({ bb: zoneViewBB(z, pts), base: 'grey', areas: [{ rings: z.f.rings, color: '#2e7d32' }],
     circles: ar.map(a => ({ lat: a.lat, lon: a.lon, r: a.r, label: 'Bereich ' + a.no })),
     title: `Drohnenflug Kitzrettung – ${lbl}${p.name ? ': ' + p.name : ''}`,
     legend: [`${lbl}${p.name ? ': ' + p.name : ''} · ${regionText(z.reg)}${altText(p) ? ' · ' + altText(p) : ''}`, 'Orange Kreise: ungefähre Einsatzbereiche (Drohnenflüge innerhalb des Kreises)',
@@ -8021,10 +8057,13 @@ function briefStart(sel, done) {
 async function webPreCheck(sel) {
   if (!sel.length) return toast('Bitte zuerst Felder auf der Karte markieren.', true);
   const tok = S.pcTok = (S.pcTok || 0) + 1, quick = $('dlg').classList.contains('open') && /^Pre-Check/.test($('dTitle').textContent);
-  if (!quick) busy('Pre-Check wird vorbereitet…');
-  await new Promise(r => setTimeout(r, 30));   // Ladefenster zeichnen lassen
+  // Ladefenster mit groben Schritten (Schritt 1–4), damit man sieht, dass es vorangeht
+  const stepT = (no, t, o) => { if (!quick) busy(`Pre-Check · Schritt ${no} von 4`, Object.assign({ sub: t }, o || {})); return new Promise(r => setTimeout(r, 30)); };
+  await stepT(1, (S.geo || []).length ? 'Geozonen werden geprüft …' : 'Geozonen werden geladen …');
   S.areaNos = new Map(sel.map((f, i) => [f, i + 1])); S.areaSel = sel;   // neutrale Nummern für Bild und E-Mail
-  const b = flightBriefing(sel), ops = netOps(sel), nz = mergeNat(b.zones.filter(z => NAT_LAYERS.includes(z.f.layer) && z.near == null)), az = afZonesOf(b);
+  const b = flightBriefing(sel);
+  await stepT(2, 'Stromleitungen, Netzbetreiber, Schutzgebiete und Flugplätze …');
+  const ops = netOps(sel), nz = mergeNat(b.zones.filter(z => NAT_LAYERS.includes(z.f.layer) && z.near == null)), az = afZonesOf(b);
   S.hlLines = new Set(ops.flatMap(o => o.items.map(x => x.l)));
   S.hlSecs = ops.flatMap(o => o.items.flatMap(x => x.secs.map(sc => sc.pts)));
   draw();
@@ -8093,11 +8132,12 @@ async function webPreCheck(sel) {
   box.prepend(pb);
   // erst öffnen, wenn alles fertig ist: Vorschaukarten der Details und die kleinen Luftbilder
   if (!quick) {
-    const todo = sel.slice(0, 40); let n = 0; const step = () => busy('Pre-Check wird vorbereitet…', { sub: 'Vorschaukarten und Luftbilder', done: n, total: todo.length });
+    const todo = sel.slice(0, 40); let n = 0; const step = () => stepT(3, 'Vorschaukarten werden erstellt …', { done: n, total: todo.length });
     step();
     const imgs = [...box.querySelectorAll('img')].map(im => im.complete ? null : new Promise(r => { im.addEventListener('load', r, { once: true }); im.addEventListener('error', r, { once: true }); })).filter(Boolean);
     let i = 0; const run = async () => { while (i < todo.length) { const f = todo[i++]; try { await pcMapMake(f); } catch (e) { } n++; step(); } };
-    await Promise.race([Promise.all([Promise.all(Array.from({ length: Math.min(3, todo.length) }, run)), Promise.all(imgs)]), new Promise(r => setTimeout(r, 60000))]);
+    await Promise.race([Promise.all(Array.from({ length: Math.min(3, todo.length) }, run)), new Promise(r => setTimeout(r, 60000))]);
+    if (imgs.length) { await stepT(4, 'Luftbilder werden geladen …'); await Promise.race([Promise.all(imgs), new Promise(r => setTimeout(r, 15000))]); }
     if (tok !== S.pcTok) return;   // inzwischen neu angefordert
     busy('');
   }
@@ -8107,6 +8147,9 @@ async function webPreCheck(sel) {
     bb.onclick = () => briefStart(sel, () => webPreCheck(sel));
     $('dNo').style.display = 'none'; $('dYes').before(bb); }
   dlgOnCancel = null; S.dlgXClose = null; S.dlgXYes = true;   // ✕ oben = genau „Schließen“ unten   // ✕ oben = wie „Schließen“ – keine alte Abbrechen-Aktion (öffnete sonst nach 3 s wieder und startete das Briefing)
+  // Kartenbilder für „Bild“ und „E-Mail“ schon im Hintergrund vorbereiten – beim Klick sind sie dann meist fertig
+  setTimeout(async () => { const jobs = [...ops.map((o, i) => () => opImage(ops, i)), ...az.map(z => () => afImage(z, sel)), ...nz.map(z => () => natImage(z, sel))];
+    for (const j of jobs) { if (tok !== S.pcTok || !$('dlg').classList.contains('open')) break; try { await j(); } catch (e) { } } }, 400);
   $('dlg').querySelector('.box').classList.add('wide', 'auto');   // Desktop: ganze Fensterbreite nutzen – Felder in Spalten; Höhe nur so viel wie nötig
   $('dlg').querySelector('.box').scrollTop = 0;
 }
@@ -8162,7 +8205,7 @@ const UVSHOT = new Map(), UVSHOT_CB = {};
 window.onUvShot = (id, key, url) => { const c = UVSHOT_CB[id]; if (c && url) { c.out[key] = url; UVSHOT.set(key, url); } if (c && c.step) c.step(); };
 window.onUvShotDone = (id, err) => { const c = UVSHOT_CB[id]; if (!c) return; delete UVSHOT_CB[id]; clearTimeout(c.t); if (err) c.err = err; c.res(c.out); };
 function uvShots(list, step) {
-  if (!IS_WEB || !A.uvShotStart || !uvAvail() || P.briefUv === '0') return Promise.resolve({});
+  if (!IS_WEB || !A.uvShotStart || !uvAvail() || P.briefUv !== '1') return Promise.resolve({});   // aus: der UAV Editor setzte den Ausschnitt nicht zuverlässig – eigenes Luftbild
   const out = {}, todo = list.filter(x => { if (UVSHOT.has(x.key)) { out[x.key] = UVSHOT.get(x.key); return false; } return true; });
   if (!todo.length) return Promise.resolve(out);
   UV.shooting = true;
@@ -8189,7 +8232,7 @@ async function briefMap(fields, all, zones, mh, opt) {
     const rt = f.route || (f.shapes || []).filter(x => x.type === 'line').flatMap(x => x.pts);
     if (on && rt && rt.length > 1) routes.push({ pts: rt, color: '#ff6f00' });
     if (f.center && (on || fields.length === 1)) spots.push({ lat: f.center[0], lon: f.center[1], no: all.indexOf(f) + 1, label: on ? shortTitle(f.title) : '' }); });
-  return mapImage({ bb, areas, lines, routes, spots, bare: true, mh: mh || 1000, cw: opt.cw, base: opt.base, maxZ: opt.maxZ || 17, tileMs: 6000 });   // hängende Kachel: nach 6 s ohne sie weiter
+  return mapImage({ bb, areas, lines, routes, spots, bare: true, mh: mh || 1000, cw: opt.cw, base: opt.base, maxZ: opt.maxZ || 17 });   // hängende Kachel: nach 6 s ohne sie weiter
 }
 /** Regen fürs Briefing: Niesel ist fliegbar, echter Regen je nach Dauer */
 function briefRain(per) {
