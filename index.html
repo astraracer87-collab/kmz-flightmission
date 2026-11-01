@@ -457,6 +457,7 @@
   /* Kartenmodus: Fenster fast bildschirmfüllend, Filter als Spalte links, Karte rechts groß */
   .dlg .box.wide{width:calc(100% - 16px);max-width:none;height:calc(100% - 16px);max-height:none;padding:10px 12px}
   .dlg .box.wide h3{font-size:16px;margin:0 0 4px}
+  .dlg .box.wide.auto{height:auto;max-height:calc(100% - 16px)} .dlg .box #dList:empty{display:none}   /* Pre-Check: so hoch wie nötig, keine leere Fläche */
   .dlg .box.wide .act button{height:46px}
   .lst.pmon{flex-direction:row;gap:10px;margin:2px 0 8px}
   .lst.pmon .pickbar{width:290px;flex:none;flex-wrap:wrap;align-content:flex-start;overflow-y:auto;margin:0;padding:0 4px 0 0}
@@ -1002,7 +1003,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
+const DEF = { gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
    planTool: '0', sideGroup: '1', catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
@@ -1183,8 +1184,11 @@ const tdiv = $('mapT');
 const BV = { ok: false, lat: 0, lon: 0, z: 0, M: 0, bw: 0, bh: 0, t: 0 };
 // Karte/Grau: basemap.de (amtliche Karte, BKG); Luftbild: Orthophotos HE/RP (außerhalb Esri) – alles auf der RC gespeichert
 const BM_URL = l => (z, x, y) => `https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_${l}/default/GLOBAL_WEBMERCATOR/${z}/${y}/${x}.png`;
+const GSAT = () => typeof IS_WEB !== 'undefined' && IS_WEB && P.gsat === '1' && !!S.gHas;   // PC: Google-Satellitenbild (eigener API-Schlüssel, offizielle Map Tiles API)
+const SAT_AT = () => GSAT() ? 'Bilder © Google' : 'Luftbild © GeoBasis-DE / HVBG, LVermGeoRP (dl-de/by-2-0) · außerhalb © Esri';
 const LAYERS = {
   sat: (z, x, y) => {
+    if (GSAT()) return `https://google.sat/${z}/${x}/${y}`;
     const esri = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
     if (z < 12) return esri;   // Übersicht: Esri (amtliche Luftbilder erst ab Zoom 12 sinnvoll)
     const n = 1 << z, st = new Set();
@@ -1255,7 +1259,7 @@ function resize() {
 }
 let pend = false, dirty = true, settleT = 0;
 /** Inhalt hat sich geändert → Karte neu rendern */
-function draw() { dirty = true; if (!pend) { pend = true; requestAnimationFrame(paint); } }
+function draw() { try { if (UV.lastB) uvOvCheck(); } catch (e) { } dirty = true; if (!pend) { pend = true; requestAnimationFrame(paint); } }
 /** Nur der Ausschnitt hat sich geändert (Wischen, Zoomen, Kompass) → vorgerendertes Bild verschieben; kurz danach scharf neu rendern */
 function drawLive(settle) {
   if (!pend) { pend = true; requestAnimationFrame(paint); }
@@ -1520,7 +1524,7 @@ function paintLive() {
     if (!PERF.raf) PERF.raf = requestAnimationFrame(() => { PERF.raf = 0; drawLive(false); });   // laufend messen
   }
   { // Pflicht-Quellenangabe der Kartendienste, klein unten rechts
-    const at = P.layer === 'sat' ? 'Luftbild © GeoBasis-DE / HVBG, LVermGeoRP (dl-de/by-2-0) · außerhalb © Esri' : '© GeoBasis-DE / BKG ' + new Date().getFullYear() + ' CC BY 4.0';
+    const at = P.layer === 'sat' ? SAT_AT() : '© GeoBasis-DE / BKG ' + new Date().getFullYear() + ' CC BY 4.0';
     const at2 = at + (P.geo === '1' ? ' · Geozonen © DFS dipul' : '') + (P.osmPower === '1' ? ' · Hindernisse © OpenStreetMap' : '') + (trafOn() ? ' · Luftverkehr: OGN, ' + (S.trafVia || 'adsb.lol') : '');
     ctx.font = '11px Roboto,system-ui,sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
     const tw = ctx.measureText(at2).width;
@@ -3017,7 +3021,13 @@ function uvMode(on) {
 }
 /** Vollintegration: zum Ausschnitt der UAV-Editor-Karte die passenden Ebenen liefern (Geozonen in Ampelfarben je Zeugnis, Stromleitungen) */
 let uvOvT = 0, uvOvLast = '';
+// Daten nachgeladen (Landesgrenzen, Geozonen, Leitungen) oder Zeugnis/Bundesländer geändert → Ebenen auf der UAV-Karte neu färben.
+// Vorher blieb z. B. alles rot, wenn der UAV-Editor-Tab vor den Landesgrenzen fertig war (Bundesland unbekannt = keine Allgemeinerlaubnis).
+let uvOvSig = '';
+function uvOvCheck() { const sg = [S.regions.length, (S.geo || []).length, (S.osm || []).length, P.lic, P.aeStates, P.avs, P.avgi, P.power].join('|');
+  if (sg === uvOvSig) return; uvOvSig = sg; uvOvLast = ''; setTimeout(() => window.onUvBounds(UV.lastB), 0); }
 window.onUvBounds = b => {
+  if (b) UV.lastB = b;
   if (!b || P.uaveMode !== 'full' || !uvAvail()) return;
   clearTimeout(uvOvT); uvOvT = setTimeout(() => {
     const k = [b.n, b.s, b.e, b.w].map(x => (+x).toFixed(3)).join(',') + '|' + b.z; if (k === uvOvLast) return; uvOvLast = k;
@@ -3028,19 +3038,34 @@ window.onUvBounds = b => {
 function uvOverlayFC(b) {
   const feats = [], my = (b.n - b.s) * 0.15, mx = (b.e - b.w) * 0.15, inB = bb => bb && !(bb.s > b.n + my || bb.n < b.s - my || bb.w > b.e + mx || bb.e < b.w - mx);
   // Farben nach nötigem Zeugnis: grün = mit A1/A3 möglich, gelb = mit A2 + Allgemeinerlaubnis/-verfügung, rot = nur mit Antrag/Zustimmung
-  const kindFor = (f, lic) => { const sv = P.lic; P.lic = lic; try { return covKind(f.layer, featRegion(f)); } finally { P.lic = sv; } };
+  // Bundesland der Zone dort, wo man sie gerade sieht: Punkt der Zone nächst der Kartenmitte (lange Straßen/große Wohngebiete reichen über Landesgrenzen –
+  // der Mittelpunkt der ganzen Zone lag z. B. bei der B417 in Rheinland-Pfalz, obwohl der Abschnitt bei Limburg in Hessen ist)
+  const cLa = (b.n + b.s) / 2, cLo = (b.e + b.w) / 2, regC = new Map();
+  const regOf = f => { if (regC.has(f)) return regC.get(f); let best = null, bd = Infinity;
+    if (f.bb && (f.bb.n - f.bb.s > 0.01 || f.bb.e - f.bb.w > 0.015)) f.rings.forEach(r => r.forEach(q => { const d = (q[1] - cLa) ** 2 + ((q[0] - cLo) * 0.64) ** 2; if (d < bd) { bd = d; best = q; } }));
+    const r = best ? regionAt(best[1], best[0]) : featRegion(f); regC.set(f, r); return r; };
+  const kindFor = (f, lic) => { const sv = P.lic; P.lic = lic; try { return covKind(f.layer, regOf(f)); } finally { P.lic = sv; } };
   const colOf = f => kindFor(f, 'A1A3') !== 'off' ? '#13a538' : kindFor(f, 'A2') !== 'off' ? '#f2b600' : '#e53935';
   // Infotext fürs Anklicken: Name, Art, mit welchem Zeugnis, Auflagen
-  const info = f => { const p = f.props || {}, lbl = LAYER_LABEL[f.layer] || f.layer, reg = featRegion(f), k1 = kindFor(f, 'A1A3'), k2 = kindFor(f, 'A2');
+  const info = f => { const p = f.props || {}, lbl = LAYER_LABEL[f.layer] || f.layer, reg = regOf(f), k1 = kindFor(f, 'A1A3'), k2 = kindFor(f, 'A2');
     const c2 = covFor(f.layer, reg, 'A2'), basis = c2.av ? 'Allgemeinverfügung' : c2.ae ? 'Allgemeinerlaubnis' : P.power === '1' && f.layer === 'stromleitungen' ? 'Genehmigung Netzbetreiber' : '';
     const nr5 = (LUFTVO_NR[f.layer] || [])[0] === 5;
-    const verdict = k1 !== 'off' ? '<b style="color:#13a538">✓ mit A1/A3 möglich</b>' : k2 !== 'off' ? `<b style="color:#b38600">✓ mit A2${basis ? ' + ' + basis : ''}</b> · <span style="color:#c62828">✗ A1/A3</span>` : '<b style="color:#c62828">✗ nur mit Antrag bzw. Zustimmung</b>';
+    const c1 = covFor(f.layer, reg, 'A1A3'), verdict = k1 !== 'off' ? `<b style="color:#13a538">✓ mit A1/A3 möglich${c1.av ? ' (Allgemeinverfügung Wildtierrettung)' : ''}</b>` : k2 !== 'off' ? `<b style="color:#b38600">✓ mit A2${basis ? ' + ' + basis : ''}</b> · <span style="color:#c62828">✗ A1/A3</span>` : '<b style="color:#c62828">✗ nur mit Antrag bzw. Zustimmung</b>';
     const rule = nr5 ? '1:1-Regel: seitlich immer weiter weg als hoch (z. B. 50 m hoch → mehr als 50 m Abstand zur Fahrbahn bzw. zum Gleis).'
       : (k1 === 'dist' || k2 === 'dist') ? 'Nur mit Abstand, nicht direkt darüber.' : (k1 === 'off' && k2 === 'off' && BLOCKED_RULES[f.layer]) ? BLOCKED_RULES[f.layer] : '';
     return `<div style="font-weight:800;font-size:14px">${esc(p.name || lbl)}</div><div style="color:#5d6975">${esc(lbl)} · ${esc(regionText(reg))}</div><div style="margin-top:4px">${verdict}</div>${rule ? `<div style="margin-top:4px">${esc(rule)}</div>` : ''}`; };
-  const lineInfo = l => { const ops = (typeof lineOperator === 'function' && lineOperator(l)) || ''; return minorLine(l)
-    ? `<div style="font-weight:800">Kleine Stromleitung${l.kv ? ' ' + l.kv + ' kV' : ''}</div><div>Hindernis beim Start, bei der Landung und im Tiefflug – keine Meldung nötig.</div>`
-    : `<div style="font-weight:800">Stromleitung${l.kv ? ' ' + l.kv + ' kV' : ''}${l.n ? ' · ' + esc(l.n) : ''}</div>${ops ? `<div style="color:#5d6975">${esc(ops)}</div>` : ''}<div style="margin-top:4px">In <b>${pwrH()} m</b> überfliegen, nie unter der Leitung durch. Wird sie überflogen: Netzbetreiber vorher informieren (im Pre-Check unter To-dos).</div>`; };
+  // Leitungsdaten zum Anklicken: Spannung, Masthöhe (OpenStreetMap, sonst üblicher Bereich), Netzbetreiber – den Flug plant der Pilot selbst
+  const masts = (S.obs || []).filter(o => o.t === 'pmast' && (o.top || o.h) > 0 && o.lat <= b.n + my && o.lat >= b.s - my && o.lon <= b.e + mx && o.lon >= b.w - mx);
+  const typH = kv => !kv ? '' : kv >= 220 ? '50–80 m' : kv >= 60 ? '25–60 m' : kv >= 10 ? '10–20 m' : '8–12 m';
+  const row = (k, v) => `<tr><td style="color:#5d6975;padding:1px 10px 1px 0;white-space:nowrap">${k}</td><td style="font-weight:700">${v}</td></tr>`;
+  const lineInfo = l => {
+    const hs = masts.filter(o => o.lat <= l.bb.n + 0.001 && o.lat >= l.bb.s - 0.001 && o.lon <= l.bb.e + 0.0015 && o.lon >= l.bb.w - 0.0015
+      && l.pts.some(p => Math.abs(p[0] - o.lat) < 0.0005 && Math.abs(p[1] - o.lon) < 0.0008)).map(o => o.h || o.top).sort((a, c) => a - c);
+    const mh = hs.length ? (Math.round(hs[0]) !== Math.round(hs[hs.length - 1]) ? Math.round(hs[0]) + '–' : '') + Math.round(hs[hs.length - 1]) + ' m <span style="color:#5d6975;font-weight:400">(OpenStreetMap, ' + hs.length + ' Mast' + (hs.length > 1 ? 'e' : '') + ')</span>'
+      : typH(l.kv) ? 'nicht eingetragen <span style="color:#5d6975;font-weight:400">– üblich ' + typH(l.kv) + '</span>' : 'nicht eingetragen';
+    return `<div style="font-weight:800;font-size:14px;margin-bottom:3px">${minorLine(l) ? 'Kleine Stromleitung' : 'Stromleitung'}${l.n ? ' · ' + esc(l.n) : ''}</div><table style="border-collapse:collapse;font-size:13px">`
+      + row('Spannung', l.kv ? l.kv + ' kV' : 'unbekannt') + row('Masthöhe', mh) + row('Netzbetreiber', l.o ? esc(l.o) : 'unbekannt')
+      + (l.ref ? row('Leitung', esc(l.ref)) : '') + (l.cab ? row('Leiterseile', esc(l.cab)) : '') + '</table>'; };
   if (b.z >= 11) {
     for (const f of S.geo) { if (feats.length > 900) break; if (!geoLayerOn(f.layer) || !inB(f.bb)) continue;
       const c = colOf(f), poly = f.type === 'Polygon' || f.type === 'MultiPolygon';
@@ -3048,6 +3073,23 @@ function uvOverlayFC(b) {
         geometry: poly ? { type: 'MultiPolygon', coordinates: f.rings.filter(r => r.length > 3).map(r => [r]) } : { type: 'MultiLineString', coordinates: f.rings } }); }
     (S.osm || []).forEach(l => { if (feats.length > 1500 || l.p === 'cable' || l.loc === 'underground' || !inB(l.bb)) return;
       const minor = minorLine(l); feats.push({ type: 'Feature', properties: { c: minor ? '#7a8692' : '#8e24aa', fo: 0, w: minor ? 1.5 : 3.5, i: lineInfo(l) }, geometry: { type: 'LineString', coordinates: l.pts.map(p => [p[1], p[0]]) } }); });
+  }
+  // Flugplätze / Hubschrauberlandeplätze als Symbol (wie auf unserer Karte) und die Ringe um den RTH-Landeplatz St. Vincenz
+  if (b.z >= 9) {
+    const pin = (lat, lon) => lat <= b.n + my && lat >= b.s - my && lon <= b.e + mx && lon >= b.w - mx;
+    const circ = (lat, lon, r) => { const k = Math.cos(lat * Math.PI / 180); return Array.from({ length: 73 }, (_, i) => { const t = i / 72 * 2 * Math.PI; return [lon + Math.sin(t) * r / (111320 * k), lat + Math.cos(t) * r / 111320]; }); };
+    const afTxt = (nm, heli, model, rescue) => `<div style="font-weight:800;font-size:14px">${esc(nm || (heli ? 'Hubschrauberlandeplatz' : 'Flugplatz'))}</div><div style="color:#5d6975">${heli ? 'Hubschrauberlandeplatz' : model ? 'Modellflugplatz' : 'Flugplatz'}</div>`
+      + `<div style="margin-top:4px"><b style="color:#c62828">✗ im dipul-Kreis nur mit Zustimmung</b> der Flugaufsicht bzw. des Betreibers – vor dem Start anrufen.</div>`
+      + (rescue ? '<div style="margin-top:4px;color:#c77800;font-weight:700">Rettungshubschrauber jederzeit möglich – auch frühmorgens. Bis 5 km Himmel beobachten, bei einem Hubschrauber sofort tief gehen bzw. landen.</div>' : '');
+    const seen = [], add = (lat, lon, ic, col, html) => { if (!pin(lat, lon) || seen.some(q => Math.hypot((q[0] - lat) * 111.2, (q[1] - lon) * 71) < 0.3)) return; seen.push([lat, lon]);
+      feats.push({ type: 'Feature', properties: { pt: ic, c: col, i: html }, geometry: { type: 'Point', coordinates: [lon, lat] } }); };
+    const vc = vincenzCenters(S.geo.length ? geoAirIcons() : []);
+    vc.forEach(a => { if (!pin(a.lat, a.lon) && !inB({ n: a.lat + 0.014, s: a.lat - 0.014, e: a.lon + 0.021, w: a.lon - 0.021 })) return;
+      [[1500, '#b3131b', '1,5 km um den Hubschrauberlandeplatz: nur mit Freigabe des Krankenhauses'], [750, '#d97a00', '750 m: zweiter Beobachter nötig'], [150, '#7a1fa2', '150 m']].forEach(([r, c, t]) =>
+        feats.push({ type: 'Feature', properties: { c, fo: 0, w: r === 150 ? 2 : 2.5, i: `<div style="font-weight:800">${esc(a.name || 'Hubschrauberlandeplatz')}</div><div>${t}</div>` }, geometry: { type: 'LineString', coordinates: circ(a.lat, a.lon, r) } })); });
+    if (S.geo.length) geoAirIcons().forEach(g => add(g.lat, g.lon, g.heli ? 'H' : g.model ? 'M' : '✈', g.heli ? '#7a1fa2' : g.model ? '#b36b00' : '#0b3d91', afTxt(g.f.props.name, g.heli, g.model, g.heli && (isVincenz({ kind: 'heliport', name: g.f.props.name || '' }) || /krankenhaus|klinik|rettung|christoph/i.test(g.f.props.name || '')))));
+    if (P.airf === '1') (S.airfields || []).forEach(a => { const h = a.kind === 'heliport', q = h && S.geo.length && !a.rth ? heliSnap(a) : a;
+      add(q.lat, q.lon, h ? 'H' : '✈', a.rth ? '#b05cc8' : h ? '#7a1fa2' : '#0b3d91', afTxt(a.name || a.icao, h, false, isRescueHeli(a))); });
   }
   return { type: 'FeatureCollection', features: feats };
 }
@@ -4007,7 +4049,7 @@ function confirmDlg(title, text, list, okLabel, cb, extra) {
   $('dText').textContent = text; $('dText').style.whiteSpace = 'pre-line';
   $('dList').innerHTML = ''; list.forEach(n => { const d = document.createElement('div'); d.textContent = '• ' + n; $('dList').appendChild(d); });
   $('dYes').textContent = okLabel; $('dYes').disabled = false; dlgCb = cb; $('dlg').classList.add('open');
-  $('dlg').querySelector('.box').classList.remove('wide'); S.dlgXClose = null;
+  $('dlg').querySelector('.box').classList.remove('wide', 'auto'); S.dlgXClose = null;
 }
 // Fläche aus UAV Editor (m² oder ha) lesbar machen
 const fieldArea = a => a > 1000 ? (a / 10000).toFixed(2).replace('.', ',') + ' ha' : a.toFixed(2).replace('.', ',') + ' ha';
@@ -7641,7 +7683,21 @@ const mX = (lo, z) => (lo + 180) / 360 * 256 * Math.pow(2, z);
 const mY = (la, z) => { const r = la * Math.PI / 180; return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 256 * Math.pow(2, z); };
 function loadImg(src, ms) { return new Promise(res => { const im = new Image(); const t = setTimeout(() => res(null), ms || 15000); im.onload = () => { clearTimeout(t); res(im); }; im.onerror = () => { clearTimeout(t); res(null); }; im.src = src; }); }
 /** o: { bb:{n,s,e,w}, spots:[{lat,lon,label}], areas:[{rings:[[lon,lat]...], color}], lines:[{pts:[[lat,lon]], color, no}], title, legend:[Text] } */
+const MAPIMG = new Map();   // fertige Kartenbilder dieser Sitzung (Bild speichern ↔ E-Mail ↔ Briefing): einmal erstellen, danach sofort
+/** PC: alle Kacheln eines Bildes in einem Rutsch vom Programm holen lassen (parallel, landen im Kartenspeicher) – der Browser lädt sonst nur ~6 gleichzeitig, dabei liefen Wartezeiten ab */
+async function tilePrefetch(urls, ms) {
+  if (!window.KR_TILE || !urls.length) return;
+  const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms || 45000);
+  try { await fetch('/tb', { method: 'POST', body: JSON.stringify(urls.map(u => window.KR_TILE(u))), signal: ac.signal }); } catch (e) { } finally { clearTimeout(t); }
+}
 async function mapImage(o) {
+  const mk = (() => { try { return JSON.stringify(o) + '|' + GSAT() + '|' + new Date().toDateString(); } catch (e) { return null; } })();
+  if (mk && MAPIMG.has(mk)) return MAPIMG.get(mk);
+  const r = await mapImage0(o);
+  if (mk && r && r.__full) { MAPIMG.set(mk, r); if (MAPIMG.size > 40) MAPIMG.delete(MAPIMG.keys().next().value); }
+  return r;
+}
+async function mapImage0(o) {
   const CW = o.cw || 1600, MH = o.mh || 1000, cv = document.createElement('canvas');
   const leg = o.legend || [], LH = 26, legH = o.bare ? 0 : 70 + Math.min(leg.length, 30) * LH + 40;   // bare: nur Karte (Pilotenbriefing – Legende steht im PDF)
   cv.width = CW; cv.height = MH + legH;
@@ -7651,10 +7707,13 @@ async function mapImage(o) {
   const ox = (mX(o.bb.e, z) + mX(o.bb.w, z)) / 2 - CW / 2, oy = (mY(o.bb.s, z) + mY(o.bb.n, z)) / 2 - MH / 2;
   const pr = (la, lo) => [mX(lo, z) - ox, mY(la, z) - oy];
   c.fillStyle = '#f2f2ee'; c.fillRect(0, 0, CW, MH);
-  const jobs = [];   // Luftbild-Lücke im amtlichen Bild: Esri als Ersatz
-  for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + CW) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + MH) / 256); ty++)
-    jobs.push(loadImg(TSRC(LAYERS[o.base && LAYERS[o.base] ? o.base : 'osm'](Math.min(z, LAYER_MAXZ[o.base] || 18), tx, ty)), o.tileMs).then(im => im || (o.base === 'sat' ? loadImg(TSRC(ESRI_SAT(Math.min(z, 19), tx, ty)), o.tileMs) : null)).then(im => { if (im) { c.filter = (o.base && LAYER_FILTER[o.base]) || 'none'; c.drawImage(im, tx * 256 - ox, ty * 256 - oy, 256, 256); c.filter = 'none'; } }));
-  await Promise.all(jobs);
+  const jobs = [], tl = [], src = (tx, ty) => LAYERS[o.base && LAYERS[o.base] ? o.base : 'osm'](Math.min(z, LAYER_MAXZ[o.base] || 18), tx, ty);
+  for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + CW) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + MH) / 256); ty++) tl.push([tx, ty]);
+  await tilePrefetch(tl.map(([tx, ty]) => src(tx, ty)));   // danach kommen die Kacheln sofort aus dem Kartenspeicher
+  let miss = 0;   // Luftbild-Lücke: Esri als Ersatz
+  for (const [tx, ty] of tl)
+    jobs.push(loadImg(TSRC(src(tx, ty)), o.tileMs || 20000).then(im => im || (o.base === 'sat' ? loadImg(TSRC(ESRI_SAT(Math.min(z, 19), tx, ty)), o.tileMs) : null)).then(im => { if (im) { c.filter = (o.base && LAYER_FILTER[o.base]) || 'none'; c.drawImage(im, tx * 256 - ox, ty * 256 - oy, 256, 256); c.filter = 'none'; } else miss++; }));
+  await Promise.all(jobs); cv.__full = miss === 0;   // nur vollständige Bilder werden gemerkt
   c.fillStyle = 'rgba(255,255,255,.25)'; c.fillRect(0, 0, CW, MH);   // Karte etwas aufhellen, damit die Markierungen hervortreten
   c.save(); c.beginPath(); c.rect(0, 0, CW, MH); c.clip(); c.lineJoin = 'round'; c.lineCap = 'round';
   const path = pts => { c.beginPath(); pts.forEach((q, i) => { const [x, y] = pr(q[0], q[1]); i ? c.lineTo(x, y) : c.moveTo(x, y); }); };
@@ -7696,7 +7755,7 @@ async function mapImage(o) {
   c.font = '15px Roboto,Arial,sans-serif';
   leg.slice(0, 30).forEach((t, i) => { let s2 = t; while (c.measureText(s2).width > CW - 48 && s2.length > 10) s2 = s2.slice(0, -2); if (s2 !== t) s2 += '…'; c.fillText(s2, 24, MH + 70 + i * LH); });
   c.fillStyle = '#666'; c.font = '13px Roboto,Arial,sans-serif';
-  c.fillText(`Erstellt ${new Date().toLocaleString('de-DE')} mit Mission Kitzrettung · Mitte ${fmtLL((o.bb.n + o.bb.s) / 2, (o.bb.e + o.bb.w) / 2)} (WGS84) · Karte © GeoBasis-DE / BKG ${new Date().getFullYear()} (CC BY 4.0) · Leitungen © OpenStreetMap-Mitwirkende · Zonen © DFS dipul`, 24, MH + legH - 16);
+  c.fillText(`Erstellt ${new Date().toLocaleString('de-DE')} mit Mission Kitzrettung · Mitte ${fmtLL((o.bb.n + o.bb.s) / 2, (o.bb.e + o.bb.w) / 2)} (WGS84) · ${o.base === 'sat' ? SAT_AT() : 'Karte © GeoBasis-DE / BKG ' + new Date().getFullYear() + ' (CC BY 4.0)'} · Leitungen © OpenStreetMap-Mitwirkende · Zonen © DFS dipul`, 24, MH + legH - 16);
   return cv;
 }
 const canvasBlob = cv => new Promise(r => cv.toBlob(r, 'image/png'));
@@ -8013,7 +8072,8 @@ function webPreCheck(sel) {
   { const bb = document.createElement('button'); bb.id = 'dBrief'; bb.className = 'b-ok'; bb.textContent = '📋 Pilotenbriefing erstellen';   // unten neben „Schließen“
     bb.onclick = () => briefStart(sel, () => webPreCheck(sel));
     $('dNo').style.display = 'none'; $('dYes').before(bb); }
-  $('dlg').querySelector('.box').classList.add('wide');   // Desktop: ganze Fensterbreite nutzen – Felder in Spalten
+  dlgOnCancel = null; S.dlgXClose = () => { };   // ✕ oben = wie „Schließen“ – keine alte Abbrechen-Aktion (öffnete sonst nach 3 s wieder und startete das Briefing)
+  $('dlg').querySelector('.box').classList.add('wide', 'auto');   // Desktop: ganze Fensterbreite nutzen – Felder in Spalten; Höhe nur so viel wie nötig
   $('dlg').querySelector('.box').scrollTop = 0;
 }
 
@@ -8213,7 +8273,7 @@ async function briefingHtml(sel, win, opt) {
   const vs = sel.map(fieldVerdict);
   const fz = n => n + ' Feld' + (n > 1 ? 'er' : ''), n2 = vs.filter(v => v.k === 'a2').length, nNo = vs.filter(v => v.k === 'no').length, nZ = vs.filter(v => v.k === 'zust').length;
   const top = r => `<div class="top"><span class="brand">PILOTENBRIEFING · Kitzrettung Limburg e.V.</span><span class="pg">${r}</span></div>`;
-  const foot = extra => `<div class="foot">${extra ? extra + ' · ' : ''}Intern – enthält Feldnamen, nicht an Dritte weitergeben · Erstellt ${created.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} · Karte © GeoBasis-DE / BKG, Leitungen © OpenStreetMap, Geozonen © DFS dipul</div>`;
+  const foot = extra => `<div class="foot">${extra ? extra + ' · ' : ''}Intern – enthält Feldnamen, nicht an Dritte weitergeben · Erstellt ${created.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} · ${GSAT() ? 'Luftbild: Bilder © Google' : 'Luftbild © GeoBasis-DE / Esri'}, Leitungen © OpenStreetMap, Geozonen © DFS dipul</div>`;
   const legend = `<div class="legend"><span><i style="background:#00838f"></i>Feld</span><span><i style="background:#ff6f00"></i>Flugbahn</span><span><i style="background:#8e24aa"></i>Freileitung</span><span><i style="background:#2e7d32"></i>Schutzgebiet</span><span><i style="background:#1565c0"></i>Geozone</span><span><i style="background:#d32f2f"></i>Flugplatz</span></div>`;
   // alles gleichzeitig vorbereiten: Wetter, Übersichtskarte, je Feld eine Karte (vorher nacheinander – dauerte lange)
   const fbs = sel.map(f => flightBriefing([f]));
@@ -9103,6 +9163,29 @@ function zoneBtnInit() {
   $('bLayer').title = 'Kartentyp: Grau, Karte oder Luftbild';
   zoneBtnState();
 }
+/** PC-Einstellung: Google-Satellitenbild mit eigenem API-Schlüssel (Google Map Tiles API). Ohne Schlüssel: amtliches Luftbild + Esri */
+function gmapsUi() {
+  if (!A.gmapsKeySet || $('setGmaps')) return;
+  S.gHas = !!A.gmapsHas();
+  const ks = [...document.querySelectorAll('#pgSet .set')].find(el => { const t = el.querySelector('.t'); return t && /^Kartenspeicher|^Kartentyp/.test(t.textContent.trim()); });
+  const el = document.createElement('div'); el.className = 'set'; el.id = 'setGmaps'; el.style.cssText = 'flex-direction:column;align-items:stretch';
+  const paint = () => {
+    el.innerHTML = `<div class="t">Satellitenbild von Google</div>
+      <div class="v" style="margin:2px 0 8px">${S.gHas ? (P.gsat === '1' ? '✓ Aktiv – Luftbild auf der Karte, in der Feldvorschau und im Pilotenbriefing kommt von Google (wie im UAV Editor).' : 'Schlüssel gespeichert – Google-Bild ist ausgeschaltet.')
+        : 'Für einheitliche Bilder wie im UAV Editor: eigenen Google-API-Schlüssel eintragen (Google Cloud → „Map Tiles API“ aktivieren). Der Schlüssel wird geprüft und verschlüsselt nur auf diesem PC gespeichert. Ohne Schlüssel: amtliches Luftbild, Lücken mit Esri.'}</div>
+      ${S.gHas ? `<div style="display:flex;gap:8px;align-items:center"><label class="sw"><input type="checkbox" id="gsatOn" ${P.gsat === '1' ? 'checked' : ''}><span></span></label><span style="flex:1">Google-Satellitenbild verwenden</span><button class="b-sec" id="gKeyDel" style="height:42px;padding:0 14px">Schlüssel entfernen</button></div>`
+        : `<div style="display:flex;gap:8px"><input id="gKey" type="password" autocomplete="off" spellcheck="false" placeholder="API-Schlüssel (beginnt meist mit AIza…)" style="flex:1;height:44px"><button class="b-ok" id="gKeySave" style="height:44px;padding:0 16px">Prüfen &amp; speichern</button></div>`}`;
+    const apply = () => { tiles.clear(); tlReset(); MAPIMG.clear(); draw(); };
+    if (S.gHas) {
+      el.querySelector('#gsatOn').onchange = e => { setP('gsat', e.target.checked ? '1' : '0'); paint(); apply(); };
+      el.querySelector('#gKeyDel').onclick = () => deleteDlg('Google-Schlüssel entfernen?', 'Danach kommt das Luftbild wieder vom amtlichen Dienst (Lücken: Esri).', 'Entfernen', () => { A.gmapsKeyClear(); S.gHas = false; paint(); apply(); });
+    } else el.querySelector('#gKeySave').onclick = () => { const v = el.querySelector('#gKey').value.trim(); if (!v) return; busy('Prüfe Schlüssel bei Google…');
+      setTimeout(() => { let r = {}; try { r = JSON.parse(A.gmapsKeySet(v) || '{}'); } catch (e) { } busy('');
+        if (!r.ok) return toast(r.error || 'Schlüssel konnte nicht geprüft werden.', true, 9000);
+        S.gHas = true; setP('gsat', '1'); paint(); apply(); toast('✓ Google-Satellitenbild aktiv', 'ok'); }, 30); };
+  };
+  paint(); if (ks) ks.after(el); else { const h = $('sc-karte'); if (h) h.after(el); }
+}
 function webInit() {
   setInterval(webOsmView, 2500);
   zoneBtnInit(); sideInit();
@@ -9216,6 +9299,7 @@ function webInit() {
   // Kartentyp wählt man über den Ebenen-Knopf – hier bleibt nur der Kartenspeicher (Größe, Leeren)
   document.querySelectorAll('#pgSet .set').forEach(el => { const t = el.querySelector('.t'); if (!t || !t.textContent.trim().startsWith('Kartentyp')) return;
     t.textContent = 'Kartenspeicher'; el.querySelectorAll('.seg').forEach(sg => { if (sg.querySelector('[data-layer],[data-ly]') || /Luftbild/.test(sg.textContent)) sg.style.display = 'none'; }); });
+  gmapsUi();
   // Technisches (Daten, Bundesland-Erkennung, Verbindungstest) zugeklappt unter „Erweitert“
   const ADV = ['Geozonen-Daten', 'Bundesland-Erkennung'];
   const adv = [...document.querySelectorAll('#pgSet .set')].filter(el => { const t = el.querySelector('.t'); return t && !el.classList.contains('vhide') && ADV.some(h => t.textContent.trim().startsWith(h)); });
@@ -9288,7 +9372,7 @@ function miniMap(cv, ring, route, center) {
     });
     if (ring) { g.beginPath(); ring.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath(); g.fillStyle = 'rgba(255,122,0,.3)'; g.fill(); g.strokeStyle = '#ff7a00'; g.lineWidth = 2.5; g.stroke(); }
     if (route) { g.beginPath(); route.forEach((p, i) => { const [x, y] = P2(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.strokeStyle = '#c75a00'; g.lineWidth = 1.5; g.stroke(); }
-    g.font = '11px Roboto,system-ui,sans-serif'; g.fillStyle = 'rgba(255,255,255,.75)'; const at = P.layer === 'sat' ? '© Luftbild GeoBasis-DE / Esri' : '© GeoBasis-DE / BKG';
+    g.font = '11px Roboto,system-ui,sans-serif'; g.fillStyle = 'rgba(255,255,255,.75)'; const at = P.layer === 'sat' ? (GSAT() ? 'Bilder © Google' : '© Luftbild GeoBasis-DE / Esri') : '© GeoBasis-DE / BKG';
     g.fillRect(Wm - g.measureText(at).width - 8, Hm - 15, 300, 15); g.fillStyle = '#334'; g.textAlign = 'right'; g.fillText(at, Wm - 4, Hm - 4);
   };
   const lz = Math.min(z, LAYER_MAXZ[P.layer] || 18), k = Math.pow(2, z - lz), ts = 256 * k, nT = 1 << lz;
@@ -9359,7 +9443,7 @@ function pickMap(el, items, shown, toggle) {
       });
     }
     g.font = '11px Roboto,system-ui,sans-serif'; g.textAlign = 'right'; g.textBaseline = 'alphabetic';
-    const at = P.layer === 'sat' ? '© Luftbild GeoBasis-DE / Esri' : '© GeoBasis-DE / BKG';
+    const at = P.layer === 'sat' ? (GSAT() ? 'Bilder © Google' : '© Luftbild GeoBasis-DE / Esri') : '© GeoBasis-DE / BKG';
     g.fillStyle = 'rgba(255,255,255,.75)'; g.fillRect(Wm - g.measureText(at).width - 8, Hm - 15, 400, 15); g.fillStyle = '#334'; g.fillText(at, Wm - 4, Hm - 4);
   }
   function hit(px, py) {
@@ -10538,7 +10622,7 @@ loadNotams();
 geoBadge();
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
