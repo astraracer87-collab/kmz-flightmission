@@ -3125,7 +3125,16 @@ window.onUaveCredCaptured = () => {
 /** Ergebnis aus der UAV-Editor-Seite: Felder per Name (+ Drohne, Jahr) in unserer Liste finden und markieren */
 const uvInfo = (t, x, l) => { confirmDlg(t, x, l, 'OK', null); const n = $('dNo'); if (n) n.style.display = 'none'; };
 /** Live: Auswahl im UAV Editor sofort spiegeln (anhaken und abhaken). Bei sehr vielen (z. B. „alle markieren“) nicht übernehmen – nur Hinweis. */
+/** Auswahl kam nur als Feld-IDs (aus dem Speicher der UAV-Editor-Seite): über unsere UAV-Editor-Feldliste in Zeilen umsetzen */
+function uvIdsToRows(r) {
+  if (!r || !r.ids) return r;
+  const all = catAll(), by = new Map(all.map(cf => [String(cf.id), cf]));
+  const rows = r.ids.map(id => by.get(String(id))).filter(Boolean).map(cf => ({ name: cf.name, drone: cfDrone(cf) || '', year: String(CAT_YEAR(cf) || '') }));
+  if (!rows.length) return { ok: false, error: 'Auswahl im UAV Editor nicht zuzuordnen.' };   // IDs passen nicht zu unserer Liste: lieber nichts ändern
+  return Object.assign({}, r, { rows });   // fehlen welche: want bleibt größer → nur dazunehmen, nichts abwählen
+}
 window.onUaveLive = r => {
+  r = uvIdsToRows(r);
   if (!r || P.uvLive === '0' || !uvAvail()) return;
   const hint = (t, bad) => { const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.color = bad ? '#c43e00' : ''; h.style.fontWeight = bad ? '800' : ''; } };
   if (r.tooMany) return hint(`${r.tooMany} Felder im UAV Editor markiert – zu viele, um sie automatisch zu übernehmen. Weniger markieren oder „Markierte Felder übernehmen“ drücken.`, true);
@@ -3151,6 +3160,7 @@ window.onUaveLive = r => {
   hint(now.size ? `✓ ${now.size} Feld${now.size > 1 ? 'er' : ''} aus dem UAV Editor markiert – live, auch in der Missionsplanung.` : 'Im UAV Editor Felder anhaken – sie werden sofort auch in der Missionsplanung markiert.');
 };
 window.onUaveSel = r => {
+  r = uvIdsToRows(r);
   const tb = $('uvTake'); if (tb) { tb.disabled = false; tb.textContent = '✔ Markierte Felder übernehmen'; }
   // Hinweise im UAV-Editor-Tab direkt in der Leiste zeigen (kein Dialog – der läge sonst unter der eingebetteten Seite)
   const say = (t, bad) => { const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.color = bad ? '#c62828' : ''; h.style.fontWeight = bad ? '800' : ''; clearTimeout(UV.sayT); UV.sayT = setTimeout(() => { h.style.color = ''; h.style.fontWeight = ''; h.textContent = 'Im UAV Editor Felder anhaken, dann hier übernehmen (oder dort „Check flight zone“ → direkt unser Pre-Check).'; }, 7000); } };
@@ -7737,7 +7747,8 @@ async function tilePrefetch(urls, ms) {
   try { const r = await fetch('/tb', { method: 'POST', body: JSON.stringify(urls.map(u => window.KR_TILE(u))), signal: ac.signal }); return r.ok ? await r.json() : null; } catch (e) { return { ok: 0, fail: urls.length, st: { zeit: 1 } }; } finally { clearTimeout(t); }
 }
 async function mapImage(o) {
-  const mk = (() => { try { return JSON.stringify(o) + '|' + GSAT() + '|' + new Date().toDateString(); } catch (e) { return null; } })();
+  const mk = (() => { try { const lite = Object.assign({}, o, { areas: (o.areas || []).map(a => ({ c: a.color, n: a.rings.reduce((t, r) => t + r.length, 0), f: a.rings[0] && a.rings[0][0], l: a.rings[0] && a.rings[0][a.rings[0].length >> 1] })) });
+    return JSON.stringify(lite) + '|' + GSAT() + '|' + new Date().toDateString(); } catch (e) { return null; } })();   // Flächen nur als Kennung (Anzahl Punkte, Stichproben) – sonst sehr langsam
   // dasselbe Bild nur einmal bauen: läuft es schon (z. B. im Hintergrund vorbereitet), auf dasselbe Ergebnis warten
   const hit = mk && MAPIMG.get(mk); if (hit && (hit.full || Date.now() - hit.t < 180000)) return hit.p;   // unvollständige Bilder 3 min merken, dann neu versuchen
   const p = mapImage0(o), ent = { p, t: Date.now(), full: false };
@@ -7834,6 +7845,14 @@ const bbOfPts = pts => { let n = -90, s = 90, e = -180, w = 180; pts.forEach(([l
 /** Ort (Dorf/Stadtteil) an einem Leitungsabschnitt – macht Bild und E-Mail eindeutig („bei Niederselters“) */
 const secPlace = sc => { const m = sc.pts[Math.floor(sc.pts.length / 2)], np = m && nearPlace(m[0], m[1]); return np ? np.p.n : ''; };
 const opPlaces = o => [...new Set(o.items.flatMap(x => x.secs.map(secPlace)).filter(Boolean))];
+/** Dateiname für Bilder/Anhänge: Datum + Uhrzeit, damit nichts überschrieben wird */
+const fileStamp = () => { const d = new Date(), p2 = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}${p2(d.getMinutes())}`; };
+/** Netzbetreiber-Bild: Ort, Leitung(en) und Abschnittsnummern im Namen – nahe Leitungen desselben Betreibers bekommen eigene Namen */
+function opFileName(ops, i) {
+  const o = ops[i]; let no = 0; ops.slice(0, i).forEach(x => x.items.forEach(it => no += it.secs.length));
+  const n = o.items.reduce((m, x) => m + x.secs.length, 0), lns = [...new Set(o.items.map(x => lineLbl(x.l).replace(/\s+/g, ' ')))].slice(0, 2).join(', ');
+  return `Leitungen ${o.name}${opPlaces(o).length ? ' ' + opPlaces(o).slice(0, 3).join(', ') : ''} – ${lns} – Abschnitt ${no + 1}${n > 1 ? '-' + (no + n) : ''} ${fileStamp()}`.replace(/[\\/:*?"<>|]/g, '_');
+}
 async function opImage(ops, i) {
   const o = ops[i], col = OP_COLS[i % OP_COLS.length]; let no = 0; ops.slice(0, i).forEach(x => x.items.forEach(it => no += it.secs.length));
   const lines = [], leg = [], pts = [], fields = [...new Set(o.items.map(x => x.f))];
@@ -7864,7 +7883,13 @@ function overlapHull(f, rings) {
 }
 /** Schutzgebiet nach außen: keine Wiesen/Feldumrisse, sondern grobe Kreise um die Einsatzorte (benachbarte Felder bis ~400 m zusammengefasst).
  *  Radius mind. 150 m, auf 50 m gerundet, Mitte auf 3 Nachkommastellen (~100 m) – so wird kein einzelnes Grundstück/kein Pächter erkennbar. */
+/** Einsatzbereiche je Schutzgebiet/Flugplatz – bei großen Gebieten (zehntausende Eckpunkte) teuer, darum gemerkt (Bild, E-Mail, Vorbereitung) */
+const NATAREAS = new WeakMap();
 function natAreas(z, sel) {
+  const k = sel.map(f => f.title + '@' + (f.bounds ? f.bounds.n : '')).join('|'); let m = NATAREAS.get(z.f); if (!m) NATAREAS.set(z.f, m = new Map());
+  if (!m.has(k)) m.set(k, natAreas0(z, sel)); return m.get(k);
+}
+function natAreas0(z, sel) {
   const fields = sel.filter(f => z.fields.has(f.title)).map(f => { const o = overlapHull(f, z.f.rings), c = o ? o.center : f.center; return c ? { f, c, pts: o ? o.hull : (fieldRingLL(f) || []).map(([lo, la]) => [la, lo]), ha: o ? o.area / 10000 : 0 } : null; }).filter(Boolean);
   const cl = [];
   fields.forEach(x => { const g = cl.find(g => g.items.some(y => distM(x.c[0], x.c[1], y.c[0], y.c[1]) < 400)); g ? g.items.push(x) : cl.push({ items: [x] }); });
@@ -8084,7 +8109,22 @@ async function webPreCheck(sel) {
   if (!sel.length) return toast('Bitte zuerst Felder auf der Karte markieren.', true);
   const tok = S.pcTok = (S.pcTok || 0) + 1, quick = $('dlg').classList.contains('open') && /^Pre-Check/.test($('dTitle').textContent);
   // Ladefenster mit groben Schritten (Schritt 1–4), damit man sieht, dass es vorangeht
-  const stepT = (no, t, o) => { if (!quick) busy(`Pre-Check · Schritt ${no} von 4`, Object.assign({ sub: t }, o || {})); return new Promise(r => setTimeout(r, 30)); };
+  // Fortschritt als ein durchgehender Balken über alle Schritte: jeder Schritt hat seinen Bereich, der Balken läuft weich nach und kriecht beim Warten
+  // langsam weiter (nie über das Ende des Schritts), damit er nicht springt oder stehen bleibt
+  const RANGE = { 1: [0, 22], 2: [22, 38], 3: [38, 88], 4: [88, 99] };
+  const PG = S.pcProg = S.pcProg && S.pcProg.tok === tok ? S.pcProg : { tok, shown: 0, target: 0, cap: 0, t: 0 };
+  const paintPG = () => { const b = $('busy'), bar = b && b.querySelector('.bar'), i = bar && bar.querySelector('i'), pc = b && b.querySelector('.pgpc'); if (!i) return;
+    bar.classList.remove('ind'); i.style.width = PG.shown.toFixed(1) + '%'; if (pc) pc.textContent = Math.round(PG.shown) + ' %'; };
+  if (!quick && !PG.t) PG.t = setInterval(() => { if ($('busy').style.display !== 'block' || S.pcTok !== tok) { clearInterval(PG.t); PG.t = 0; return; }
+    if (PG.shown < PG.target) PG.shown = Math.min(PG.target, PG.shown + Math.max(0.6, (PG.target - PG.shown) * 0.18));
+    else if (PG.shown < PG.cap - 1) PG.shown += (PG.cap - 1 - PG.shown) * 0.02;   // Schein-Fortschritt beim Warten
+    paintPG(); }, 80);
+  const stepT = (no, t, o) => { if (quick) return Promise.resolve(); const [a, e] = RANGE[no], f = o && o.total ? Math.min(1, (o.done || 0) / o.total) : 0;
+    PG.target = Math.max(PG.target, a + (e - a) * f); PG.cap = e;
+    const b = $('busy'), sub = b.querySelector('.bs'), head = b.querySelector('.bt');
+    if (b.style.display === 'block' && head && /^Pre-Check/.test(head.textContent)) { if (sub) sub.textContent = t; }
+    else { busy('Pre-Check wird vorbereitet', { sub: t }); b.querySelector('.bar').insertAdjacentHTML('afterend', '<div class="bs pgpc">0 %</div>'); }
+    paintPG(); return new Promise(r => setTimeout(r, 30)); };
   await stepT(1, (S.geo || []).length ? 'Geozonen werden geprüft …' : 'Geozonen werden geladen …');
   S.areaNos = new Map(sel.map((f, i) => [f, i + 1])); S.areaSel = sel;   // neutrale Nummern für Bild und E-Mail
   const b = flightBriefing(sel);
@@ -8121,12 +8161,12 @@ async function webPreCheck(sel) {
   box.querySelectorAll('[data-op]').forEach(el => {
     const i = +el.dataset.op, o = ops[i], inp = el.querySelector('.netmail');
     inp.onchange = () => { const m = netMails(); m[o.name] = inp.value.trim(); setP('netMail', JSON.stringify(m)); };
-    el.querySelector('.netimg').onclick = async () => { busy('Erstelle Kartenbild…'); try { await saveCanvas(await opImage(ops, i), `Leitungen ${o.name}${opPlaces(o).length ? ' ' + opPlaces(o).slice(0, 3).join(', ') : ''} ${new Date().toISOString().slice(0, 10)}`); } finally { busy(''); } };
+    el.querySelector('.netimg').onclick = async () => { busy('Erstelle Kartenbild…'); try { await saveCanvas(await opImage(ops, i), opFileName(ops, i)); } finally { busy(''); } };
     el.querySelector('.netenv').onclick = () => withFlyWin(async () => {
       inp.onchange(); busy('Bereite E-Mail vor…'); let cv = null;
       try { cv = await opImage(ops, i); } catch (e) { } finally { busy(''); }
       const pl = opPlaces(o).slice(0, 3).join(', ');
-      await mailWithImage(inp.value.trim(), `Information Drohnenüberflug Kitzrettung – ${o.name}${pl ? ' – bei ' + pl : ''}`, netMailText(o, startNo(i)), cv, `Leitungen ${o.name}${pl ? ' ' + pl : ''} ${new Date().toISOString().slice(0, 10)}`);
+      await mailWithImage(inp.value.trim(), `Information Drohnenüberflug Kitzrettung – ${o.name}${pl ? ' – bei ' + pl : ''}`, netMailText(o, startNo(i)), cv, opFileName(ops, i));
     });
   });
   box.querySelectorAll('[data-nat]').forEach(el => { const z = nz[+el.dataset.nat], p = z.f.props || {}, mk = 'nat|' + (p.name || LAYER_LABEL[z.f.layer] || z.f.layer), inp = el.querySelector('.netmail');
@@ -8135,10 +8175,10 @@ async function webPreCheck(sel) {
     el.querySelector('.natenv').onclick = () => withFlyWin(async () => {
       inp.onchange(); busy('Bereite E-Mail vor…'); let cv = null;
       try { cv = await natImage(z, sel); } catch (e) { } finally { busy(''); }
-      await mailWithImage(inp.value.trim(), natSubject(z), natMailText(z, fields), cv, `${p.name || 'Schutzgebiet'} ${new Date().toISOString().slice(0, 10)}`);
+      await mailWithImage(inp.value.trim(), natSubject(z), natMailText(z, fields), cv, `${p.name || 'Schutzgebiet'} ${fileStamp()}`);
     });
-    el.querySelector('.natimg').onclick = async () => { busy('Erstelle Kartenbild…'); try { await saveCanvas(await natImage(z, sel), `${(z.f.props || {}).name || 'Schutzgebiet'} ${new Date().toISOString().slice(0, 10)}`); } finally { busy(''); } }; });
-  box.querySelectorAll('[data-af]').forEach(el => { const z = az[+el.dataset.af], mk = 'af|' + afName(z), inp = el.querySelector('.netmail'), fields = sel.filter(f => z.fields.has(f.title)), fn = `Flugplatz ${afName(z)} ${new Date().toISOString().slice(0, 10)}`;
+    el.querySelector('.natimg').onclick = async () => { busy('Erstelle Kartenbild…'); try { await saveCanvas(await natImage(z, sel), `${(z.f.props || {}).name || 'Schutzgebiet'} ${fileStamp()}`); } finally { busy(''); } }; });
+  box.querySelectorAll('[data-af]').forEach(el => { const z = az[+el.dataset.af], mk = 'af|' + afName(z), inp = el.querySelector('.netmail'), fields = sel.filter(f => z.fields.has(f.title)), fn = `Flugplatz ${afName(z)} ${fileStamp()}`;
     inp.onchange = () => { const m = netMails(); m[mk] = inp.value.trim(); setP('netMail', JSON.stringify(m)); };
     const ph = el.querySelector('.afphone'); ph.onchange = () => setP(afPhoneKey(z), ph.value.trim());
     el.querySelector('.afenv').onclick = () => withFlyWin(async () => { inp.onchange(); busy('Bereite E-Mail vor…'); let cv = null;
@@ -8165,6 +8205,7 @@ async function webPreCheck(sel) {
     await Promise.race([Promise.all(Array.from({ length: Math.min(3, todo.length) }, run)), new Promise(r => setTimeout(r, 60000))]);
     if (imgs.length) { await stepT(4, 'Luftbilder werden geladen …'); await Promise.race([Promise.all(imgs), new Promise(r => setTimeout(r, 15000))]); }
     if (tok !== S.pcTok) return;   // inzwischen neu angefordert
+    PG.target = PG.cap = 100; PG.shown = 100; paintPG(); await new Promise(r => setTimeout(r, 120));
     busy('');
   }
   await pcMapsFill(box, sel);   // fertige Karten gleich in die Details setzen
@@ -10760,7 +10801,7 @@ loadNotams();
 geoBadge();
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
