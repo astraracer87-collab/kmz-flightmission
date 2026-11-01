@@ -359,20 +359,27 @@
   .spck2{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;cursor:pointer}.spck2 input{all:revert;width:18px;height:18px;accent-color:#00a99d}
   #uvHost{position:fixed;left:0;right:0;top:var(--tt);bottom:0;z-index:18;background:var(--bg);display:none;flex-direction:column}#uvHost.open{display:flex}
   #uvHost .uvbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--line)}#uvHost .uvbar span{flex:1;font-size:13px;color:var(--muted)}#uvHost .uvbar button{height:40px;padding:0 14px}
-  #uvSlot{flex:1;min-height:0}
+  #uvSlot{flex:1;min-height:0;background-size:100% 100%;background-repeat:no-repeat}#uvSlot.snap>*{visibility:hidden}
   #tabStrip{position:fixed;left:0;right:0;top:0;height:40px;z-index:31;background:#0b1016;display:flex;align-items:flex-end;justify-content:space-between;padding:0 8px 0 6px}
   #tabStrip .tbs{display:flex;gap:2px;align-items:flex-end;height:100%}
   #tabStrip .tb{height:34px;display:flex;align-items:center;gap:8px;padding:0 18px 0 12px;border-radius:10px 10px 0 0;background:transparent;color:#9fb0c2;font-weight:700;font-size:14px;border:0;position:relative;min-width:170px}
   #tabStrip .tb:hover{background:rgba(255,255,255,.07)}#tabStrip .tb img{width:20px;height:20px;border-radius:50%}#tabStrip .tb i{font-style:normal;font-size:16px}
-  #tabStrip .tb.on{background:var(--bar);color:var(--txt)}
-  #tabStrip .tb.on::before,#tabStrip .tb.on::after{content:'';position:absolute;bottom:0;width:10px;height:10px;background:radial-gradient(circle at 0 0,transparent 9.5px,var(--bar) 10px)}
-  #tabStrip .tb.on::before{left:-10px;transform:scaleX(-1)}#tabStrip .tb.on::after{right:-10px}
-  #tabStrip .tbz{display:flex;align-items:center;gap:2px;height:30px;margin-bottom:5px;background:rgba(255,255,255,.08);border-radius:15px;padding:0 4px}
+  #tabStrip .tb.on{background:var(--bar);color:var(--txt);box-shadow:0 -1px 0 rgba(255,255,255,.08) inset}
+  #tabStrip .tb:not(.on)+.tb:not(.on)::before{content:'';position:absolute;left:-1px;top:9px;bottom:9px;width:1px;background:rgba(255,255,255,.18)}
+  #tabStrip .tbr{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  #tbSet{width:30px;height:30px;border-radius:15px;background:rgba(255,255,255,.08);border:0;display:flex;align-items:center;justify-content:center;padding:0}#tbSet:hover{background:rgba(255,255,255,.16)}
+  #tbSet svg{width:18px;height:18px;fill:none;stroke:#dfe7ef;stroke-width:1.8}
+  #tabStrip .tbz{display:flex;align-items:center;gap:2px;height:30px;background:rgba(255,255,255,.08);border-radius:15px;padding:0 4px}
   #tabStrip .tbz button{height:26px;min-width:28px;border-radius:13px;background:transparent;color:#dfe7ef;font-weight:800;font-size:15px;border:0;padding:0 6px}#tabStrip .tbz button:hover{background:rgba(255,255,255,.12)}#tabStrip #zmV{min-width:58px;font-size:13px}
   body.uv-on #bar{visibility:hidden}
   body.uv-split #dlg{left:50%;top:calc(var(--tt) + 57px);background:transparent;align-items:stretch;justify-content:stretch}
   body.uv-split #dlg .box,body.uv-split #dlg .box.wide{width:100%;max-height:none;height:100%;border-radius:0;box-shadow:-6px 0 18px rgba(0,0,0,.25)}
   body.uv-split #dlg .pcd{grid-template-columns:1fr}
+  /* Tab-Leiste liegt immer oben drüber – alles, was sonst bis an den oberen Rand geht, beginnt darunter (nichts wird halb verdeckt) */
+  body.tabs .dlg,body.tabs #xpl,body.tabs #tour{top:var(--tt)}
+  body.tabs:not(.bartop) #toast{top:calc(14px + var(--tt))} body.tabs:not(.bartop) #searchBox{top:calc(10px + var(--tt))}
+  body.tabs:not(.bartop) #wind,body.tabs:not(.bartop) #notam,body.tabs:not(.bartop) #net,body.tabs:not(.bartop) #pfChip{transform:translateY(var(--tt))}
+  body.tabs:not(.bartop) #ctrl{top:calc(12px + var(--tt))}
   body.pgopen #tabStrip{display:none}   /* Einstellungen & Co. liegen über allem – Tabs erst wieder auf der Karte */
   .spsim{margin:14px 4px 6px;padding:7px 10px;border-radius:8px;background:rgba(224,120,0,.12);border-left:4px solid #e07800;color:#c46a00;font-size:12.5px;font-weight:800}
   #topFelder{position:absolute;top:58px;right:0;width:min(760px,94vw);height:min(74vh,780px);background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.35);display:none;flex-direction:column;z-index:40;overflow:hidden}
@@ -1190,6 +1197,7 @@ const LAYERS = {
   grey: BM_URL('grau')
 };
 const LAYER_MAXZ = { sat: 19, osm: 18, grey: 18 };
+const ESRI_SAT = (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;   // Ersatz, wenn das amtliche Luftbild eine Lücke hat
 const LAYER_FILTER = { grey: 'saturate(.3) brightness(1.1) contrast(.85)' };
 const V = { lat: 50.39, lon: 8.07, z: 12 };
 let W = 0, H = 0, DPR = 1;
@@ -3001,9 +3009,11 @@ function uvMode(on) {
   const tk = $('uvTake'); if (tk) tk.style.display = uaveReady() ? '' : 'none';   // erst nach der Anmeldung
   const hint = document.querySelector('#uvHost .uvbar span'); if (hint) hint.textContent = uaveReady() ? 'Im UAV Editor Felder anhaken, dann hier übernehmen (oder dort „Check flight zone“ → direkt unser Pre-Check).' : 'Melde dich hier mit deinem UAV-Editor-Zugang an – das Programm übernimmt ihn (verschlüsselt auf diesem PC) und lädt danach die Feldliste.';
   UV.hid = false; requestAnimationFrame(uvPlace);
-  UV.t = setInterval(() => { const dlg = $('dlg').classList.contains('open'), split = dlg && (P.uaveMode === 'half' || P.uaveMode === 'full');   // Halbintegration: Dialoge (Pre-Check) rechts daneben, UAV Editor bleibt links sichtbar
-    const cover = (dlg && !split) || !!document.querySelector('.page.open') || ($('coachBub') && $('coachBub').style.display === 'block');
-    if (cover !== UV.hid || split !== !!UV.split) { UV.hid = cover; UV.split = split; document.body.classList.toggle('uv-split', split); uvPlace(); } }, 200);
+  // Popup (Pre-Check, Briefing, Einstellungen, Einführung) über dem UAV Editor: Standbild der Seite zeigen, echte Seite kurz ausblenden
+  UV.t = setInterval(() => { const cover = $('dlg').classList.contains('open') || !!document.querySelector('.page.open') || ($('coachBub') && $('coachBub').style.display === 'block');
+    if (cover === UV.hid) return; UV.hid = cover; const sl = $('uvSlot');
+    if (cover) { if (A.uaveViewSnap) A.uaveViewSnap(); else uvPlace(); }
+    else { uvPlace(); setTimeout(() => { if (!UV.hid && sl) { sl.style.backgroundImage = ''; sl.classList.remove('snap'); } }, 150); } }, 150);
 }
 /** Vollintegration: zum Ausschnitt der UAV-Editor-Karte die passenden Ebenen liefern (Geozonen in Ampelfarben je Zeugnis, Stromleitungen) */
 let uvOvT = 0, uvOvLast = '';
@@ -3017,17 +3027,31 @@ window.onUvBounds = b => {
 };
 function uvOverlayFC(b) {
   const feats = [], my = (b.n - b.s) * 0.15, mx = (b.e - b.w) * 0.15, inB = bb => bb && !(bb.s > b.n + my || bb.n < b.s - my || bb.w > b.e + mx || bb.e < b.w - mx);
-  const COL = { on: '#13a538', dist: '#e07800', off: '#e53935' };
+  // Farben nach nötigem Zeugnis: grün = mit A1/A3 möglich, gelb = mit A2 + Allgemeinerlaubnis/-verfügung, rot = nur mit Antrag/Zustimmung
+  const kindFor = (f, lic) => { const sv = P.lic; P.lic = lic; try { return covKind(f.layer, featRegion(f)); } finally { P.lic = sv; } };
+  const colOf = f => kindFor(f, 'A1A3') !== 'off' ? '#13a538' : kindFor(f, 'A2') !== 'off' ? '#f2b600' : '#e53935';
+  // Infotext fürs Anklicken: Name, Art, mit welchem Zeugnis, Auflagen
+  const info = f => { const p = f.props || {}, lbl = LAYER_LABEL[f.layer] || f.layer, reg = featRegion(f), k1 = kindFor(f, 'A1A3'), k2 = kindFor(f, 'A2');
+    const c2 = covFor(f.layer, reg, 'A2'), basis = c2.av ? 'Allgemeinverfügung' : c2.ae ? 'Allgemeinerlaubnis' : P.power === '1' && f.layer === 'stromleitungen' ? 'Genehmigung Netzbetreiber' : '';
+    const nr5 = (LUFTVO_NR[f.layer] || [])[0] === 5;
+    const verdict = k1 !== 'off' ? '<b style="color:#13a538">✓ mit A1/A3 möglich</b>' : k2 !== 'off' ? `<b style="color:#b38600">✓ mit A2${basis ? ' + ' + basis : ''}</b> · <span style="color:#c62828">✗ A1/A3</span>` : '<b style="color:#c62828">✗ nur mit Antrag bzw. Zustimmung</b>';
+    const rule = nr5 ? '1:1-Regel: seitlich immer weiter weg als hoch (z. B. 50 m hoch → mehr als 50 m Abstand zur Fahrbahn bzw. zum Gleis).'
+      : (k1 === 'dist' || k2 === 'dist') ? 'Nur mit Abstand, nicht direkt darüber.' : (k1 === 'off' && k2 === 'off' && BLOCKED_RULES[f.layer]) ? BLOCKED_RULES[f.layer] : '';
+    return `<div style="font-weight:800;font-size:14px">${esc(p.name || lbl)}</div><div style="color:#5d6975">${esc(lbl)} · ${esc(regionText(reg))}</div><div style="margin-top:4px">${verdict}</div>${rule ? `<div style="margin-top:4px">${esc(rule)}</div>` : ''}`; };
+  const lineInfo = l => { const ops = (typeof lineOperator === 'function' && lineOperator(l)) || ''; return minorLine(l)
+    ? `<div style="font-weight:800">Kleine Stromleitung${l.kv ? ' ' + l.kv + ' kV' : ''}</div><div>Hindernis beim Start, bei der Landung und im Tiefflug – keine Meldung nötig.</div>`
+    : `<div style="font-weight:800">Stromleitung${l.kv ? ' ' + l.kv + ' kV' : ''}${l.n ? ' · ' + esc(l.n) : ''}</div>${ops ? `<div style="color:#5d6975">${esc(ops)}</div>` : ''}<div style="margin-top:4px">In <b>${pwrH()} m</b> überfliegen, nie unter der Leitung durch. Wird sie überflogen: Netzbetreiber vorher informieren (im Pre-Check unter To-dos).</div>`; };
   if (b.z >= 11) {
     for (const f of S.geo) { if (feats.length > 900) break; if (!geoLayerOn(f.layer) || !inB(f.bb)) continue;
-      const c = COL[covKind(f.layer, featRegion(f))] || COL.off, poly = f.type === 'Polygon' || f.type === 'MultiPolygon';
-      feats.push({ type: 'Feature', properties: { c, fo: poly ? 0.16 : 0, w: poly ? 1.4 : 3 },
+      const c = colOf(f), poly = f.type === 'Polygon' || f.type === 'MultiPolygon';
+      feats.push({ type: 'Feature', properties: { c, fo: poly ? 0.16 : 0, w: poly ? 1.4 : 3, i: info(f) },
         geometry: poly ? { type: 'MultiPolygon', coordinates: f.rings.filter(r => r.length > 3).map(r => [r]) } : { type: 'MultiLineString', coordinates: f.rings } }); }
     (S.osm || []).forEach(l => { if (feats.length > 1500 || l.p === 'cable' || l.loc === 'underground' || !inB(l.bb)) return;
-      const minor = minorLine(l); feats.push({ type: 'Feature', properties: { c: minor ? '#7a8692' : '#8e24aa', fo: 0, w: minor ? 1.5 : 3.5 }, geometry: { type: 'LineString', coordinates: l.pts.map(p => [p[1], p[0]]) } }); });
+      const minor = minorLine(l); feats.push({ type: 'Feature', properties: { c: minor ? '#7a8692' : '#8e24aa', fo: 0, w: minor ? 1.5 : 3.5, i: lineInfo(l) }, geometry: { type: 'LineString', coordinates: l.pts.map(p => [p[1], p[0]]) } }); });
   }
   return { type: 'FeatureCollection', features: feats };
 }
+window.onUvSnap = url => { const sl = $('uvSlot'); if (!sl || !UV.hid) return; sl.style.backgroundImage = `url("${url}")`; sl.classList.add('snap'); };
 /** Anmeldung auf der UAV-Editor-Seite wurde mitgelesen und (verschlüsselt) gespeichert */
 window.onUaveCredCaptured = () => {
   const tk = $('uvTake'); if (tk) tk.style.display = '';
@@ -3059,6 +3083,7 @@ window.onUaveSel = r => {
   // schon im UAV Editor ausgewählt → Feldliste wird nicht gebraucht: zuklappen, Karte in voller Breite
   const sp = $('sidePanel'); if (sp && sp.classList.contains('open') && SIDE.tab === 'felder' && S.sideShow) S.sideShow(false); topFelderClose();
   if (fs.length) fitBounds(padBB(bounds(fs))); update(); draw(); sideRender();
+  if (r.src === 'karte' && fs.length) toast(`✓ ${fs.length} Feld(er) von der UAV-Karte übernommen (Feldtabelle ist dort ausgeblendet) – Felder in Gruppen-Kreisen werden nicht erkannt.`, 'ok', 6000);
   if (r.precheck && fs.length) { setTimeout(() => webPreCheck(S.files.filter(f => f.selected)), 120); if (miss.length || (r.want != null && r.rows.length < r.want)) toast(`${miss.length ? miss.length + ' Feld(er) nicht in unserer Feldliste' : 'Nicht alle angehakten Felder gelesen'} – Pre-Check mit ${fs.length} Feld${fs.length === 1 ? '' : 'ern'}.`, 'warn', 7000); return; }
   const part = r.want != null && r.rows.length < r.want ? `Nur ${r.rows.length} von ${r.want} angehakten Feldern gelesen – bitte im UAV Editor einmal durch die Liste scrollen und erneut übernehmen.` : '';
   if (miss.length || part) uvInfo(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} übernommen`, [part, miss.length ? `Nicht in unserer Feldliste (evtl. „↻ UAV-Felder holen“):` : ''].filter(Boolean).join('\n\n'), miss.slice(0, 20));
@@ -3070,7 +3095,8 @@ function tabStripInit() {
   let t = $('tabStrip');
   if (!t) { t = document.createElement('div'); t.id = 'tabStrip';
     t.innerHTML = `<div class="tbs"><button class="tb" data-uv="1"><i>🌐</i>UAV Editor</button><button class="tb" data-uv="0"><img alt="">Missionsplanung</button></div>
-      <div class="tbz" title="Größe der Ansicht (gilt für den offenen Tab)"><button id="zmM" title="Kleiner">−</button><button id="zmV" title="Auf 100 % zurück">100 %</button><button id="zmP" title="Größer">+</button></div>`;
+      <div class="tbr"><div class="tbz" title="Größe der Ansicht (gilt für den offenen Tab)"><button id="zmM" title="Kleiner">−</button><button id="zmV" title="Auf 100 % zurück">100 %</button><button id="zmP" title="Größer">+</button></div>
+      <button id="tbSet" title="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>`;
     document.body.appendChild(t);
     t.querySelectorAll('[data-uv]').forEach(x => x.onclick = () => uvMode(x.dataset.uv === '1'));
     const STEPS = [0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
@@ -3079,6 +3105,7 @@ function tabStripInit() {
     $('zmM').onclick = () => { const c = cur(); set([...STEPS].reverse().find(s => s < c - 0.001) || STEPS[0]); };
     $('zmP').onclick = () => { const c = cur(); set(STEPS.find(s => s > c + 0.001) || STEPS[STEPS.length - 1]); };
     $('zmV').onclick = () => set(1);
+    $('tbSet').onclick = () => $('bSet') && $('bSet').click();   // Einstellungen immer erreichbar – auch im UAV-Editor-Tab
     try { const z = A.getPref('appZoom', ''); if (z && z !== '1') A.appZoom(z); } catch (e) { }
     const lg = document.querySelector('#bar [data-logo]'), ti = t.querySelector('.tb img'); const cp = () => { if (lg && lg.src) ti.src = lg.src; }; cp(); setTimeout(cp, 1500);
   }
@@ -3620,24 +3647,39 @@ function fieldSamples(f) {
  *  und wie die Bahnen dazu liegen: { d, cross } – cross = Anzahl Bahnen, die quer auf die Zone zulaufen und an ihr wenden */
 function routeZoneInfo(f, zf, H) {
   const g = flightGeom(f), bb = f.bounds; if (!bb || (!g.segs.length && !g.polys.length)) return null;
-  const pad = 0.004, poly = zf.type === 'Polygon' || zf.type === 'MultiPolygon';
-  // nur Zonenkanten in der Nähe des Feldes betrachten (Straßen-Zonen sind sehr lang)
+  const pad = 0.006, poly = zf.type === 'Polygon' || zf.type === 'MultiPolygon';
+  // nur Zonenkanten in der Nähe des Feldes (Straßen-Zonen sind sehr lang)
   const edges = []; zf.rings.forEach(r => { for (let i = 0; i < r.length - 1 + (poly ? 1 : 0); i++) { const a = r[i], b = r[(i + 1) % r.length];
     if (Math.max(a[1], b[1]) < bb.s - pad || Math.min(a[1], b[1]) > bb.n + pad || Math.max(a[0], b[0]) < bb.w - pad * 1.6 || Math.min(a[0], b[0]) > bb.e + pad * 1.6) continue; edges.push([a, b]); } });
   if (!edges.length) return { d: 1e9, cross: 0 };
-  const inZone = p => poly && zf.rings.reduce((ins, r) => inRing(p[1], p[0], r) ? !ins : ins, false);
+  const lat0 = (bb.n + bb.s) / 2, K = Math.cos(lat0 * Math.PI / 180) * 111320, M = 110540, xy = p => [p[0] * K, p[1] * M];
+  const E = edges.map(([a, b]) => [xy(a), xy(b)]);
   const segs = g.segs.length ? g.segs : g.polys.flatMap(r => r.map((p, i) => [p, r[(i + 1) % r.length]]));
-  const near = p => { let best = 1e9, e = null; edges.forEach(([a, b]) => { const x = segDistM(p[1], p[0], a, b); if (x < best) { best = x; e = [a, b]; } }); return [best, e]; };
+  // Lage der Straße: dipul zeichnet Straße/Bahn als Band (Fahrbahn + Pufferstreifen) – die Fahrbahn liegt in der Mitte.
+  // Je Punkt der Flugbahn: nächste Kante, dann quer durchs Band bis zur Gegenkante → Bandbreite W → Abstand zur Mitte → minus halbe Fahrbahn (ca. 4 m)
+  const near = q => { let best = 1e18, cp = null; E.forEach(([a, b]) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy, t = l ? Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / l)) : 0, c = [a[0] + t * dx, a[1] + t * dy], d = Math.hypot(q[0] - c[0], q[1] - c[1]); if (d < best) { best = d; cp = c; } }); return [best, cp]; };
+  const ray = (o, n) => { let tMin = Infinity; E.forEach(([a, b]) => { const ex = b[0] - a[0], ey = b[1] - a[1], den = n[0] * ey - n[1] * ex; if (Math.abs(den) < 1e-9) return;
+    const t = ((a[0] - o[0]) * ey - (a[1] - o[1]) * ex) / den, u = ((a[0] - o[0]) * n[1] - (a[1] - o[1]) * n[0]) / den; if (t > 0.5 && u >= 0 && u <= 1 && t < tMin) tMin = t; }); return tMin; };
+  const inZone = p => poly && zf.rings.reduce((ins, r) => inRing(p[1], p[0], r) ? !ins : ins, false);
   let d = 1e9;
-  for (const [a, b] of segs) {
-    if (inZone(a) || inZone(b)) return { d: 0, cross: 0 };
-    for (const [c, e] of edges) { if (segCross(a, b, c, e)) return { d: 0, cross: 0 }; d = Math.min(d, segDistM(c[1], c[0], a, b), segDistM(e[1], e[0], a, b)); }
-    d = Math.min(d, near(a)[0], near(b)[0]);
+  for (const [A, B] of segs) {
+    const L = distM(A[1], A[0], B[1], B[0]), n = Math.max(1, Math.ceil(L / 12));
+    for (let k = 0; k <= n; k++) { const p = [A[0] + (B[0] - A[0]) * k / n, A[1] + (B[1] - A[1]) * k / n], q = xy(p), ins = inZone(p), [d1, cp] = near(q); if (!cp) continue;
+      if (!ins && d1 > 400) { d = Math.min(d, d1); continue; }
+      let nx = q[0] - cp[0], ny = q[1] - cp[1], nl = Math.hypot(nx, ny); if (nl < 0.01) { nl = 1; nx = 0; ny = 0; }
+      const nn = [nx / nl, ny / nl];
+      // innen: von q weiter bis zur Gegenkante; außen: von der Kante ins Band hinein
+      const W = ins ? d1 + ray(q, nn) : ray(cp, [-nn[0], -nn[1]]);
+      let road;
+      if (!isFinite(W) || W > 700 || !poly) road = ins ? 0 : d1;   // kein Band (z. B. Fläche): wie bisher bis zum Rand
+      else road = Math.max(0, (ins ? Math.abs(W / 2 - d1) : d1 + W / 2) - 4);
+      d = Math.min(d, road); }
   }
   // Bahnen quer zur Zone, die an ihr wenden: lange Bahn, ein Ende nahe der Zone, Winkel zur Zonenkante über 40°
+  const nearE = p => { let best = 1e9, e = null; edges.forEach(([a, b]) => { const x = segDistM(p[1], p[0], a, b); if (x < best) { best = x; e = [a, b]; } }); return [best, e]; };
   let cross = 0;
-  if (g.segs.length) g.segs.forEach(([a, b]) => { const k = Math.cos(a[1] * Math.PI / 180), vx = (b[0] - a[0]) * k, vy = b[1] - a[1], L = Math.hypot(vx, vy) * 111000; if (L < 50) return;
-    const [da, ea] = near(a), [db, eb] = near(b), [dm, e] = da < db ? [da, ea] : [db, eb]; if (!e || dm > H + 40) return;
+  if (g.segs.length) g.segs.forEach(([a, b]) => { const k = Math.cos(a[1] * Math.PI / 180), vx = (b[0] - a[0]) * k, vy = b[1] - a[1], Ls = Math.hypot(vx, vy) * 111000; if (Ls < 50) return;
+    const [da, ea] = nearE(a), [db, eb] = nearE(b), [dm, e] = da < db ? [da, ea] : [db, eb]; if (!e || dm > H + 140) return;
     const ex = (e[1][0] - e[0][0]) * k, ey = e[1][1] - e[0][1], cs = Math.abs(vx * ex + vy * ey) / (Math.hypot(vx, vy) * Math.hypot(ex, ey) || 1);
     if (Math.acos(Math.min(1, cs)) * 180 / Math.PI > 40) cross++; });
   return { d, cross };
@@ -4107,7 +4149,7 @@ function fillSettings() {
   $('sMove').checked = P.move === '1'; $('sClear').checked = P.clear === '1'; $('sLabels').checked = P.labels === '1';
   document.querySelectorAll('[data-layer]').forEach(b => b.classList.toggle('on', b.dataset.layer === P.layer));
   if (A.cacheInfoAsync) A.cacheInfoAsync();   // Größen im Hintergrund zählen (sonst hängt die App bei vielen Kacheln)
-  if (A.tileCacheInfo && IS_WEB) { const mb = +A.tileCacheInfo() / 1048576; $('vTiles').textContent = `Alles, was du dir auf der Karte ansiehst, speichert das Programm auf dem PC (bis 4 GB, älteste Kacheln fallen zuerst weg) – beim nächsten Mal lädt es sofort. Belegt ${mb < 1 ? '< 1 MB' : mb < 1024 ? Math.round(mb) + ' MB' : (mb / 1024).toFixed(1).replace('.', ',') + ' GB'}`; }
+  if (A.tileCacheInfo && IS_WEB) { const mb = +A.tileCacheInfo() / 1048576; $('vTiles').textContent = `Alles, was du dir auf der Karte ansiehst, speichert das Programm auf dem PC (bis 10 GB, älteste Kacheln fallen zuerst weg) – beim nächsten Mal lädt es sofort. Belegt ${mb < 1 ? '< 1 MB' : mb < 1024 ? Math.round(mb) + ' MB' : (mb / 1024).toFixed(1).replace('.', ',') + ' GB'}`; }
   else if (A.tileCacheInfo) { const mb = +A.tileCacheInfo() / 1048576; $('vTiles').textContent = `Grau/Karte: basemap.de (amtliche Karte) · Luftbild: Orthophotos Hessen/Rheinland-Pfalz · alle angesehenen und vorab geladenen Kacheln bleiben auf der RC (erst nach 1 Jahr neu geladen) · belegt ${mb < 1 ? '< 1 MB' : mb < 1024 ? Math.round(mb) + ' MB' : (mb / 1024).toFixed(1).replace('.', ',') + ' GB'}`; }
   document.querySelectorAll('[data-rcdrone]').forEach(b => b.classList.toggle('on', P.droneSet === '1' && b.dataset.rcdrone === P.drone));
   droneNag();
@@ -7609,9 +7651,9 @@ async function mapImage(o) {
   const ox = (mX(o.bb.e, z) + mX(o.bb.w, z)) / 2 - CW / 2, oy = (mY(o.bb.s, z) + mY(o.bb.n, z)) / 2 - MH / 2;
   const pr = (la, lo) => [mX(lo, z) - ox, mY(la, z) - oy];
   c.fillStyle = '#f2f2ee'; c.fillRect(0, 0, CW, MH);
-  const jobs = [];
+  const jobs = [];   // Luftbild-Lücke im amtlichen Bild: Esri als Ersatz
   for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + CW) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + MH) / 256); ty++)
-    jobs.push(loadImg(TSRC(LAYERS[o.base && LAYERS[o.base] ? o.base : 'osm'](Math.min(z, LAYER_MAXZ[o.base] || 18), tx, ty)), o.tileMs).then(im => { if (im) { c.filter = (o.base && LAYER_FILTER[o.base]) || 'none'; c.drawImage(im, tx * 256 - ox, ty * 256 - oy, 256, 256); c.filter = 'none'; } }));
+    jobs.push(loadImg(TSRC(LAYERS[o.base && LAYERS[o.base] ? o.base : 'osm'](Math.min(z, LAYER_MAXZ[o.base] || 18), tx, ty)), o.tileMs).then(im => im || (o.base === 'sat' ? loadImg(TSRC(ESRI_SAT(Math.min(z, 19), tx, ty)), o.tileMs) : null)).then(im => { if (im) { c.filter = (o.base && LAYER_FILTER[o.base]) || 'none'; c.drawImage(im, tx * 256 - ox, ty * 256 - oy, 256, 256); c.filter = 'none'; } }));
   await Promise.all(jobs);
   c.fillStyle = 'rgba(255,255,255,.25)'; c.fillRect(0, 0, CW, MH);   // Karte etwas aufhellen, damit die Markierungen hervortreten
   c.save(); c.beginPath(); c.rect(0, 0, CW, MH); c.clip(); c.lineJoin = 'round'; c.lineCap = 'round';
@@ -8775,7 +8817,7 @@ function fieldThumb(f, W, H) {
   for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + W) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + H) / 256); ty++) {
     const pos = `left:${Math.round(tx * 256 - ox)}px;top:${Math.round(ty * 256 - oy)}px`;
     im += `<img src="${esc(TSRC(LAYERS[base](z, tx, ty)))}" onerror="this.style.visibility='hidden'" style="${pos}${flt}" alt="">`;
-    if (top) im += `<img src="${esc(TSRC(LAYERS.sat(z, tx, ty)))}" onerror="this.remove()" style="${pos}" alt="">`; }
+    if (top) im += `<img src="${esc(TSRC(LAYERS.sat(z, tx, ty)))}" data-fb="${esc(TSRC(ESRI_SAT(z, tx, ty)))}" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb=''}else this.remove()" style="${pos}" alt="">`; }   // Lücke im amtlichen Luftbild: Esri
   const d = rings.map(r => 'M' + r.map(q => (mX(q[1], z) - ox).toFixed(1) + ' ' + (mY(q[0], z) - oy).toFixed(1)).join('L') + 'Z').join('');
   // Nahansicht: zwischen zwei Zoomstufen stufenlos vergrößern, damit das Feld das Bild gut ausfüllt
   const k = Math.max(1, Math.min(3, W / ((mX(bb.e, z) - mX(bb.w, z)) * 1.2 || W), H / ((mY(bb.s, z) - mY(bb.n, z)) * 1.2 || H)));
@@ -8813,8 +8855,8 @@ function liteCardsHtml(b, o) {
     // 1:1-Regel wirklich nachrechnen: seitlicher Abstand der Flugbahn zur Zone gegen die Missionshöhe des Feldes
     const rz = nr5 && !pt ? sel.filter(f => z.fields.has(f.title)).map(f => { const h = f.height || H, ri = routeZoneInfo(f, z.f, h); return { f, h, d: ri ? ri.d : 0, cross: ri ? ri.cross : 0 }; }) : null;
     const hx = rz && rz.length ? Math.max(...rz.map(x => x.h)) : H, dmin = rz && rz.length ? Math.min(...rz.map(x => x.d)) : 0;
-    if (rz && rz.length && rz.every(x => x.d > x.h)) return card('✅', '#13a538', `${esc(lbl)}: Abstand reicht (1:1)`, `${nm} – die Flugbahn bleibt mindestens <b>${m(dmin)}</b> weg, geflogen wird in <b>${hx} m</b>: seitlich weiter weg als hoch, also ohne Allgemeinerlaubnis erlaubt.${where(z.fields)}`);
-    const dTxt = rz && rz.length ? (dmin === 0 ? 'Die Flugbahn führt über die Zone.' : `Die Flugbahn kommt bis <b>${m(dmin)}</b> heran – bei ${hx} m Flughöhe müssten es mehr als ${hx} m sein.`) : '';
+    if (rz && rz.length && rz.every(x => x.d > x.h)) return card('✅', '#13a538', `${esc(lbl)}: Abstand reicht (1:1)`, `${nm} – die Flugbahn bleibt etwa <b>${m(dmin)}</b> von der ${esc(lbl)} weg, geflogen wird in <b>${hx} m</b>: seitlich weiter weg als hoch, also ohne Allgemeinerlaubnis erlaubt. (Abstand zur Fahrbahn bzw. zum Gleis, aus der Mitte der dipul-Zone berechnet.)${where(z.fields)}`);
+    const dTxt = rz && rz.length ? (dmin === 0 ? `Die Flugbahn führt über die ${esc(lbl)}.` : `Die Flugbahn kommt der ${esc(lbl)} bis etwa <b>${m(dmin)}</b> nahe – bei ${hx} m Flughöhe müssten es mehr als ${hx} m sein.`) : '';
     const crossN = rz ? rz.reduce((n, x) => n + (x.cross >= 2 ? 1 : 0), 0) : 0;
     if (k === 'on') { const info = (NAT_LAYERS.includes(z.f.layer) && !(av && av.link === LINK_AVGI)) || z.f.layer === 'stromleitungen';   // Wildtierrettung: steht schon in den Auflagen
       card('✅', '#13a538', `${esc(lbl)}: erlaubt per ${cov === 'ae' ? 'Allgemeinerlaubnis' : cov === 'avgi' ? 'Allgemeinverfügung' : 'Genehmigung'}`, `${nm} – ${via}.${info ? ' Der Flug wird vorher gemeldet (nur Informationspflicht, keine Zustimmung nötig).' : ''}${where(z.fields)}`, ru);
@@ -9120,7 +9162,7 @@ function webInit() {
       const hj = document.createElement('div'); hj.className = 'set'; hj.id = 'setUvHijack'; hj.style.display = P.uaveView === '1' ? '' : 'none';
       hj.innerHTML = '<div class="l"><div class="t">„Check flight zone“ → unser Pre-Check</div><div class="v">Im UAV Editor im Programm öffnet der Knopf „Check flight zone“ statt der UAV-Editor-Prüfung direkt unseren Pre-Check mit den dort angehakten Feldern (Knopf trägt dann „→ Kitzrettung“). Im normalen Browser bleibt er unverändert.</div></div><label class="sw"><input type="checkbox" id="sUvHijack"><span></span></label>';
       const md = document.createElement('div'); md.className = 'set'; md.id = 'setUaveMode'; md.style.display = P.uaveView === '1' ? '' : 'none';
-      md.innerHTML = '<div class="l"><div class="t">Arbeitsweise mit dem UAV Editor</div><div class="v"><b>Umschalten:</b> oben per Tab zwischen UAV Editor und Karte wechseln. <b>Halbintegration:</b> „Check flight zone“ öffnet unseren Pre-Check rechts neben dem UAV Editor – kein Seitenwechsel. <b>Vollintegration:</b> zusätzlich unsere Geozonen (grün erlaubt, orange mit Abstand, rot gesperrt – je nach Fernpilotenzeugnis) und Stromleitungen direkt auf der Karte im UAV Editor.</div></div><div class="seg"><button data-um="tabs">Umschalten</button><button data-um="half">Halbintegration</button><button data-um="full">Vollintegration</button></div>';
+      md.innerHTML = '<div class="l"><div class="t">Arbeitsweise mit dem UAV Editor</div><div class="v"><b>Umschalten:</b> oben per Tab zwischen UAV Editor und Karte wechseln. <b>Halbintegration:</b> „Check flight zone“ öffnet unseren Pre-Check als Fenster über dem UAV Editor – kein Seitenwechsel. <b>Vollintegration:</b> zusätzlich unsere Geozonen (grün mit A1/A3 möglich, gelb mit A2 + Allgemeinerlaubnis/-verfügung, rot nur mit Antrag) und Stromleitungen direkt auf der Karte im UAV Editor.</div></div><div class="seg"><button data-um="tabs">Umschalten</button><button data-um="half">Halbintegration</button><button data-um="full">Vollintegration</button></div>';
       uv.after(md); const mdUi = () => md.querySelectorAll('[data-um]').forEach(b => b.classList.toggle('on', b.dataset.um === (['half', 'full'].includes(P.uaveMode) ? P.uaveMode : 'tabs')));
       md.querySelectorAll('[data-um]:not([disabled])').forEach(b => b.onclick = () => { setP('uaveMode', b.dataset.um); mdUi(); uvOvLast = ''; if (b.dataset.um !== 'full' && A.uvOverlay) A.uvOverlay('null'); }); mdUi();
       const tgl = $('sUaveView'), oc = tgl.onchange; tgl.onchange = e => { oc(e); md.style.display = e.target.checked ? '' : 'none'; };
