@@ -399,6 +399,8 @@
   .srcb i.on{border-color:#2e7d32;color:#fff;background:#2e7d32;opacity:1}
   .srcb i.dj.on{border-color:#1565c0;background:#1565c0}
   .srcb i.dj.part{border-color:#1565c0;color:#1565c0;opacity:1}
+  .pcdj{display:inline-block;font-style:normal;font-size:11px;font-weight:800;line-height:17px;padding:0 6px;border-radius:6px;border:1px solid #c9ced6;color:#a7adb6;margin-left:6px;vertical-align:2px}
+  .pcdj.on{background:#1565c0;border-color:#1565c0;color:#fff}.pcdj.up{cursor:pointer}.pcdj.up:hover{border-color:#1565c0;color:#1565c0}
   .srcb i.up{cursor:pointer}.srcb i.up:hover{border-color:#1565c0;color:#1565c0;opacity:1;background:rgba(21,101,192,.08)}
   #sideList .spnew{font-style:normal;background:#ff7a00;color:#fff;border-radius:6px;padding:0 5px;font-size:10.5px;font-weight:800}
   #zonePop{position:fixed;display:none;flex-direction:column;gap:6px;padding:10px;background:var(--ctrl);border-radius:16px;box-shadow:0 3px 14px rgba(0,0,0,.35);z-index:30;width:290px}
@@ -830,7 +832,7 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
   <div class="body">
     <nav class="setnav"><button data-sc="drohne">Drohne &amp; Dateien</button><button data-sc="karte">Karte</button><button data-sc="luft">Luftraum &amp; Regeln</button><button data-sc="notam">NOTAMs</button><button data-sc="radar">Flugradar</button><button data-sc="wetter">Wetter</button></nav>
     <h3 class="setcat" id="sc-drohne">Drohne &amp; Dateien</h3>
-    <div class="set"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Gibt es ein Feld als M3T und M4T, zeigt die Karte nur die passende Version; Felder, die es nur einmal gibt, immer (sie werden beim Download bei Bedarf umgerechnet).</div></div><div class="seg"><button data-rcdrone="">Keine</button><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
+    <div class="set"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Gibt es ein Feld als M3T und M4T, zeigt die Karte nur die passende Version; Felder, die es nur einmal gibt, immer (sie werden beim Download bei Bedarf umgerechnet).</div></div><div class="seg"><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzplan</div><div class="v">Zeigt für die markierten Wiesen eine sinnvolle Reihenfolge (kürzeste Wege), Flugzeit, Akku-Bedarf und das voraussichtliche Ende – im Vergleich dazu, ab wann es wärmer wird und das Wärmebild nachlässt. Knopf „Plan“ unten, sobald Wiesen markiert sind.</div></div><input id="sPlanBatt" class="inp" style="width:90px" type="number" min="10" max="60" placeholder="Min/Akku"><label class="sw"><input type="checkbox" id="sPlan"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Quellordner (KMZ aus UAV Editor)</div><div class="v" id="vSrc"></div></div><button class="b-sec" data-pick="src">Ordner wählen</button></div>
     <div class="set"><div class="l"><div class="t">Felder löschen</div><div class="v" id="vKmzDel">Markierte Felder auf der Karte löschen: UAV-Editor-Felder aus dem Ordner „UAV-Editor“ (wieder holbar), Missionen der Fernsteuerung samt Ordner aus DJI Pilot 2 (endgültig). Es wird vorher nachgefragt.</div></div><button class="b-sec" id="bKmzDelSel">Markierte</button><button class="b-sec" id="bKmzDelAll">Alle</button></div>
@@ -1918,7 +1920,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
+const DEF = { setupDone: '', avs: '', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
    planTool: '0', sideGroup: '0', catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
@@ -2406,8 +2408,7 @@ function paintStatic() {
     if (V.z >= LABEL_Z) { vis.filter(f => f.selected).forEach(f => drawLabel(f)); vis.filter(f => !f.selected).forEach(f => drawLabel(f)); }
     else if (V.z >= LABEL_ZMIN) drawLabelGroups(vis);   // weiter weg: Namen trotzdem lesbar, dicht liegende als Liste
     else vis.filter(f => f.selected).forEach(f => drawLabel(f)); };
-  if (!pwrAutoRaise()) ord.filter(lowNearPower).forEach(drawPowerWarn);
-  ord.filter(f => !lowNearPower(f) && heightIssue(f)).forEach(drawPowerWarn);   // PC: Name und Höhe passen nicht (M4T unter 70 m, M3T unnötig auf 70 m)   // zu niedrig geplant, aber Stromleitung am Feld (in den Apps nur, wenn nicht automatisch angehoben wird)   // PC: auf 50 m geplant, aber Stromleitung am Feld
+  const warnFs = [...(!pwrAutoRaise() ? ord.filter(lowNearPower) : []), ...ord.filter(f => !lowNearPower(f) && heightIssue(f))];   // rotes ! – erst nach den Namen zeichnen (sonst verdeckt)   // PC: Name und Höhe passen nicht (M4T unter 70 m, M3T unnötig auf 70 m)   // zu niedrig geplant, aber Stromleitung am Feld (in den Apps nur, wenn nicht automatisch angehoben wird)   // PC: auf 50 m geplant, aber Stromleitung am Feld
   // dipul ist maßgeblich: Symbol und Vincenz-Ringe in der Mitte des dipul-Kreises; OSM-Marker nur, wo dipul keinen Platz hat
   const icons = P.geo === '1' && S.geo.length && V.z >= 9 ? geoAirIcons() : [];
   const nearIcon = a => icons.some(g => Math.hypot((a.lat - g.lat) * 111.2, (a.lon - g.lon) * 71) < 0.6);
@@ -2422,6 +2423,7 @@ function paintStatic() {
   resetTf(); ctx.setLineDash([]);
   obsIcons.forEach(f => f()); obsLabels.forEach(f => f());   // ganz oben
   drawLabels();
+  warnFs.forEach(drawPowerWarn);
   if (S.kf && S.files.includes(S.kf)) {   // mit dem 5D-Knopf gewähltes Feld: gelber Rahmen
     const r = S.kf.outline && S.kf.outline.length > 2 ? S.kf.outline : (S.kf.shapes[0] || {}).pts || [];
     ctx.save(); ctx.lineWidth = 6; ctx.strokeStyle = '#ffd400'; ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 6; ctx.beginPath();
@@ -3105,10 +3107,14 @@ function touchesPower(f) {
 function lowNearPower(f) { return !!(f && f.height && f.height < pwrH() - 0.5 && touchesPower(f)); }
 /** Wird beim Übertragen automatisch angehoben (Fernsteuerungs-Apps, Anpassung an)? */
 const pwrAutoRaise = () => !IS_WEB && pwrAdj() && !!A.setMinHeights;
-/** rotes Ausrufezeichen oben rechts am Feld */
+/** rotes Ausrufezeichen oben rechts am Feld – an der Feldecke, die am weitesten oben rechts liegt (nicht an der Ecke des umgebenden Rechtecks, die bei schrägen Feldern daneben liegt) */
 function drawPowerWarn(f) {
   const b = f.bounds; if (!b) return;
-  const [x, y] = toScreen(b.n, b.e); if (x < -20 || y < -20 || x > W + 20 || y > H + 20) return;
+  const pts = f.outline && f.outline.length > 2 ? f.outline : (f.shapes || []).filter(sh => sh.type === 'poly').flatMap(sh => sh.pts);
+  let x, y;
+  if (pts.length) { let best = -Infinity; for (const p of pts) { const [px, py] = toScreen(p[0], p[1]); if (px - 1.3 * py > best) { best = px - 1.3 * py; x = px; y = py; } } }
+  else [x, y] = toScreen(b.n, b.e);
+  if (x < -20 || y < -20 || x > W + 20 || y > H + 20) return;
   ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.fillStyle = '#d32f2f'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
   ctx.fillStyle = '#fff'; ctx.font = '900 16px Roboto,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', x, y + 1);
 }
@@ -3712,7 +3718,7 @@ async function load(keepView) {
   update();
   if (!keepView) fitAll();
   if (S.dulv && S.dulv.length) loadAirfields();   // DULV-Plätze nahe den Felder ergänzen
-  if (!IS_WEB && P.setupDone !== '1') { if (out.length) setP('setupDone', 1); else setTimeout(() => showSetup(0), 300); }   // Einrichtung (Ordner, RC) nur auf der Fernsteuerung
+  if (!IS_WEB && P.setupDone !== '1') { if (out.length && !IS_LITE) setP('setupDone', 1); else if (!S.suShown) { S.suShown = 1; setTimeout(() => showSetup(0), 300); } }   // Einrichtung (Ordner, RC) nur auf der Fernsteuerung
   geoSyncNow(false);
   setTimeout(einsatzAuto, 2500);   // erstes Mal / neue Wiesen: Einsatzgebiet automatisch für offline speichern
   try { notamChip(); } catch (e) { }
@@ -3723,7 +3729,7 @@ async function load(keepView) {
     const n = S.files.filter(visible).length, w = { '24h': 'Letzte 24 Stunden', '48h': 'Letzte 48 Stunden', year: 'Jahr ' + new Date().getFullYear(), all: 'Alle Jahre' }[P.webShow] || '';
     toast(`${w ? w + ': ' : ''}${n} Feld${n === 1 ? '' : 'er'} angezeigt`, 'ok', 2500); }
   else if (IS_WEB) { S.wshowMsg = false; if (!S.files.length && P.fsrc !== 'none' && A.uaveUser && A.uaveUser()) toast(P.webShow === '24h' || P.webShow === '48h' ? `In den letzten ${P.webShow === '24h' ? 24 : 48} Stunden wurden im UAV Editor keine Felder angelegt oder geändert. „${new Date().getFullYear()}“ oder „Alle“ zeigt mehr.` : 'Keine Felder – „↻ UAV-Felder holen“ klicken.', false, 6000); }
-  else if (!out.length) toast('Keine KMZ-Felder im Quellordner gefunden:\n' + P.src, true, 0, { label: 'Jetzt einstellen', fn: () => gotoSetting('[data-pick="src"]') });
+  else if (!out.length && !IS_LITE) toast('Keine KMZ-Felder im Quellordner gefunden:\n' + P.src, true, 0, { label: 'Jetzt einstellen', fn: () => gotoSetting('[data-pick="src"]') });
   else if (bad) {   // nur melden, wenn neue leere Missionen dazugekommen sind – nicht bei jedem Laden wieder
     let seen = []; try { seen = JSON.parse(A.getPref('badSeen', '[]') || '[]'); } catch (e) { }
     const neu = badNames.filter(n => !seen.includes(n));
@@ -4283,7 +4289,8 @@ function sideInit() {
       <select id="sideY"></select><select id="sideD"><option value="alle">Alle Drohnen</option><option value="M3T">M3T</option><option value="M4T">M4T</option></select>
       <select id="sideSt"><option value="alle">Aktiv + Archiv</option><option value="aktiv">Nur aktiv</option><option value="archiv">Nur Archiv</option></select>
       <label class="spck" title="Felder zu Paketen zusammenfassen"><input type="checkbox" id="sideGrp"> Als Pakete bündeln</label>
-      <select id="sideGm" title="Wonach gebündelt wird"><option value="namedate">nach Name + Datum</option><option value="name">nur nach Name</option><option value="date">nur nach Datum</option></select></div>
+      <select id="sideGm" title="Wonach gebündelt wird"><option value="namedate">nach Name + Datum</option><option value="name">nur nach Name</option><option value="date">nur nach Datum</option></select>
+      <label class="spck" title="Nur Felder, die beim letzten „UAV-Felder holen“ neu dazugekommen sind"><input type="checkbox" id="sideNewC"> <span id="sideNewT">Nur neue Felder</span></label></div>
     <div class="spa"><button id="sideAll">Alle markieren</button><button id="sideNone">Keine</button><button id="sideNew" style="display:none">Nur neue</button></div>
     <div class="spa" id="sideDjiRow" style="display:none"><button id="sideDjiUp"></button></div>
     <div class="spa" id="sidePlanRow" style="display:none"><button id="sidePlanNew" class="on">📅 Neue Planung mit Auswahl</button></div>
@@ -4310,6 +4317,8 @@ function sideInit() {
   $('sideAll').onclick = () => { const fx = foldTxt(SIDE.q.trim()).replace(/[_\-]+/g, ' '); const fs = sideList().filter(cf => !fx || foldTxt(String(cf.name)).replace(/[_\-]+/g, ' ').includes(fx)).slice(0, 300).map(cf => webCatPick(cf, 'all')).filter(Boolean); if (fs.length) fitBounds(padBB(bounds(fs))); draw(); sideRender(); toast(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} markiert`, 'ok', 2000); };
   $('sideNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); draw(); sideRender(); };
   $('sideNew').onclick = () => { SIDE.onlyNew = !SIDE.onlyNew; sideRender(); };
+  $('sideNewC').onchange = e => { SIDE.onlyNew = e.target.checked; sideRender(); };
+  $('sideQ').addEventListener('input', () => { if (SIDE.onlyNew && $('sideQ').value.trim()) SIDE.onlyNew = false; });   // wer sucht, will alle Felder durchsuchen
   $('sideGrp').onchange = e => { setP('sideGroup', e.target.checked ? '1' : '0'); sideRender(); };
   $('sideGm').onchange = e => { setP('sideGroupBy', e.target.value); SIDE.openG = new Set(); sideRender(); };
   p.addEventListener('pointerdown', e => e.stopPropagation());
@@ -4474,7 +4483,9 @@ function sideRender() {
     { const miss = A.uaveDjiUpload && djiState() && nSel ? catAll().filter(cf => cfSel(cf) && !djiHas(cf)).length : 0;
       $('sideDjiRow').style.display = miss ? '' : 'none'; $('sideDjiUp').textContent = `☁ ${miss} markierte${miss === 1 ? 's Feld' : ' Felder'} in die DJI Cloud hochladen`; }
     $('sidePlanRow').style.display = pOn && nSel ? '' : 'none'; $('sidePlanNew').textContent = `📅 Neue Planung mit ${nSel} markierten Feld${nSel === 1 ? '' : 'ern'}`;
-    const nb = $('sideNew'), nn = S.newIds ? S.newIds.size : 0; nb.style.display = nn ? '' : 'none'; nb.textContent = SIDE.onlyNew ? 'Alle zeigen' : `Nur neue (${nn})`; nb.classList.toggle('on', !!SIDE.onlyNew);
+    const nb = $('sideNew'), nn = S.newIds ? S.newIds.size : 0; nb.style.display = 'none';   // jetzt als Filter-Häkchen „Nur neue Felder“
+    { const c = $('sideNewC'); if (!nn && SIDE.onlyNew) SIDE.onlyNew = false; c.checked = !!SIDE.onlyNew; c.disabled = !nn; c.closest('label').style.opacity = nn ? '' : '.5';
+      $('sideNewT').textContent = `Nur neue Felder (${nn})`; c.closest('label').title = nn ? 'Nur die Felder, die beim letzten „UAV-Felder holen“ neu dazugekommen sind' : 'Beim letzten „UAV-Felder holen“ kamen keine neuen Felder dazu'; } nb.textContent = SIDE.onlyNew ? 'Alle Felder zeigen' : `Nur neue (${nn})`; nb.classList.toggle('on', !!SIDE.onlyNew);
     const list = sideList(), box = $('sideList'), st = box.scrollTop, dd = t => t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
     { const fx = foldTxt(SIDE.q.trim()).replace(/[_\-]+/g, ' '), ne = fx ? list.filter(cf => foldTxt(String(cf.name)).replace(/[_\-]+/g, ' ').includes(fx)).length : list.length;
       $('sideN').textContent = ne + ' Feld' + (ne === 1 ? '' : 'er') + (ne < list.length ? ` + ${list.length - ne} ähnliche` : ''); }
@@ -4517,6 +4528,12 @@ function sideRender() {
           + ph.map((p, i) => `<button class="b-sec spplace" data-pi="${i}" style="display:block;width:100%;text-align:left;margin:4px 0;height:auto;padding:8px 10px">📍 ${esc(p.n)}</button>`).join('')
           + `<button class="b-sec spplace" data-pi="-1" style="display:block;width:100%;text-align:left;margin:4px 0;height:auto;padding:8px 10px">🔎 „${esc(q)}“ als Ort suchen${isOnline() ? '' : ' (offline: nur gespeicherte Orte)'}</button>`);
         box.querySelectorAll('.spplace').forEach(b => b.onclick = () => { const i = +b.dataset.pi; if (i >= 0) goPlace(ph[i]); else if (isOnline()) geocodeOnline(q); else toast('Offline – nur Orte aus dem gespeicherten Einsatzgebiet.', true); }); } }
+    if (SIDE.onlyNew && all.length) {   // deutlich zeigen, dass gerade nur die neuen Felder zu sehen sind
+      box.insertAdjacentHTML('afterbegin', `<div class="spsim" style="display:flex;align-items:center;gap:8px;background:rgba(255,122,0,.12);border-left-color:#ff7a00;color:#a84f00">
+        <span style="flex:1">${list.length === 1 ? 'Nur das neue Feld' : `Nur die ${list.length} neuen Felder`} aus dem letzten Abruf – ${all.length - list.length} weitere ausgeblendet</span>
+        <button class="b-sec" id="spAllNew" style="height:30px;padding:0 10px;font-size:13px">Alle Felder zeigen</button></div>`);
+      box.querySelector('#spAllNew').onclick = e => { e.stopPropagation(); SIDE.onlyNew = false; sideRender(); };
+    }
     box.querySelectorAll('[data-ind="1"]').forEach(c => c.indeterminate = true);
     box.querySelectorAll('.spg').forEach(el => { const g = groups[+el.dataset.g];
       const du = el.querySelector('[data-djup]'); if (du) du.onclick = e => { e.preventDefault(); e.stopPropagation(); djiUpload(g.items.map(x => x.cf)); };
@@ -4579,6 +4596,7 @@ function webCatPick(cf, fit) {
   if (!f) { f = catEntry(cf, true); if (!f) return toast('Für dieses Feld ist im UAV Editor keine Fläche gespeichert.', true); f.extra = true; S.files.push(f); }
   else f.selected = !f.selected || fit === 'all';
   if (f.selected && fit !== false) fitBounds(padBB(bounds([f])));
+  if (f.selected && !uvRouteApply(f) && uvNeedsRoute(f)) { clearTimeout(S.uvRtT); S.uvRtT = setTimeout(() => uvRoutesFor(S.files.filter(x => x.selected)), 600); }   // fehlende Flugbahn im Hintergrund holen
   if (f.selected) opAutoCheck([f]);   // betroffene Netzbetreiber im Hintergrund prüfen
   update(); return f;
 }
@@ -5085,7 +5103,7 @@ function deleteDlg(title, text, okLabel, cb) {
 }
 function dlgDanger() { const y = $('dYes'); if (y._hold) y._hold(); y.classList.remove('danger'); }
 function confirmDlg(title, text, list, okLabel, cb, extra) {
-  dlgDanger(); const ob = $('dBrief'); if (ob) ob.remove(); $('dNo').style.display = '';
+  dlgDanger(); const ob = $('dBrief'); if (ob) ob.remove(); const om = $('dMailB'); if (om) om.remove(); $('dNo').style.display = '';
   $('dNo').textContent = 'Abbrechen'; $('dNo').title = '';
   $('dExtra').innerHTML = ''; if (extra) $('dExtra').appendChild(extra);
   $('dTitle').textContent = title;
@@ -8762,18 +8780,34 @@ async function mapImage0(o) {
   for (let tx = Math.floor(ox / TS); tx <= Math.floor((ox + CW) / TS); tx++) for (let ty = Math.floor(oy / TS); ty <= Math.floor((oy + MH) / TS); ty++) tl.push([tx, ty]);
   const pre = await tilePrefetch(tl.map(([tx, ty]) => src(tx, ty)), 40000);   // danach kommen die Kacheln sofort aus dem Kartenspeicher
   const dead = pre && pre.ok === 0 && pre.fail > 0;   // Kartendienst antwortet gerade nicht: nicht auf jede Kachel warten
-  const put = (im, sx, sy, sz, tx, ty) => { c.filter = LAYER_FILTER[bk] || 'none'; c.drawImage(im, sx, sy, sz, sz, tx * TS - ox, ty * TS - oy, TS, TS); c.filter = 'none'; };
-  // fehlt eine Kachel: gröbere Kachel vergrößern (meist schon im Kartenspeicher), zuletzt Luftbild (Esri) – Hauptsache Orientierung
+  // Kacheln, die das Programm schon nicht bekommen hat, gar nicht erst im Browser anfordern (der lädt nur ~6 gleichzeitig – sonst liefen bei vielen Lücken
+  // alle Wartezeiten ab, auch die des Ersatzes, und große Teile blieben leer). Ersatz vorab ebenfalls im Programm holen: gröbere Kachel → Esri-Graukarte → Esri-Luftbild
+  const badSet = new Set(pre && Array.isArray(pre.bad) ? pre.bad : []), isBad = u => dead || badSet.has(window.KR_TILE ? window.KR_TILE(u) : u);
+  const GRAY = (z2, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/${z2}/${y}/${x}`;
+  const missT = tl.filter(([tx, ty]) => isBad(src(tx, ty)));
+  const fb = new Map();   // Kachel → [{u, d, gray|sat}]
+  missT.forEach(([tx, ty]) => { const L = [];
+    for (let d = 1; d <= 2; d++) L.push({ u: LAYERS[bk](zt - d, tx >> d, ty >> d), d });
+    if (bk !== 'sat') { const zg = Math.min(zt, 16), dg = zt - zg; L.push({ u: GRAY(zg, tx >> dg, ty >> dg), d: dg, gray: true }); }
+    L.push({ u: ESRI_SAT(zt, tx, ty), d: 0, sat: true }); fb.set(tx + ',' + ty, L); });
+  const badFb = new Set(), K_ = u => window.KR_TILE ? window.KR_TILE(u) : u, fbOk = u => !badFb.has(K_(u));
+  if (missT.length) {   // erst die gröbere amtliche Karte, nur wo die auch fehlt: Esri-Graukarte bzw. Luftbild
+    const p1 = await tilePrefetch([...new Set([...fb.values()].flat().filter(x => !x.gray && !x.sat).map(x => x.u))], 30000); ((p1 && p1.bad) || []).forEach(u => badFb.add(u));
+    if (p1 && p1.ok === 0 && p1.fail) [...fb.values()].flat().filter(x => !x.gray && !x.sat).forEach(x => badFb.add(K_(x.u)));
+    const need2 = [...fb.values()].filter(L => !L.some(x => !x.gray && !x.sat && fbOk(x.u))).flat().filter(x => x.gray || x.sat).map(x => x.u);
+    if (need2.length) { const p2 = await tilePrefetch([...new Set(need2)], 30000); ((p2 && p2.bad) || []).forEach(u => badFb.add(u)); } }
+  const put = (im, sx, sy, sz, tx, ty, flt) => { c.filter = flt || LAYER_FILTER[bk] || 'none'; c.drawImage(im, sx, sy, sz, sz, tx * TS - ox, ty * TS - oy, TS, TS); c.filter = 'none'; };
   const coarse = async (tx, ty) => {
-    for (let d = 1; d <= 3; d++) { const im = await loadImg(TSRC(LAYERS[bk](zt - d, tx >> d, ty >> d)), 3000); if (im) { const k = 1 << d, sz = 256 / k; return { im, sx: (tx % k) * sz, sy: (ty % k) * sz, sz }; } }
-    const e = await loadImg(TSRC(ESRI_SAT(zt, tx, ty)), 6000); return e ? { im: e, sx: 0, sy: 0, sz: 256, esri: true } : null; };
+    for (const x of fb.get(tx + ',' + ty) || []) { if (!fbOk(x.u)) continue; const im = await loadImg(TSRC(x.u), 12000); if (!im) continue;
+      const k = 1 << x.d, sz = 256 / k; return { im, sx: (tx % k) * sz, sy: (ty % k) * sz, sz, flt: x.gray ? 'none' : x.sat && bk !== 'sat' ? 'grayscale(1) contrast(.75) brightness(1.15)' : '' }; }
+    return null; };
   let miss = 0;
   const one = async (tx, ty) => {
-    let im = dead ? null : await loadImg(TSRC(src(tx, ty)), o.tileMs || 10000);
-    if (!im && !dead) { await new Promise(r => setTimeout(r, 900 + Math.random() * 600)); im = await loadImg(TSRC(src(tx, ty)), 15000); }   // zweiter Versuch, bevor eine gröbere Karte einspringt
-    if (!im && bk === 'sat') im = await loadImg(TSRC(ESRI_SAT(zt, tx, ty)), 6000);
+    let im = isBad(src(tx, ty)) ? null : await loadImg(TSRC(src(tx, ty)), o.tileMs || 15000);
+    if (!im && bk === 'sat' && !fb.has(tx + ',' + ty)) im = await loadImg(TSRC(ESRI_SAT(zt, tx, ty)), 8000);
     if (im) return put(im, 0, 0, 256, tx, ty);
-    miss++; const r = await coarse(tx, ty); if (r) { if (r.esri) { c.drawImage(r.im, tx * TS - ox, ty * TS - oy, TS, TS); } else put(r.im, r.sx, r.sy, r.sz, tx, ty); } };
+    miss++; if (!fb.has(tx + ',' + ty)) { const L = []; for (let d = 1; d <= 2; d++) L.push({ u: LAYERS[bk](zt - d, tx >> d, ty >> d), d }); L.push({ u: ESRI_SAT(zt, tx, ty), d: 0, sat: true }); fb.set(tx + ',' + ty, L); }
+    const r = await coarse(tx, ty); if (r) put(r.im, r.sx, r.sy, r.sz, tx, ty, r.flt); };
   for (const [tx, ty] of tl) jobs.push(one(tx, ty));
   await Promise.all(jobs); cv.__full = miss === 0;
   if (miss && pre && pre.fail && !S.tileWarned) { S.tileWarned = 1; const why = Object.entries(pre.st || {}).map(([k, v]) => (k === 'err' || k === '0' ? 'keine Verbindung' : k === 'zeit' ? 'Zeitüberschreitung' : 'HTTP ' + k) + ' ×' + v).join(', ');
@@ -9102,7 +9136,7 @@ function briefStart(sel, done) {
 }
 /** Desktop-Pre-Check: Zonen wie auf der RC, dazu Netzbetreiber-Zusammenfassung und Schutzgebiete als To-dos */
 /** Pre-Check starten – Fehler nicht verschlucken: Ladefenster schließen und sagen, was los ist (statt „startet nicht“) */
-const pcKey = sel => [sel.map(f => f.title + '@' + (f.height || '') + (f.bounds ? f.bounds.n : '')).join('|'), P.lic, P.aeStates, P.avs, P.power, JSON.stringify(flyWinGet() || null), S.regions.length, (S.geo || []).length, (S.osm || []).length].join('#');
+const pcKey = sel => [sel.map(f => f.title + '@' + (f.height || '') + (f.bounds ? f.bounds.n : '') + '~' + (f.route ? f.route.length : 0)).join('|'), P.lic, P.aeStates, P.avs, P.power, JSON.stringify(flyWinGet() || null), S.regions.length, (S.geo || []).length, (S.osm || []).length].join('#');
 async function webPreCheck(sel) {
   sel = (sel || []).filter(Boolean);
   // derselbe Pre-Check war gerade schon fertig (z. B. zurück vom Briefing- oder E-Mail-Dialog): sofort wieder zeigen statt neu prüfen
@@ -9132,6 +9166,7 @@ async function webPreCheck0(sel) {
     else { busy('Pre-Check wird vorbereitet', { sub: t }); b.querySelector('.bar').insertAdjacentHTML('afterend', '<div class="bs pgpc">0 %</div>'); }
     paintPG(); return new Promise(r => setTimeout(r, 30)); };
   await stepT(1, (S.geo || []).length ? 'Geozonen werden geprüft …' : 'Geozonen werden geladen …');
+  if (sel.some(uvNeedsRoute)) { await stepT(1, 'Flugbahnen aus dem UAV Editor …'); await uvRoutesFor(sel); }   // ohne Flugbahn wäre z. B. die Stromleitungs-Prüfung ungenau
   S.areaNos = new Map(sel.map((f, i) => [f, i + 1])); S.areaSel = sel;   // neutrale Nummern für Bild und E-Mail
   const b = flightBriefing(sel);
   await stepT(2, 'Stromleitungen, Netzbetreiber, Schutzgebiete und Flugplätze …');
@@ -9202,7 +9237,7 @@ async function webPreCheck0(sel) {
     fwc.querySelector('button').onclick = () => flyWinDlg(() => webPreCheck(sel));
     box.prepend(fwc);
   }
-  const pb = document.createElement('div'); pb.className = 'fwchip'; pb.id = 'briefBar';
+  const pb = document.createElement('div'); pb.className = 'fwchip'; pb.id = 'briefBar'; pb.style.display = 'none';   // Briefing-Knöpfe sitzen jetzt unten neben „Schließen“
   pb.innerHTML = `<span>📋 <b>Pilotenbriefing</b> – PDF: Übersicht mit allen Feldnamen, je Feld eine Seite, Wetter 03–12 Uhr</span><button>PDF erstellen</button>${A.mailDraft ? '<button id="bMailBrief" style="margin-left:6px">✉ Briefing per E-Mail versenden</button>' : ''}`;
   pb.querySelector('button').onclick = () => briefStart(sel, () => webPreCheck(sel));
   { const mb = pb.querySelector('#bMailBrief'); if (mb) mb.onclick = () => briefMailDlg(sel, () => webPreCheck(sel)); }
@@ -9230,24 +9265,24 @@ function pcShow(sel, box) {
   confirmDlg(`Pre-Check – ${sel.length} Feld${sel.length > 1 ? 'er' : ''}`, 'Was an diesen Feldern gilt und wem Bescheid gesagt werden muss:', [], 'Schließen', null, box);
   { const bb = document.createElement('button'); bb.id = 'dBrief'; bb.className = 'b-ok'; bb.textContent = '📋 Pilotenbriefing erstellen';   // unten neben „Schließen“
     bb.onclick = () => briefStart(sel, () => webPreCheck(sel));
-    $('dNo').style.display = 'none'; $('dYes').before(bb); }
+    $('dNo').style.display = 'none'; $('dYes').before(bb);
+    if (A.mailDraft && A.briefingPdf) { const mb = document.createElement('button'); mb.id = 'dMailB'; mb.className = 'b-ok'; mb.textContent = '✉ Briefing per E-Mail';
+      mb.onclick = () => briefMailDlg(sel, () => webPreCheck(sel)); bb.after(mb); } }
   dlgOnCancel = null; S.dlgXClose = null; S.dlgXYes = true;   // ✕ oben = genau „Schließen“ unten (keine alte Abbrechen-Aktion)
   $('dlg').querySelector('.box').classList.add('wide', 'auto');   // Desktop: ganze Fensterbreite nutzen – Felder in Spalten; Höhe nur so viel wie nötig
   $('dlg').querySelector('.box').scrollTop = 0;
   pcDjiChip(sel, box);
 }
-/** Pre-Check (PC): Hinweis, welche Felder noch nicht in der DJI Cloud liegen – mit „Hochladen“ */
+/** Pre-Check (PC): Wolke neben jedem Feldnamen – blau = liegt in der DJI Cloud, grau = fehlt (anklicken zum Hochladen) */
 function pcDjiChip(sel, box) {
-  const old = box.querySelector('#pcDji'); if (old) old.remove();
   try { djiKeepFresh(); } catch (e) { }
-  if (!A.uaveDjiUpload || !djiState()) return;
-  const cfs = sel.filter(f => f.uave && f.uave.id).map(f => ({ id: String(f.uave.id), name: f.title })), miss = cfs.filter(cf => !djiHas(cf));
-  if (!cfs.length) return;
-  const c = document.createElement('div'); c.className = 'fwchip'; c.id = 'pcDji';
-  c.innerHTML = miss.length ? `<span>☁ <b>DJI Cloud</b>: ${miss.length} von ${cfs.length} Feld${cfs.length > 1 ? 'ern' : ''} fehl${miss.length > 1 ? 'en' : 't'} noch (${esc(fieldsShort(miss.map(x => x.name)))}) – der Pilot findet ${miss.length > 1 ? 'sie' : 'es'} sonst nicht in DJI Pilot 2</span><button>☁ Hochladen</button>`
-    : `<span>☁ <b>DJI Cloud</b>: alle ${cfs.length} Feld${cfs.length > 1 ? 'er liegen' : ' liegt'} in der Cloud ✓</span>`;
-  const b = c.querySelector('button'); if (b) b.onclick = () => djiUpload(miss, () => webPreCheck(sel));
-  const bb = box.querySelector('#briefBar'); bb ? bb.after(c) : box.prepend(c);
+  const st = djiState();
+  box.querySelectorAll('[data-pcdj]').forEach(el => { const id = el.dataset.pcdj, f = sel.find(x => x.uave && String(x.uave.id) === id);
+    if (!st || !f) { el.style.display = 'none'; return; }
+    const cf = { id, name: f.title }, has = djiHas(cf), up = !has && !!A.uaveDjiUpload;
+    el.style.display = ''; el.className = 'pcdj' + (has ? ' on' : '') + (up ? ' up' : ''); el.textContent = '☁ DJI';
+    el.title = has ? 'Liegt in der DJI Cloud – der Pilot findet es in DJI Pilot 2' : up ? 'Nicht in der DJI Cloud – klicken zum Hochladen' : 'Nicht in der DJI Cloud';
+    el.onclick = up ? e => { e.preventDefault(); e.stopPropagation(); djiUpload([cf], () => webPreCheck(sel)); } : null; });
 }
 
 // ================= Desktop: Pilotenbriefing als PDF (intern, mit Feldnamen wie im UAV Editor) =================
@@ -9323,6 +9358,23 @@ const meetStart = f => { const m = (f.uave && f.uave.meta) || f.meta || {}, pt =
     if (sp && !(sp[0] > 46 && sp[0] < 56 && sp[1] > 5 && sp[1] < 16)) { sp = null; sp1 = false; } }
   return { mp: m.mp || null, mpTxt: m.mpTxt || '', sp, sp1 }; };
 /** Start-/Parkplatz-Punkte aus dem UAV Editor für diese Felder holen (falls noch nicht gespeichert) – höchstens ~1,5 min warten */
+// ---- Flugbahn nachholen, wenn der UAV Editor in der Kartenansicht keine mitliefert (aus der KMZ, gespeichert bis zur nächsten Änderung) ----
+function uvRoutesCache() { if (!S.uvRoutes) { try { S.uvRoutes = JSON.parse((A.uaveRoutesCached && A.uaveRoutesCached()) || '{}') || {}; } catch (e) { S.uvRoutes = {}; } } return S.uvRoutes; }
+const uvLm = f => String((f.uave && (f.uave.lm || '')) || '');
+const uvNeedsRoute = f => !!(A.uaveRoutes && f && f.cat && f.uave && f.uave.id && f.outline && !(f.route && f.route.length > 1));
+function uvRouteApply(f) { if (!f || !f.cat || !f.uave || (f.route && f.route.length > 1)) return false;
+  const c = uvRoutesCache()[String(f.uave.id)]; if (!c || !c.r || c.lm !== uvLm(f)) return false;
+  const pts = []; for (let i = 0; i + 1 < c.r.length; i += 2) pts.push([c.r[i], c.r[i + 1]]);
+  if (pts.length < 2) return false; f.route = pts; f._lnp = null; return true; }
+/** fehlende Flugbahnen holen; wartet höchstens maxMs */
+function uvRoutesFor(sel, maxMs) {
+  sel.forEach(uvRouteApply);
+  const need = sel.filter(uvNeedsRoute); if (!need.length) return Promise.resolve();
+  return new Promise(res => { const tag = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t = setTimeout(() => { delete BRIEF_WAIT[tag]; res(); }, maxMs || Math.min(45000, 6000 + 3000 * need.length));
+    BRIEF_WAIT[tag] = got => { clearTimeout(t); Object.assign(uvRoutesCache(), got || {}); let n = 0; need.forEach(f => { if (uvRouteApply(f)) n++; }); if (n) draw(); res(); };
+    A.uaveRoutes(JSON.stringify(need.map(f => ({ id: String(f.uave.id), lm: uvLm(f), name: f.title }))), tag); });
+}
+window.onUvRoutes = (tag, got) => { const w = BRIEF_WAIT[tag]; if (w) { delete BRIEF_WAIT[tag]; w(got); } else { Object.assign(uvRoutesCache(), got || {}); S.files.forEach(uvRouteApply); draw(); } };
 function uvPointsFor(sel) {
   const ids = sel.filter(f => f.cat && f.uave && f.uave.id && !uvPts()[String(f.uave.id)]).map(f => String(f.uave.id));
   if (!ids.length || !A.uavePoints) return Promise.resolve();
@@ -9333,7 +9385,16 @@ function uvPointsFor(sel) {
 /** Flughöhe aus den UAV-Editor-Missionsdaten übernehmen, wo sie fehlt (Briefing zeigte sonst „—“) */
 function uvApplyHeights(sel) { sel.forEach(f => { const pt = f.uave && uvPts()[String(f.uave.id)]; if (!f.height && pt && pt.h) f.height = pt.h; }); }
 window.onUvPoints = (tag, all) => { const w = BRIEF_WAIT[tag]; if (w) { delete BRIEF_WAIT[tag]; w(all); } else S.uvPts = all; };
-window.onUvExportSaved = r => { S.uvPts = null; toast(`Export gespeichert in „Downloads“: ${String(r.file || '').split(/[\\/]/).pop()}${r.points ? ' – Startpunkt übernommen' : ''}`, 'ok', 8000); };
+window.onUvExportSaved = r => { S.uvPts = null;
+  const full = String(r.file || ''), nm = full.split(/[\\/]/).pop(), dir = full.slice(0, full.length - nm.length).replace(/[\\/]$/, '');
+  toast(`Export gespeichert: ${full}${r.points ? ' – Startpunkt übernommen' : ''}`, 'ok', 12000);
+  // im UAV-Editor-Tab sieht man die Meldung unten nicht (das Export-Fenster schließt sich sofort) – deshalb oben in der Leiste, bis man sie wegklickt
+  const h = document.querySelector('#uvHost .uvbar span'); if (!h) return;
+  clearTimeout(UV.sayT); h.style.color = '#0e7a2c'; h.style.fontWeight = '700';
+  h.innerHTML = `✓ Export gespeichert: <b>${esc(nm)}</b> <span style="font-weight:400;color:var(--muted)">in ${esc(dir)}</span>${r.points ? ' · Startpunkt übernommen' : ''}
+    ${A.fileShow ? '<button class="b-sec" id="uvDlShow" style="height:30px;padding:0 10px;margin-left:8px">📂 Im Ordner zeigen</button>' : ''}<button class="b-sec" id="uvDlX" style="height:30px;width:30px;padding:0;margin-left:4px" title="Ausblenden">✕</button>`;
+  const b = h.querySelector('#uvDlShow'); if (b) b.onclick = () => A.fileShow(full);
+  h.querySelector('#uvDlX').onclick = () => { h.style.color = ''; h.style.fontWeight = ''; h.textContent = 'Im UAV Editor Felder anhaken, dann hier übernehmen (oder dort „Check flight zone“ → direkt unser Pre-Check).'; }; };
 const navLink = (la, lo) => `https://www.google.com/maps/dir/?api=1&destination=${(+la).toFixed(6)},${(+lo).toFixed(6)}`;
 const appleLink = (la, lo) => `https://maps.apple.com/?daddr=${(+la).toFixed(6)},${(+lo).toFixed(6)}&dirflg=d`;
 /** Routenplanung: Google Maps und Apple Karten (öffnet die Navigation zum Punkt) */
@@ -10235,7 +10296,7 @@ function pcFieldRow(x, idx) {
   const why = v.why && v.why.length ? `<li><span class="pci" style="background:#e078001f;color:#e07800">🪪</span><div><b>A1/A3 reicht nicht</b><span>wegen ${esc(v.why.map(whyShort).join(', '))}. ${v.onlyLic ? 'Mit A2 erlaubt (30 m Abstand zu Unbeteiligten).' : 'Mit A2 und der Allgemeinerlaubnis bzw. -verfügung erlaubt.'}</span></div></li>` : '';
   const sub = [np ? (np.d < 1 ? 'in ' : 'bei ') + np.p.n : '', x.f.height ? x.f.height + ' m' : '', x.f.drone || ''].filter(Boolean).join(' · ');
   return `<details class="pcf" data-fi="${idx}"><summary>${fieldThumb(x.f, 96, 68)}
-    <div class="pcn"><b>${esc(x.f.title)}</b><span>${esc(sub)}</span></div>
+    <div class="pcn"><b>${esc(x.f.title)}${x.f.uave && x.f.uave.id ? ` <i class="pcdj" data-pcdj="${esc(String(x.f.uave.id))}"></i>` : ''}</b><span>${esc(sub)}</span></div>
     <div class="pcflags">${flags.map(g => `<i title="${esc(g[1])}" style="background:${g[2]}">${g[0]}</i>`).join('')}</div>
     <div class="pcvs">${pcBadges(v)}</div><span class="pcmore"><span class="pcc">Details</span><span class="pco">Zuklappen</span></span></summary>
     <div class="pcd"><div class="pcmap" data-map="${idx}"><div class="meta">Karte wird erstellt…</div></div>
@@ -10257,7 +10318,7 @@ async function pcMapsFill(box, sel) {
   for (const d of box.querySelectorAll('details.pcf')) { const el = d.querySelector('[data-map]'), f = sel[+d.dataset.fi]; if (!el || !f || !PCMAP.has(pcMapKey(f))) continue;
     try { const r = await PCMAP.get(pcMapKey(f)); if (r && PCSHOW) { PCSHOW(el, r); el.dataset.done = '1'; } } catch (e) { } }
 }
-const pcMapKey = f => [f.title, (f.bounds && f.bounds.n) || 0, P.pcMapBase || 'grey', P.lic].join('|');
+const pcMapKey = f => [f.title, (f.bounds && f.bounds.n) || 0, P.pcMapBase || 'grey', P.lic, f.route ? f.route.length : 0].join('|');
 async function pcMapMake(f) {
   const k = pcMapKey(f); if (PCMAP.has(k)) return PCMAP.get(k);
   const p = (async () => {
@@ -10266,14 +10327,19 @@ async function pcMapMake(f) {
     // rot = Zone, wegen der es nicht mit jedem Zeugnis geht (z. B. Wohngebiet zu nah, ohne Allgemeinerlaubnis gesperrt)
     const red = new Set(zs.filter(z => z.near != null || (() => { const s2 = P.lic; P.lic = 'A1A3'; try { return covKind(z.f.layer, z.reg) === 'off'; } finally { P.lic = s2; } })()));
     const cv = await briefMap([f], [f], zs, 560, { cw: 900, base: P.pcMapBase || 'grey', near: true, red });
-    return cv ? { url: cv.toDataURL('image/jpeg', 0.86), red: red.size, full: !!cv.__full } : null;
+    return cv ? { url: cv.toDataURL('image/jpeg', 0.86), red: red.size, full: !!cv.__full, k } : null;
   })();
   PCMAP.set(k, p);
-  try { const r = await p; if (!r || !r.full) setTimeout(() => { if (PCMAP.get(k) === p) PCMAP.delete(k); }, 60000); return r; }   // lückenhaft (Kacheln fehlten): beim nächsten Öffnen neu versuchen
+  try { const r = await p;
+    if (r && !r.full && !(S.pcRetry = S.pcRetry || {})[k]) {   // lückenhaft (Kacheln fehlten): nach kurzer Pause einmal neu bauen und das Bild im offenen Pre-Check austauschen
+      S.pcRetry[k] = 1; setTimeout(async () => { if (PCMAP.get(k) !== p) return; PCMAP.delete(k); const r2 = await pcMapMake(f).catch(() => null);
+        if (r2 && r2.url) document.querySelectorAll('img.pccv').forEach(im => { if (im.dataset.mk === k) im.src = r2.url; }); }, 20000); }
+    else if (!r) setTimeout(() => { if (PCMAP.get(k) === p) PCMAP.delete(k); }, 60000);
+    return r; }
   catch (e) { PCMAP.delete(k); return null; }
 }
 function pcMapsWire(box, sel, pre) {
-  const show = PCSHOW = (el, r) => { el.innerHTML = r ? `<img class="pccv" src="${r.url}" alt=""><div class="pcleg"><span><i style="background:#00838f"></i>Feld</span><span><i style="background:#e53935"></i>betroffene Zone</span><span><i style="background:#1565c0"></i>Geozone</span><span><i style="background:#2e7d32"></i>Schutzgebiet</span><span><i style="background:#8e24aa"></i>Leitung</span><span><i style="background:#ff6f00"></i>Flugbahn</span></div>` : '<div class="meta">Keine Karte verfügbar.</div>'; el.dataset.done = '1'; };
+  const show = PCSHOW = (el, r) => { el.innerHTML = r ? `<img class="pccv" src="${r.url}" data-mk="${esc(r.k || '')}" alt=""><div class="pcleg"><span><i style="background:#00838f"></i>Feld</span><span><i style="background:#e53935"></i>betroffene Zone</span><span><i style="background:#1565c0"></i>Geozone</span><span><i style="background:#2e7d32"></i>Schutzgebiet</span><span><i style="background:#8e24aa"></i>Leitung</span><span><i style="background:#ff6f00"></i>Flugbahn</span></div>` : '<div class="meta">Keine Karte verfügbar.</div>'; el.dataset.done = '1'; };
   box.querySelectorAll('details.pcf').forEach(d => d.addEventListener('toggle', async () => {
     const el = d.querySelector('[data-map]'); if (!d.open || !el || el.dataset.done) return;
     const f = sel[+d.dataset.fi]; if (!f) return;
@@ -10996,8 +11062,8 @@ let suStep = 0;
 const SU_STEPS = [
   () => `<h3>Willkommen!</h3><p>Diese App zeigt eure Wiesen aus dem UAV Editor auf der Karte, prüft Geozonen, Wetter und Hindernisse und kopiert die Flugrouten nach DJI Pilot 2.</p>
     <p>In wenigen Schritten richtest du sie für eure Kitzrettung ein. Alles lässt sich später in den Einstellungen ändern.</p>`,
-  () => `<h3>Welche Drohne fliegt mit dieser Fernsteuerung?</h3><div class="suopts">${[['M3T', 'Mavic 3T'], ['M4T', 'Matrice 4T'], ['', 'Beide / egal']].map(([k, t]) => `<button class="${P.drone === k ? 'b-ok' : 'b-sec'}" data-sud="${k}">${t}</button>`).join('')}</div>
-    <p class="meta">Beim Abgleich werden zuerst die Wiesen dieser Drohne vorgeschlagen.</p>`,
+  () => `<h3>Welche Drohne fliegt mit dieser Fernsteuerung?</h3><div class="suopts">${[['M3T', 'Mavic 3T'], ['M4T', 'Matrice 4T']].map(([k, t]) => `<button class="${P.drone === k ? 'b-ok' : 'b-sec'}" data-sud="${k}">${t}</button>`).join('')}</div>
+    <p class="meta">Eine Fernsteuerung gehört immer zu genau einer Drohne. Es werden die Felder für diese Drohne gezeigt und geladen.</p>`,
   () => `<h3>Fernpilotenzeugnis &amp; Allgemeinerlaubnis</h3><div class="suopts">${[['A1A3', 'A1/A3'], ['A2', 'A2']].map(([k, t]) => `<button class="${P.lic === k ? 'b-ok' : 'b-sec'}" data-sul="${k}">${t}</button>`).join('')}</div>
     ${P.lic === 'A2' ? `<p>Für welche Bundesländer habt ihr eine <b>Allgemeinerlaubnis</b> der Luftfahrtbehörde (Industrie, Verkehrswege, Bahn, Wohngrundstücke …)?</p>
     <div class="roots">${STATES.map(([k, n]) => `<button class="${(P.aeStates || '').split(',').includes(k) ? 'b-ok' : 'b-sec'}" data-sus="${k}">${n}</button>`).join('')}</div>` : '<p class="meta">Mit A1/A3 ist die Allgemeinerlaubnis nicht nutzbar – es gelten die normalen Regeln.</p>'}`,
@@ -11006,11 +11072,12 @@ const SU_STEPS = [
     <button class="b-sec" id="suAvAdd" style="height:46px;margin-top:8px">+ Allgemeinverfügung hinzufügen</button>`,
   () => `<h3>UAV Editor</h3><p>Mit eurem UAV-Editor-Zugang holt „UAV Editor“ die Wiesen automatisch auf die Fernsteuerung. Das Passwort bleibt verschlüsselt nur auf diesem Gerät.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="suU" class="inp" type="email" placeholder="E-Mail / Login" autocomplete="off" value="${esc(A.uaveUser ? A.uaveUser() || '' : '')}"><input id="suP" class="inp" type="password" placeholder="Passwort" autocomplete="off"></div>
-    <p class="meta">Ohne Zugang: KMZ-Dateien selbst in den Quellordner „${esc(P.src)}“ legen.</p>`,
-  () => `<h3>Ordner</h3><div class="set"><div class="l"><div class="t">Quellordner (KMZ aus UAV Editor)</div><div class="v">${esc(P.src)}</div></div><button class="b-sec" data-supick="src">Ändern</button></div>
+    ${IS_LITE ? '<p class="meta">Die App sucht die Felder direkt im UAV Editor bzw. in dessen DJI Cloud und lädt nur die, die du auswählst.</p>' : `<p class="meta">Ohne Zugang: KMZ-Dateien selbst in den Quellordner „${esc(P.src)}“ legen.</p>`}`,
+  () => `<h3>Ordner</h3>${IS_LITE ? '' : `<div class="set"><div class="l"><div class="t">Quellordner (KMZ aus UAV Editor)</div><div class="v">${esc(P.src)}</div></div><button class="b-sec" data-supick="src">Ändern</button></div>`}
     <div class="set"><div class="l"><div class="t">Zielordner für Pilot 2</div><div class="v">${esc(P.dst)}</div></div><button class="b-sec" data-supick="dst">Ändern</button></div>
     <p class="meta">In Pilot 2 unter „Route importieren“ diesen Zielordner wählen.</p>`,
-  () => `<h3>Fast fertig</h3><p><b>1.</b> Wiesen holen – „UAV Editor“ lädt eure Wiesen aus dem UAV Editor.</p><button class="b-ok" id="suSync" style="height:50px">Wiesen jetzt abgleichen</button>
+  () => IS_LITE ? `<h3>Fertig</h3><p>Felder suchst du über die Suche (Lupe): die App schaut im UAV Editor bzw. in der DJI Cloud nach und lädt nur die gewählten Felder.</p>
+    <button class="b-ok" id="suFind" style="height:50px">Jetzt Felder suchen</button>` : `<h3>Fast fertig</h3><p><b>1.</b> Wiesen holen – „UAV Editor“ lädt eure Wiesen aus dem UAV Editor.</p><button class="b-ok" id="suSync" style="height:50px">Wiesen jetzt abgleichen</button>
     <p style="margin-top:16px"><b>2.</b> Danach speichert die App das Einsatzgebiet automatisch für offline (Karten, Geozonen, Windräder, Wetter) – am besten im WLAN. Mit dem Knopf geht es jederzeit auch von Hand.</p>
     <button class="b-sec" id="suSave" style="height:50px"${S.files.length ? '' : ' disabled'}>Einsatzgebiet speichern${S.files.length ? '' : ' (erst Wiesen holen)'}</button>`
 ];
@@ -11029,6 +11096,7 @@ function showSetup(i) {
   b.querySelectorAll('[data-suav]').forEach(x => x.onchange = () => { const l = avList(); l[+x.dataset.suav].on = x.checked; avSave(l); });
   if ($('suAvAdd')) $('suAvAdd').onclick = () => { avEdit(null); const o = dlgCb; dlgCb = (...a) => { o && o(...a); setTimeout(() => showSetup(suStep), 50); }; };
   b.querySelectorAll('[data-supick]').forEach(x => x.onclick = () => { const t = document.querySelector(`#pgSet [data-pick="${x.dataset.supick}"]`); if (t) t.click(); suReturn = true; });
+  if ($('suFind')) $('suFind').onclick = () => { suDone(); liteSearch(); };
   if ($('suSync')) $('suSync').onclick = () => { suDone(); $('bSync').click(); };
   if ($('suSave')) $('suSave').onclick = () => { suDone(); startPrefetch(); };
 }
@@ -11037,7 +11105,8 @@ function suSaveStep() {   // Eingaben des aktuellen Schritts übernehmen
   if ($('suU') && $('suU').value.trim()) { const pw = $('suP').value; if (pw || (A.uaveHasPassword && A.uaveHasPassword())) { const ch = $('suU').value.trim() !== (A.uaveUser ? A.uaveUser() : '') || !!pw; A.uaveSetCredentials($('suU').value.trim(), pw); if (ch) uaveTestNow(); } }
 }
 function suDone() { suSaveStep(); setP('setupDone', 1); $('pgSetup').classList.remove('open'); }
-$('suNext').onclick = () => { suSaveStep(); if (suStep === SU_STEPS.length - 1) { suDone(); toast('Eingerichtet – alles lässt sich in den Einstellungen ändern.'); } else showSetup(suStep + 1); };
+$('suNext').onclick = () => { suSaveStep();
+  if ($('suBody').querySelector('[data-sud]') && !['M3T', 'M4T'].includes(P.drone)) return toast('Bitte die Drohne dieser Fernsteuerung wählen.', true); if (suStep === SU_STEPS.length - 1) { suDone(); toast('Eingerichtet – alles lässt sich in den Einstellungen ändern.'); } else showSetup(suStep + 1); };
 $('suBack').onclick = () => { suSaveStep(); showSetup(suStep - 1); };
 // Einstellung: nur Felder aus der DJI Cloud (Liste und Download über UAV Editor → DJI Cloud)
 if (IS_LITE && A.uaveDjiDownload && $('uUser') && !$('setDji')) { const host = $('uUser').closest('.set'), el = document.createElement('div'); el.className = 'set'; el.id = 'setDji';
@@ -12059,7 +12128,7 @@ loadNotams();
 geoBadge();
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
