@@ -57,7 +57,14 @@ jobs:
         working-directory: build-desktop/desktop
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npx electron-builder --mac dmg --universal --publish never
+        # getrennt für Apple-Chip (arm64) und Intel (x64) – die „universal“-Fassung startete auf M1 nicht (Symbol hüpfte nur)
+        run: npx electron-builder --mac dmg --arm64 --x64 --publish never
+
+      - name: Mac-Programm prüfen (Signatur)
+        if: runner.os == 'macOS'
+        working-directory: build-desktop/desktop
+        run: |
+          for a in dist/mac*/*.app; do echo "== $a"; codesign -dv "$a" 2>&1 | head -5; codesign --verify --deep --strict --verbose=2 "$a" 2>&1 | tail -3; done
 
       - uses: actions/upload-artifact@v4
         with:
@@ -82,4 +89,4 @@ jobs:
           gh release delete desktop --yes --cleanup-tag || true
           gh release create desktop out/*/* --target "${{ github.sha }}" \
             --title "Mission Kitzrettung – Desktop (Windows/Mac) – Build ${{ github.run_number }}" \
-            --notes "Windows: „Mission-Kitzrettung-Windows-Installation.exe“ (mit Startmenü-Eintrag) oder „…-ohne-Installation.exe“ (direkt starten). Mac: .dmg öffnen, App in „Programme“ ziehen, beim ersten Start Rechtsklick → Öffnen (nicht signiert)."
+            --notes "Windows: „Mission-Kitzrettung-Windows-Installation.exe“ (mit Startmenü-Eintrag) oder „…-ohne-Installation.exe“ (direkt starten). Mac: „…-Mac-arm64.dmg“ für Apple-Chip (M1/M2/M3/M4), „…-Mac-x64.dmg“ für Intel. App in „Programme“ ziehen; beim ersten Start ggf. Systemeinstellungen → Datenschutz & Sicherheit → „Dennoch öffnen“."
