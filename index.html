@@ -1925,7 +1925,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { setupDone: '', avs: '', showObs: '1', showLines: '1', liteRcBtn: '0', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
+const DEF = { liteSort: 'new', setupDone: '', avs: '', showObs: '1', showLines: '1', liteRcBtn: '0', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
    planTool: '0', sideGroup: '0', catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
@@ -10251,7 +10251,14 @@ function liteSearch(afterRefresh) {
   let all = (d ? d.fields : []).filter(f => dj ? djiHas(f) : (!f.arch && CAT_YEAR(f) === y));
   if (dj) { const known = new Set((d ? d.fields : []).map(f => djiNorm(f.name))), seen = new Set();   // Routen, die nur in der DJI Cloud liegen (kein passendes Feld im UAV Editor): trotzdem anbieten
     (djiState().list || []).forEach(w => { const k = djiNorm(w.name); if (!k || known.has(k) || seen.has(k)) return; seen.add(k); all.push({ id: 'dji:' + w.id, name: String(w.name).replace(/\.kmz$/i, ''), dji: w, meta: {} }); }); }
-  all.sort((a, b) => String(a.name).localeCompare(String(b.name), 'de', { numeric: true }));
+  // Datenstand je Feld: DJI Cloud → Zeitpunkt der letzten Änderung der Route dort; sonst letzte Änderung im UAV Editor
+  const djW = new Map(); if (dj) (djiState().list || []).forEach(w => { const k = djiNorm(w.name); if (!djW.has(k) || (w.update || 0) > (djW.get(k).update || 0)) djW.set(k, w); });
+  const tOf = f => { if (f.dji) return +f.dji.update || +f.dji.create || 0; const w = dj && djW.get(djiNorm(f.name)); if (w && (w.update || w.create)) return +w.update || +w.create;
+    const t = Date.parse(f.lm || f.created || (f.meta && f.meta.lm) || ''); return isFinite(t) ? t : 0; };
+  const byName = (a, b) => String(a.name).localeCompare(String(b.name), 'de', { numeric: true });
+  all.sort(P.liteSort !== 'name' ? (a, b) => (tOf(b) - tOf(a)) || byName(a, b) : byName);   // Umschalter „A–Z“ / „Neueste zuerst“ (gespeichert)
+  const tTxt = f => { const t = tOf(f); if (!t) return ''; const d0 = new Date(t), today = new Date().toDateString() === d0.toDateString();
+    return 'Stand ' + (today ? 'heute ' + d0.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : d0.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })); };
   // Gibt es ein Feld für mehrere Drohnen (…-M3T / …-M4T), nur die Version für die eigene Drohne zeigen
   if (want) { const ctr = new Map(), c = f => { if (!ctr.has(f)) { const e = catEntry(f); ctr.set(f, e ? e.center : null); } return ctr.get(f); };
     const byBase = new Map(); all.forEach(f => { const k = baseName(f.name); (byBase.get(k) || byBase.set(k, []).get(k)).push(f); });
@@ -10261,9 +10268,12 @@ function liteSearch(afterRefresh) {
   const oldQ = afterRefresh && $('lq') ? $('lq').value : '';
   openInfoPage('Feldsuche', `<div class="lsrch"><input id="lq" type="search" placeholder="Suchbegriff eingeben (mind. 3 Buchstaben)" autocomplete="off">
     <button class="b-sec" id="lAll" disabled>Alle markieren</button></div>
+    <div class="pcseg" id="lSort" style="margin:6px 0 2px;max-width:420px"><button data-ls="name">Name A–Z</button><button data-ls="new">Neueste zuerst</button></div>
     <div class="meta" id="lInfo"></div><div id="lList" class="llist"></div>
     <div class="lbot"><div class="meta" style="margin-bottom:6px">Nach dem Pre-Check werden die gewählten Felder auf die Fernsteuerung heruntergeladen – in den Ordner „${esc(liteDstText())}“ für DJI Pilot 2.</div><button class="b-ok" id="lGo" disabled>Weiter zum Pre-Check</button></div>`);
   const q = $('lq'), list = $('lList'), go = $('lGo'), allB = $('lAll'); q.value = oldQ;
+  document.querySelectorAll('#lSort [data-ls]').forEach(b => { b.classList.toggle('on', (P.liteSort === 'name' ? 'name' : 'new') === b.dataset.ls);
+    b.onclick = () => { if (P.liteSort === b.dataset.ls) return; setP('liteSort', b.dataset.ls); liteSearch(true); }; });
   // „Neue Felder holen“ oben neben „Zurück zur Karte“
   const rb = document.createElement('button'); rb.className = 'b-sec'; rb.id = 'iExtra'; rb.style.marginRight = '8px'; $('iBack').before(rb);
   const refUi = () => { rb.textContent = S.liteRefresh ? '⏳ Suche neue Felder…' : '↻ Neue Felder holen'; rb.disabled = !!S.liteRefresh; };
@@ -10276,7 +10286,7 @@ function liteSearch(afterRefresh) {
   const row = f => { const on = sel.has(String(f.id)), dd = dr(f), h = f.meta && f.meta.h ? Math.round(f.meta.h) : 0;
     // andere Drohne oder andere Höhe: wird beim Import automatisch auf die eigene Drohne umgerechnet
     const conv = want && wantH && ((dd && dd !== want) || (h && Math.abs(h - wantH) > 5)) ? ` <span style="color:#e07800;font-weight:700">→ wird für ${DN[want] || want} (${wantH} m) umgerechnet</span>` : '';
-    return `<label class="lrow${on ? ' on' : ''}"><input type="checkbox" data-id="${esc(f.id)}"${on ? ' checked' : ''}><span><b>${esc(f.name)}</b>${dj ? '' : srcBadges(f)}<em>${[f.area ? fieldArea(f.area) : '', dd ? DN[dd] || dd : '', h ? h + ' m' : ''].filter(Boolean).join(' · ')}${conv}</em></span></label>`; };
+    return `<label class="lrow${on ? ' on' : ''}"><input type="checkbox" data-id="${esc(f.id)}"${on ? ' checked' : ''}><span><b>${esc(f.name)}</b>${dj ? '' : srcBadges(f)}<em>${[tTxt(f), f.area ? fieldArea(f.area) : '', dd ? DN[dd] || dd : '', h ? h + ' m' : ''].filter(Boolean).join(' · ')}${conv}</em></span></label>`; };
   const render = () => {
     const t = fold(q.value.trim()), picked = all.filter(f => sel.has(String(f.id)));
     const hits = t.length >= 3 ? all.filter(f => !sel.has(String(f.id)) && fuzzyHas(fold(f.name + ' ' + ((f.meta || {}).by || '')), t)) : dj ? all.filter(f => !sel.has(String(f.id))) : [];   // DJI Cloud: gleich alle Felder zeigen
