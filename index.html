@@ -8899,10 +8899,13 @@ async function mapImage0(o) {
   (o.areas || []).forEach(a => { c.beginPath(); a.rings.forEach(r => r.forEach((q, i) => { const [x, y] = pr(q[1], q[0]); i ? c.lineTo(x, y) : c.moveTo(x, y); })); c.closePath();
     c.fillStyle = a.color + '40'; c.fill('evenodd'); c.lineWidth = 3; c.strokeStyle = a.color; c.stroke(); });
   { const mpp0 = 156543.03392 * Math.cos(((o.bb.n + o.bb.s) / 2) * Math.PI / 180) / Math.pow(2, z);   // Kreise in Metern (Schutzgebiet: grobe Einsatzbereiche)
-    (o.circles || []).forEach(ci => { const [x, y] = pr(ci.lat, ci.lon), rp = ci.r / mpp0;
-      c.beginPath(); c.arc(x, y, rp, 0, 7); c.fillStyle = 'rgba(230,81,0,.18)'; c.fill(); c.lineWidth = 5; c.setLineDash([16, 10]); c.strokeStyle = '#e65100'; c.stroke(); c.setLineDash([]);
+    (o.circles || []).forEach(ci => { const [x, y] = pr(ci.lat, ci.lon), rp = Math.max(ci.r / mpp0, o.minR || 0);
+      c.beginPath(); c.arc(x, y, rp, 0, 7); c.fillStyle = 'rgba(230,81,0,' + (o.minR ? '.55' : '.18') + ')'; c.fill(); c.lineWidth = o.minR ? 2.5 : 5; c.setLineDash(o.minR ? [] : [16, 10]); c.strokeStyle = '#e65100'; c.stroke(); c.setLineDash([]);
+      if (!ci.label) return;
       c.font = '800 24px Roboto,Arial,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; const tw = c.measureText(ci.label).width + 20;
       c.fillStyle = 'rgba(255,255,255,.95)'; c.fillRect(x - tw / 2, y - 18, tw, 36); c.fillStyle = '#e65100'; c.fillText(ci.label, x, y + 1); }); }
+  if (o.frame) { const [x1, y1] = pr(o.frame.n, o.frame.w), [x2, y2] = pr(o.frame.s, o.frame.e);   // Übersicht: wo der große Ausschnitt liegt
+    c.lineWidth = 4; c.strokeStyle = '#fff'; c.strokeRect(x1, y1, x2 - x1, y2 - y1); c.lineWidth = 2.5; c.strokeStyle = '#c62828'; c.strokeRect(x1, y1, x2 - x1, y2 - y1); }
   (o.routes || []).forEach(r => { path(r.pts); c.lineWidth = 2.5; c.strokeStyle = r.color || '#ff6f00'; c.stroke(); });   // Flugbahnen (nur Pilotenbriefing)
   (o.lines || []).forEach(l => { path(l.pts); c.lineWidth = l.w || 11; c.strokeStyle = 'rgba(255,255,255,.95)'; c.stroke(); c.lineWidth = l.w ? l.w * 0.55 : 6; c.strokeStyle = l.color; c.stroke(); });
   // Einsatzbereiche nur als neutrale Markierung (keine Feldnamen, keine Feldumrisse – Datenschutz); Nummern der Abschnitte auf der Leitung
@@ -8969,13 +8972,15 @@ async function opImage(ops, i) {
   o.items.forEach(x => x.secs.forEach(sc => { no++; lines.push({ pts: sc.pts, color: col, no }); pts.push(...sc.pts);
     leg.push(`${no}. ${secPlace(sc) ? 'bei ' + secPlace(sc) + ' – ' : ''}${lineLbl(x.l)} · ca. ${Math.round(sc.len)} m · von ${fmtLL(...sc.pts[0])} bis ${fmtLL(...sc.pts[sc.pts.length - 1])}${x.l.id ? ' · OSM-Weg ' + x.l.id : ''}`); }));
   // Für den Netzbetreiber zählen nur die Leitungsabschnitte – keine Einsatzbereiche/Felder im Bild
-  const bb0 = bbOfPts(pts), pad = Math.max(0.003, (bb0.n - bb0.s) * 0.2, (bb0.e - bb0.w) * 0.2);
+  const bb0 = bbOfPts(pts), pad = Math.max(0.006, (bb0.n - bb0.s) * 0.2, (bb0.e - bb0.w) * 0.2);   // mind. ~1,3 km Ausschnitt, damit Orte/Straßen zur Orientierung drauf sind
   const bbx = { n: bb0.n + pad, s: bb0.s - pad, e: bb0.e + pad * 1.5, w: bb0.w - pad * 1.5 };
   // ganze Leitung dünn als Orientierung, mit Bezeichnung aus OpenStreetMap (Spannung, Name/Nummer) – die gemeldeten Abschnitte dick und nummeriert
   const ctxL = [], labels = []; [...new Set(o.items.map(x => x.l))].forEach(l => { ctxL.push({ pts: l.pts, color: '#8e24aa', w: 5 });
     const inV = l.pts.filter(q => q[0] < bbx.n && q[0] > bbx.s && q[1] < bbx.e && q[1] > bbx.w), m = inV[Math.floor(inV.length * 0.75)];
     if (m) labels.push({ lat: m[0], lon: m[1], text: [lineLbl(l), l.n].filter(Boolean).join(' · '), color: '#6a1b9a' }); });
-  return mapImage({ bb: bbx, base: 'grey', spots: [], lines: ctxL.concat(lines), labels, title: `Drohnenüberflug Kitzrettung – ${o.name}${opPlaces(o).length ? ' – bei ' + opPlaces(o).slice(0, 4).join(', ') : ''} – ${new Date().toLocaleDateString('de-DE')}`, legend: leg });
+  // Übersicht oben links (ca. 12 km Umkreis mit Ortsnamen): wo ungefähr – das große Bild zeigt die Abschnitte im Detail
+  return overviewInset(await mapImage({ bb: bbx, base: 'grey', spots: [], lines: ctxL.concat(lines), labels, title: `Drohnenüberflug Kitzrettung – ${o.name}${opPlaces(o).length ? ' – bei ' + opPlaces(o).slice(0, 4).join(', ') : ''} – ${new Date().toLocaleDateString('de-DE')}`, legend: leg }), bbx,
+    { minKm: 12, lines: lines.map(l => ({ pts: l.pts, color: col, w: 6 })), caption: 'Übersicht · roter Rahmen = Ausschnitt mit den Abschnitten' });
 }
 /** Teil des Einsatzbereichs, der im Schutzgebiet liegt: Rasterpunkte (ca. 8 m) in Feld UND Zone → konvexe Hülle [[lat,lon]] – neutral, ohne Feldumriss */
 function overlapHull(f, rings) {
@@ -9042,29 +9047,57 @@ function afHtml(az) {
         <div style="margin-top:4px;color:#d42020">Bis 1,5 km um den Flugplatz nur mit <b>Zustimmung</b> der Flugaufsicht, Flugleitung bzw. des Betreibers (§ 21h Abs. 3 Nr. 1 LuftVO) – vorher einholen, am Einsatztag vor dem Start zusätzlich kurz anrufen.</div></div>`; }).join('')}
     <div class="meta">Bild und E-Mail enthalten keine Feldnamen und keine Feldumrisse – nur den Flugplatzbereich und grobe Kreise um die Einsatzorte (mind. 150 m Radius).</div></div>`;
 }
-/** Bild für Flugplatz/Schutzgebiet: die ganze Zone zu sehen, auf sie zentriert, die Einsatzbereiche darin.
- *  Sehr große Gebiete (über ~20 km): auf die Einsatzbereiche zentriert, damit die Kreise erkennbar bleiben */
+/** Bild für Flugplatz/Schutzgebiet: kleine Gebiete ganz (auf sie zentriert, die Einsatzbereiche darin).
+ *  Große Gebiete (mehr als ~4 km bzw. viel größer als die Einsatzbereiche): auf die Einsatzbereiche gezoomt (mind. ~2 km Ausschnitt),
+ *  damit man die Flugstellen erkennt – das ganze Gebiet kommt dann als kleine Übersicht oben links ins Bild (zoneInset). */
 function zoneViewBB(z, pts) {
-  const fb = z.f.bb || bbOfPts(z.f.rings.flat().map(q => [q[1], q[0]])), kx = Math.cos(((fb.n + fb.s) / 2) * Math.PI / 180), big = (fb.n - fb.s) * 111 > 20 || (fb.e - fb.w) * 111 * kx > 20;
-  const b0 = bbOfPts(pts), ref = big ? b0 : fb, cLa = (ref.n + ref.s) / 2, cLo = (ref.e + ref.w) / 2;
+  const fb = z.f.bb || bbOfPts(z.f.rings.flat().map(q => [q[1], q[0]])), kx = Math.cos(((fb.n + fb.s) / 2) * Math.PI / 180);
+  const b0 = bbOfPts(pts), zKm = Math.max((fb.n - fb.s) * 111, (fb.e - fb.w) * 111 * kx), aKm = Math.max((b0.n - b0.s) * 111, (b0.e - b0.w) * 111 * kx);
+  const big = zKm > 4 && zKm > aKm * 2.5;
+  const ref = big ? b0 : fb, cLa = (ref.n + ref.s) / 2, cLo = (ref.e + ref.w) / 2;
   const all = big ? pts : pts.concat([[fb.n, fb.e], [fb.s, fb.w]]);
-  let hLa = Math.max(...all.map(q => Math.abs(q[0] - cLa))) * 1.12, hLo = Math.max(...all.map(q => Math.abs(q[1] - cLo))) * 1.12;
-  if (big) { hLa *= 1.8; hLo *= 1.8; }
-  hLa = Math.max(hLa, 0.004); const asp = 1.6 / kx;   // Bild 1600×1000
+  let hLa = Math.max(...all.map(q => Math.abs(q[0] - cLa))) * (big ? 1.35 : 1.12), hLo = Math.max(...all.map(q => Math.abs(q[1] - cLo))) * (big ? 1.35 : 1.12);
+  hLa = Math.max(hLa, big ? 0.0085 : 0.004); const asp = 1.6 / kx;   // Bild 1600×1000; großes Gebiet: mind. ~1,9 km hoch, damit Orte/Straßen zur Orientierung drauf sind
   if (hLo < hLa * asp) hLo = hLa * asp; else hLa = hLo / asp;
-  return { n: cLa + hLa, s: cLa - hLa, e: cLo + hLo, w: cLo - hLo };
+  return { n: cLa + hLa, s: cLa - hLa, e: cLo + hLo, w: cLo - hLo, big };
 }
+/** Übersicht oben links: das ganze Gebiet, die Einsatzbereiche als Punkte und ein roter Rahmen, wo der große Ausschnitt liegt */
+async function zoneInset(cv, z, ar, bb, color) {
+  if (!cv || !bb.big) return cv;
+  const fb = z.f.bb || bbOfPts(z.f.rings.flat().map(q => [q[1], q[0]]));
+  return overviewInset(cv, bb, { bb: fb, areas: [{ rings: z.f.rings, color }], circles: ar.map(a => ({ lat: a.lat, lon: a.lon, r: a.r })), caption: 'Übersicht: ganzes Gebiet · roter Rahmen = Ausschnitt' });
+}
+/** Kleine Übersichtskarte oben links ins Bild: weiterer Umkreis (mind. ~10 km, mit Ortsnamen), roter Rahmen = großer Ausschnitt.
+ *  So sieht der Empfänger erst, wo es ungefähr ist, und im großen Bild die Details. */
+async function overviewInset(cv, bb, x0) {
+  if (!cv) return cv;
+  const fb = x0.bb || bb, u = { n: Math.max(fb.n, bb.n), s: Math.min(fb.s, bb.s), e: Math.max(fb.e, bb.e), w: Math.min(fb.w, bb.w) };
+  const cLa = (u.n + u.s) / 2, cLo = (u.e + u.w) / 2, kx = Math.cos(cLa * Math.PI / 180), IW = 440, IH = 300;
+  let hLa = Math.max((u.n - u.s) / 2 * 1.1, x0.minKm ? x0.minKm / 2 / 111 : 0), hLo = Math.max((u.e - u.w) / 2 * 1.1, hLa / kx * IW / IH);
+  hLa = Math.max(hLa, hLo * kx * IH / IW);
+  let ov = null; try { ov = await mapImage({ bb: { n: cLa + hLa, s: cLa - hLa, e: cLo + hLo, w: cLo - hLo }, base: 'grey', cw: IW, mh: IH, bare: true, maxZ: 14, minR: 6,
+    areas: x0.areas || [], circles: x0.circles || [], lines: x0.lines || [], frame: bb }); } catch (e) { }
+  if (!ov) return cv;
+  const out = document.createElement('canvas'); out.width = cv.width; out.height = cv.height; const c = out.getContext('2d'); c.drawImage(cv, 0, 0);
+  const x = 20, y = 20; c.fillStyle = '#fff'; c.fillRect(x - 6, y - 6, IW + 12, IH + 40); c.drawImage(ov, 0, 0, IW, IH, x, y, IW, IH);
+  c.strokeStyle = '#555'; c.lineWidth = 1; c.strokeRect(x, y, IW, IH);
+  c.fillStyle = '#222'; c.font = '600 15px Roboto,Arial,sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(x0.caption || 'Übersicht · roter Rahmen = Ausschnitt', x + 2, y + IH + 17);
+  out.__full = cv.__full; return out;
+}
+/** Google-Maps-Link zu einem Punkt (für E-Mails an Behörden/Flugleitung) – nur die gerundete Bereichsmitte, keine Feldumrisse */
+const gmLink = (lat, lon) => `https://www.google.com/maps/search/?api=1&query=${lat.toFixed(4)},${lon.toFixed(4)}`;
+const areaLines = ar => ar.map(a => `- Bereich ${a.no}: Umkreis ca. ${a.r} m um ${a.lat.toFixed(3)}, ${a.lon.toFixed(3)} – Karte: ${gmLink(a.lat, a.lon)}`);
 async function afImage(z, sel) {
   const ar = natAreas(z, sel), pts = [];
   ar.forEach(a => { const dl = a.r / 111200, dn = a.r / (111200 * Math.cos(a.lat * Math.PI / 180)); pts.push([a.lat + dl, a.lon + dn], [a.lat - dl, a.lon - dn]); });
   const rec = afRec(z); if (rec) pts.push([rec.lat, rec.lon]);
   if (!pts.length) return null;
-  const nm = afName(z);
-  return mapImage({ bb: zoneViewBB(z, pts), base: 'grey', areas: [{ rings: z.f.rings, color: '#d32f2f' }],
+  const nm = afName(z), bb = zoneViewBB(z, pts);
+  return zoneInset(await mapImage({ bb, base: 'grey', areas: [{ rings: z.f.rings, color: '#d32f2f' }],
     circles: ar.map(a => ({ lat: a.lat, lon: a.lon, r: a.r, label: 'Bereich ' + a.no })),
     title: `Drohnenflug Kitzrettung – Flugplatz ${nm}`,
     legend: [`Rot: Flugplatzbereich ${nm}${rec && rec.icao ? ' (' + rec.icao + ')' : ''} laut dipul`, 'Orange Kreise: ungefähre Einsatzbereiche (Drohnenflüge innerhalb des Kreises)',
-      ...ar.map(a => `Bereich ${a.no}: Umkreis ca. ${a.r} m um ${a.lat.toFixed(3).replace('.', ',')}° N, ${a.lon.toFixed(3).replace('.', ',')}° O`)] });
+      ...ar.map(a => `Bereich ${a.no}: Umkreis ca. ${a.r} m um ${a.lat.toFixed(3).replace('.', ',')}° N, ${a.lon.toFixed(3).replace('.', ',')}° O`)] }), z, ar, bb, '#d32f2f');
 }
 const afSubject = z => `Bitte um Zustimmung – Drohnenflüge Kitzrettung am Flugplatz ${afName(z)}`;
 function afMailText(z, fields) {
@@ -9073,7 +9106,7 @@ function afMailText(z, fields) {
     `die Kitzrettung Limburg e.V. sucht vor der Mahd mit Wärmebilddrohnen nach Rehkitzen. Einige Einsatzbereiche liegen innerhalb von 1,5 km um den Flugplatz ${afName(z)}. Nach § 21h Abs. 3 Nr. 1 LuftVO bitten wir hiermit um Ihre Zustimmung zu folgenden Flügen:`, '',
     `Zeitraum: ${flyWinText()}, in der Regel frühmorgens.`,
     `Flughöhe: höchstens ${H} m über Grund.`,
-    'Betroffene Bereiche (ungefähr, Mittelpunkt WGS84):', ...natAreas(z, S.areaSel || fields).map(a => `- Bereich ${a.no}: Umkreis ca. ${a.r} m um ${a.lat.toFixed(3)}, ${a.lon.toFixed(3)}`), '',
+    'Betroffene Bereiche (ungefähr, Mittelpunkt WGS84, mit Link zu Google Maps):', ...areaLines(natAreas(z, S.areaSel || fields)), '',
     'Wir fliegen nur in Sichtweite und weichen bemanntem Luftverkehr immer aus.', '',
     ...(afPhone(z) ? [`Am Einsatztag rufen wir vor dem Start unter ${afPhone(z)} an. Falls dafür eine andere Nummer gilt, geben Sie uns bitte Bescheid.`, '', 'Bitte teilen Sie uns mit, ob Sie den Flügen zustimmen.']
       : ['Uns liegt für den Flugplatz noch keine Rufnummer vor. Wir benötigen eine Telefonnummer, unter der wir die Flugleitung am Einsatztag vor dem Start erreichen – bitte teilen Sie uns diese zusammen mit Ihrer Zustimmung mit.']), '',
@@ -9083,12 +9116,12 @@ async function natImage(z, sel) {
   const ar = natAreas(z, sel), pts = [];
   ar.forEach(a => { const dl = a.r / 111200, dn = a.r / (111200 * Math.cos(a.lat * Math.PI / 180)); pts.push([a.lat + dl, a.lon + dn], [a.lat - dl, a.lon - dn]); });
   if (!pts.length) return null;
-  const p = z.f.props || {}, lbl = LAYER_LABEL[z.f.layer] || z.f.layer;
-  return mapImage({ bb: zoneViewBB(z, pts), base: 'grey', areas: [{ rings: z.f.rings, color: '#2e7d32' }],
+  const p = z.f.props || {}, lbl = LAYER_LABEL[z.f.layer] || z.f.layer, bb = zoneViewBB(z, pts);
+  return zoneInset(await mapImage({ bb, base: 'grey', areas: [{ rings: z.f.rings, color: '#2e7d32' }],
     circles: ar.map(a => ({ lat: a.lat, lon: a.lon, r: a.r, label: 'Bereich ' + a.no })),
     title: `Drohnenflug Kitzrettung – ${lbl}${p.name ? ': ' + p.name : ''}`,
     legend: [`${lbl}${p.name ? ': ' + p.name : ''} · ${regionText(z.reg)}${altText(p) ? ' · ' + altText(p) : ''}`, 'Orange Kreise: ungefähre Einsatzbereiche (Drohnenflüge innerhalb des Kreises)',
-      ...ar.map(a => `Bereich ${a.no}: Umkreis ca. ${a.r} m um ${a.lat.toFixed(3).replace('.', ',')}° N, ${a.lon.toFixed(3).replace('.', ',')}° O`)] });
+      ...ar.map(a => `Bereich ${a.no}: Umkreis ca. ${a.r} m um ${a.lat.toFixed(3).replace('.', ',')}° N, ${a.lon.toFixed(3).replace('.', ',')}° O`)] }), z, ar, bb, '#2e7d32');
 }
 /** E-Mail mit Kartenbild: Desktop-Programm → fertiger Entwurf mit Anhang im Mailprogramm; sonst mailto + Bild in der Zwischenablage */
 async function mailWithImage(to, subject, body, cv, fname) {
@@ -9105,13 +9138,13 @@ async function mailWithImage(to, subject, body, cv, fname) {
 window.onMailDraftFail = err => toast('Mailprogramm konnte den Entwurf nicht öffnen (' + err + '). Kein Standard-Mailprogramm eingerichtet?', true, 9000);
 function netMailText(o, startNo) {
   let no = startNo; const li = [];
-  o.items.forEach(x => x.secs.forEach(sc => { no++; li.push(`${no}. ${secPlace(sc) ? 'bei ' + secPlace(sc) + ': ' : ''}${lineLbl(x.l)}, ca. ${Math.round(sc.len)} m, von ${fmtLL(...sc.pts[0])} bis ${fmtLL(...sc.pts[sc.pts.length - 1])}${x.l.id ? ' (OSM-Weg ' + x.l.id + ')' : ''}`); }));
+  o.items.forEach(x => x.secs.forEach(sc => { no++; const mid = sc.pts[Math.floor(sc.pts.length / 2)]; li.push(`${no}. ${secPlace(sc) ? 'bei ' + secPlace(sc) + ': ' : ''}${lineLbl(x.l)}, ca. ${Math.round(sc.len)} m, von ${fmtLL(...sc.pts[0])} bis ${fmtLL(...sc.pts[sc.pts.length - 1])}${mid ? ' – Karte: ' + gmLink(mid[0], mid[1]) : ''}${x.l.id ? ' (OSM-Weg ' + x.l.id + ')' : ''}`); }));
   const more = li.length > 12 ? li.length - 12 : 0;
   return ['Sehr geehrte Damen und Herren,', '',
     `hiermit informieren wir Sie über Drohnenflüge zur Wildtierrettung (Rehkitzsuche vor der Mahd) über bzw. neben Ihren Freileitungen.`, '',
     `Zeitraum: ${flyWinText()}, in der Regel frühmorgens.`,
     'Die Leitungen werden nur überflogen, nie unterflogen.', '',
-    'Betroffene Leitungsabschnitte (Koordinaten WGS84):', ...li.slice(0, 12), ...(more ? [`… und ${more} weitere (siehe Karte)`] : []), '',
+    'Betroffene Leitungsabschnitte (Koordinaten WGS84, mit Link zu Google Maps auf die Mitte des Abschnitts):', ...li.slice(0, 12), ...(more ? [`… und ${more} weitere (siehe Karte)`] : []), '',
     'Eine Karte mit den nummerierten Abschnitten fügen wir bei.', '',
     'Sobald die Flüge abgeschlossen sind, melden wir Ihnen die Abschnitte wieder frei.', '', 'Mit freundlichen Grüßen', 'Kitzrettung Limburg e.V.'].join('\n');
 }
@@ -9129,7 +9162,7 @@ function natMailText(z, fields) {
   return ['Sehr geehrte Damen und Herren,', '',
     `${ref ? ref + ' i' : 'hiermit i'}nformieren wir Sie vorab über Drohnenflüge zur Wildtierrettung (Rehkitzsuche vor der Mahd) im ${lbl}${p.name ? ' „' + p.name + '“' : ''}.`, '',
     `Zeitraum: ${flyWinText()}, in der Regel frühmorgens.`,
-    'Betroffene Bereiche (ungefähr, Mittelpunkt WGS84):', ...natAreas(z, S.areaSel || fields).map(a => `- Bereich ${a.no}: Umkreis ca. ${a.r} m um ${a.lat.toFixed(3)}, ${a.lon.toFixed(3)}`), '',
+    'Betroffene Bereiche (ungefähr, Mittelpunkt WGS84, mit Link zu Google Maps):', ...areaLines(natAreas(z, S.areaSel || fields)), '',
     ...(gi ? ['Die Nebenbestimmungen der Allgemeinverfügung werden eingehalten, u. a.: Einsatz nur im Zusammenhang mit einer zulässigen Mahd, höchstens zwei zusammenhängende Durchgänge, mindestens 50 m Abstand zu Waldrändern, höchstens eine aktive Drohne je 15 ha, Tiere werden nicht direkt angeflogen, Start und Landung möglichst auf Wegen.', ''] : []),
     'Eine Karte fügen wir bei.', '', 'Sobald die Flüge abgeschlossen sind, geben wir Ihnen kurz Bescheid.', '', 'Mit freundlichen Grüßen', 'Kitzrettung Limburg e.V.'].join('\n');
 }
@@ -12226,7 +12259,7 @@ loadNotams();
 geoBadge();
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { opImage2: async sel => { const ops = netOps(sel); return ops.length ? opImage(ops, 0) : null; }, fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
