@@ -60,7 +60,7 @@
   #ctrl button svg{width:28px;height:28px}
 
   /* Leiste unten */
-  #bar{position:fixed;left:0;right:0;bottom:0;height:72px;background:var(--bar);color:var(--txt);display:flex;align-items:center;gap:8px;padding:0 12px;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
+  #bar{position:fixed;left:0;right:0;top:var(--tt,0);bottom:auto;height:72px;background:var(--bar);color:var(--txt);display:flex;align-items:center;gap:8px;padding:0 12px;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
   #bar button{height:52px;padding:0 14px;border-radius:14px;flex:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
   .b-sec{background:var(--sec);color:var(--acc)}
   .b-ok{background:linear-gradient(180deg,#27b057,#1a8f40);color:#fff;box-shadow:0 2px 6px rgba(26,143,64,.35)}
@@ -787,7 +787,7 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
   #bar .logo{width:48px;height:48px;border-radius:50%;flex:none;box-shadow:0 1px 4px rgba(0,0,0,.3)}
 </style>
 </head>
-<body>
+<body class="bartop">
 
 <div id="mapWrap"><div id="mapT"></div><div id="mapG"></div><canvas id="mapO"></canvas><canvas id="map"></canvas></div>
 <div id="busy"></div>
@@ -894,7 +894,7 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
       <div class="v" id="vReg"></div>
     </div>
     <div class="set"><div class="l"><div class="t">Flugplätze anzeigen</div><div class="v" id="vAf">Flugplätze, Segel-/UL-Plätze und Hubschrauberlandeplätze im Gebiet der Felder (+3 km)</div></div><button class="b-sec" id="bAfList">Liste</button><label class="sw"><input type="checkbox" id="sAf"><span></span></label></div>
-    <div class="set" id="setRcKeys" style="display:none"><div class="l"><div class="t">Bedienung mit L/R-Tasten (DJI RC Plus 2)</div><div class="v">L1 = Zoom +, L2 = Zoom −, L3 = alles zeigen · R1 = Karte (Grau → Karte → Luftbild), R2 = Info (Felder → beides → Geozonen → aus), R3 = Standort. Die Enter-Taste (5D drücken) schaltet die Felder um (UAV-Editor → beides → Fernsteuerung → keine); nach Blättern mit 5D links/rechts markiert sie stattdessen das gewählte Feld. Die Leiste wandert nach oben, die Knöpfe rechts entfallen.</div>
+    <div class="set" id="setRcKeys" style="display:none"><div class="l"><div class="t">Bedienung mit L/R-Tasten (DJI RC Plus 2)</div><div class="v">L1 = Zoom +, L2 = Zoom −, L3 = alles zeigen · R1 = Karte (Grau → Karte → Luftbild), R2 = Info (Felder → beides → Geozonen → aus), R3 = Standort. Die Enter-Taste (5D drücken) schaltet die Felder um (UAV-Editor → beides → Fernsteuerung → keine); nach Blättern mit 5D links/rechts markiert sie stattdessen das gewählte Feld. Die Knöpfe rechts entfallen.</div>
 </div>
       <div class="seg"><button data-rckeys="0">Aus</button><button data-rckeys="1">An</button></div></div>
     <div class="set"><div class="l"><div class="t">Verbindungstest Datenserver</div><div class="v" id="vNet">Prüft, welche Server (OpenStreetMap, DULV, BKG, dipul) von dieser Fernsteuerung aus erreichbar sind.</div></div><button class="b-sec" id="bNet">Testen</button></div>
@@ -3923,7 +3923,8 @@ window.onDjiCloud = r => { S.djiBusy = false;
   if (r && Array.isArray(r.list)) S.dji = { list: r.list, at: r.ok ? Date.now() : (r.at || 0), names: new Set(r.list.map(w => djiNorm(w.name))), err: r.ok ? '' : r.error };
   else if (r && !r.ok) S.djiErr = r.error;
   if (r && !r.ok && djiWanted()) toast('DJI Cloud: ' + (r.error || 'nicht erreichbar') + (S.dji ? ' – zeige die zuletzt geladene Liste.' : ''), true, 7000);
-  const cb = S.djiCb; S.djiCb = null; try { cb && cb(r); } catch (e) { } try { sideRender(); } catch (e) { } };
+  const cb = S.djiCb; S.djiCb = null; try { cb && cb(r); } catch (e) { } try { sideRender(); } catch (e) { }
+  if (IS_LITE && r && r.ok) liteAreaSync(); };
 /** Felder laden: aus der DJI Cloud (wenn eingestellt), sonst wie bisher über den UAV-Editor-Export */
 /** Herkunfts-Abzeichen: „UAV“ = liegt im UAV Editor, „☁ DJI“ = liegt in der DJI Cloud; ausgegraut = dort nicht vorhanden. Nur Anzeige – der PC lädt weiter über den UAV-Editor-Export. */
 function srcBadges(cf, uav = true) { const d = djiState(); if (!d) return '';
@@ -5349,7 +5350,7 @@ function tierCount(tiers) {
 function einsatzJobs(de, full) {
   const p = prefetchPlan(); if (!p) return null;
   const eb = einsatzBox(25), fLa = .5 / 111.2;
-  const wiesen = S.files.filter(f => !f.dup && f.bounds).map(f => { const fLo = .5 / (111.2 * Math.cos(f.bounds.n * Math.PI / 180)); return [f.bounds.w - fLo, f.bounds.s - fLa, f.bounds.e + fLo, f.bounds.n + fLa]; });
+  const wiesen = areaFiles().filter(f => !f.dup && f.bounds).map(f => { const fLo = .5 / (111.2 * Math.cos(f.bounds.n * Math.PI / 180)); return [f.bounds.w - fLo, f.bounds.s - fLa, f.bounds.e + fLo, f.bounds.n + fLa]; });
   const baseT = [[5, PF.zMin - 1, [DE_BOX]], [PF.zMin, PF.zArea, [p.area]], [PF.zArea + 1, PF.zMax, full ? [p.area] : p.fields]];   // jede Zoomstufe: Übersicht Deutschland bis ganz nah
   const geoT = (de ? [[7, 10, [DE_BOX]]] : []).concat([[de ? 11 : 7, 14, [eb]], [15, 16, [p.area]]]);   // dipul hat Bilder bis Zoom 16 – im Wiesengebiet + 3 km jede Stufe   // jede Zoomstufe bis 16 – keine groben Flecken beim Reinzoomen
   const geoL = ZG.map(([k]) => 'geo:' + k);   // alle Zonengruppen, damit das Umschalten auch offline geht
@@ -5381,7 +5382,7 @@ function einsatzRun(de, fresh, auto, full) {
   if (fresh && A.dipulClear) { A.dipulClear(); GEOR.reset(); }
   geoSyncNow(fresh, true);   // Zonendaten, Hindernisse, Flugplätze, Orte, NOTAM
   const wb = einsatzBox(30); let stc = wb ? statesInBox(wb) : [];
-  if (!stc.length) stc = [...new Set(S.files.filter(f => f.center).map(f => regionAt(f.center[0], f.center[1]).st).filter(Boolean).concat((P.osmStates || P.aeStates || '').split(',').filter(Boolean)))];
+  if (!stc.length) stc = [...new Set(areaFiles().filter(f => f.center).map(f => regionAt(f.center[0], f.center[1]).st).filter(Boolean).concat((P.osmStates || P.aeStates || '').split(',').filter(Boolean)))];
   const sts = stc.map(k => MASTR_STATE[k]).filter(Boolean);
   if (A.mastrSync && sts.length) A.mastrSync(JSON.stringify({ states: sts, box: wb }));   // Windräder fürs eigene Gebiet
   try { metarLoad(null, true).then(metarApply).catch(() => { }); wxPrefetch(); } catch (e) { }
@@ -5393,15 +5394,28 @@ function einsatzRun(de, fresh, auto, full) {
 }
 let esPending = null, esPendingNames = null;
 /** Automatisch speichern, sobald Wiesen da sind und Internet: beim ersten Mal und wenn neue Wiesen außerhalb des gespeicherten Gebiets liegen */
+/** Felder, nach denen sich Einsatzgebiet und Geodaten richten. PC: die geladenen Felder.
+ *  Lite: zusätzlich alle Felder aus der DJI Cloud (bzw. dem UAV Editor, je nach Datenquelle) – auch wenn sie noch nicht auf der Fernsteuerung liegen,
+ *  damit Karte, Geozonen und Hindernisse fürs ganze Vereinsgebiet einmal geladen sind und im Feld offline vorliegen */
+function areaFiles() {
+  if (!IS_LITE) return S.files;
+  const d = liteCatalog(), dj = djiOn(), key = (d ? d.fields.length + '|' + (d.at || '') : '-') + '|' + dj + '|' + ((djiState() || {}).at || '');
+  if (!S.liteAreaF || S.liteAreaF.k !== key) {
+    const y = new Date().getFullYear();
+    const fs = ((d && d.fields) || []).filter(f => dj ? djiHas(f) : (!f.arch && CAT_YEAR(f) >= y - 1)).map(f => { try { return catEntry(f, true); } catch (e) { return null; } }).filter(Boolean);
+    S.liteAreaF = { k: key, fs };
+  }
+  const seen = new Set(S.files.map(f => f.title)); return S.files.concat(S.liteAreaF.fs.filter(f => !seen.has(f.title)));
+}
 function einsatzAuto() {
-  if (!A.prefetchStart || !isOnline() || !S.files.length || (A.prefetchRunning && A.prefetchRunning()) || esPending) return;
+  if (!A.prefetchStart || !isOnline() || !areaFiles().length || (A.prefetchRunning && A.prefetchRunning()) || esPending) return;
   // nach Neuinstallation: erst Speicherfreigabe + zurückgeholte Einstellungen abwarten – sonst würde alles neu geladen
   if ((A.hasAccess && !A.hasAccess()) || (A.prefsReady && !A.prefsReady())) { setTimeout(einsatzAuto, 5000); return; }
   const need = einsatzBox(1); if (!need) return;
   // keine Merker (z. B. alte Sicherung ohne sie), aber der Cache-Ordner ist schon gut gefüllt: am Datenstand orientieren statt neu laden
   if (!A.getPref('esSpots1', '') && !A.getPref('esBox5', '') && A.cacheBytes && A.cacheBytes() > 50 * 1048576) {
     setP('esBox5', JSON.stringify(need));
-    setP('esSpots1', JSON.stringify(S.files.filter(f => !f.dup && f.center).map(f => [Math.round(f.center[0] * 500) / 500, Math.round(f.center[1] * 500) / 500])));
+    setP('esSpots1', JSON.stringify(areaFiles().filter(f => !f.dup && f.center).map(f => [Math.round(f.center[0] * 500) / 500, Math.round(f.center[1] * 500) / 500])));
     return;
   }
   let have = null; try { have = JSON.parse(A.getPref('esBox5', 'null') || 'null'); } catch (e) { }
@@ -5409,13 +5423,13 @@ function einsatzAuto() {
   let done = []; try { done = JSON.parse(A.getPref('esSpots1', '[]') || '[]'); } catch (e) { }
   if (!done.length) {   // Umstieg: bisher nach Namen gemerkte Wiesen übernehmen
     let old = []; try { old = JSON.parse(A.getPref('esFields3', '[]') || '[]'); } catch (e) { }
-    const os = new Set(old); done = S.files.filter(f => f.center && os.has(f.name)).map(f => [Math.round(f.center[0] * 500) / 500, Math.round(f.center[1] * 500) / 500]);
+    const os = new Set(old); done = areaFiles().filter(f => f.center && os.has(f.name)).map(f => [Math.round(f.center[0] * 500) / 500, Math.round(f.center[1] * 500) / 500]);
     if (done.length) setP('esSpots1', JSON.stringify(done));
   }
   const spot = f => [Math.round(f.center[0] * 500) / 500, Math.round(f.center[1] * 500) / 500];   // ca. 200-m-Raster
   const dset = new Set(done.map(x => x.join(',')));
   const known = f => { const [a, b] = spot(f); for (const da of [-.002, 0, .002]) for (const db of [-.002, 0, .002]) if (dset.has((Math.round((a + da) * 500) / 500) + ',' + (Math.round((b + db) * 500) / 500))) return true; return false; };
-  const fs = S.files.filter(f => !f.dup && f.bounds && f.center);
+  const fs = areaFiles().filter(f => !f.dup && f.bounds && f.center);
   const fresh = fs.filter(f => !known(f));   // neue Wiesen: Kacheln bis Zoom 18 um sie herum fehlen noch
   const inBox = have && have[0] <= need[0] && have[1] <= need[1] && have[2] >= need[2] && have[3] >= need[3];
   if ((inBox || (have && !fresh.length)) && !fresh.length) return;   // alles schon da (auch nach Wechsel UAV-E ↔ RC)
@@ -5496,7 +5510,7 @@ $('sGeoRes').onchange = e => { zgSet('wohn', e.target.checked); fillSettings(); 
 /** Geozonen nur auf Knopfdruck aktualisieren: Einsatzgebiet oder ganz Deutschland (Übersicht) */
 const DE_BOX = [5.8, 47.2, 15.1, 55.1];
 function einsatzBox(km) {
-  const fs = S.files.filter(f => !f.dup && f.bounds); if (!fs.length) return null;
+  const fs = areaFiles().filter(f => !f.dup && f.bounds); if (!fs.length) return null;
   const b = fs.reduce((a, f) => ({ n: Math.max(a.n, f.bounds.n), s: Math.min(a.s, f.bounds.s), e: Math.max(a.e, f.bounds.e), w: Math.min(a.w, f.bounds.w) }), { n: -90, s: 90, e: -180, w: 180 });
   const dLa = km / 111.2, dLo = km / (111.2 * Math.cos(b.n * Math.PI / 180));
   return [b.w - dLo, b.s - dLa, b.e + dLo, b.n + dLa];
@@ -8537,7 +8551,7 @@ let geoProgress = null;
 function geoArea() {
   const boxes = [];
   const grow = (n, s, e, w, km) => { const dLat = km / 111.2, dLon = km / (111.2 * Math.cos((n + s) / 2 * Math.PI / 180)); return { n: n + dLat, s: s - dLat, e: e + dLon, w: w - dLon }; };
-  const b = S.files.length ? bounds(S.files) : null;
+  const b = areaFiles().length ? bounds(areaFiles()) : null;
   if (b) boxes.push(grow(b.n, b.s, b.e, b.w, 3));
   if (S.me) boxes.push(grow(S.me[0], S.me[0], S.me[1], S.me[1], 5));
   if (!boxes.length) boxes.push(grow(V.lat, V.lat, V.lon, V.lon, 8));
@@ -10318,6 +10332,7 @@ function liteStart(ids) {
   if (onlyCloud.length) toast(`${onlyCloud.length} Feld${onlyCloud.length > 1 ? 'er liegen' : ' liegt'} nur in der DJI Cloud – ${onlyCloud.length > 1 ? 'sie werden' : 'es wird'} ohne Vorab-Prüfung mitgeladen.`, 'warn', 6000);
   S.quietSrc = true; try { setSourceTo('none'); } finally { S.quietSrc = false; } S.files = fs; S.liteFiles = null; S.litePick = new Set(); if (S.liteRcUi) S.liteRcUi(); update(); fitBounds(padBB(bounds(fs))); draw();
   setTimeout(() => { fitBounds(padBB(bounds(fs))); draw(); }, 80);   // Karte auf genau diese Felder ausrichten – alle im Blick
+  if (isOnline()) geoSyncNow(false, true);   // falls das Gebiet noch fehlt: Geozonen/Hindernisse dafür holen
   S.liteIds = ids;   // geladen wird erst, wenn der Feldcheck bestätigt ist
   liteCheckDlg(fs, true);
 }
@@ -11141,6 +11156,7 @@ window.onUave = raw => {
   if (S.catSilent && (ev.type === 'status' || ev.type === 'progress')) return;
   if (S.catSilent && (ev.type === 'list' || ev.type === 'error')) {
     S.catSilent = false; syncEnd();
+    if (IS_LITE && ev.type === 'list') liteAreaSync();   // neue Felder im UAV Editor: Geodaten/Karte fürs Gebiet nachladen
     const wr = S.webRefresh; S.webRefresh = false;
     if (ev.type === 'error' && wr) toast('UAV Editor: ' + (ev.message || 'Fehler'), true, 7000);
     if (S.liteRefresh) { const man = S.liteRefresh === 'manual'; S.liteRefresh = false; const open = $('pgInfo').classList.contains('open') && $('lq');
@@ -11266,7 +11282,30 @@ if (IS_LITE && A.uaveDjiDownload && $('uUser') && !$('setDji')) { const host = $
   el.innerHTML = '<div class="l"><div class="t">Nur Felder aus der DJI Cloud</div><div class="v" id="vDji"></div></div><label class="sw"><input type="checkbox" id="sDji"><span></span></label>';
   host.after(el); const paint = () => { const st = djiState(); $('sDji').checked = djiWanted();
     $('vDji').textContent = (djiWanted() ? 'An: ' : 'Aus: ') + 'Die Feldliste zeigt nur Flugrouten, die im UAV Editor unter „DJI Cloud“ liegen, und lädt sie auch von dort.' + (st ? ` Zuletzt ${st.list.length} Routen (${new Date(st.at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}).` : ''); };
-  paint(); $('sDji').onchange = e => { setP('djiOnly', e.target.checked ? '1' : '0'); if (e.target.checked) djiRefresh(paint); paint(); { const lb = $('lUave'); if (lb) { const sv = lb.querySelector('svg'); lb.innerHTML = (djiWanted() ? '<svg viewBox="0 0 24 24"><path d="M7 18h10.5a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.6 9.1 4.5 4.5 0 0 0 7 18z"/></svg>DJI Cloud' : '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>UAV-Editor'); } } try { sideRender(); } catch (e2) { } }; }
+  paint(); $('sDji').onchange = e => { setP('djiOnly', e.target.checked ? '1' : '0'); if (e.target.checked) djiRefresh(paint); paint(); liteSrcBtn(); try { sideRender(); } catch (e2) { } };
+  el.classList.add('vhide'); }   // nur über das versteckte Menü (5× aufs Logo in den Einstellungen)
+function liteSrcBtn() { const lb = $('lUave'); if (lb) lb.innerHTML = (djiWanted() ? '<svg viewBox="0 0 24 24"><path d="M7 18h10.5a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.6 9.1 4.5 4.5 0 0 0 7 18z"/></svg>DJI Cloud' : '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>UAV-Editor'); }
+/** Lite: verstecktes Menü – 5× schnell aufs Logo in den Einstellungen tippen → woher die Felder kommen */
+if (IS_LITE) { let taps = 0, tt0 = 0; const logo = document.querySelector('#pgSet header .logo');
+  if (logo) logo.addEventListener('click', () => { const now = Date.now(); taps = now - tt0 < 1500 ? taps + 1 : 1; tt0 = now; if (taps >= 5) { taps = 0; liteSrcMenu(); } }); }
+function liteSrcMenu() {
+  const box = document.createElement('div'), canDji = !!A.uaveDjiDownload;
+  const paint = () => { const dj = djiWanted(), rc = P.liteRcBtn === '1';
+    box.innerHTML = `<div class="meta" style="margin-bottom:8px">Woher die Lite-App Felder anbietet und lädt:</div>
+      <label class="pick"><input type="radio" name="lsrc" value="dji"${dj ? ' checked' : ''}${canDji ? '' : ' disabled'}><span><b>☁ Nur DJI Cloud</b> (Standard)<small style="display:block;white-space:normal;font-weight:400;opacity:.85;margin-top:2px">Die Suche zeigt nur Flugrouten, die im UAV Editor unter „DJI Cloud“ liegen, und lädt sie von dort.</small></span></label>
+      <label class="pick"><input type="radio" name="lsrc" value="uave"${dj ? '' : ' checked'}><span><b>UAV Editor – alle Felder</b> (wie die PC-App)<small style="display:block;white-space:normal;font-weight:400;opacity:.85;margin-top:2px">Die Suche zeigt alle Felder des aktuellen Jahres aus dem UAV Editor, auch solche, die nicht in der DJI Cloud liegen. Geladen wird über den UAV-Editor-Export.</small></span></label>
+      <label class="pick" style="margin-top:10px"><input type="checkbox" id="lsrcRc"${rc ? ' checked' : ''}><span><b>Missionen der Fernsteuerung</b><small style="display:block;white-space:normal;font-weight:400;opacity:.85;margin-top:2px">Zeigt oben den Knopf „Fernsteuerung“: Missionen, die schon in DJI Pilot 2 liegen, auf der Karte anzeigen.</small></span></label>`;
+    box.querySelectorAll('[name=lsrc]').forEach(r => r.onchange = () => { setP('djiOnly', r.value === 'dji' ? '1' : '0'); if (r.value === 'dji' && A.uaveDjiList) djiRefresh(); liteSrcBtn(); S.liteAreaF = null; liteAreaSync(); paint(); });
+    box.querySelector('#lsrcRc').onchange = e => { const c = $('sLiteRc'); if (c) { c.checked = e.target.checked; c.onchange({ target: c }); } else setP('liteRcBtn', e.target.checked ? '1' : '0'); };
+  };
+  paint();
+  confirmDlg('Datenquellen (Experten)', '', [], 'Fertig', () => { }, box); $('dNo').style.display = 'none';
+}
+/** Lite: Geodaten, Hindernisse und Karte fürs ganze Gebiet der Felder (DJI Cloud bzw. UAV Editor) holen – im Hintergrund, nur was fehlt */
+function liteAreaSync() { if (!IS_LITE) return; clearTimeout(S.liteAreaT); S.liteAreaT = setTimeout(() => { S.liteAreaF = null; if (!isOnline()) return; geoSyncNow(false, true); einsatzAuto(); }, 3000); }
+if (IS_LITE) setTimeout(() => {   // Start: Feldliste (UAV Editor, höchstens alle 6 h) und DJI-Cloud-Liste still auffrischen, danach das Gebiet nachladen
+  if (!isOnline()) return; try { catRefresh(false); } catch (e) { }
+  if (djiWanted() && A.uaveDjiList && !S.djiBusy && (!djiState() || Date.now() - djiState().at > 3600000)) djiRefresh(); else liteAreaSync(); }, 6000);
 if (IS_LITE || IS_WEB) { const v = $('bTour').closest('.set').querySelector('.v'); if (v) v.textContent = IS_LITE ? 'Schritt für Schritt: Felder aus dem UAV Editor holen, prüfen und für DJI Pilot 2 bereitlegen' : 'Schritt für Schritt: Felder finden, Pre-Check, Netzbetreiber und Forstämter informieren'; }
 $('bTour').onclick = () => { if (IS_LITE || IS_WEB) { $('pgSet').classList.remove('open'); IS_LITE ? liteCoach() : webCoach(); } else tourStart(); };
 $('bSetup').onclick = () => { $('pgSet').classList.remove('open'); showSetup(0); };
@@ -11780,7 +11819,7 @@ const TOUR = [
   ['#net', 'Online / Offline', `Zeigt, ob Internet da ist. Ohne Netz läuft alles aus dem Speicher der Fernsteuerung – nur „Felder laden“ und das Auffrischen brauchen Internet.`],
   ['#bPlan', 'Einsatzplan', `Reihenfolge der markierten Wiesen, Fahrtwege, Akku-Planung und gemeinsamer Treffpunkt für Pilot und Läufer (in den Einstellungen einschaltbar).`],
   [null, 'Offline-Daten', `Alles Geladene liegt im Ordner <b>„Kitzrettung Cache“</b> und bleibt bei Updates und Neuinstallation erhalten.<br>Unter Einstellungen → Karte → <b>Offline-Daten</b> siehst du jeden Bereich mit Größe und Stand. „Löschen“ und „Neu holen“ wirken nur auf diesen einen Bereich.<br>Feldwege, Leitungen, Masten, Orte und Flugplätze kommen aus der <b>OpenStreetMap-Datei von Geofabrik</b> (einige hundert MB je Bundesland, einmal im WLAN). Unter „Einsatz-Bundesländer“ legst du fest, für welche Länder sie geladen wird.`],
-  [null, 'Tasten der Fernsteuerung', `Auf der <b>DJI RC Plus 2</b> lassen sich die Tasten L1–L3 und R1–R3 belegen (Einstellungen → Drohne &amp; Dateien): L1/L2 zoomen, L3 alles zeigen, R1 Kartenart, R2 Info-Modus, R3 Standort. Die <b>Enter-Taste</b> (5D drücken) schaltet die Felder um: UAV-Editor → beides → Fernsteuerung → keine. Hast du gerade mit 5D links/rechts durch die Felder geblättert, markiert sie stattdessen das gewählte Feld. Die Leiste wandert dann nach oben.<br>Auf Seiten wie dem Pre-Check blättern L1/L2 nach oben und unten.`],
+  [null, 'Tasten der Fernsteuerung', `Auf der <b>DJI RC Plus 2</b> lassen sich die Tasten L1–L3 und R1–R3 belegen (Einstellungen → Drohne &amp; Dateien): L1/L2 zoomen, L3 alles zeigen, R1 Kartenart, R2 Info-Modus, R3 Standort. Die <b>Enter-Taste</b> (5D drücken) schaltet die Felder um: UAV-Editor → beides → Fernsteuerung → keine. Hast du gerade mit 5D links/rechts durch die Felder geblättert, markiert sie stattdessen das gewählte Feld.<br>Auf Seiten wie dem Pre-Check blättern L1/L2 nach oben und unten.`],
   ['#bSet', 'Einstellungen – einmal einrichten', `<ul>
     <li><b>Drohne</b> dieser Fernsteuerung (Mavic 3T / Matrice 4T) – bestimmt Feldvariante und Missionshöhe</li>
     <li><b>Fernpilotenzeugnis</b> A1/A3 oder A2, <b>Allgemeinerlaubnis</b> je Bundesland, <b>Allgemeinverfügungen</b> – davon hängt ab, welche Geozonen grün werden</li>
