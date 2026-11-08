@@ -1920,7 +1920,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { setupDone: '', avs: '', liteRcBtn: '0', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
+const DEF = { setupDone: '', avs: '', showObs: '1', showLines: '1', liteRcBtn: '0', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
    planTool: '0', sideGroup: '0', catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
@@ -4008,7 +4008,7 @@ let uvOvT = 0, uvOvLast = '';
 // Daten nachgeladen (Landesgrenzen, Geozonen, Leitungen) oder Zeugnis/Bundesländer geändert → Ebenen auf der UAV-Karte neu färben.
 // Vorher blieb z. B. alles rot, wenn der UAV-Editor-Tab vor den Landesgrenzen fertig war (Bundesland unbekannt = keine Allgemeinerlaubnis).
 let uvOvSig = '';
-function uvOvCheck() { const sg = [S.regions.length, (S.geo || []).length, (S.osm || []).length, P.lic, P.aeStates, P.avs, P.avgi, P.power].join('|');
+function uvOvCheck() { const sg = [S.regions.length, (S.geo || []).length, (S.osm || []).length, P.lic, P.aeStates, P.avs, P.avgi, P.power, (S.obs || []).length, P.showObs, P.osmPower, flightHeight()].join('|');
   if (sg === uvOvSig) return; uvOvSig = sg; uvOvLast = ''; setTimeout(() => window.onUvBounds(UV.lastB), 0); }
 window.onUvBounds = b => {
   if (b) UV.lastB = b;
@@ -4095,8 +4095,27 @@ function uvOverlayFC(b) {
     if (P.airf === '1') (S.airfields || []).forEach(a => { const h = a.kind === 'heliport', q = h && S.geo.length && !a.rth ? heliSnap(a) : a;
       add(q.lat, q.lon, h ? 'H' : '✈', a.rth ? '#b05cc8' : h ? '#7a1fa2' : '#0b3d91', afTxt(a.name || a.icao, h, false, isRescueHeli(a))); });
   }
-  return { type: 'FeatureCollection', features: feats };
+  // Hindernisse (Windräder, Masten, Türme, Schornsteine, Strommasten) mit denselben Symbolen wie auf unserer Karte
+  const icons = {};
+  if (b.z >= 12 && P.osmPower === '1' && P.showObs !== '0') {
+    const icon = (t, tt) => { const k = t + (t === 'tower' ? ':' + (tt || '') : ''); if (!icons[k]) icons[k] = obsIconUrl(t, tt); return k; };
+    let n = 0; const fh = flightHeight();
+    for (const o of S.obs || []) { if (n > 400) break; if (o.lat > b.n + my || o.lat < b.s - my || o.lon > b.e + mx || o.lon < b.w - mx) continue;
+      if (o.t !== 'wind' && !o.top && b.z < 14) continue; if (o.t === 'pmast' && b.z < 14) continue; n++;
+      const own = obsOwn(o), warn = fh && o.top && o.top >= fh - 20;
+      const html = `<div style="font-weight:800;font-size:14px">${own && own.toLowerCase().includes(obsName(o).toLowerCase()) ? esc(own) : esc(obsName(o)) + (own ? ' „' + esc(own) + '“' : '')}</div>`
+        + `<div style="margin-top:2px">${o.top ? `<b${warn ? ' style="color:#b3131b"' : ''}>${o.est ? 'ca. ' : ''}${Math.round(o.top)} m hoch</b>${warn ? ' – höher als bzw. nah an der Flughöhe (' + fh + ' m)' : ''}` : 'Höhe nicht eingetragen'}</div>`
+        + (o.t === 'wind' ? `<div style="margin-top:4px;color:#a85d00">100 m Abstand halten (§ 21h LuftVO)${o.hub ? ` · Nabe ${Math.round(o.hub)} m` : ''}${o.rot ? ` · Rotor ⌀ ${Math.round(o.rot)} m` : ''}</div>` : '')
+        + '<div style="margin-top:3px;color:#5d6975;font-size:11px">Quelle: ' + (o.mastr ? 'Marktstammdatenregister' : 'OpenStreetMap') + '</div>';
+      feats.push({ type: 'Feature', properties: { ic: icon(o.t, o.tt), i: html }, geometry: { type: 'Point', coordinates: [o.lon, o.lat] } });
+      if (o.t === 'wind' && b.z >= 14) { const k = Math.cos(o.lat * Math.PI / 180);   // 100-m-Schutzabstand als Kreis
+        feats.push({ type: 'Feature', properties: { c: '#e07800', fo: 0.08, w: 1.5, i: html }, geometry: { type: 'Polygon', coordinates: [Array.from({ length: 49 }, (_, i) => { const t = i / 48 * 2 * Math.PI; return [o.lon + Math.sin(t) * WIND_ZONE / (111320 * k), o.lat + Math.cos(t) * WIND_ZONE / 111320]; })] } }); }
+    }
+  }
+  return { type: 'FeatureCollection', features: feats, icons };
 }
+/** Hindernis-Symbol als Bild (für die Karte im UAV Editor) */
+function obsIconUrl(t, tt) { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const c = cv.getContext('2d'); obsIcon(c, t, 32, 32, 2, tt); return cv.toDataURL('image/png'); }
 window.onUvSnap = url => { const sl = $('uvSlot'); if (!sl || !UV.hid) return; sl.style.backgroundImage = `url("${url}")`; sl.classList.add('snap'); };
 /** Anmeldung auf der UAV-Editor-Seite wurde mitgelesen und (verschlüsselt) gespeichert */
 window.onUaveCredCaptured = () => {
