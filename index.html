@@ -73,6 +73,11 @@
   #bar .srcseg button.lp{transform:scale(.94);box-shadow:0 0 0 3px #fff inset}
   /* Varianten: was es in der Desktop- bzw. Lite-Version nicht gibt */
   .vhide{display:none!important}
+  #geoPill{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(30px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:8px;padding:8px 14px 8px 10px;border-radius:999px;
+    background:rgba(33,47,61,.88);color:#fff;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.25);pointer-events:none;transition:opacity .35s}
+  #geoPill.gone{opacity:0}
+  #geoPill i{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:gpspin .9s linear infinite}
+  @keyframes gpspin{to{transform:rotate(360deg)}}
   .v-web #bLoc,.v-web #wind,.v-web #bSrcK,.v-web #bPlan,.v-web #notam .wx{display:none!important}
   .v-web #bar .srcseg button.on{background:#00a99d}
   /* PC: Werkzeugleiste oben, Maus statt Finger – kompaktere Knöpfe, Hover, Mauszeiger */
@@ -5498,8 +5503,10 @@ function einsatzBox(km) {
 }
 $('bGeoNow').onclick = () => {   // nur die Geozonen-Daten neu – Karte, Luftbild usw. bleiben, wie sie sind
   if (!isOnline()) return toast('Dafür wird Internet gebraucht.', true);
+  if (IS_LITE) { geoPill('Aktualisiere Geodaten …'); geoSyncNow(true, true); return; }   // Lite: alles auf einmal
   geoSyncNow(true, true, true); toast('Geozonen-Daten werden neu geholt – sonst nichts.');
 };
+if (IS_LITE) $('bGeoNow').textContent = 'Aktualisieren';
 
 // ================= Geozonen: Regeln =================
 const GEO_ALL = ['flughaefen','flugplaetze','kontrollzonen','flugbeschraenkungsgebiete','temporaere_betriebseinschraenkungen','modellflugplaetze',
@@ -8565,13 +8572,28 @@ function geoText(long) {
 let geoWarned = false;
 function geoBadge() {
   if ($('pgSet').classList.contains('open') && $('vGeo')) $('vGeo').textContent = geoText(true);
-  if (!A.geoStatus || P.geo !== '1' || geoProgress || geoWarned) return;
-  const st = JSON.parse(A.geoStatus() || '{}');
-  if (st.fetched && Date.now() - st.fetched > 7 * 86400000) { geoWarned = true; toast(`⚠ Geozonen veraltet (Stand ${fmtDate(st.fetched)}) – bitte mit Internet aktualisieren.`, true, 6000); }
+  if (!A.geoStatus || P.geo !== '1' || geoProgress) return;
+  const st = JSON.parse(A.geoStatus() || '{}'), old = t => t && Date.now() - t > 7 * 86400000;
+  if (!old(st.fetched) && !old(st.osmFetched)) return;
+  // Älter als 7 Tage: mit Internet automatisch im Hintergrund aktualisieren (höchstens alle 6 h ein Versuch) – vorher musste man das von Hand
+  // in den Einstellungen tun, und in der Lite-App war der Knopf ausgeblendet
+  if (isOnline()) { if (S.geoAutoAt && Date.now() - S.geoAutoAt < 6 * 3600000) return; S.geoAutoAt = Date.now(); geoPill('Aktualisiere Geodaten …'); geoSyncNow(true, true); return; }
+  if (geoWarned) return; geoWarned = true;
+  toast(`⚠ ${old(st.fetched) ? 'Geozonen' : 'Hindernis- und Leitungsdaten'} veraltet (Stand ${fmtDate(old(st.fetched) ? st.fetched : st.osmFetched)}) – wird automatisch aktualisiert, sobald Internet da ist.`, 'warn', 8000);
 }
+window.addEventListener('online', () => setTimeout(geoBadge, 3000));
+/** Kleines Fenster unten in der Mitte: „Aktualisiere Geodaten …“ mit Fortschritt – blockiert nichts, die App bleibt bedienbar */
+function geoPill(t) {
+  let e = $('geoPill');
+  if (!t) { if (e) { e.classList.add('gone'); setTimeout(() => e && e.classList.contains('gone') && e.remove(), 400); } return; }
+  if (!e) { e = document.createElement('div'); e.id = 'geoPill'; e.innerHTML = '<i></i><span></span>'; document.body.appendChild(e); }
+  e.classList.remove('gone'); e.querySelector('span').textContent = t;
+  clearTimeout(S.geoPillT); S.geoPillT = setTimeout(() => geoPill(''), 5 * 60000);   // Sicherheit: nie dauerhaft stehen lassen
+}   // wieder Internet: veraltete Daten gleich nachholen
 window.onGeo = raw => {
   const ev = JSON.parse(raw);
-  if (ev.type === 'progress') { geoProgress = `${ev.done}/${ev.total}`; geoBadge(); return; }
+  if (ev.type === 'progress') { geoProgress = `${ev.done}/${ev.total}`; if ($('geoPill')) geoPill(`Aktualisiere Geodaten … ${Math.round(ev.done / Math.max(1, ev.total) * 100)} %`); geoBadge(); return; }
+  if ($('geoPill')) { geoPill(''); if (ev.type === 'done' && ev.ok) toast('✓ Geodaten aktualisiert', 'ok', 2500); }
   geoProgress = null;
   if (ev.type === 'offline') { if (ev.force) toast('Offline – Geozonen werden aktualisiert, sobald wieder Internet da ist.'); geoBadge(); return; }
   // Automatische Aktualisierung: nur leiser Hinweis; rot nur, wenn gar keine Geozonen gespeichert sind oder von Hand gestartet
@@ -10734,7 +10756,7 @@ function liteInit() {
     if (P.liteRcBtn !== '1') d.style.display = 'none';
   }
   // Lite: Einstellungen auf das Nötigste – nur Drohne, UAV-Editor-Zugang und Fernpilotenzeugnis
-  const KEEP = ['Drohne dieser Fernsteuerung', 'UAV Editor – Zugang', 'Fernpilotenzeugnis', 'Überflughöhe an Stromleitungen', 'Pre-Check', 'Einführung'];
+  const KEEP = ['Drohne dieser Fernsteuerung', 'UAV Editor – Zugang', 'Fernpilotenzeugnis', 'Überflughöhe an Stromleitungen', 'Pre-Check', 'Einführung', 'Geozonen-Daten'];   // Geozonen-Daten: Knopf „Aktualisieren“
   document.querySelectorAll('#pgSet .set').forEach(el => { const t = el.querySelector('.t'), tx = t ? t.textContent.trim() : '';
     if (!KEEP.some(k => tx.startsWith(k)) || HIDE.some(h => tx.startsWith(h))) el.classList.add('vhide'); });
   document.querySelectorAll('#pgSet .setcat, #pgSet .setnav').forEach(el => el.classList.add('vhide'));
@@ -12256,7 +12278,7 @@ load(false);
 netBadge();
 loadAirfields();
 loadNotams();
-geoBadge();
+geoBadge(); setTimeout(geoBadge, 4000);   // Start: kurz warten, bis Internet erkannt ist, dann veraltete Geodaten im Hintergrund holen
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
 window.KR = { opImage2: async sel => { const ops = netOps(sel); return ops.length ? opImage(ops, 0) : null; }, fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
