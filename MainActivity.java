@@ -1524,7 +1524,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         pts.put(new JSONObject().put("t", wind ? "wind" : mm.replace("communications_tower", "tower"))
                                 .put("h", num(t.optString("height"))).put("hub", num(t.optString("generator:hub_height", t.optString("hub_height"))))
                                 .put("rot", num(t.optString("rotor:diameter", t.optString("generator:rotor_diameter"))))
-                                .put("n", t.optString("name", t.optString("operator", ""))).put("lat", lat).put("lon", lon));
+                                .put("n", t.optString("name", t.optString("operator", ""))).put("lat", lat).put("lon", lon)
+                                .put("tt", "communications_tower".equals(mm) ? "fernmelde" : t.optString("tower:type", "")).put("nm", t.optString("name", "")));
                     }
                 }
             } catch (Exception ignored) { }
@@ -2466,7 +2467,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             for (int i = 0; i < list.length(); i++) { JSONObject w = list.getJSONObject(i); String k = djiNorm(w.optString("name")); if (!by.containsKey(k)) by.put(k, w); }   // neueste zuerst
             for (int i = 0; i < ids.length(); i++) {
                 if (uaveCancel) break;
-                String id = ids.getString(i), name = nameOf(id); JSONObject w = by.get(djiNorm(name));
+                // Einträge: "id" oder {id, name, wid} – Name und Cloud-ID von der Seite (nach einem Neustart kennt die App die Feldnamen sonst noch nicht)
+                Object it = ids.get(i); String id, name, wid = "";
+                if (it instanceof JSONObject) { JSONObject o = (JSONObject) it; id = o.optString("id"); name = o.optString("name", ""); wid = o.optString("wid", ""); if (name.isEmpty()) name = nameOf(id); }
+                else { id = String.valueOf(it); name = nameOf(id); }
+                JSONObject w = by.get(djiNorm(name));
+                if (w == null && !wid.isEmpty()) for (int j = 0; j < list.length(); j++) if (wid.equals(list.getJSONObject(j).optString("id"))) { w = list.getJSONObject(j); break; }
                 uaveEvent(new JSONObject().put("type", "progress").put("done", done).put("total", ids.length()).put("name", name));
                 try {
                     if (w == null) throw new Exception("nicht in der DJI Cloud");
