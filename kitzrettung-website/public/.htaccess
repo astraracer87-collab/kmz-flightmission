@@ -1,0 +1,55 @@
+# Für Apache-Webspace (z. B. All-Inkl, IONOS, Strato, Netcup).
+
+ErrorDocument 404 /404.html
+Options -Indexes
+AddDefaultCharset utf-8
+AddType application/manifest+json .webmanifest
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Immer HTTPS und immer mit www
+  RewriteCond %{HTTPS} !=on [OR]
+  RewriteCond %{HTTP_HOST} !^www\. [NC]
+  RewriteCond %{HTTP_HOST} ^(?:www\.)?(.+)$ [NC]
+  RewriteRule ^ https://www.%1%{REQUEST_URI} [R=301,L,NE]
+</IfModule>
+
+<IfModule mod_alias.c>
+  # Alte Adressen der Wix-Seite und der Replit-Version weiterleiten (wichtig für Google und alte Links)
+  RedirectMatch 301 ^/(%C3%BCber-uns|über-uns|ueber-uns)$ /ueber-uns/
+  RedirectMatch 301 ^/(warum|rechtslage|vereinssatzung|kitzrettung)$ /ueber-uns/
+  RedirectMatch 301 ^/wie$ /ablauf-der-suche/
+  RedirectMatch 301 ^/(mithelfen|formular-mithelfen)$ /mitmachen/
+  RedirectMatch 301 ^/(vorbereitung|verhalten|kitzfund|nachbereitung)$ /mitmachen/helfer/
+  RedirectMatch 301 ^/(anmelden|formular-anfordern|erlaubnis-jagdaus.*)$ /landwirte/
+  RedirectMatch 301 ^/kontaktformular-allgemein$ /kontakt/
+  RedirectMatch 301 ^/rechtliches$ /impressum/
+  RedirectMatch 301 ^/news-presse/?$ /news/
+  RedirectMatch 301 ^/mitgliedsantrag\.pdf$ /downloads/aufnahmeantrag.pdf
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  Header always set Strict-Transport-Security "max-age=31536000"
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType text/javascript "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/gif "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType application/pdf "access plus 1 week"
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript image/svg+xml application/xml text/plain application/manifest+json
+</IfModule>

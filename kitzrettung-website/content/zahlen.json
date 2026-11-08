@@ -1,0 +1,13 @@
+{
+  "ueberschrift": "Unsere Erfolge 2025/2026",
+  "unterzeile": "Kleine Taten. Große Wirkung.",
+  "werte": [
+    { "zahl": "über 100", "text": "gerettete Rehkitze", "symbol": "kitz" },
+    { "zahl": "über 110", "text": "durchgeführte Sucheinsätze", "symbol": "einsatz" },
+    { "zahl": "über 700 ha", "text": "abgesuchte Wiesenfläche – etwa 980 Fußballfelder", "symbol": "flaeche" },
+    { "zahl": "rund 380", "text": "Wiesen und Schläge", "symbol": "wiese" },
+    { "zahl": "rund 24", "text": "ehrenamtliche Helferinnen und Helfer", "symbol": "helfer" },
+    { "zahl": "3", "text": "vereinseigene Wärmebilddrohnen", "symbol": "drohne" }
+  ],
+  "abschluss": "Diese Zahlen zeigen, was gemeinsames Engagement bewirken kann."
+}

@@ -1,0 +1,22 @@
+{
+  "vereinsname": "Kitzrettung Limburg e. V.",
+  "domain": "https://www.kitzrettung-limburg.de",
+  "email": "kitzrettung-limburg@online.de",
+  "telefon": "0176 7355 6325",
+  "anschrift": "c/o Klaus Maletzki, Feldbergstraße 11a, 65550 Limburg",
+  "instagram": "https://www.instagram.com/kitz_rettunglimburg/",
+  "facebook": "https://www.facebook.com/KitzrettungLimburgeV",
+  "kontoinhaber": "Kitzrettung Limburg e.V.",
+  "bank": "Kreissparkasse Limburg",
+  "iban": "DE94 5115 0018 0000 0503 77",
+  "bic": "HELADEF1LIM",
+  "verwendungszweck": "Spende Kitzrettung",
+  "paypal": "https://www.paypal.com/donate?token=rxQikcGGHjTSFqQIddziHXtklC-1SM_BZUiuIVY9w-0qbChBrm_YAAuIEeF6lAJjHBjjCif0dmJiZADE",
+  "uav_editor": "https://app.uaveditor.com/feldanmeldung/N1fT-U0Q9aEI",
+  "beitrag_einzel": "12 €",
+  "beitrag_familie": "18 €",
+  "hosting": {
+    "anbieter": "",
+    "anschrift": ""
+  }
+}

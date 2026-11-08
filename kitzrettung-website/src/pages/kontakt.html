@@ -1,0 +1,33 @@
+---
+title: Kontakt
+description: So erreichen Sie die Kitzrettung Limburg e. V. – per E-Mail, Telefon oder Post. Feldsuche anmelden, mithelfen oder einfach Fragen stellen.
+---
+<section class="seitenkopf">
+  <div class="container">
+    <p class="kicker">Kontakt</p>
+    <h1>Wir sind für Sie da</h1>
+    <p class="einleitung">Sie möchten eine Fläche anmelden, mithelfen oder haben eine Frage? Melden Sie sich bei uns – am schnellsten per E-Mail oder Telefon.</p>
+  </div>
+</section>
+
+<section class="abschnitt">
+  <div class="container raster-2">
+    <div>
+      <h2>Direkt erreichen</h2>
+      {{> kontakt-box}}
+      <h3 class="mt-2">Postanschrift</h3>
+      <p>{{site.vereinsname}}<br>{{site.anschrift}}</p>
+    </div>
+    <div>
+      <h2>Worum geht es?</h2>
+      <p>Mit diesen Knöpfen öffnet sich Ihr E-Mail-Programm mit dem passenden Betreff.</p>
+      <div class="kontakt-box">
+        <a class="kontakt-box__zeile" href="/landwirte/#anmelden">{{icon:flaeche}}<span><small>Landwirtschaft &amp; Jagd</small>Wiese zur Suche anmelden</span></a>
+        <a class="kontakt-box__zeile" href="mailto:{{site.email}}?subject=Ich%20m%C3%B6chte%20mithelfen">{{icon:helfer}}<span><small>Ehrenamt</small>Ich möchte mithelfen</span></a>
+        <a class="kontakt-box__zeile" href="mailto:{{site.email}}?subject=Frage%20zu%20Spende%20oder%20Spendenquittung">{{icon:herz}}<span><small>Spenden</small>Frage zu Spende oder Spendenquittung</span></a>
+        <a class="kontakt-box__zeile" href="mailto:{{site.email}}?subject=Presseanfrage">{{icon:mail}}<span><small>Presse</small>Presseanfrage</span></a>
+        <a class="kontakt-box__zeile" href="mailto:{{site.email}}?subject=Allgemeine%20Anfrage">{{icon:mail}}<span><small>Alles andere</small>Allgemeine Anfrage</span></a>
+      </div>
+    </div>
+  </div>
+</section>

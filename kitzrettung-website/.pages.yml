@@ -1,0 +1,114 @@
+# Konfiguration für Pages CMS (https://pagescms.org)
+# Damit können Vorstandsmitglieder ohne Technikkenntnisse News schreiben,
+# die Erfolgszahlen anpassen und einen Hinweis-Balken (z. B. für Termine) einblenden.
+# Jede Änderung wird als Commit gespeichert; GitHub baut die Seite danach automatisch neu.
+
+media:
+  input: public/images/uploads
+  output: /images/uploads
+
+content:
+  - name: news
+    label: News & Presse
+    type: collection
+    path: content/news
+    filename: "{year}-{month}-{day}-{primary}.md"
+    view:
+      fields: [title, date, draft]
+      primary: title
+      sort: [date, title]
+      default:
+        sort: date
+        order: desc
+    fields:
+      - name: title
+        label: Überschrift
+        type: string
+        required: true
+      - name: date
+        label: Datum
+        type: date
+        required: true
+      - name: excerpt
+        label: Kurztext (erscheint auf der Übersicht, 1–2 Sätze)
+        type: text
+      - name: image
+        label: Bild (querformatig, am besten Foto vom Handy)
+        type: image
+      - name: image_alt
+        label: Bildbeschreibung (Was ist auf dem Bild zu sehen?)
+        type: string
+      - name: link
+        label: Weiterführender Link (optional, z. B. Zeitungsartikel oder Instagram)
+        type: string
+      - name: link_text
+        label: Beschriftung des Links (z. B. „Originalartikel lesen“)
+        type: string
+      - name: draft
+        label: Entwurf – noch nicht veröffentlichen
+        type: boolean
+        default: false
+      - name: body
+        label: Text
+        type: rich-text
+
+  - name: zahlen
+    label: Erfolge (Zahlen)
+    type: file
+    path: content/zahlen.json
+    format: json
+    fields:
+      - name: ueberschrift
+        label: Überschrift
+        type: string
+      - name: unterzeile
+        label: Kleine Zeile darüber
+        type: string
+      - name: werte
+        label: Zahlen
+        type: object
+        list: true
+        fields:
+          - name: zahl
+            label: Zahl (z. B. „über 100“)
+            type: string
+          - name: text
+            label: Beschreibung
+            type: string
+          - name: symbol
+            label: Symbol
+            type: select
+            options:
+              values:
+                - { value: kitz, label: Rehkitz }
+                - { value: einsatz, label: Uhr / Einsatz }
+                - { value: flaeche, label: Karte / Fläche }
+                - { value: wiese, label: Gras / Wiese }
+                - { value: helfer, label: Menschen / Helfer }
+                - { value: drohne, label: Drohne }
+                - { value: herz, label: Herz }
+      - name: abschluss
+        label: Satz unter den Zahlen
+        type: string
+
+  - name: hinweis
+    label: Hinweis-Balken (z. B. Termin)
+    type: file
+    path: content/hinweis.json
+    format: json
+    fields:
+      - name: aktiv
+        label: Hinweis anzeigen
+        type: boolean
+      - name: text
+        label: Text (z. B. „Am 18. Oktober sind wir beim Tag der Landwirtschaft in Limburg!“)
+        type: string
+      - name: link
+        label: Link (optional)
+        type: string
+      - name: link_text
+        label: Beschriftung des Links
+        type: string
+      - name: anzeigen_bis
+        label: Automatisch ausblenden nach (Datum, optional)
+        type: date

@@ -1,0 +1,50 @@
+# Baut die Webseite bei jeder Änderung auf dem Hauptzweig (auch bei News aus Pages CMS)
+# und lädt sie per FTPS auf den Webspace hoch.
+#
+# Einmalig in GitHub hinterlegen: Settings → Secrets and variables → Actions → New repository secret
+#   FTP_SERVER     z. B. w0123456.kasserver.com  (steht in den Zugangsdaten des Hosters)
+#   FTP_USERNAME   FTP-Benutzer
+#   FTP_PASSWORD   FTP-Passwort
+#   FTP_DIR        Zielordner auf dem Webspace, z. B. /  oder /kitzrettung/  (mit Schrägstrich am Ende)
+
+name: Webseite bauen und veröffentlichen
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FTP_EINGERICHTET: ${{ secrets.FTP_SERVER != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Per FTPS hochladen
+        if: env.FTP_EINGERICHTET == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./dist/
+          server-dir: ${{ secrets.FTP_DIR }}
+
+      - name: Hinweis, falls FTP noch fehlt
+        if: env.FTP_EINGERICHTET != 'true'
+        run: echo "::warning::FTP-Zugangsdaten fehlen noch – die Seite wurde gebaut, aber nicht hochgeladen."

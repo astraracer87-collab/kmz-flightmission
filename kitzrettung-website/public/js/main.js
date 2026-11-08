@@ -1,0 +1,104 @@
+// Kitzrettung Limburg – kleine Helfer für Menü, externe Inhalte, IBAN kopieren und Wetter.
+// Die Seite funktioniert auch ohne JavaScript; hier wird nur Komfort ergänzt.
+(function () {
+  'use strict';
+
+  // Mobiles Menü
+  var kopf = document.querySelector('.kopf');
+  var knopf = document.querySelector('.menue-knopf');
+  if (kopf && knopf) {
+    knopf.addEventListener('click', function () {
+      var offen = kopf.classList.toggle('offen');
+      knopf.setAttribute('aria-expanded', offen ? 'true' : 'false');
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && kopf.classList.contains('offen')) {
+        kopf.classList.remove('offen');
+        knopf.setAttribute('aria-expanded', 'false');
+        knopf.focus();
+      }
+    });
+  }
+
+  // Externe Inhalte (YouTube, Instagram, UAV Editor) erst nach Klick laden – so fließen
+  // keine Daten an Dritte, bevor jemand das ausdrücklich möchte.
+  document.querySelectorAll('[data-extern]').forEach(function (box) {
+    var btn = box.querySelector('button');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var f = document.createElement('iframe');
+      f.src = box.getAttribute('data-extern');
+      f.title = box.getAttribute('data-titel') || 'Externer Inhalt';
+      f.loading = 'lazy';
+      f.allow = 'fullscreen; picture-in-picture; encrypted-media';
+      f.referrerPolicy = 'strict-origin-when-cross-origin';
+      box.innerHTML = '';
+      box.appendChild(f);
+      box.classList.add('geladen');
+    });
+  });
+
+  // IBAN kopieren
+  document.querySelectorAll('[data-kopieren]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var text = b.getAttribute('data-kopieren');
+      var fertig = function () {
+        var alt = b.textContent;
+        b.textContent = 'kopiert ✓';
+        setTimeout(function () { b.textContent = alt; }, 1800);
+      };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(fertig, function () {});
+    });
+  });
+
+  // Wetter für Limburg (Open-Meteo, Modell DWD ICON) – nur nach Klick
+  var wetter = document.querySelector('[data-wetter]');
+  if (wetter) {
+    var wbtn = wetter.querySelector('button');
+    var ziel = wetter.querySelector('.wetter__tage');
+    var status = wetter.querySelector('.wetter__status');
+    var TAGE = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
+    var zahl = function (v, d) { return v == null || isNaN(v) ? '–' : Number(v).toLocaleString('de-DE', { maximumFractionDigits: d === undefined ? 1 : d }); };
+    wbtn.addEventListener('click', function () {
+      wbtn.disabled = true;
+      status.textContent = 'Vorhersage wird geladen …';
+      var url = 'https://api.open-meteo.com/v1/forecast?latitude=50.41&longitude=8.08' +
+        '&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,sunrise' +
+        '&hourly=visibility&models=icon_seamless&wind_speed_unit=ms&timezone=Europe%2FBerlin&forecast_days=4';
+      fetch(url).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
+        var html = '';
+        d.daily.time.forEach(function (t, i) {
+          // geringste Sichtweite zwischen 3 und 12 Uhr (Einsatzzeit)
+          var sicht = null;
+          d.hourly.time.forEach(function (h, j) {
+            if (h.indexOf(t) === 0) {
+              var std = Number(h.slice(11, 13));
+              var v = d.hourly.visibility[j];
+              if (std >= 3 && std <= 12 && v != null) sicht = sicht == null ? v : Math.min(sicht, v);
+            }
+          });
+          var datum = new Date(t + 'T12:00:00');
+          var boe = d.daily.wind_gusts_10m_max[i];
+          var sichtKm = sicht == null ? null : sicht / 1000;
+          var sichtKlasse = sichtKm == null ? '' : sichtKm < 1 ? 'warn' : sichtKm < 3 ? 'hinweis' : '';
+          var boeKlasse = boe > 12 ? 'warn' : '';
+          var auf = d.daily.sunrise[i] ? d.daily.sunrise[i].slice(11, 16) : '–';
+          html += '<div class="wetter__tag"><h4>' + TAGE[datum.getDay()] + ' ' + datum.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '</h4><dl>' +
+            '<dt>Temperatur</dt><dd>' + zahl(d.daily.temperature_2m_min[i]) + ' bis ' + zahl(d.daily.temperature_2m_max[i]) + ' °C</dd>' +
+            '<dt>Niederschlag</dt><dd>' + zahl(d.daily.precipitation_sum[i]) + ' mm</dd>' +
+            '<dt>Wind max.</dt><dd>' + zahl(d.daily.wind_speed_10m_max[i]) + ' m/s</dd>' +
+            '<dt>Böen max.</dt><dd class="' + boeKlasse + '">' + zahl(boe) + ' m/s</dd>' +
+            '<dt>Sicht 3–12 Uhr</dt><dd class="' + sichtKlasse + '">' + (sichtKm == null ? '–' : zahl(sichtKm) + ' km') + '</dd>' +
+            '<dt>Sonnenaufgang</dt><dd>' + auf + ' Uhr</dd>' +
+            '</dl></div>';
+        });
+        ziel.innerHTML = html;
+        status.textContent = 'Stand: ' + new Date().toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) + ' Uhr · Daten: DWD ICON über Open-Meteo.com';
+        wbtn.hidden = true;
+      }).catch(function () {
+        status.textContent = 'Die Vorhersage konnte gerade nicht geladen werden. Bitte später erneut versuchen.';
+        wbtn.disabled = false;
+      });
+    });
+  }
+})();

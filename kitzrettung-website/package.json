@@ -1,0 +1,17 @@
+{
+  "name": "kitzrettung-limburg-website",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Statische Webseite der Kitzrettung Limburg e. V.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node build.mjs && node serve.mjs"
+  },
+  "dependencies": {
+    "js-yaml": "4.1.0",
+    "marked": "18.1.1",
+    "qrcode": "1.5.4"
+  },
+  "engines": { "node": ">=20" }
+}
