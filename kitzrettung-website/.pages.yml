@@ -112,3 +112,49 @@ content:
       - name: anzeigen_bis
         label: Automatisch ausblenden nach (Datum, optional)
         type: date
+
+  - name: saison
+    label: Saison-Leiste (Feldsuche)
+    type: file
+    path: content/saison.json
+    format: json
+    fields:
+      - name: aktiv
+        label: Leiste in der Saison anzeigen
+        type: boolean
+      - name: von
+        label: Sichtbar ab (Monat-Tag, z. B. 05-01 für 1. Mai)
+        type: string
+      - name: bis
+        label: Sichtbar bis (Monat-Tag, z. B. 07-31 für 31. Juli)
+        type: string
+      - name: text
+        label: Text in der Leiste
+        type: string
+
+  - name: spendenbeispiele
+    label: Spendenbeispiele
+    type: file
+    path: content/spendenbeispiele.json
+    format: json
+    fields:
+      - name: ueberschrift
+        label: Überschrift
+        type: string
+      - name: einleitung
+        label: Einleitungssatz
+        type: text
+      - name: beispiele
+        label: Beispiele (vom kleinsten zum größten Betrag)
+        type: object
+        list: true
+        fields:
+          - name: symbol
+            label: Symbol (ein Emoji wie ☕ – oder das Wort „drohne“ für das Drohnen-Symbol)
+            type: string
+          - name: betrag
+            label: Betrag (z. B. „25 €“)
+            type: string
+          - name: text
+            label: Was damit möglich wird
+            type: string

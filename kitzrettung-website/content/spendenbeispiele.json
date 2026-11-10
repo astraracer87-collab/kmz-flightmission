@@ -1,0 +1,11 @@
+{
+  "ueberschrift": "Was deine Spende bewirkt",
+  "einleitung": "Jeder Betrag hilft – vom Kaffee für das Team um 4 Uhr morgens bis zur neuen Wärmebilddrohne.",
+  "beispiele": [
+    { "symbol": "☕", "betrag": "5 €", "text": "Heißer Kaffee für das Team bei einem Einsatz vor Sonnenaufgang" },
+    { "symbol": "📦", "betrag": "25 €", "text": "Eine Kitzbox, in der ein gerettetes Kitz die Mahd sicher übersteht" },
+    { "symbol": "🥅", "betrag": "50 €", "text": "Ein Kescher, um mobile Kitze schonend zu sichern" },
+    { "symbol": "🔋", "betrag": "250 €", "text": "Ein Ersatzakku – damit die Drohne eine weitere Wiese absuchen kann" },
+    { "symbol": "drohne", "betrag": "bis 8.000 €", "text": "Eine Wärmebilddrohne – das Herzstück jeder Suche" }
+  ]
+}

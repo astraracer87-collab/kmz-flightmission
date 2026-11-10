@@ -309,3 +309,54 @@ ul { padding-left: 1.2em; }
 .bankdaten div { grid-template-columns: 175px 1fr; }
 .marke span { white-space: nowrap; }
 @media (max-width: 380px) { .marke span { white-space: normal; } }
+
+/* Bilder in WebP-Fassung: <picture> soll das Layout nicht verändern */
+picture { display: contents; }
+
+/* Saison-Leiste (Mai–Juli), unten am Bildschirmrand – auf allen Geräten */
+.saison { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  width: min(100% - 24px, 820px); display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; justify-content: space-between;
+  background: var(--gruen-dunkel); color: #fff; border-radius: 16px; padding: 12px 12px 12px 20px; box-shadow: 0 12px 40px rgb(0 0 0 / 30%); }
+.saison[hidden] { display: none; }
+.saison__text { display: flex; align-items: center; gap: 12px; margin: 0; font-weight: 600; line-height: 1.35; }
+.saison__text .icon { width: 30px; height: 30px; color: #ffc58f; }
+.saison__knoepfe { display: flex; align-items: center; gap: 8px; }
+.saison .knopf { padding: 10px 16px; font-size: .95rem; }
+.saison__zu { background: none; border: 0; color: #d6e2cf; font-size: 1.6rem; line-height: 1; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
+.saison__zu:hover { background: rgb(255 255 255 / 12%); color: #fff; }
+body.mit-saison { padding-bottom: 110px; }
+@media (max-width: 640px) {
+  .saison { left: 0; right: 0; transform: none; width: auto; bottom: 0; border-radius: 16px 16px 0 0; padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px)); gap: 10px; }
+  .saison__text { font-size: .92rem; }
+  .saison__text .icon { width: 24px; height: 24px; }
+  .saison__knoepfe { width: 100%; }
+  .saison__knoepfe .knopf { flex: 1; justify-content: center; white-space: nowrap; }
+  .saison__zu { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; }
+  .saison__text { padding-right: 32px; }
+  body.mit-saison { padding-bottom: 130px; }
+}
+
+/* FAQ */
+.faq { display: grid; gap: 10px; }
+.faq details { background: var(--karte); border: 1px solid var(--linie); border-radius: 12px; }
+.abschnitt--weiss .faq details { background: var(--creme); }
+.faq summary { cursor: pointer; list-style: none; padding: 16px 52px 16px 20px; font-weight: 700; color: var(--gruen-dunkel); position: relative; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 1.5rem; font-weight: 400; color: var(--orange-dunkel); }
+.faq details[open] summary::after { content: "–"; }
+.faq details > div { padding: 0 20px 16px; color: var(--text-leise); }
+.faq details > div p:last-child { margin-bottom: 0; }
+
+/* Spendenbeispiele */
+.spendenbeispiele { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
+.spendenbeispiel { background: var(--karte); border: 1px solid var(--linie); border-radius: var(--radius); padding: 22px 20px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--schatten); }
+.spendenbeispiel__symbol { font-size: 2.2rem; line-height: 1.1; margin-bottom: 6px; }
+.spendenbeispiel strong { font-family: var(--serif); font-size: 1.6rem; color: var(--gruen); line-height: 1.1; }
+.spendenbeispiel span:last-child { color: var(--text-leise); font-size: .95rem; }
+
+/* Transparenz */
+.transparenz { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.saison__text { flex: 1 1 280px; }
+.spendenbeispiel__symbol .icon { width: 38px; height: 38px; color: var(--gruen); }
+@media (max-width: 1360px) and (min-width: 1201px) { .marke small { display: none; } }
+.spendenbeispiel__symbol { height: 46px; display: flex; align-items: center; }

@@ -25,6 +25,10 @@ Außerdem gibt es im Menü:
 - **Hinweis-Balken**: ein orangefarbener Balken oben auf jeder Seite, z. B. für einen Infostand.
   Mit „Automatisch ausblenden nach“ verschwindet er nach dem Termin von selbst.
 
+- **Saison-Leiste**: der Balken „Fläche anmelden / Anrufen“ unten am Bildschirm. Er erscheint automatisch nur im eingestellten
+  Zeitraum (Standard 1. Mai bis 31. Juli). Zum Testen außerhalb der Saison an die Adresse `?saison=1` anhängen.
+- **Spendenbeispiele**: die Kacheln „Was deine Spende bewirkt“ auf der Spendenseite (Betrag, Emoji, kurzer Text).
+
 Ein Häkchen bei *„Entwurf – noch nicht veröffentlichen“* hält einen Beitrag zurück.
 Bitte keine Zeitungsartikel als Foto hochladen, ohne vorher beim Verlag nachzufragen (Urheberrecht).
 
@@ -63,6 +67,11 @@ npm run build      # nur bauen → dist/
 
 Voraussetzung ist Node.js ab Version 20.
 
+### Bilder
+
+Beim Bauen werden alle Fotos unter `images/` automatisch auf höchstens 1600 Pixel Breite verkleinert, z. B. direkt vom Handy hochgeladene.
+Zusätzlich entsteht eine WebP-Fassung, die moderne Browser bevorzugt laden (`<picture>`). Dafür sorgt das Paket `sharp`.
+
 ### Datenschutz-Prinzipien
 
 - Keine Cookies, kein Tracking, keine Google Fonts. Alle Schriften sind Systemschriften.
@@ -87,3 +96,10 @@ Voraussetzung ist Node.js ab Version 20.
 6. **Redaktion freischalten**: Auf <https://app.pagescms.org> mit GitHub anmelden, das Repository auswählen und
    unter *Settings → Collaborators* die Redakteure per E-Mail einladen. Sie brauchen kein eigenes GitHub-Konto.
 7. Bei der Google Search Console die neue `sitemap.xml` einreichen. Die alten Wix-Adressen werden über `public/.htaccess` umgeleitet.
+8. **Google-Unternehmensprofil** anlegen (kostenlos), damit der Verein bei Google Maps und in der Suche mit Telefonnummer und Webseite erscheint:
+   - Auf <https://www.google.com/business> mit einem Vereins-Google-Konto anmelden, nicht mit einem privaten.
+   - Name „Kitzrettung Limburg e. V.“, Kategorie z. B. „Tierschutzorganisation“ oder „Gemeinnützige Organisation“.
+   - Bei der Frage nach einem Standort, den Kunden besuchen können, „Nein“ wählen. Dann wird die c/o-Adresse nicht öffentlich angezeigt.
+     Als Einzugsgebiet „Landkreis Limburg-Weilburg“ eintragen.
+   - Telefon, Webseite, Logo und ein paar Einsatzfotos ergänzen. Google bestätigt den Eintrag meist per Video oder Postkarte.
+   - Die Webseite liefert Google zusätzlich strukturierte Daten (Name, Kontakt, Einsatzgebiet, Social-Media-Profile) auf der Startseite mit.

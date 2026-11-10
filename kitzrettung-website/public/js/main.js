@@ -38,6 +38,30 @@
     });
   });
 
+  // Saison-Leiste: nur zwischen den eingestellten Tagen (MM-TT) zeigen.
+  // Zum Ausprobieren außerhalb der Saison: Adresse mit ?saison=1 aufrufen.
+  var saison = document.querySelector('.saison');
+  if (saison) {
+    var heute = new Date();
+    var mmtt = ('0' + (heute.getMonth() + 1)).slice(-2) + '-' + ('0' + heute.getDate()).slice(-2);
+    var von = saison.getAttribute('data-von') || '01-01';
+    var bis = saison.getAttribute('data-bis') || '12-31';
+    var inSaison = von <= bis ? (mmtt >= von && mmtt <= bis) : (mmtt >= von || mmtt <= bis);
+    if (/[?&]saison=1/.test(location.search)) inSaison = true;
+    var weg = false;
+    try { weg = sessionStorage.getItem('saison-zu') === '1'; } catch (e) {}
+    if (inSaison && !weg) {
+      saison.hidden = false;
+      document.body.classList.add('mit-saison');
+    }
+    var zu = saison.querySelector('.saison__zu');
+    if (zu) zu.addEventListener('click', function () {
+      saison.hidden = true;
+      document.body.classList.remove('mit-saison');
+      try { sessionStorage.setItem('saison-zu', '1'); } catch (e) {}
+    });
+  }
+
   // IBAN kopieren
   document.querySelectorAll('[data-kopieren]').forEach(function (b) {
     b.addEventListener('click', function () {

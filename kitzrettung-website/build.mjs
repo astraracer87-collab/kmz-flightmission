@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 import { marked } from 'marked';
 import QRCode from 'qrcode';
+import sharp from 'sharp';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(ROOT, 'src', 'pages');
@@ -62,7 +63,16 @@ async function walk(dir) {
   return out;
 }
 
+// Bilder, zu denen es eine WebP-Fassung gibt, als <picture> ausliefern (kleiner, schneller)
+const webp = new Set();
+function bilderOptimieren(html) {
+  return html.replace(/<img\b([^>]*?)\ssrc="(\/images\/[^"]+)\.(jpe?g|png)"([^>]*)>/gi, (tag, vor, base, ext, nach) =>
+    webp.has(base) ? `<picture><source srcset="${base}.webp" type="image/webp"><img${vor} src="${base}.${ext}"${nach}></picture>` : tag
+  );
+}
+
 async function write(rel, content) {
+  if (rel.endsWith('.html')) content = bilderOptimieren(content);
   const file = path.join(DIST, rel);
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(file, content);
@@ -73,6 +83,8 @@ async function write(rel, content) {
 const site = JSON.parse(await fs.readFile(path.join(CONTENT, 'einstellungen.json'), 'utf8'));
 const zahlen = JSON.parse(await fs.readFile(path.join(CONTENT, 'zahlen.json'), 'utf8'));
 const hinweis = JSON.parse(await fs.readFile(path.join(CONTENT, 'hinweis.json'), 'utf8'));
+const saison = JSON.parse(await fs.readFile(path.join(CONTENT, 'saison.json'), 'utf8'));
+const spenden = JSON.parse(await fs.readFile(path.join(CONTENT, 'spendenbeispiele.json'), 'utf8'));
 
 site.telefon_link = 'tel:' + String(site.telefon).replace(/[^\d+]/g, '');
 site.iban_kompakt = String(site.iban).replace(/\s/g, '');
@@ -165,6 +177,17 @@ const partials = {
   <a class="kontakt-box__zeile" href="${esc(site.telefon_link)}">${icon('telefon')}<span><small>Telefon</small>${esc(site.telefon)}</span></a>
 </div>`,
 
+  spendenbeispiele: () => `<div class="spendenbeispiele">
+  ${(spenden.beispiele || [])
+    .map(
+      (b) => `<div class="spendenbeispiel"><span class="spendenbeispiel__symbol" aria-hidden="true">${ICON[b.symbol] ? icon(b.symbol) : esc(b.symbol)}</span><strong>${esc(b.betrag)}</strong><span>${esc(b.text)}</span></div>`
+    )
+    .join('\n  ')}
+</div>`,
+
+  'spenden-titel': () => esc(spenden.ueberschrift || 'Was deine Spende bewirkt'),
+  'spenden-einleitung': () => esc(spenden.einleitung || ''),
+
   hosting: () =>
     site.hosting?.anbieter
       ? `${esc(site.hosting.anbieter)}${site.hosting.anschrift ? ', ' + esc(site.hosting.anschrift) : ''}`
@@ -214,6 +237,40 @@ function hinweisLeiste() {
   return `<div class="hinweis-leiste"><div class="container">${esc(h.text)}${link}</div></div>`;
 }
 
+function saisonLeiste(url) {
+  if (!saison.aktiv) return '';
+  const ziel = url === '/landwirte/' ? '#anmelden' : '/landwirte/#anmelden';
+  return `<aside class="saison" data-von="${esc(saison.von)}" data-bis="${esc(saison.bis)}" aria-label="Feldsuche in der Mähsaison" hidden>
+  <p class="saison__text">${icon('drohne')}<span>${esc(saison.text)}</span></p>
+  <div class="saison__knoepfe">
+    <a class="knopf" href="${ziel}">Fläche anmelden</a>
+    <a class="knopf knopf--hell" href="${esc(site.telefon_link)}">${icon('telefon')} Anrufen</a>
+    <button type="button" class="saison__zu" aria-label="Hinweis ausblenden">×</button>
+  </div>
+</aside>`;
+}
+
+function strukturDaten() {
+  const d = {
+    '@context': 'https://schema.org',
+    '@type': 'NGO',
+    name: site.vereinsname,
+    alternateName: 'Kitzrettung Limburg',
+    url: site.domain + '/',
+    logo: site.domain + '/images/icon-512.png',
+    image: site.domain + '/images/kitz-sicherung.jpg',
+    description: 'Gemeinnütziger Verein für die ehrenamtliche Rehkitzrettung mit Wärmebilddrohnen vor der Wiesenmahd – kostenlos für Landwirte und Jäger.',
+    email: site.email,
+    telephone: site.telefon_link.replace('tel:', '').replace(/^0/, '+49'),
+    foundingDate: '2021',
+    nonprofitStatus: 'Nonprofit',
+    address: { '@type': 'PostalAddress', streetAddress: 'Feldbergstraße 11a', postalCode: '65550', addressLocality: 'Limburg', addressRegion: 'Hessen', addressCountry: 'DE' },
+    areaServed: [{ '@type': 'AdministrativeArea', name: 'Landkreis Limburg-Weilburg' }, { '@type': 'State', name: 'Rheinland-Pfalz' }],
+    sameAs: [site.instagram, site.facebook].filter(Boolean),
+  };
+  return `<script type="application/ld+json">${JSON.stringify(d)}</script>`;
+}
+
 function layout({ title, description, body, url, image }) {
   const voll = url === '/' ? `${site.vereinsname} – Gemeinsam Leben retten` : `${title} | Kitzrettung Limburg`;
   const ogImage = site.domain + (image || '/images/kitz-sicherung.jpg');
@@ -240,6 +297,7 @@ function layout({ title, description, body, url, image }) {
 <link rel="manifest" href="/site.webmanifest">
 <link rel="stylesheet" href="/css/style.css?v=${BUILD_ID}">
 <script src="/js/main.js?v=${BUILD_ID}" defer></script>
+${url === '/' ? strukturDaten() : ''}
 </head>
 <body>
 <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
@@ -297,9 +355,10 @@ ${body}
   </div>
   <div class="container fuss__unten">
     <p>© ${site.jahr} ${esc(site.vereinsname)} · Ehrenamtlich seit 2020 · Hilfe ohne Kosten</p>
-    <p><a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a></p>
+    <p><a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a> · <a href="/downloads/vereinssatzung.pdf">Satzung</a></p>
   </div>
 </footer>
+${saisonLeiste(url)}
 </body>
 </html>
 `;
@@ -311,6 +370,31 @@ const BUILD_ID = Date.now().toString(36);
 
 await fs.rm(DIST, { recursive: true, force: true });
 await fs.cp(PUBLIC, DIST, { recursive: true });
+
+// Bilder: zu große Fotos (z. B. direkt vom Handy hochgeladen) verkleinern und WebP-Fassungen erzeugen
+const MAX_BREITE = 1600;
+const AUSGENOMMEN = /\/(qr|favicon|icon-\d+|apple-touch-icon)/;
+let gespart = 0;
+for (const file of (await walk(path.join(DIST, 'images'))).filter((f) => /\.(jpe?g|png)$/i.test(f))) {
+  const rel = '/' + path.relative(DIST, file).split(path.sep).join('/');
+  if (AUSGENOMMEN.test(rel)) continue;
+  try {
+    const vorher = (await fs.stat(file)).size;
+    const bild = sharp(file, { failOn: 'none' }).rotate();
+    const meta = await bild.metadata();
+    if (meta.width > MAX_BREITE && /\.jpe?g$/i.test(file)) {
+      const buf = await sharp(file).rotate().resize({ width: MAX_BREITE }).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+      await fs.writeFile(file, buf);
+    }
+    const base = file.replace(/\.(jpe?g|png)$/i, '');
+    await sharp(file).rotate().resize({ width: MAX_BREITE, withoutEnlargement: true }).webp({ quality: 74 }).toFile(base + '.webp');
+    const nachher = (await fs.stat(base + '.webp')).size;
+    gespart += vorher - nachher;
+    webp.add(rel.replace(/\.(jpe?g|png)$/i, ''));
+  } catch (e) {
+    warnings.push(`Bild ${rel} konnte nicht verarbeitet werden: ${e.message}`);
+  }
+}
 
 // QR-Codes für Spenden (werden bei jeder Änderung der Bankdaten neu erzeugt)
 const qrOpt = { type: 'svg', margin: 2, errorCorrectionLevel: 'M', color: { dark: '#16301f', light: '#ffffff' } };
@@ -363,5 +447,5 @@ await write('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${site.domain}/site
 
 if (!site.hosting?.anbieter) warnings.push('Datenschutz: Hosting-Anbieter fehlt noch (content/einstellungen.json → hosting).');
 
-console.log(`Fertig: ${sitemap.length} Seiten, ${news.length} News-Beiträge → dist/`);
+console.log(`Fertig: ${sitemap.length} Seiten, ${news.length} News-Beiträge, ${webp.size} Bilder als WebP (≈ ${Math.round(gespart / 1024)} KB gespart) → dist/`);
 for (const w of warnings) console.warn('Hinweis: ' + w);
