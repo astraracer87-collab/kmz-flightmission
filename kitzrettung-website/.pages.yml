@@ -141,6 +141,9 @@ content:
       - name: text
         label: Text in der Leiste
         type: string
+      - name: kurztext
+        label: Kurzer Text auf dem Handy (z. B. „Kitzrettung anfordern“)
+        type: string
 
   - name: spendenbeispiele
     label: Spendenbeispiele

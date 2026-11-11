@@ -380,20 +380,28 @@ body.mit-saison { padding-bottom: 130px; }
   .saison__zu { top: 10px; transform: none; }
   .saison__inhalt { padding-right: 48px; }
 }
+/* Handy: eine flache Zeile – „Kitzrettung anfordern“ + Anrufen + Anmelden, ohne Nummer und Zusatztexte */
+.saison__kurz, .saison__mobil { display: none; }
 @media (max-width: 640px) {
-  .saison { width: 100%; bottom: 0; border-radius: 0; border-width: 1px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
-  .saison__signal { width: 6px; }
-  .saison__signal .icon { display: none; }
-  .saison__inhalt { padding: 12px 48px 8px 14px; }
-  .saison__titel { font-size: 1rem; }
-  .saison__fakten { font-size: .8rem; gap: 2px 14px; }
-  .saison__knoepfe { gap: 8px; padding: 10px 12px 12px; }
-  .saison__tel { text-align: center; padding: 6px 10px; }
-  .saison__tel small { font-size: .62rem; }
-  .saison__tel strong { font-size: 1.02rem; }
-  .saison__anmelden { min-height: 46px; padding: 0 12px; font-size: .95rem; }
-  .saison__zu { top: 8px; right: 6px; }
-  body.mit-saison { padding-bottom: 170px; }
+  .saison { width: 100%; bottom: 0; border-radius: 0; border-width: 1px 0 0; grid-template-columns: 5px minmax(0, 1fr) auto;
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px)) 0; gap: 0; align-items: center; }
+  .saison__signal { width: 5px; align-self: stretch; margin: -10px 0 calc(-10px - env(safe-area-inset-bottom, 0px)); }
+  .saison__signal .icon, .saison__kicker, .saison__titel, .saison__fakten, .saison__tel small, .saison__tel strong, .saison__voll { display: none; }
+  .saison__inhalt { padding: 0 8px 0 12px; }
+  .saison__kurz { display: block; margin: 0; font-weight: 700; font-size: .98rem; line-height: 1.2; color: #fff; text-wrap: balance; }
+  .saison__kurz small { display: block; margin-top: 2px; font-size: .74rem; font-weight: 600; color: #7fd49a; letter-spacing: .02em; }
+  .saison__mobil { display: inline-flex; align-items: center; gap: 6px; }
+  .saison__knoepfe { grid-column: auto; border: 0; padding: 0; gap: 6px; }
+  .saison__knoepfe > * { flex: none; }
+  .saison__tel { display: inline-flex; align-items: center; min-height: 44px; padding: 0 11px; border-radius: 8px; font-weight: 700; font-size: .92rem; }
+  .saison__tel .icon { width: 17px; height: 17px; }
+  .saison__anmelden { min-height: 44px; padding: 0 11px; font-size: .92rem; gap: 4px; }
+  .saison__anmelden .icon { display: none; }
+  .saison__zu { position: absolute; top: -14px; right: 8px; transform: none; width: 28px; height: 28px; border-radius: 50%;
+    background: #10241a; border: 1px solid rgb(255 255 255 / 18%); color: #c9d6c3; }
+  .saison__zu .icon { width: 14px; height: 14px; }
+  .saison { overflow: visible; }
+  body.mit-saison { padding-bottom: 90px; }
 }
 
 /* ---------- Symbole: Linie + zarte Füllfläche (Duoton) ---------- */

@@ -264,11 +264,12 @@ function saisonLeiste(url) {
   <div class="saison__inhalt">
     <p class="saison__kicker">${esc(saison.kicker || 'Mähsaison')} <span>·</span> Kitzrettung Limburg</p>
     <p class="saison__titel">${esc(saison.text)}</p>
+    <p class="saison__kurz">${esc(saison.kurztext || 'Kitzrettung anfordern')}${saison.kostenlos !== false ? '<small>Kostenlos</small>' : ''}</p>
     <ul class="saison__fakten">${fakten}</ul>
   </div>
   <div class="saison__knoepfe">
-    <a class="saison__tel" href="${esc(site.telefon_link)}"><small>Einsatz-Telefon</small><strong>${esc(site.telefon)}</strong></a>
-    <a class="saison__anmelden" href="${ziel}">Fläche anmelden ${icon('pfeil')}</a>
+    <a class="saison__tel" href="${esc(site.telefon_link)}" aria-label="Kitzrettung anrufen: ${esc(site.telefon)}"><small>Einsatz-Telefon</small><strong>${esc(site.telefon)}</strong><span class="saison__mobil">${icon('telefon')}Anrufen</span></a>
+    <a class="saison__anmelden" href="${ziel}"><span class="saison__voll">Fläche anmelden</span><span class="saison__mobil">Anmelden</span>${icon('pfeil')}</a>
   </div>
   <button type="button" class="saison__zu" aria-label="Hinweis ausblenden">${icon('kreuz')}</button>
 </aside>`;
