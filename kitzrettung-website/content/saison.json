@@ -2,6 +2,8 @@
   "aktiv": true,
   "von": "05-01",
   "bis": "07-31",
+  "kicker": "Mähsaison läuft",
+  "text": "Mähtermin geplant? Wir suchen Ihre Wiese vorher ab.",
   "kostenlos": true,
-  "text": "Mähtermin geplant? Wir suchen Ihre Wiese vorher ab."
+  "hinweis": "Anmeldung bis 12 Uhr am Vortag"
 }

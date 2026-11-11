@@ -240,13 +240,22 @@ function hinweisLeiste() {
 function saisonLeiste(url) {
   if (!saison.aktiv) return '';
   const ziel = url === '/landwirte/' ? '#anmelden' : '/landwirte/#anmelden';
-  return `<aside class="saison" data-von="${esc(saison.von)}" data-bis="${esc(saison.bis)}" aria-label="Feldsuche in der Mähsaison" hidden>
-  <p class="saison__text">${icon('drohne')}<span>${saison.kostenlos !== false ? '<strong class="saison__gratis">100 % kostenlos</strong> ' : ''}${esc(saison.text)}</span></p>
-  <div class="saison__knoepfe">
-    <a class="knopf" href="${ziel}">Fläche anmelden</a>
-    <a class="knopf knopf--hell" href="${esc(site.telefon_link)}">${icon('telefon')} Anrufen</a>
-    <button type="button" class="saison__zu" aria-label="Hinweis ausblenden">×</button>
+  const fakten = [
+    saison.kostenlos !== false ? '<li><span class="saison__gratis">100 % kostenlos</span></li>' : '',
+    saison.hinweis ? `<li>${esc(saison.hinweis)}</li>` : '',
+  ].join('');
+  return `<aside class="saison" data-von="${esc(saison.von)}" data-bis="${esc(saison.bis)}" aria-label="Kitzsuche in der Mähsaison" hidden>
+  <div class="saison__symbol" aria-hidden="true">${icon('drohne')}</div>
+  <div class="saison__inhalt">
+    <p class="saison__kicker"><span class="saison__live" aria-hidden="true"></span>${esc(saison.kicker || 'Mähsaison läuft')}</p>
+    <p class="saison__titel">${esc(saison.text)}</p>
+    <ul class="saison__fakten">${fakten}</ul>
   </div>
+  <div class="saison__knoepfe">
+    <a class="knopf" href="${ziel}">Fläche anmelden ${icon('pfeil')}</a>
+    <a class="saison__tel" href="${esc(site.telefon_link)}">${icon('telefon')}<span><small>Lieber anrufen?</small><strong class="nummer">${esc(site.telefon)}</strong><strong class="nur-handy">Anrufen</strong></span></a>
+  </div>
+  <button type="button" class="saison__zu" aria-label="Hinweis ausblenden">×</button>
 </aside>`;
 }
 
