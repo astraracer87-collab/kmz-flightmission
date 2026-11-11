@@ -109,24 +109,24 @@ news.sort((a, b) => b.date - a.date);
 // ---------------------------------------------------------------- Symbole
 
 const ICON = {
-  pfeil: '<path d="M5 12h14M13 6l6 6-6 6"/>',
-  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
-  telefon: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
-  download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
-  extern: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
-  instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>',
-  facebook: '<path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8z"/>',
-  kitz: '<path d="M8 6c-1-2-3-2-4-1 1 1 2 2 4 3M16 6c1-2 3-2 4-1-1 1-2 2-4 3"/><path d="M8 8c0 5 1.5 9 4 9s4-4 4-9a4 4 0 0 0-8 0z"/><circle cx="10.5" cy="10" r=".6" fill="currentColor"/><circle cx="13.5" cy="10" r=".6" fill="currentColor"/><path d="M11 15h2"/>',
-  einsatz: '<circle cx="12" cy="13" r="7"/><path d="M12 9v4l2.5 2M9 3h6"/>',
-  flaeche: '<path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3z"/><path d="M9 4v13M15 7v13"/>',
-  wiese: '<path d="M3 20h18M6 20c0-4-1-7-3-9M10 20c0-6 1-10 3-13M14 20c0-4 1-7 4-9M18 20c0-3 1-5 3-6"/>',
-  helfer: '<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.5 2.5-6 6-6s6 2.5 6 6M15 14.5c3 0 5 2 5 5"/>',
-  drohne: '<circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/><path d="M7 8l2 2M17 8l-2 2M7 16l2-2M17 16l-2-2"/>',
-  herz: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
-  menue: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  pfeil: '<path d="M4.5 12h14.5"/><path d="M13 6l6 6-6 6"/>',
+  mail: '<rect class="d" x="3" y="5" width="18" height="14" rx="3"/><path d="M3.8 7.2l7 5.3a2 2 0 0 0 2.4 0l7-5.3"/>',
+  telefon: '<path class="d" d="M6.6 3.5h2.6c.5 0 .9.3 1 .8l.9 3.6c.1.4-.1.9-.4 1.1l-1.9 1.3a12 12 0 0 0 4.9 4.9l1.3-1.9c.2-.3.7-.5 1.1-.4l3.6.9c.5.1.8.5.8 1v2.6a2.1 2.1 0 0 1-2.2 2.1C10.5 19.1 4.9 13.5 4.4 5.7a2.1 2.1 0 0 1 2.2-2.2z"/>',
+  download: '<path d="M12 3.5v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path class="d" d="M4 15.5v2.5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2.5"/>',
+  extern: '<path d="M13.5 4.5h6v6"/><path d="M19.5 4.5l-8.5 8.5"/><path class="d" d="M18 13.5V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4.5"/>',
+  instagram: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle class="f" cx="17.2" cy="6.8" r="1.1"/>',
+  facebook: '<path class="f" d="M13.6 21v-7.6h2.6l.4-3h-3V8.5c0-.9.3-1.5 1.5-1.5h1.6V4.3c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.2H8v3h2.5V21z"/>',
+  kitz: '<path class="d" d="M8.3 7.9C6 8 3.6 6.6 2.8 4.3c2.3-.6 4.6.2 6 2"/><path class="d" d="M15.7 7.9c2.3.1 4.7-1.3 5.5-3.6-2.3-.6-4.6.2-6 2"/><path class="d" d="M12 6.4c-2.6 0-4.6 2.1-4.6 4.9 0 2.5 1.7 5 3.2 7.1.4.6.8 1.1 1.4 1.1s1-.5 1.4-1.1c1.5-2.1 3.2-4.6 3.2-7.1 0-2.8-2-4.9-4.6-4.9z"/><circle class="f" cx="10" cy="11.6" r=".95"/><circle class="f" cx="14" cy="11.6" r=".95"/><ellipse class="f" cx="12" cy="17.6" rx="1.15" ry=".85"/><circle class="f" cx="11.1" cy="8.7" r=".45"/><circle class="f" cx="12.9" cy="9.3" r=".45"/><circle class="f" cx="12" cy="7.9" r=".4"/>',
+  einsatz: '<path d="M2.5 19h19"/><path class="d" d="M6.5 19a5.5 5.5 0 0 1 11 0"/><path d="M12 6.5v2.5M5.9 9.4l1.6 1.6M18.1 9.4l-1.6 1.6M3.5 14.5h2M18.5 14.5h2"/><path d="M8 21.5h8"/>',
+  flaeche: '<path class="d" d="M3 7.5l5.5-2.5 7 2.5 5.5-2.5v12l-5.5 2.5-7-2.5L3 19.5z"/><path stroke-dasharray="1.4 2" d="M7.5 9.6v6.6M12 8.6v8.6M16.5 9.6v6.6"/>',
+  wiese: '<path d="M2.5 20.5h19"/><path class="d" d="M5.5 20.5C5.4 17 4.4 14.3 2.8 12.3c2.6.9 4.4 3.6 4.7 8.2"/><path class="d" d="M10.5 20.5c0-5.2 1-9.4 3-12.4.2 4.8-.6 8.9-1.8 12.4"/><path class="d" d="M15.2 20.5c.4-2.8 1.8-5 4-6.3-.9 2.3-1.7 4.4-1.9 6.3"/><path d="M7.5 20.5V10.5"/><circle class="d" cx="7.5" cy="8" r="2.5"/><circle class="f" cx="7.5" cy="8" r=".9"/>',
+  helfer: '<circle class="d" cx="9" cy="7.5" r="3.3"/><path class="d" d="M2.8 20c0-3.6 2.8-6.4 6.2-6.4s6.2 2.8 6.2 6.4z"/><circle cx="17.2" cy="8.6" r="2.6"/><path d="M16.6 13.7c.3 0 .5-.1.8-.1 2.4 0 4.3 2 4.3 4.7v1.7h-4.1"/>',
+  drohne: '<path d="M9.6 9.6L6.6 6.6M14.4 9.6l3-3M9.6 14.4l-3 3M14.4 14.4l3 3"/><ellipse class="d" cx="5.3" cy="5.3" rx="3.4" ry="1.5"/><ellipse class="d" cx="18.7" cy="5.3" rx="3.4" ry="1.5"/><ellipse class="d" cx="5.3" cy="18.7" rx="3.4" ry="1.5"/><ellipse class="d" cx="18.7" cy="18.7" rx="3.4" ry="1.5"/><rect class="d" x="8.8" y="8.8" width="6.4" height="6.4" rx="2"/><circle class="f" cx="12" cy="12" r="1.3"/>',
+  herz: '<path class="d" d="M12 20.3s-7.8-4.6-7.8-10.4A4.4 4.4 0 0 1 12 7.2a4.4 4.4 0 0 1 7.8 2.7c0 5.8-7.8 10.4-7.8 10.4z"/>',
+  menue: '<path d="M4 7h16M4 12h16M4 17h10"/>',
 };
 const icon = (name, cls = 'icon') =>
-  `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[name] || ICON.herz}</svg>`;
+  `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[name] || ICON.herz}</svg>`;
 
 // ---------------------------------------------------------------- Bausteine ({{> name}})
 
@@ -152,7 +152,7 @@ const partials = {
     <ul class="erfolge__liste">
       ${(zahlen.werte || [])
         .map(
-          (w) => `<li>${icon(w.symbol, 'icon icon--erfolg')}<strong>${esc(w.zahl)}</strong><span>${esc(w.text)}</span></li>`
+          (w) => `<li><span class="plakette">${icon(w.symbol, 'icon icon--erfolg')}</span><strong>${esc(w.zahl)}</strong><span>${esc(w.text)}</span></li>`
         )
         .join('\n      ')}
     </ul>
@@ -173,8 +173,8 @@ const partials = {
 </ul>`,
 
   'kontakt-box': () => `<div class="kontakt-box">
-  <a class="kontakt-box__zeile" href="mailto:${esc(site.email)}">${icon('mail')}<span><small>E-Mail</small>${esc(site.email)}</span></a>
-  <a class="kontakt-box__zeile" href="${esc(site.telefon_link)}">${icon('telefon')}<span><small>Telefon</small>${esc(site.telefon)}</span></a>
+  <a class="kontakt-box__zeile" href="mailto:${esc(site.email)}"><span class="symbolkachel">${icon('mail')}</span><span><small>E-Mail</small>${esc(site.email)}</span></a>
+  <a class="kontakt-box__zeile" href="${esc(site.telefon_link)}"><span class="symbolkachel">${icon('telefon')}</span><span><small>Telefon</small>${esc(site.telefon)}</span></a>
 </div>`,
 
   spendenbeispiele: () => `<div class="spendenbeispiele">

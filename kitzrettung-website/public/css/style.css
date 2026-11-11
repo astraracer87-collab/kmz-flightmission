@@ -416,3 +416,34 @@ body.mit-saison { padding-bottom: 150px; }
 }
 .saison__tel .nur-handy { display: none; }
 @media (max-width: 640px) { .saison__tel .nur-handy { display: inline; } }
+
+/* ---------- Symbole: Linie + zarte Füllfläche (Duoton) ---------- */
+.icon .d { fill: currentColor; fill-opacity: .18; }
+.icon .f { fill: currentColor; stroke: none; }
+
+/* Erfolge: Symbol in runder Plakette mit warmem Leuchten */
+.erfolge__liste li { gap: 4px; }
+.plakette { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 10px;
+  background: radial-gradient(circle at 35% 30%, rgb(255 197 143 / 30%), rgb(255 255 255 / 4%) 70%);
+  border: 1px solid rgb(255 197 143 / 38%);
+  box-shadow: inset 0 0 0 6px rgb(255 255 255 / 3%), 0 10px 30px -10px rgb(232 130 47 / 45%); }
+.icon--erfolg { width: 40px; height: 40px; margin: 0; color: #ffc58f; }
+.icon--erfolg .d { fill-opacity: .28; }
+.erfolge__liste li:hover .plakette { border-color: #ffc58f; }
+
+/* Kontakt-Kacheln */
+.symbolkachel { flex: none; width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center;
+  background: var(--gruen-hell); color: var(--gruen); transition: background .15s, color .15s; }
+.kontakt-box .symbolkachel .icon { width: 24px; height: 24px; color: currentColor; }
+.kontakt-box__zeile:hover .symbolkachel { background: var(--gruen); color: #fff; }
+
+/* Symbole in Überschriften von Info-Kästen */
+.infokasten h3 .icon { width: 38px; height: 38px; padding: 8px; border-radius: 11px; background: var(--gruen-hell); color: var(--gruen); }
+
+/* Platzhalter für News ohne Bild */
+.news-karte__platzhalter { background: radial-gradient(circle at 50% 45%, #fff7e8, var(--gruen-hell) 70%); }
+.news-karte__platzhalter .icon { width: 72px; height: 72px; color: var(--gruen); }
+
+/* Social-Media-Knöpfe */
+.sozial a { transition: background .15s, transform .15s; }
+.sozial a:hover { transform: translateY(-2px); }
