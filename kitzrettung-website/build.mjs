@@ -135,6 +135,9 @@ const ICON = {
   drohne: '<path d="M9.6 9.6L6.6 6.6M14.4 9.6l3-3M9.6 14.4l-3 3M14.4 14.4l3 3"/><ellipse class="d" cx="5.3" cy="5.3" rx="3.4" ry="1.5"/><ellipse class="d" cx="18.7" cy="5.3" rx="3.4" ry="1.5"/><ellipse class="d" cx="5.3" cy="18.7" rx="3.4" ry="1.5"/><ellipse class="d" cx="18.7" cy="18.7" rx="3.4" ry="1.5"/><rect class="d" x="8.8" y="8.8" width="6.4" height="6.4" rx="2"/><circle class="f" cx="12" cy="12" r="1.3"/>',
   herz: '<path class="d" d="M12 20.3s-7.8-4.6-7.8-10.4A4.4 4.4 0 0 1 12 7.2a4.4 4.4 0 0 1 7.8 2.7c0 5.8-7.8 10.4-7.8 10.4z"/>',
   menue: '<path d="M4 7h16M4 12h16M4 17h10"/>',
+  haken: '<path d="M5 12.5l4.2 4.2L19 7"/>',
+  uhr: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  kreuz: '<path d="M6 6l12 12M18 6L6 18"/>',
 };
 const icon = (name, cls = 'icon') =>
   `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[name] || ICON.herz}</svg>`;
@@ -253,21 +256,21 @@ function saisonLeiste(url) {
   if (!saison.aktiv) return '';
   const ziel = url === '/landwirte/' ? '#anmelden' : '/landwirte/#anmelden';
   const fakten = [
-    saison.kostenlos !== false ? '<li><span class="saison__gratis">100 % kostenlos</span></li>' : '',
-    saison.hinweis ? `<li>${esc(saison.hinweis)}</li>` : '',
+    saison.kostenlos !== false ? `<li>${icon('haken')}Kostenlos</li>` : '',
+    saison.hinweis ? `<li>${icon('uhr')}${esc(saison.hinweis)}</li>` : '',
   ].join('');
-  return `<aside class="saison" data-von="${esc(saison.von)}" data-bis="${esc(saison.bis)}" aria-label="Kitzsuche in der Mähsaison" hidden>
-  <div class="saison__symbol" aria-hidden="true">${icon('drohne')}</div>
+  return `<aside class="saison" data-von="${esc(saison.von)}" data-bis="${esc(saison.bis)}" aria-label="Kitzrettung: Feldsuche in der Mähsaison" hidden>
+  <div class="saison__signal" aria-hidden="true">${icon('telefon')}</div>
   <div class="saison__inhalt">
-    <p class="saison__kicker"><span class="saison__live" aria-hidden="true"></span>${esc(saison.kicker || 'Mähsaison läuft')}</p>
+    <p class="saison__kicker">${esc(saison.kicker || 'Mähsaison')} <span>·</span> Kitzrettung Limburg</p>
     <p class="saison__titel">${esc(saison.text)}</p>
     <ul class="saison__fakten">${fakten}</ul>
   </div>
   <div class="saison__knoepfe">
-    <a class="knopf" href="${ziel}">Fläche anmelden ${icon('pfeil')}</a>
-    <a class="saison__tel" href="${esc(site.telefon_link)}">${icon('telefon')}<span><small>Lieber anrufen?</small><strong class="nummer">${esc(site.telefon)}</strong><strong class="nur-handy">Anrufen</strong></span></a>
+    <a class="saison__tel" href="${esc(site.telefon_link)}"><small>Einsatz-Telefon</small><strong>${esc(site.telefon)}</strong></a>
+    <a class="saison__anmelden" href="${ziel}">Fläche anmelden ${icon('pfeil')}</a>
   </div>
-  <button type="button" class="saison__zu" aria-label="Hinweis ausblenden">×</button>
+  <button type="button" class="saison__zu" aria-label="Hinweis ausblenden">${icon('kreuz')}</button>
 </aside>`;
 }
 
