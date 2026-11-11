@@ -27,6 +27,8 @@ Außerdem gibt es im Menü:
 
 - **Saison-Leiste**: der Balken „Fläche anmelden / Anrufen“ unten am Bildschirm. Er erscheint automatisch nur im eingestellten
   Zeitraum (Standard 1. Mai bis 31. Juli). Zum Testen außerhalb der Saison an die Adresse `?saison=1` anhängen.
+- **E-Mail-Vorlagen**: Betreff und vorausgefüllter Text für alle E-Mail-Links (Feldsuche, Mithelfen, Spendenquittung, Presse, Kita-Besuch …).
+  In den Seiten werden sie mit `{{mail:name}}` eingesetzt, z. B. `href="{{mail:spendenquittung}}"`.
 - **Spendenbeispiele**: die Kacheln „Was deine Spende bewirkt“ auf der Spendenseite (Betrag, Emoji, kurzer Text).
 
 Ein Häkchen bei *„Entwurf – noch nicht veröffentlichen“* hält einen Beitrag zurück.

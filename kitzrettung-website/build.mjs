@@ -85,6 +85,17 @@ const zahlen = JSON.parse(await fs.readFile(path.join(CONTENT, 'zahlen.json'), '
 const hinweis = JSON.parse(await fs.readFile(path.join(CONTENT, 'hinweis.json'), 'utf8'));
 const saison = JSON.parse(await fs.readFile(path.join(CONTENT, 'saison.json'), 'utf8'));
 const spenden = JSON.parse(await fs.readFile(path.join(CONTENT, 'spendenbeispiele.json'), 'utf8'));
+const mailvorlagen = JSON.parse(await fs.readFile(path.join(CONTENT, 'mailvorlagen.json'), 'utf8'));
+
+// E-Mail-Link mit vorausgefülltem Betreff und Text aus content/mailvorlagen.json
+function mailLink(key, quelle = '') {
+  const v = mailvorlagen[key];
+  if (!v) throw new Error(`Unbekannte E-Mail-Vorlage {{mail:${key}}}${quelle ? ' in ' + quelle : ''}`);
+  const teile = [];
+  if (v.betreff) teile.push('subject=' + encodeURIComponent(v.betreff));
+  if (v.text) teile.push('body=' + encodeURIComponent(String(v.text).replace(/\r?\n/g, '\r\n')));
+  return `mailto:${site.email}${teile.length ? '?' + teile.join('&amp;') : ''}`;
+}
 
 site.telefon_link = 'tel:' + String(site.telefon).replace(/[^\d+]/g, '');
 site.iban_kompakt = String(site.iban).replace(/\s/g, '');
@@ -173,7 +184,7 @@ const partials = {
 </ul>`,
 
   'kontakt-box': () => `<div class="kontakt-box">
-  <a class="kontakt-box__zeile" href="mailto:${esc(site.email)}"><span class="symbolkachel">${icon('mail')}</span><span><small>E-Mail</small>${esc(site.email)}</span></a>
+  <a class="kontakt-box__zeile" href="${mailLink('allgemein')}"><span class="symbolkachel">${icon('mail')}</span><span><small>E-Mail</small>${esc(site.email)}</span></a>
   <a class="kontakt-box__zeile" href="${esc(site.telefon_link)}"><span class="symbolkachel">${icon('telefon')}</span><span><small>Telefon</small>${esc(site.telefon)}</span></a>
 </div>`,
 
@@ -209,6 +220,7 @@ function render(template, file) {
       return partials[name]();
     })
     .replace(/\{\{\s*icon:([\w-]+)\s*\}\}/g, (_, name) => icon(name))
+    .replace(/\{\{\s*mail:([\w-]+)\s*\}\}/g, (_, key) => mailLink(key, file))
     .replace(/\{\{\s*site\.([\w.]+)\s*\}\}/g, (_, key) => {
       const v = key.split('.').reduce((o, k) => (o == null ? o : o[k]), site);
       if (v == null) throw new Error(`Unbekannter Wert {{site.${key}}} in ${file}`);
@@ -349,7 +361,7 @@ ${body}
     <div>
       <h2>Kontakt</h2>
       <ul>
-        <li><a href="mailto:${esc(site.email)}">${esc(site.email)}</a></li>
+        <li><a href="${mailLink('allgemein')}">${esc(site.email)}</a></li>
         <li><a href="${esc(site.telefon_link)}">${esc(site.telefon)}</a></li>
         <li>${esc(site.vereinsname)}<br>${esc(site.anschrift)}</li>
       </ul>

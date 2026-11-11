@@ -1,0 +1,50 @@
+{
+  "allgemein": {
+    "betreff": "Anfrage über die Webseite",
+    "text": "Hallo Kitzrettung Limburg,\n\n\n\nViele Grüße\n"
+  },
+  "feldsuche": {
+    "betreff": "Feldsuche – Anmeldung",
+    "text": "Guten Tag,\n\nich möchte eine Feldsuche anmelden. Einen Karten-Screenshot mit der markierten Fläche füge ich als Anhang bei.\n\nName:\nMobilnummer:\nName der zuständigen jagdausübungsberechtigten Person:\nMobilnummer dieser Person:\n\nGemeinde / Ort:\nGeplantes Mähdatum:\nGewünschter Suchtermin:\nFlächenbeschreibung (Lage, Größe, Flurbezeichnung):\nWeitere Hinweise:\n\nMit freundlichen Grüßen\n"
+  },
+  "feldsuche_flurstueck": {
+    "betreff": "Feldsuche – Anmeldung (Flurstück / Koordinaten)",
+    "text": "Guten Tag,\n\nich möchte eine Feldsuche anmelden.\n\nName:\nMobilnummer:\nName der zuständigen jagdausübungsberechtigten Person:\nMobilnummer dieser Person:\n\nGemarkung:\nFlur:\nFlurstück(e):\noder Koordinaten der Feldmitte:\n\nGeplantes Mähdatum:\nWeitere Hinweise:\n\nMit freundlichen Grüßen\n"
+  },
+  "mithelfen": {
+    "betreff": "Ich möchte mithelfen",
+    "text": "Hallo Kitzrettung Limburg,\n\nich möchte gerne mithelfen.\n\nName:\nMobilnummer:\nWohnort:\nIch interessiere mich für (Bodensuche / Drohnenteam / Organisation):\n\nViele Grüße\n"
+  },
+  "helfer": {
+    "betreff": "Ich möchte bei der Bodensuche mithelfen",
+    "text": "Hallo Kitzrettung Limburg,\n\nich möchte gerne bei der Bodensuche mithelfen.\n\nName:\nMobilnummer:\nWohnort:\nIch bin mindestens 16 Jahre alt: ja / nein\n\nViele Grüße\n"
+  },
+  "drohnenteam": {
+    "betreff": "Interesse am Drohnenteam",
+    "text": "Hallo Kitzrettung Limburg,\n\nich interessiere mich für das Drohnenteam.\n\nName:\nMobilnummer:\nWohnort:\nDrohnenführerschein (A1/A3, A2, keiner):\nErfahrung mit Drohnen:\nIch möchte am liebsten: fliegen / als Spotter unterstützen\n\nViele Grüße\n"
+  },
+  "organisation": {
+    "betreff": "Mitmachen – Vereinsorganisation",
+    "text": "Hallo Kitzrettung Limburg,\n\nich möchte hinter den Kulissen helfen.\n\nName:\nMobilnummer:\nWobei würde ich gern helfen (Einsatzkoordination / Infostände / Kita- und Schulbesuche / Social Media / Sonstiges):\nWie viel Zeit ich ungefähr habe:\n\nViele Grüße\n"
+  },
+  "spendenquittung": {
+    "betreff": "Spendenquittung",
+    "text": "Hallo Kitzrettung Limburg,\n\nbitte stellen Sie mir eine Zuwendungsbestätigung (Spendenquittung) aus.\n\nVor- und Nachname:\nStraße und Hausnummer:\nPLZ und Ort:\n\nDatum der Spende:\nBetrag:\nZahlungsweg (Überweisung / PayPal):\n\nVielen Dank und freundliche Grüße\n"
+  },
+  "spende_frage": {
+    "betreff": "Frage zu Spende oder Spendenquittung",
+    "text": "Hallo Kitzrettung Limburg,\n\nich habe eine Frage zu meiner Spende:\n\n\nName:\nTelefon (optional):\n\nViele Grüße\n"
+  },
+  "sachspende": {
+    "betreff": "Sachspende",
+    "text": "Hallo Kitzrettung Limburg,\n\nich möchte gerne etwas spenden.\n\nWas möchte ich spenden:\nZustand (neu / gebraucht):\nÜbergabe (Abholung / ich bringe es vorbei):\n\nName:\nTelefon:\n\nViele Grüße\n"
+  },
+  "presse": {
+    "betreff": "Presseanfrage Kitzrettung Limburg",
+    "text": "Guten Tag,\n\nich möchte über die Kitzrettung Limburg berichten.\n\nMedium / Redaktion:\nAnsprechperson:\nTelefon:\nThema / Anlass:\nGewünschter Termin oder Einsatz zum Begleiten:\nRedaktionsschluss:\n\nMit freundlichen Grüßen\n"
+  },
+  "kita": {
+    "betreff": "Anfrage Besuch Kita / Grundschule",
+    "text": "Guten Tag,\n\nwir würden uns über einen Besuch der Kitzrettung Limburg freuen.\n\nEinrichtung:\nOrt:\nAnsprechperson:\nTelefon:\nAnzahl und Alter der Kinder:\nWunschzeitraum:\n\nMit freundlichen Grüßen\n"
+  }
+}

@@ -168,3 +168,82 @@ content:
           - name: text
             label: Was damit möglich wird
             type: string
+
+  - name: mailvorlagen
+    label: E-Mail-Vorlagen
+    type: file
+    path: content/mailvorlagen.json
+    format: json
+    fields:
+      - name: allgemein
+        label: "Allgemein (Fußzeile, Kontaktkasten)"
+        type: object
+        fields:
+          - { name: betreff, label: Betreff, type: string }
+          - { name: text, label: "Vorausgefüllter Text", type: text }
+      - name: feldsuche
+        label: "Feldsuche – mit Karten-Screenshot"
+        type: object
+        fields:
+          - { name: betreff, label: Betreff, type: string }
+          - { name: text, label: "Vorausgefüllter Text", type: text }
+      - name: feldsuche_flurstueck
+        label: "Feldsuche – Flurstück / Koordinaten"
+        type: object
+        fields:
+          - { name: betreff, label: Betreff, type: string }
+          - { name: text, label: "Vorausgefüllter Text", type: text }
+      - name: mithelfen
+        label: "Mithelfen (allgemein)"
+        type: object
+        fields:
+          - { name: betreff, label: Betreff, type: string }
+          - { name: text, label: "Vorausgefüllter Text", type: text }
+      - name: helfer
+        label: "Helfer Bodensuche"
+        type: object
+        fields:
+          - { name: betreff, label: Betreff, type: string }
+          - { name: text, label: "Vorausgefüllter Text", type: text }
+      - name: drohnenteam
+        label: "Drohnenteam"
+        type: object
+        fields:
+          - { name: betreff, label: Betreff, type: string }
+          - { name: text, label: "Vorausgefüllter Text", type: text }
+      - name: organisation
+        label: "Vereinsorganisation"
+        type: object
+        fields:
+          - { name: betreff, label: Betreff, type: string }
+          - { name: text, label: "Vorausgefüllter Text", type: text }
+      - name: spendenquittung
+        label: "Spendenquittung"
+        type: object
+        fields:
+          - { name: betreff, label: Betreff, type: string }
+          - { name: text, label: "Vorausgefüllter Text", type: text }
+      - name: spende_frage
+        label: "Frage zur Spende"
+        type: object
+        fields:
+          - { name: betreff, label: Betreff, type: string }
+          - { name: text, label: "Vorausgefüllter Text", type: text }
+      - name: sachspende
+        label: "Sachspende"
+        type: object
+        fields:
+          - { name: betreff, label: Betreff, type: string }
+          - { name: text, label: "Vorausgefüllter Text", type: text }
+      - name: presse
+        label: "Presseanfrage"
+        type: object
+        fields:
+          - { name: betreff, label: Betreff, type: string }
+          - { name: text, label: "Vorausgefüllter Text", type: text }
+      - name: kita
+        label: "Besuch Kita / Grundschule"
+        type: object
+        fields:
+          - { name: betreff, label: Betreff, type: string }
+          - { name: text, label: "Vorausgefüllter Text", type: text }

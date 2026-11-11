@@ -71,12 +71,12 @@ image: /images/search-process-step-05-drone-launch.jpg
       <div class="infokasten">
         <h3>{{icon:mail}} Google-Maps-Screenshot</h3>
         <p>Markieren Sie das Grundstück auf einer Karte, öffnen Sie unsere E-Mail-Vorlage, ergänzen Sie die Angaben und hängen Sie den Screenshot an.</p>
-        <a class="knopf knopf--gruen" href="mailto:{{site.email}}?subject=Feldsuche%20%E2%80%93%20Anmeldung&amp;body=Guten%20Tag%2C%0D%0A%0D%0Aich%20m%C3%B6chte%20eine%20Feldsuche%20anmelden.%20Den%20markierten%20Karten-Screenshot%20f%C3%BCge%20ich%20als%20Anhang%20bei.%0D%0A%0D%0AName%3A%0D%0AMobilnummer%3A%0D%0AName%20der%20zust%C3%A4ndigen%20jagdaus%C3%BCbungsberechtigten%20Person%3A%0D%0AMobilnummer%20dieser%20Person%3A%0D%0A%0D%0AGemeinde%20%2F%20Ort%3A%0D%0AGeplantes%20M%C3%A4hdatum%3A%0D%0AGew%C3%BCnschter%20Suchtermin%3A%0D%0AFl%C3%A4chenbeschreibung%20(Lage%2C%20Gr%C3%B6%C3%9Fe%2C%20Flurbezeichnung)%3A%0D%0AWeitere%20Hinweise%3A%0D%0A%0D%0AMit%20freundlichen%20Gr%C3%BC%C3%9Fen">E-Mail-Vorlage öffnen</a>
+        <a class="knopf knopf--gruen" href="{{mail:feldsuche}}">E-Mail-Vorlage öffnen</a>
       </div>
       <div class="infokasten">
         <h3>{{icon:flaeche}} Liegenschaftskarte oder Koordinaten</h3>
         <p>Schicken Sie uns Gemarkung, Flur und Flurstück – oder die Koordinaten der Feldmitte – zusammen mit Mähdatum und Ihrer Mobilnummer.</p>
-        <a class="knopf knopf--rand" href="mailto:{{site.email}}?subject=Feldsuche%20%E2%80%93%20Anmeldung">E-Mail schreiben</a>
+        <a class="knopf knopf--rand" href="{{mail:feldsuche_flurstueck}}">E-Mail schreiben</a>
       </div>
       <div class="infokasten">
         <h3>{{icon:telefon}} Kurzfristig?</h3>
@@ -141,7 +141,7 @@ image: /images/search-process-step-05-drone-launch.jpg
         <div><p>Im gesamten Landkreis Limburg-Weilburg und teilweise im benachbarten Rheinland-Pfalz. Liegt Ihre Fläche weiter weg, fragen Sie gern – wir helfen auch bei der Suche nach einem Team in Ihrer Nähe.</p></div>
       </details>
     </div>
-    <p class="mt-2">Ihre Frage ist nicht dabei? Rufen Sie uns an unter <a href="{{site.telefon_link}}">{{site.telefon}}</a> oder schreiben Sie an <a href="mailto:{{site.email}}">{{site.email}}</a>.</p>
+    <p class="mt-2">Ihre Frage ist nicht dabei? Rufen Sie uns an unter <a href="{{site.telefon_link}}">{{site.telefon}}</a> oder schreiben Sie an <a href="{{mail:allgemein}}">{{site.email}}</a>.</p>
   </div>
 </section>
 
