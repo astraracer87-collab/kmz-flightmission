@@ -2,5 +2,6 @@
   "aktiv": true,
   "von": "05-01",
   "bis": "07-31",
-  "text": "Mähtermin geplant? Wir suchen Ihre Wiese kostenlos ab."
+  "kostenlos": true,
+  "text": "Mähtermin geplant? Wir suchen Ihre Wiese vorher ab."
 }

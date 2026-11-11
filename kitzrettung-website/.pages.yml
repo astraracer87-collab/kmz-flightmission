@@ -128,6 +128,10 @@ content:
       - name: bis
         label: Sichtbar bis (Monat-Tag, z. B. 07-31 für 31. Juli)
         type: string
+      - name: kostenlos
+        label: Hinweis „100 % kostenlos“ in der Leiste anzeigen
+        type: boolean
+        default: true
       - name: text
         label: Text in der Leiste
         type: string

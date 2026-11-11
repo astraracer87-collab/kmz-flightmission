@@ -241,7 +241,7 @@ function saisonLeiste(url) {
   if (!saison.aktiv) return '';
   const ziel = url === '/landwirte/' ? '#anmelden' : '/landwirte/#anmelden';
   return `<aside class="saison" data-von="${esc(saison.von)}" data-bis="${esc(saison.bis)}" aria-label="Feldsuche in der Mähsaison" hidden>
-  <p class="saison__text">${icon('drohne')}<span>${esc(saison.text)}</span></p>
+  <p class="saison__text">${icon('drohne')}<span>${saison.kostenlos !== false ? '<strong class="saison__gratis">100 % kostenlos</strong> ' : ''}${esc(saison.text)}</span></p>
   <div class="saison__knoepfe">
     <a class="knopf" href="${ziel}">Fläche anmelden</a>
     <a class="knopf knopf--hell" href="${esc(site.telefon_link)}">${icon('telefon')} Anrufen</a>
