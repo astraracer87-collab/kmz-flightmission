@@ -18,5 +18,10 @@
   "hosting": {
     "anbieter": "",
     "anschrift": ""
+  },
+  "formular": {
+    "empfaenger": "",
+    "absender": "",
+    "testmodus": false
   }
 }

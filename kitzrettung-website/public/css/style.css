@@ -447,3 +447,40 @@ body.mit-saison { padding-bottom: 150px; }
 /* Social-Media-Knöpfe */
 .sozial a { transition: background .15s, transform .15s; }
 .sozial a:hover { transform: translateY(-2px); }
+
+/* ---------- Kontaktformular ---------- */
+.kontakt-raster { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 64px); align-items: start; }
+@media (max-width: 900px) { .kontakt-raster { grid-template-columns: minmax(0, 1fr); } }
+.formular select { max-width: 100%; text-overflow: ellipsis; }
+.formular { background: var(--karte); border: 1px solid var(--linie); border-radius: 18px; padding: clamp(20px, 3vw, 32px); box-shadow: var(--schatten); display: grid; gap: 18px; }
+.feld { display: grid; gap: 6px; min-width: 0; }
+.feld label { font-weight: 600; font-size: .95rem; color: var(--gruen-dunkel); }
+.feld-reihe { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.feld-reihe--3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 600px) { .feld-reihe, .feld-reihe--3 { grid-template-columns: 1fr; } }
+.formular input[type="text"], .formular input[type="email"], .formular input[type="tel"], .formular input[type="date"], .formular select, .formular textarea {
+  width: 100%; font: inherit; font-size: 1rem; color: var(--text); background: #fff; border: 1.5px solid var(--linie); border-radius: 10px;
+  padding: 11px 13px; transition: border-color .15s, box-shadow .15s; }
+.formular textarea { resize: vertical; min-height: 110px; }
+.formular select { appearance: none; padding-right: 40px; cursor: pointer;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23244c31' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") right 12px center / 18px no-repeat; }
+.formular input:focus, .formular select:focus, .formular textarea:focus { outline: none; border-color: var(--gruen); box-shadow: 0 0 0 4px rgb(36 76 49 / 14%); }
+.formular input:user-invalid, .formular textarea:user-invalid, .formular select:user-invalid { border-color: #b3261e; }
+.formular ::placeholder { color: #9aa597; }
+.pflicht { color: var(--orange-dunkel); font-weight: 700; }
+.optional { color: var(--text-leise); font-weight: 400; font-size: .85rem; }
+.zusatz { border: 0; margin: 0; padding: 18px; border-radius: 14px; background: var(--gruen-hell); display: grid; gap: 14px; min-width: 0; }
+.zusatz[hidden] { display: none; }
+.zusatz legend { float: left; width: 100%; padding: 0; font-family: var(--serif); font-size: 1.1rem; font-weight: 700; color: var(--gruen-dunkel); }
+.zusatz__hinweis { margin: 0; font-size: .9rem; color: var(--text-leise); }
+.haken-feld { display: flex; gap: 10px; align-items: flex-start; font-size: .93rem; color: var(--text); line-height: 1.5; cursor: pointer; }
+.haken-feld input { width: 20px; height: 20px; margin-top: 2px; flex: none; accent-color: var(--gruen); }
+.fangfeld { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.formular__fuss { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.formular__fuss .klein { margin: 0; }
+.formular button[disabled] { opacity: .65; cursor: wait; transform: none; }
+.formular__meldung { border-radius: 12px; padding: 14px 16px; font-weight: 600; }
+.formular__meldung--fehler { background: #fdecea; color: #8a1c14; border: 1px solid #f3c2bd; }
+.formular__meldung--ok { background: var(--gruen-hell); color: var(--gruen-dunkel); border: 1px solid #c9d8c0; }
+.danke-symbol { width: 96px; height: 96px; margin: 0 auto 18px; border-radius: 50%; display: grid; place-items: center; background: var(--gruen-hell); color: var(--gruen); }
+.danke-symbol .icon { width: 56px; height: 56px; }

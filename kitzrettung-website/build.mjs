@@ -292,7 +292,7 @@ function strukturDaten() {
   return `<script type="application/ld+json">${JSON.stringify(d)}</script>`;
 }
 
-function layout({ title, description, body, url, image }) {
+function layout({ title, description, body, url, image, noindex }) {
   const voll = url === '/' ? `${site.vereinsname} – Gemeinsam Leben retten` : `${title} | Kitzrettung Limburg`;
   const ogImage = site.domain + (image || '/images/kitz-sicherung.jpg');
   const aktiv = (href) => (url === href || (href !== '/' && url.startsWith(href)) ? ' aria-current="page"' : '');
@@ -303,7 +303,7 @@ function layout({ title, description, body, url, image }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(voll)}</title>
 <meta name="description" content="${esc(description)}">
-<link rel="canonical" href="${site.domain}${url}">
+<link rel="canonical" href="${site.domain}${url}">${noindex ? '\n<meta name="robots" content="noindex">' : ''}
 <meta name="theme-color" content="#244c31">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="de_DE">
@@ -436,8 +436,8 @@ for (const file of (await walk(SRC)).filter((f) => f.endsWith('.html'))) {
     [url, out] = [`/${p}/`, `${p}/index.html`];
   }
   if (!data.title) warnings.push(`Seite ${rel}: kein Titel angegeben.`);
-  await write(out, layout({ title: data.title, description: data.description || '', image: data.image, url, body: render(body, rel) }));
-  if (rel !== '404.html') sitemap.push(url);
+  await write(out, layout({ title: data.title, description: data.description || '', image: data.image, noindex: data.noindex, url, body: render(body, rel) }));
+  if (rel !== '404.html' && !data.noindex) sitemap.push(url);
 }
 
 // News: Übersicht + Einzelseiten
@@ -465,6 +465,20 @@ await write(
     .join('\n')}\n</urlset>\n`
 );
 await write('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${site.domain}/sitemap.xml\n`);
+
+// Einstellungen für das PHP-Kontaktformular (public/kontakt.php liest diese Datei)
+const formular = site.formular || {};
+const phpString = (v) => "'" + String(v ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+await write(
+  'formular-config.php',
+  `<?php\n// Automatisch erzeugt aus content/einstellungen.json – bitte dort ändern.\nreturn [\n` +
+    `  'empfaenger' => ${phpString(formular.empfaenger || site.email)},\n` +
+    `  'absender' => ${phpString(formular.absender || '')},\n` +
+    `  'telefon' => ${phpString(site.telefon)},\n` +
+    `  'domain' => ${phpString(site.domain.replace(/^https?:\/\//, ''))},\n` +
+    `  'testmodus' => ${formular.testmodus ? 'true' : 'false'},\n];\n`
+);
+if (!formular.absender) warnings.push('Kontaktformular: Absender-Adresse fehlt (content/einstellungen.json → formular.absender), z. B. formular@kitzrettung-limburg.de beim Hoster anlegen.');
 
 if (!site.hosting?.anbieter) warnings.push('Datenschutz: Hosting-Anbieter fehlt noch (content/einstellungen.json → hosting).');
 

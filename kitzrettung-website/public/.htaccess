@@ -16,6 +16,10 @@ AddType application/manifest+json .webmanifest
 </IfModule>
 
 <IfModule mod_alias.c>
+  # Interne Dateien des Kontaktformulars nicht ausliefern
+  RedirectMatch 404 ^/formular-daten(/.*)?$
+  RedirectMatch 404 ^/formular-config\.php$
+
   # Alte Adressen der Wix-Seite und der Replit-Version weiterleiten (wichtig für Google und alte Links)
   RedirectMatch 301 ^/(%C3%BCber-uns|über-uns|ueber-uns)$ /ueber-uns/
   RedirectMatch 301 ^/(warum|rechtslage|vereinssatzung|kitzrettung)$ /ueber-uns/

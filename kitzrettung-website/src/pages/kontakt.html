@@ -1,33 +1,152 @@
 ---
 title: Kontakt
-description: So erreichen Sie die Kitzrettung Limburg e. V. – per E-Mail, Telefon oder Post. Feldsuche anmelden, mithelfen oder einfach Fragen stellen.
+description: So erreichen Sie die Kitzrettung Limburg e. V. – über das Kontaktformular, per E-Mail, Telefon oder Post. Feldsuche anmelden, mithelfen oder einfach Fragen stellen.
 ---
 <section class="seitenkopf">
   <div class="container">
     <p class="kicker">Kontakt</p>
     <h1>Wir sind für Sie da</h1>
-    <p class="einleitung">Sie möchten eine Fläche anmelden, mithelfen oder haben eine Frage? Melden Sie sich bei uns – am schnellsten per E-Mail oder Telefon.</p>
+    <p class="einleitung">Sie möchten eine Fläche anmelden, mithelfen, brauchen eine Spendenquittung oder haben eine Frage? Schreiben Sie uns über das Formular – oder melden Sie sich per E-Mail oder Telefon.</p>
   </div>
 </section>
 
 <section class="abschnitt">
-  <div class="container raster-2">
+  <div class="container kontakt-raster">
     <div>
+      <h2 id="formular">Nachricht senden</h2>
+      <form class="formular" action="/kontakt.php" method="post" data-formular>
+        <div class="feld">
+          <label for="f-anliegen">Worum geht es? <span class="pflicht" aria-hidden="true">*</span></label>
+          <select id="f-anliegen" name="anliegen" required>
+            <option value="allgemein">Allgemeine Frage</option>
+            <option value="feldsuche">Feldsuche anmelden</option>
+            <option value="mithelfen">Ich möchte mithelfen</option>
+            <option value="spendenquittung">Spendenquittung anfordern</option>
+            <option value="sachspende">Sachspende anbieten</option>
+            <option value="presse">Presseanfrage</option>
+            <option value="kita">Besuch in Kita oder Grundschule</option>
+          </select>
+        </div>
+
+        <div class="feld-reihe">
+          <div class="feld">
+            <label for="f-name">Name <span class="pflicht" aria-hidden="true">*</span></label>
+            <input id="f-name" name="name" type="text" autocomplete="name" maxlength="120" required>
+          </div>
+          <div class="feld">
+            <label for="f-email">E-Mail <span class="pflicht" aria-hidden="true">*</span></label>
+            <input id="f-email" name="email" type="email" autocomplete="email" maxlength="160" required>
+          </div>
+        </div>
+        <div class="feld">
+          <label for="f-telefon">Telefon <span class="optional" data-telefon-hinweis>(optional)</span></label>
+          <input id="f-telefon" name="telefon" type="tel" autocomplete="tel" maxlength="40">
+        </div>
+
+        <fieldset class="zusatz" data-anliegen="feldsuche" hidden disabled>
+          <legend>Angaben zur Fläche</legend>
+          <p class="zusatz__hinweis">Am genauesten ist die Anmeldung über den <a href="/landwirte/#anmelden">UAV Editor</a>. Für eine schnelle Anfrage reicht aber auch dieses Formular.</p>
+          <div class="feld-reihe">
+            <div class="feld"><label for="f-ort">Gemeinde / Ort <span class="pflicht" aria-hidden="true">*</span></label><input id="f-ort" name="ort" type="text" maxlength="120" required></div>
+            <div class="feld"><label for="f-maehdatum">Geplantes Mähdatum <span class="pflicht" aria-hidden="true">*</span></label><input id="f-maehdatum" name="maehdatum" type="date" required></div>
+          </div>
+          <div class="feld"><label for="f-flaeche">Lage der Fläche <span class="pflicht" aria-hidden="true">*</span></label><textarea id="f-flaeche" name="flaeche" rows="3" maxlength="1500" placeholder="z. B. „Wiese am Ortsausgang Richtung …“, Gemarkung/Flur/Flurstück oder Koordinaten" required></textarea></div>
+          <div class="feld-reihe">
+            <div class="feld"><label for="f-jaeger">Zuständige jagdausübungsberechtigte Person <span class="pflicht" aria-hidden="true">*</span></label><input id="f-jaeger" name="jaeger_name" type="text" maxlength="120" required></div>
+            <div class="feld"><label for="f-jaeger-tel">Mobilnummer dieser Person <span class="pflicht" aria-hidden="true">*</span></label><input id="f-jaeger-tel" name="jaeger_tel" type="tel" maxlength="40" required></div>
+          </div>
+          <p class="zusatz__hinweis">Bitte informieren Sie die jagdausübungsberechtigte Person, dass Sie uns Name und Telefonnummer zur Abstimmung des Einsatzes weitergeben. Drohnensuche bitte spätestens bis 12 Uhr am Vortag anmelden.</p>
+        </fieldset>
+
+        <fieldset class="zusatz" data-anliegen="mithelfen" hidden disabled>
+          <legend>Wobei möchtest du helfen?</legend>
+          <div class="feld-reihe">
+            <div class="feld"><label for="f-bereich">Interesse an <span class="pflicht" aria-hidden="true">*</span></label>
+              <select id="f-bereich" name="bereich" required>
+                <option value="Bodensuche">Bodensuche</option>
+                <option value="Drohnenteam">Drohnenteam</option>
+                <option value="Vereinsorganisation">Organisation</option>
+                <option value="Noch unentschieden">Weiß ich noch nicht</option>
+              </select></div>
+            <div class="feld"><label for="f-wohnort">Wohnort</label><input id="f-wohnort" name="wohnort" type="text" maxlength="120"></div>
+          </div>
+          <label class="haken-feld"><input type="checkbox" name="alter16" value="ja" required><span>Ich bin mindestens 16 Jahre alt. <span class="pflicht" aria-hidden="true">*</span></span></label>
+        </fieldset>
+
+        <fieldset class="zusatz" data-anliegen="spendenquittung" hidden disabled>
+          <legend>Angaben für die Zuwendungsbestätigung</legend>
+          <div class="feld-reihe">
+            <div class="feld"><label for="f-strasse">Straße und Hausnummer <span class="pflicht" aria-hidden="true">*</span></label><input id="f-strasse" name="strasse" type="text" autocomplete="street-address" maxlength="160" required></div>
+            <div class="feld"><label for="f-plzort">PLZ und Ort <span class="pflicht" aria-hidden="true">*</span></label><input id="f-plzort" name="plz_ort" type="text" maxlength="120" required></div>
+          </div>
+          <div class="feld-reihe feld-reihe--3">
+            <div class="feld"><label for="f-sdatum">Datum der Spende <span class="pflicht" aria-hidden="true">*</span></label><input id="f-sdatum" name="spende_datum" type="date" required></div>
+            <div class="feld"><label for="f-sbetrag">Betrag <span class="pflicht" aria-hidden="true">*</span></label><input id="f-sbetrag" name="spende_betrag" type="text" inputmode="decimal" placeholder="z. B. 50 €" maxlength="40" required></div>
+            <div class="feld"><label for="f-weg">Zahlungsweg</label>
+              <select id="f-weg" name="zahlungsweg"><option>Überweisung</option><option>PayPal</option><option>Bar</option></select></div>
+          </div>
+        </fieldset>
+
+        <fieldset class="zusatz" data-anliegen="sachspende" hidden disabled>
+          <legend>Ihre Sachspende</legend>
+          <div class="feld"><label for="f-sache">Was möchten Sie spenden? <span class="pflicht" aria-hidden="true">*</span></label><input id="f-sache" name="sache" type="text" maxlength="300" required></div>
+          <div class="feld"><label for="f-uebergabe">Übergabe</label>
+            <select id="f-uebergabe" name="uebergabe"><option>Abholung erwünscht</option><option>Ich bringe es vorbei</option><option>Noch offen</option></select></div>
+        </fieldset>
+
+        <fieldset class="zusatz" data-anliegen="presse" hidden disabled>
+          <legend>Zu Ihrer Anfrage</legend>
+          <div class="feld-reihe">
+            <div class="feld"><label for="f-medium">Medium / Redaktion <span class="pflicht" aria-hidden="true">*</span></label><input id="f-medium" name="medium" type="text" maxlength="160" required></div>
+            <div class="feld"><label for="f-ptermin">Wunschtermin / Redaktionsschluss</label><input id="f-ptermin" name="termin" type="text" maxlength="120"></div>
+          </div>
+        </fieldset>
+
+        <fieldset class="zusatz" data-anliegen="kita" hidden disabled>
+          <legend>Zu Ihrer Einrichtung</legend>
+          <div class="feld"><label for="f-einrichtung">Einrichtung und Ort <span class="pflicht" aria-hidden="true">*</span></label><input id="f-einrichtung" name="einrichtung" type="text" maxlength="160" required></div>
+          <div class="feld-reihe">
+            <div class="feld"><label for="f-kinder">Anzahl und Alter der Kinder</label><input id="f-kinder" name="kinder" type="text" maxlength="120"></div>
+            <div class="feld"><label for="f-ktermin">Wunschzeitraum</label><input id="f-ktermin" name="termin" type="text" maxlength="120"></div>
+          </div>
+        </fieldset>
+
+        <div class="feld">
+          <label for="f-nachricht">Nachricht <span class="pflicht" aria-hidden="true" data-nachricht-pflicht>*</span></label>
+          <textarea id="f-nachricht" name="nachricht" rows="6" maxlength="5000" required></textarea>
+        </div>
+
+        <!-- Spamschutz: dieses Feld bleibt für Menschen unsichtbar und leer -->
+        <div class="fangfeld" aria-hidden="true">
+          <label for="f-website">Webseite</label>
+          <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+        <input type="hidden" name="ts" value="">
+
+        <label class="haken-feld"><input type="checkbox" name="datenschutz" value="ja" required><span>Ich bin einverstanden, dass meine Angaben zur Bearbeitung meiner Anfrage per E-Mail an den Vorstand der Kitzrettung Limburg weitergeleitet werden. Mehr dazu in der <a href="/datenschutz/#formular">Datenschutzerklärung</a>. <span class="pflicht" aria-hidden="true">*</span></span></label>
+
+        <div class="formular__fuss">
+          <button type="submit" class="knopf">Nachricht senden {{icon:pfeil}}</button>
+          <p class="klein"><span class="pflicht">*</span> Pflichtfeld</p>
+        </div>
+        <div class="formular__meldung" role="status" aria-live="polite" hidden></div>
+        <noscript><p class="formular__meldung formular__meldung--fehler">Das Formular braucht JavaScript. Bitte schreiben Sie uns stattdessen an <a href="{{mail:allgemein}}">{{site.email}}</a>.</p></noscript>
+      </form>
+    </div>
+
+    <aside>
       <h2>Direkt erreichen</h2>
       {{> kontakt-box}}
       <h3 class="mt-2">Postanschrift</h3>
       <p>{{site.vereinsname}}<br>{{site.anschrift}}</p>
-    </div>
-    <div>
-      <h2>Worum geht es?</h2>
-      <p>Mit diesen Knöpfen öffnet sich Ihr E-Mail-Programm mit dem passenden Betreff.</p>
+      <h3 class="mt-2">Lieber per E-Mail?</h3>
+      <p class="klein">Diese Links öffnen Ihr E-Mail-Programm mit passendem Betreff und vorbereitetem Text.</p>
       <div class="kontakt-box">
-        <a class="kontakt-box__zeile" href="/landwirte/#anmelden"><span class="symbolkachel">{{icon:flaeche}}</span><span><small>Landwirtschaft &amp; Jagd</small>Wiese zur Suche anmelden</span></a>
+        <a class="kontakt-box__zeile" href="{{mail:feldsuche}}"><span class="symbolkachel">{{icon:flaeche}}</span><span><small>Landwirtschaft &amp; Jagd</small>Wiese zur Suche anmelden</span></a>
         <a class="kontakt-box__zeile" href="{{mail:mithelfen}}"><span class="symbolkachel">{{icon:helfer}}</span><span><small>Ehrenamt</small>Ich möchte mithelfen</span></a>
         <a class="kontakt-box__zeile" href="{{mail:spende_frage}}"><span class="symbolkachel">{{icon:herz}}</span><span><small>Spenden</small>Frage zu Spende oder Spendenquittung</span></a>
         <a class="kontakt-box__zeile" href="{{mail:presse}}"><span class="symbolkachel">{{icon:mail}}</span><span><small>Presse</small>Presseanfrage</span></a>
-        <a class="kontakt-box__zeile" href="{{mail:allgemein}}"><span class="symbolkachel">{{icon:mail}}</span><span><small>Alles andere</small>Allgemeine Anfrage</span></a>
       </div>
-    </div>
+    </aside>
   </div>
 </section>

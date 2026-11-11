@@ -62,6 +62,72 @@
     });
   }
 
+  // Kontaktformular: passende Zusatzfelder einblenden und ohne Seitenwechsel absenden
+  var form = document.querySelector('[data-formular]');
+  if (form) {
+    var auswahl = form.querySelector('[name="anliegen"]');
+    var nachricht = form.querySelector('[name="nachricht"]');
+    var nachrichtStern = form.querySelector('[data-nachricht-pflicht]');
+    var telHinweis = form.querySelector('[data-telefon-hinweis]');
+    var telefon = form.querySelector('[name="telefon"]');
+    var meldung = form.querySelector('.formular__meldung');
+    var knopfSenden = form.querySelector('button[type="submit"]');
+    form.querySelector('[name="ts"]').value = String(Date.now());
+
+    var zeige = function () {
+      var a = auswahl.value;
+      form.querySelectorAll('.zusatz').forEach(function (fs) {
+        var an = fs.getAttribute('data-anliegen') === a;
+        fs.hidden = !an;
+        fs.disabled = !an;
+      });
+      var nachrichtPflicht = a === 'allgemein';
+      nachricht.required = nachrichtPflicht;
+      nachrichtStern.hidden = !nachrichtPflicht;
+      var telPflicht = a === 'feldsuche';
+      telefon.required = telPflicht;
+      telHinweis.textContent = telPflicht ? '(Mobilnummer, Pflichtfeld)' : '(optional)';
+    };
+    // Anliegen aus der Adresse übernehmen, z. B. /kontakt/?anliegen=spendenquittung#formular
+    var m = /[?&]anliegen=([a-z]+)/.exec(location.search);
+    if (m && auswahl.querySelector('option[value="' + m[1] + '"]')) auswahl.value = m[1];
+    var b = /[?&]bereich=([A-Za-z]+)/.exec(location.search);
+    if (b) { var sel = form.querySelector('[name="bereich"]'); if (sel.querySelector('option[value="' + b[1] + '"]')) sel.value = b[1]; }
+    auswahl.addEventListener('change', zeige);
+    zeige();
+
+    var melden = function (text, fehler) {
+      meldung.hidden = false;
+      meldung.textContent = text;
+      meldung.className = 'formular__meldung' + (fehler ? ' formular__meldung--fehler' : ' formular__meldung--ok');
+      meldung.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    };
+
+    form.addEventListener('submit', function (e) {
+      if (!window.fetch || !window.FormData) return; // dann normal absenden
+      e.preventDefault();
+      knopfSenden.disabled = true;
+      knopfSenden.dataset.text = knopfSenden.dataset.text || knopfSenden.innerHTML;
+      knopfSenden.textContent = 'Wird gesendet …';
+      fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } })
+        .then(function (r) { return r.json().catch(function () { return { ok: false, nachricht: 'Unerwartete Antwort vom Server.' }; }); })
+        .then(function (d) {
+          if (d.ok) {
+            location.href = '/kontakt/danke/';
+          } else {
+            melden(d.nachricht || 'Die Nachricht konnte nicht gesendet werden.', true);
+            knopfSenden.disabled = false;
+            knopfSenden.innerHTML = knopfSenden.dataset.text;
+          }
+        })
+        .catch(function () {
+          melden('Die Verbindung zum Server ist fehlgeschlagen. Bitte versuchen Sie es noch einmal oder schreiben Sie uns eine E-Mail.', true);
+          knopfSenden.disabled = false;
+          knopfSenden.innerHTML = knopfSenden.dataset.text;
+        });
+    });
+  }
+
   // IBAN kopieren
   document.querySelectorAll('[data-kopieren]').forEach(function (b) {
     b.addEventListener('click', function () {

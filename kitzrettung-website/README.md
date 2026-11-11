@@ -79,8 +79,24 @@ Zusätzlich entsteht eine WebP-Fassung, die moderne Browser bevorzugt laden (`<p
 - Keine Cookies, kein Tracking, keine Google Fonts. Alle Schriften sind Systemschriften.
 - YouTube, Instagram, das UAV-Editor-Formular und die Wettervorhersage (Open-Meteo) laden **erst nach Klick**.
   Dafür im HTML `<div class="extern" data-extern="URL">…<button>…</button></div>` verwenden.
-- Es gibt keine eigenen Formulare. Kontakt läuft über `mailto:`-Links mit vorausgefülltem Betreff und Text,
-  die Feldanmeldung über den UAV Editor. So entstehen keine Personendaten auf dem Webserver.
+- Das Kontaktformular (`/kontakt/`) schickt die Angaben per E-Mail weiter und speichert nichts auf dem Server
+  (siehe unten). Daneben gibt es `mailto:`-Links mit vorausgefülltem Betreff und Text; die Feldanmeldung läuft
+  bevorzugt über den UAV Editor.
+
+### Kontaktformular (PHP)
+
+- `public/kontakt.php` nimmt das Formular entgegen, prüft es und verschickt eine E-Mail mit `mail()`. Es braucht **PHP 8.1 oder neuer**, was bei allen gängigen Hostern Standard ist.
+- **Einstellungen** stehen in `content/einstellungen.json` unter `formular`:
+  - `empfaenger` – wohin die Nachrichten gehen (leer = die Vereins-E-Mail),
+  - `absender` – eine Adresse **auf eurer eigenen Domain beim Hoster**, z. B. `formular@kitzrettung-limburg.de`. Dieses Postfach (oder eine Weiterleitung) beim Hoster anlegen,
+    sonst landen die Mails leicht im Spam. Man antwortet trotzdem direkt dem Absender (Reply-To),
+  - `testmodus` – `true` schickt nichts, sondern legt die Mails als Dateien in `formular-daten/` ab.
+- **Spamschutz** ohne Drittanbieter: ein unsichtbares Fangfeld, eine Mindest-Ausfüllzeit von 4 Sekunden und höchstens 5 Nachrichten pro Stunde und IP-Adresse.
+  Gespeichert wird nur ein gekürzter Hash der IP-Adresse, eine Stunde lang. `formular-daten/` ist per `.htaccess` gesperrt.
+- **Anliegen** und ihre Zusatzfelder (Feldsuche, Mithelfen, Spendenquittung, Sachspende, Presse, Kita, Allgemein) sind in `kontakt.php` (`$ANLIEGEN`, `$ZUSATZ`)
+  und im Formular auf `src/pages/kontakt.html` definiert. Links wie `/kontakt/?anliegen=spendenquittung#formular` wählen das Anliegen vor.
+- **Lokal testen**: `npm run build`, dann `cd dist && KITZ_FORMULAR_TEST=1 php -S localhost:8092` und `http://localhost:8092/kontakt/` öffnen.
+- Auf Netlify, Cloudflare Pages oder GitHub Pages läuft PHP nicht. Dort funktioniert das Formular nicht, die E-Mail-Links schon.
 
 ## Einrichtung (einmalig)
 
