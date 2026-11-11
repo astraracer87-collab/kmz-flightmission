@@ -22,7 +22,7 @@ description: So erreichen Sie die Kitzrettung Limburg e. V. – über das Kontak
             <option value="feldsuche">Feldsuche anmelden</option>
             <option value="mithelfen">Ich möchte mithelfen</option>
             <option value="spendenquittung">Spendenquittung anfordern</option>
-            <option value="sachspende">Sachspende anbieten</option>
+            <!-- Sachspenden vorerst deaktiviert: <option value="sachspende">Sachspende anbieten</option> -->
             <option value="presse">Presseanfrage</option>
             <option value="kita">Besuch in Kita oder Grundschule</option>
           </select>
@@ -87,12 +87,14 @@ description: So erreichen Sie die Kitzrettung Limburg e. V. – über das Kontak
           </div>
         </fieldset>
 
+        <!-- Sachspenden vorerst deaktiviert (zum Einschalten Kommentar und die Option oben wieder aktivieren)
         <fieldset class="zusatz" data-anliegen="sachspende" hidden disabled>
           <legend>Ihre Sachspende</legend>
           <div class="feld"><label for="f-sache">Was möchten Sie spenden? <span class="pflicht" aria-hidden="true">*</span></label><input id="f-sache" name="sache" type="text" maxlength="300" required></div>
           <div class="feld"><label for="f-uebergabe">Übergabe</label>
             <select id="f-uebergabe" name="uebergabe"><option>Abholung erwünscht</option><option>Ich bringe es vorbei</option><option>Noch offen</option></select></div>
         </fieldset>
+        -->
 
         <fieldset class="zusatz" data-anliegen="presse" hidden disabled>
           <legend>Zu Ihrer Anfrage</legend>
