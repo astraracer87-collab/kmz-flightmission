@@ -388,6 +388,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         } else {
             newBase = Math.round(base * Math.tan(Math.toRadians(a[3] / 2.0)) / Math.tan(Math.toRadians(b[3] / 2.0)));
         }
+        // nie unter die Mindesthöhe der Zieldrohne (M3T 50 m, M4T 70 m); höher geplante Felder (z. B. wegen Stromleitung) bleiben so hoch
+        long minH = Math.round(50.0 * Math.tan(Math.toRadians(49.0 / 2.0)) / Math.tan(Math.toRadians(b[3] / 2.0)));
+        newBase = Math.max(newBase, Math.max(minH, from.equals(to) ? Math.round(base) : 0));
         double delta = newBase - base;
         t = setTag(t, "droneEnumValue", String.valueOf(b[0]));
         t = setTag(t, "droneSubEnumValue", String.valueOf(b[1]));
@@ -434,7 +437,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (gm.find() && td != null) {
                 double h = Double.parseDouble(gm.group(1));
                 double wantH = 50.0 * Math.tan(Math.toRadians(49.0 / 2.0)) / Math.tan(Math.toRadians(td[3] / 2.0));
-                if (Math.abs(h - wantH) <= 5) return null;   // Höhe passt → nichts zu tun
+                if (h >= wantH - 5) return null;   // Mindesthöhe erreicht (höher ist erlaubt, z. B. 70 m wegen Stromleitung) → nichts zu tun
             } else return null;
             // Höhe falsch → durchfallen lassen und umrechnen (from=to, aber convertKml setzt Höhe korrekt)
         }
@@ -471,7 +474,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     double h = Double.parseDouble(gm.group(1));
                     // Sollhöhe für Zieldrohne berechnen (gleiche Streifenbreite)
                     double wantH = 50.0 * Math.tan(Math.toRadians(49.0 / 2.0)) / Math.tan(Math.toRadians(td[3] / 2.0));
-                    if (Math.abs(h - wantH) > 5) return true;   // falsche Höhe
+                    if (h < wantH - 5) return true;   // unter der Mindesthöhe der Drohne (M3T 50 m, M4T 70 m) – höher ist in Ordnung
                 }
                 return false;
             }

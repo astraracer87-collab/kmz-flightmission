@@ -3003,8 +3003,9 @@ function isDroneMismatch(f) {
   if (!wantH) return false;
   // Fall 1: falsche Drohne erkannt
   if (f.drone && f.drone !== want) return true;
-  // Fall 2: richtige Drohne (oder keine erkannt), aber falsche Höhe
-  if (f.height && Math.abs(f.height - wantH) > 5) return true;
+  // Fall 2: richtige Drohne (oder keine erkannt), aber unter der Mindesthöhe (M3T 50 m, M4T 70 m). Höher ist in Ordnung –
+  // z. B. 70 m mit der M3T wegen Stromleitung oder Hindernis. Die M4T darf aber nie unter 70 m fliegen.
+  if (f.height && f.height < wantH - 5) return true;
   return false;
 }
 /** PC: Name und Höhe passen nicht zusammen – „…-M4T“ unter 70 m geplant, oder „…-M3T“ auf 70 m, obwohl die Flugbahn keine Stromleitung überquert.
@@ -3784,14 +3785,14 @@ function toggle(f) {
     const wantH = DRONE_HEIGHT[P.drone] || '?';
     const hasH = f.height || '?';
     const wrongDrone = f.drone && f.drone !== P.drone;
-    const wrongH = f.height && Math.abs(f.height - wantH) > 5;
+    const wrongH = f.height && f.height < wantH - 5;   // nur zu niedrig ist falsch
     // Fehlerliste zusammenbauen
     const issues = [];
     if (wrongDrone) issues.push(`❌ Drohne: ${DN[f.drone] || f.drone} (soll: ${DN[P.drone] || P.drone})`);
-    if (wrongH) issues.push(`❌ Flughöhe: ${hasH} m (soll: ${wantH} m)`);
+    if (wrongH) issues.push(`❌ Flughöhe: ${hasH} m (mindestens: ${wantH} m)`);
     const title = wrongDrone && wrongH ? '⚠ Falsche Drohne und Flughöhe'
                 : wrongDrone ? '⚠ Falsche Drohne' : '⚠ Falsche Flughöhe';
-    const msg = issues.join('\n') + `\n\nSoll die Datei auf ${DN[P.drone] || P.drone} (${wantH} m) korrigiert werden?`;
+    const msg = issues.join('\n') + `\n\nSoll die Datei auf ${DN[P.drone] || P.drone} (mindestens ${wantH} m) korrigiert werden?`;
     confirmDlg(title, msg, [], `Auf ${DN[P.drone] || P.drone} korrigieren`, () => {
       busy('Rechne um…');
       setTimeout(() => {
@@ -4142,7 +4143,31 @@ function uvIdsToRows(r) {
   if (!rows.length) return { ok: false, error: 'Auswahl im UAV Editor nicht zuzuordnen.' };   // IDs passen nicht zu unserer Liste: lieber nichts ändern
   return Object.assign({}, r, { rows });   // fehlen welche: want bleibt größer → nur dazunehmen, nichts abwählen
 }
+/** Im UAV Editor gibt es ein Feld, das unsere Feldliste noch nicht kennt (z. B. gerade neu geplant): Feldliste still im Hintergrund nachladen
+ *  und die Auswahl danach automatisch nochmal übernehmen – ohne „UAV-Felder holen“ drücken zu müssen. true = wird nachgeladen */
+function uvCatAuto(raw, again, hint) {
+  if (!raw || !isOnline() || !A.uaveCheck) return false;
+  if (S.uvCatPend) { S.uvCatPend = { raw, again }; return true; }   // läuft schon: nur die neueste Auswahl merken
+  if (syncing || (S.uvCatAt && Date.now() - S.uvCatAt < 90000)) return false;   // nicht dauernd – höchstens alle 90 s
+  S.uvCatAt = Date.now(); S.uvCatPend = { raw, again };
+  if (hint) hint('⏳ Neues Feld im UAV Editor – unsere Feldliste wird im Hintergrund aktualisiert, dann wird es automatisch übernommen …');
+  catRefresh(true); if (!syncing) { S.uvCatPend = null; return false; }
+  return true;
+}
+/** Fingerabdruck eines Felds aus der UAV-Editor-Liste: Höhe, Drohne, Fläche, Feldgrenze, Flugbahn, letzte Änderung */
+function cfSnap(cf) { const m = cf.meta || {}, h = a => { if (!a || !a.length) return ''; let x = 0; a.flat(3).forEach((v, i) => { x = (x * 31 + Math.round(+v * 1e5) + i) % 2147483647; }); return a.length + ':' + x; };
+  return { lm: String(cf.lm || ''), h: m.h ? Math.round(m.h) : 0, dt: m.dt || '', area: cf.area ? Math.round(cf.area) : 0, r: h(m.r), rt: h(m.route), name: cf.name }; }
+/** Was hat sich gegenüber dem letzten Stand geändert? → kurze Texte */
+function cfDiff(a, b) { const out = [];
+  if (a.h !== b.h && (a.h || b.h)) out.push(`Höhe ${a.h || '?'} → ${b.h || '?'} m`);
+  if (a.dt !== b.dt && a.dt && b.dt) out.push('Drohne geändert');
+  if (a.r !== b.r) out.push(a.area && b.area && Math.abs(a.area - b.area) > 50 ? `Feldgrenze geändert (${fieldArea(a.area)} → ${fieldArea(b.area)})` : 'Feldgrenze geändert');
+  if (a.rt !== b.rt && !out.some(t => /Feldgrenze/.test(t))) out.push('Flugbahn geändert');
+  if (!out.length && a.lm !== b.lm && a.lm && b.lm) out.push('im UAV Editor bearbeitet');
+  return out; }
+const uvUnknownIds = raw => { if (!raw || !raw.ids) return 0; const by = new Set(catAll().map(cf => String(cf.id))); return raw.ids.filter(id => !by.has(String(id))).length; };
 window.onUaveLive = r => {
+  const raw = r; if (raw && P.uvLive !== '0' && uvUnknownIds(raw) && uvCatAuto(raw, window.onUaveLive, (t) => { const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.color = ''; h.style.fontWeight = '700'; } }) && !(raw.ids || []).some(id => catAll().some(cf => String(cf.id) === String(id)))) return;
   r = uvIdsToRows(r);
   if (!r || P.uvLive === '0' || !uvAvail()) return;
   const hint = (t, bad) => { const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.color = bad ? '#c43e00' : ''; h.style.fontWeight = bad ? '800' : ''; } };
@@ -4171,6 +4196,18 @@ window.onUaveLive = r => {
   hint(now.size ? `✓ ${now.size} Feld${now.size > 1 ? 'er' : ''} aus dem UAV Editor markiert – live, auch in der Missionsplanung.` : 'Im UAV Editor Felder anhaken – sie werden sofort auch in der Missionsplanung markiert.');
 };
 window.onUaveSel = r => {
+  const raw = r;
+  // Pre-Check aus dem UAV Editor: erst still die aktuelle Feldliste holen (Höhe, Feldgrenze, Flugbahn könnten seit dem letzten Abruf geändert sein)
+  if (raw && raw.precheck && !raw._fresh && isOnline() && A.uaveCheck && A.uaveUser && A.uaveUser() && !syncing && !S.uvCatPend) {
+    let t = 0; try { t = (JSON.parse(A.uaveCatalog() || 'null') || {}).t || 0; } catch (e) { }
+    if (Date.now() - t > 30000) {   // gerade erst geholt: nicht nochmal
+      const snap = {}; catAll().forEach(cf => { snap[String(cf.id)] = cfSnap(cf); });
+      raw._fresh = true; raw._snap = snap; S.uvCatAt = Date.now(); S.uvCatPend = { raw, again: window.onUaveSel };
+      const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = '⏳ Pre-Check: prüfe im UAV Editor, ob sich die Felder geändert haben (Höhe, Feldgrenze, Flugbahn) …'; h.style.fontWeight = '700'; }
+      catRefresh(true); if (syncing) return; S.uvCatPend = null;
+    }
+  }
+  if (raw && uvUnknownIds(raw) && uvCatAuto(raw, window.onUaveSel, t => { const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.fontWeight = '700'; } else toast(t, 'ok', 5000); })) return;
   r = uvIdsToRows(r);
   const tb = $('uvTake'); if (tb) { tb.disabled = false; tb.textContent = '✔ Markierte Felder übernehmen'; }
   // Hinweise im UAV-Editor-Tab direkt in der Leiste zeigen (kein Dialog – der läge sonst unter der eingebetteten Seite)
@@ -4185,7 +4222,12 @@ window.onUaveSel = r => {
     if (c.length > 1) { const d = c.filter(cf => !drOf(x.drone) || cfDrone(cf) === drOf(x.drone)); if (d.length) c = d; }
     if (c.length > 1) c = c.filter(cf => !cf.arch).concat(c.filter(cf => cf.arch));
     c.length ? found.push(c[0]) : miss.push(x.name); });
+  if (miss.length && !raw.ids && uvCatAuto(raw, window.onUaveSel, t => say(t))) return;   // neues Feld (nach Namen): Feldliste nachladen, dann nochmal
   S.files.forEach(f => f.selected = false);
+  // geänderte Felder: alten Eintrag verwerfen, damit Karte und Pre-Check den neuen Stand zeigen
+  const chg = []; if (raw && raw._snap) found.forEach(cf => { const o = raw._snap[String(cf.id)]; if (!o) return; const d = cfDiff(o, cfSnap(cf)); if (!d.length) return;
+    chg.push({ name: cf.name, d }); S.files = S.files.filter(x => !(x.cat && String((x.uave || {}).id || x.id) === String(cf.id))); });
+  S.pcChanged = chg.length ? { at: Date.now(), list: chg } : null; if (chg.length) S.pcCache = null;
   const fs = found.map(cf => webCatPick(cf, 'all')).filter(Boolean);
   const half = r.precheck && (P.uaveMode === 'half' || P.uaveMode === 'full') && UV.on;   // Halbintegration: im UAV Editor bleiben, Pre-Check rechts daneben
   if (!half) uvMode(false);
@@ -4195,7 +4237,7 @@ window.onUaveSel = r => {
   if (r.src === 'karte' && fs.length) toast(`✓ ${fs.length} Feld(er) von der UAV-Karte übernommen (Feldtabelle ist dort ausgeblendet) – Felder in Gruppen-Kreisen werden nicht erkannt.`, 'ok', 6000);
   if (r.precheck && fs.length) { setTimeout(() => webPreCheck(S.files.filter(f => f.selected)), 120); if (miss.length || (r.want != null && r.rows.length < r.want)) toast(`${miss.length ? miss.length + ' Feld(er) nicht in unserer Feldliste' : 'Nicht alle angehakten Felder gelesen'} – Pre-Check mit ${fs.length} Feld${fs.length === 1 ? '' : 'ern'}.`, 'warn', 7000); return; }
   const part = r.want != null && r.rows.length < r.want ? `Nur ${r.rows.length} von ${r.want} angehakten Feldern gelesen – bitte im UAV Editor einmal durch die Liste scrollen und erneut übernehmen.` : '';
-  if (miss.length || part) uvInfo(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} übernommen`, [part, miss.length ? `Nicht in unserer Feldliste (evtl. „↻ UAV-Felder holen“):` : ''].filter(Boolean).join('\n\n'), miss.slice(0, 20));
+  if (miss.length || part) uvInfo(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} übernommen`, [part, miss.length ? `Nicht in unserer Feldliste – auch nach dem automatischen Nachladen nicht gefunden (Feld im UAV Editor schon gespeichert?):` : ''].filter(Boolean).join('\n\n'), miss.slice(0, 20));
   else toast(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} aus dem UAV Editor übernommen`, 'ok', 3500);
 };
 /** Tab-Leiste ganz oben (wie im Browser): „Mission Kitzrettung“ | „UAV Editor“ – rechts Zoom für den offenen Tab */
@@ -4734,7 +4776,7 @@ const DRONE_INFO = {
 
 /** Merkt sich je Feld (Pfad bzw. „uave:<id>“) den Dateinamen, unter dem es im Import-Ordner liegt */
 function dstMap() { try { return JSON.parse(P.dstMap || '{}') || {}; } catch (e) { return {}; } }
-function doTransfer(paths, drone, keys) {
+function doTransfer(paths, drone, keys, extraMinH) {
   const move = false;   // immer kopieren: „UAV-Editor“ behält alle Felder
   busy(drone ? 'Rechne um und übertrage…' : 'Übertrage…');
   setTimeout(async () => {
@@ -4742,6 +4784,7 @@ function doTransfer(paths, drone, keys) {
     let nRaise = 0;
     if (A.setMinHeights) { const mh = {};
       if (pwrAdj()) S.files.forEach(f => { if (paths.includes(f.path) && touchesPower(f)) mh[f.path] = pwrH(); });
+      Object.entries(extraMinH || {}).forEach(([p, h]) => { if (h > 0) mh[p] = Math.max(mh[p] || 0, h); });   // Lite: Pilot hat „Höhe beibehalten“ gewählt
       try { A.setMinHeights(JSON.stringify(mh)); } catch (e) { } }
     const r = JSON.parse(A.transfer(JSON.stringify(paths), P.dst, move, true, drone || ''));
     nRaise = r.raised || 0;
@@ -9422,6 +9465,11 @@ function pcShow(sel, box) {
   $('dlg').querySelector('.box').classList.add('wide', 'auto');   // Desktop: ganze Fensterbreite nutzen – Felder in Spalten; Höhe nur so viel wie nötig
   $('dlg').querySelector('.box').scrollTop = 0;
   pcDjiChip(sel, box);
+  { const old = box.querySelector('#pcChg'); if (old) old.remove(); const ch = S.pcChanged;
+    if (ch && Date.now() - ch.at < 10 * 60000) { const ls = ch.list.filter(x => sel.some(f => f.title === x.name)); if (ls.length) {
+      const c = document.createElement('div'); c.className = 'fwchip'; c.id = 'pcChg'; c.style.background = 'rgba(255,152,0,.14)'; c.style.borderLeft = '4px solid #e65100';
+      c.innerHTML = `<span>✎ <b>Seit dem letzten Abruf im UAV Editor geändert</b> – der Pre-Check nutzt schon den neuen Stand:<br>${ls.map(x => `<b>${esc(x.name)}</b>: ${esc(x.d.join(', '))}`).join('<br>')}</span>`;
+      box.prepend(c); } } }
 }
 /** Pre-Check (PC): Wolke neben jedem Feldnamen – blau = liegt in der DJI Cloud, grau = fehlt (anklicken zum Hochladen) */
 function pcDjiChip(sel, box) {
@@ -10285,7 +10333,7 @@ function liteSearch(afterRefresh) {
   // Erst ab 3 Buchstaben suchen – vorher bleibt die Liste leer. Gewählte Felder bleiben oben stehen, auch wenn sie nicht zum Suchbegriff passen.
   const row = f => { const on = sel.has(String(f.id)), dd = dr(f), h = f.meta && f.meta.h ? Math.round(f.meta.h) : 0;
     // andere Drohne oder andere Höhe: wird beim Import automatisch auf die eigene Drohne umgerechnet
-    const conv = want && wantH && ((dd && dd !== want) || (h && Math.abs(h - wantH) > 5)) ? ` <span style="color:#e07800;font-weight:700">→ wird für ${DN[want] || want} (${wantH} m) umgerechnet</span>` : '';
+    const conv = want && wantH && ((dd && dd !== want) || (h && h < wantH - 5)) ? ` <span style="color:#e07800;font-weight:700">→ wird für ${DN[want] || want} (mind. ${wantH} m) umgerechnet</span>` : '';
     return `<label class="lrow${on ? ' on' : ''}"><input type="checkbox" data-id="${esc(f.id)}"${on ? ' checked' : ''}><span><b>${esc(f.name)}</b>${dj ? '' : srcBadges(f)}<em>${[tTxt(f), f.area ? fieldArea(f.area) : '', dd ? DN[dd] || dd : '', h ? h + ' m' : ''].filter(Boolean).join(' · ')}${conv}</em></span></label>`; };
   const render = () => {
     const t = fold(q.value.trim()), picked = all.filter(f => sel.has(String(f.id)));
@@ -10379,12 +10427,39 @@ function liteUaveEvent(ev) {
   return false;
 }
 /** Geladene Felder auf die Drohne umrechnen und in „Kitzrettung Import“ legen – ohne weiteren Klick */
+/** Hindernisse am Feld, die eine niedrigere Flughöhe gefährlich machen: Stromleitung auf der Flugbahn, hohe Bauwerke/Windräder in ≤ 150 m */
+function lowHazards(f, h) {
+  const out = []; if (!f) return out;
+  if (touchesPower(f)) out.push('Stromleitung');
+  const b = f.bounds; if (b && S.obs) { const k = Math.cos(((b.n + b.s) / 2) * Math.PI / 180), dLa = 150 / 111320, dLo = 150 / (111320 * k);
+    const near = S.obs.filter(o => (o.top || (o.t === 'wind' ? 100 : 0)) >= h - 20 && o.lat <= b.n + dLa && o.lat >= b.s - dLa && o.lon <= b.e + dLo && o.lon >= b.w - dLo);
+    const kinds = [...new Set(near.map(o => obsName(o)))]; kinds.forEach(x => out.push(x)); }
+  return out;
+}
 function liteImport() {
   const fl = S.liteFiles || {}, base = P.src.replace(/\/+$/, '') + '/', keys = {}, paths = [];
   Object.entries(fl).forEach(([id, n]) => { keys[base + n] = 'uave:' + id; paths.push(base + n); });
   if (!paths.length) { busy(''); return; }
   S.liteDlg = false;
+  // Würde ein Feld beim Umrechnen auf die M3T niedriger (z. B. 70 → 50 m) und liegen dort Stromleitungen oder hohe Hindernisse:
+  // den Piloten fragen, ob er auf 50 m umrechnen oder die geplante Höhe beibehalten will
+  const lowTo = DRONE_HEIGHT[P.drone] || 0, risky = [];
+  if (P.drone === 'M3T') Object.entries(fl).forEach(([id, n]) => { const f = S.files.find(x => x.cat && String((x.uave || {}).id || '') === String(id)); if (!f || !f.height || f.height <= lowTo + 5) return;
+    const willLower = (f.drone && f.drone !== 'M3T') || nameDrone(f.title) === 'M4T'; if (!willLower) return;
+    const hz = lowHazards(f, lowTo); if (hz.length) risky.push({ f, path: base + n, hz }); });
+  if (risky.length) { busy('');
+    const hTxt = [...new Set(risky.map(x => Math.round(x.f.height)))].join('/');
+    confirmDlg('Höhe beim Umrechnen', `${risky.length === 1 ? 'Dieses Feld ist' : 'Diese Felder sind'} für die Matrice 4T auf ${hTxt} m geplant. Für die Mavic 3T würde ${risky.length === 1 ? 'es' : 'sie'} auf ${lowTo} m umgerechnet – dort gibt es aber Hindernisse:`,
+      risky.map(x => `${x.f.title}: ${x.hz.join(', ')}`), `Bei ${hTxt} m bleiben (empfohlen)`, () => {
+        const mh = {}; risky.forEach(x => { mh[x.path] = Math.round(x.f.height); }); busy('Rechne um und übertrage…'); doTransfer(paths, P.drone || '', keys, mh); liteImportDone(paths); }, null);
+    $('dNo').textContent = `Auf ${lowTo} m umrechnen`; $('dNo').style.display = '';
+    S.dNoAlt = () => { busy('Rechne um und übertrage…'); doTransfer(paths, P.drone || '', keys); liteImportDone(paths); };
+    dlgOnCancel = () => { const mh = {}; risky.forEach(x => { mh[x.path] = Math.round(x.f.height); }); busy('Übertrage…'); doTransfer(paths, P.drone || '', keys, mh); liteImportDone(paths); };   // ✕ = sicher: Höhe beibehalten
+    return; }
   doTransfer(paths, P.drone || '', keys);   // auf die Drohne dieser RC umrechnen (Höhe/Drohne), in „Kitzrettung Import“
+  liteImportDone(paths);
+}
+function liteImportDone(paths) {
   setTimeout(() => { busy(''); const io = dstInfo(); S.files.forEach(f => { f.inDst = io(f); f.selected = false; }); update();
     const got = S.files.filter(f => f.inDst); if (got.length) fitBounds(padBB(bounds(got))); draw(); S.liteImportedAt = Date.now();   // geladene Felder lila und alle im Bild – antippen markiert sie für einen neuen Pre-Check
     toast(`✓ Fertig! ${paths.length} Feld${paths.length > 1 ? 'er liegen' : ' liegt'} jetzt auf der Fernsteuerung im Ordner\n${liteDstText()}\n\nAuf der Karte sind sie lila. In DJI Pilot 2: Flugroute → Importieren → diesen Ordner wählen.`, 'ok', 15000); }, 1500);
@@ -10631,8 +10706,8 @@ function liteCardsHtml(b, o) {
   sel.forEach(f => { const hi = heightIssue(f); if (hi && !lowNearPower(f)) card('⚠️', '#e07800', `Höhe falsch: ${f.height} m`, `${multi ? esc(f.title) + ' – ' : ''}${esc(hi.why)}`, `<div class="lrules"><span>Zu tun:</span> im UAV Editor die Flughöhe korrigieren und neu speichern</div>`); });
   // Falsche Drohne/Höhe: wird beim Import umgerechnet – nur auf der Fernsteuerung; am PC steht noch nicht fest, wer mit welcher Drohne fliegt
   const wantH = DRONE_HEIGHT[P.drone];   // auch UAV-Editor-Felder (Lite-Suche): andere Drohne/Höhe → wird beim Import umgerechnet
-  const mm = sel.filter(f => isDroneMismatch(f) || (f.cat && P.drone && ((f.drone && f.drone !== P.drone) || (wantH && f.height && Math.abs(f.height - wantH) > 5))));
-  if (mm.length && !IS_WEB) card('🔧', '#e07800', 'Feld für andere Drohne/Höhe geplant', `${mm.map(f => esc(f.title)).join(', ')} – wird beim Import automatisch auf ${P.drone === 'M3T' ? 'Mavic 3T (50 m)' : 'Matrice 4T (70 m)'} umgerechnet.`);
+  const mm = sel.filter(f => isDroneMismatch(f) || (f.cat && P.drone && ((f.drone && f.drone !== P.drone) || (wantH && f.height && f.height < wantH - 5))));
+  if (mm.length && !IS_WEB) card('🔧', '#e07800', 'Feld für andere Drohne/Höhe geplant', `${mm.map(f => esc(f.title)).join(', ')} – wird beim Import automatisch auf ${P.drone === 'M3T' ? 'Mavic 3T umgerechnet (mindestens 50 m)' : 'Matrice 4T umgerechnet (mindestens 70 m)'}. Höher geplante Felder (z. B. wegen Stromleitung) bleiben so hoch.`);
   if (!cards.length) card('✅', '#13a538', 'Alles frei', pt ? 'An dieser Stelle haben wir nichts Besonderes gefunden. Trotzdem: Himmel beobachten.' : 'An diesen Feldern haben wir nichts Besonderes gefunden. Trotzdem: Himmel beobachten.');
   return `<div class="lcheck">${cards.join('')}</div><div class="meta" style="margin-top:8px">Daten: dipul, OpenStreetMap · ohne Gewähr – im Zweifel nicht fliegen.</div>`;
 }
@@ -11166,6 +11241,7 @@ window.onUave = raw => {
   if (S.catSilent && (ev.type === 'status' || ev.type === 'progress')) return;
   if (S.catSilent && (ev.type === 'list' || ev.type === 'error')) {
     S.catSilent = false; syncEnd();
+    if (S.uvCatPend) { const pd = S.uvCatPend; S.uvCatPend = null; setTimeout(() => { try { pd.again(pd.raw); } catch (e) { } }, 300); }   // neues UAV-Editor-Feld: Auswahl jetzt nochmal übernehmen
     if (IS_LITE && ev.type === 'list') liteAreaSync();   // neue Felder im UAV Editor: Geodaten/Karte fürs Gebiet nachladen
     const wr = S.webRefresh; S.webRefresh = false;
     if (ev.type === 'error' && wr) toast('UAV Editor: ' + (ev.message || 'Fehler'), true, 7000);
@@ -12330,7 +12406,7 @@ loadNotams();
 geoBadge(); setTimeout(geoBadge, 4000);   // Start: kurz warten, bis Internet erkannt ist, dann veraltete Geodaten im Hintergrund holen
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { opImage2: async sel => { const ops = netOps(sel); return ops.length ? opImage(ops, 0) : null; }, fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { opImage2: async sel => { const ops = netOps(sel); return ops.length ? opImage(ops, 0) : null; }, fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl, catEntry, liteImport };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
