@@ -4133,7 +4133,7 @@ window.onUaveCredCaptured = () => {
   setTimeout(() => catRefresh(true), 500);
 };
 /** Ergebnis aus der UAV-Editor-Seite: Felder per Name (+ Drohne, Jahr) in unserer Liste finden und markieren */
-const uvInfo = (t, x, l) => { confirmDlg(t, x, l, 'OK', null); const n = $('dNo'); if (n) n.style.display = 'none'; };
+const uvInfo = (t, x, l) => { pcPrepEnd(); confirmDlg(t, x, l, 'OK', null); const n = $('dNo'); if (n) n.style.display = 'none'; };
 /** Live: Auswahl im UAV Editor sofort spiegeln (anhaken und abhaken). Bei sehr vielen (z. B. „alle markieren“) nicht übernehmen – nur Hinweis. */
 /** Auswahl kam nur als Feld-IDs (aus dem Speicher der UAV-Editor-Seite): über unsere UAV-Editor-Feldliste in Zeilen umsetzen */
 function uvIdsToRows(r) {
@@ -4195,23 +4195,29 @@ window.onUaveLive = r => {
     update(); draw(); sideRender(); }
   hint(now.size ? `✓ ${now.size} Feld${now.size > 1 ? 'er' : ''} aus dem UAV Editor markiert – live, auch in der Missionsplanung.` : 'Im UAV Editor Felder anhaken – sie werden sofort auch in der Missionsplanung markiert.');
 };
+/** Ladefenster sofort zeigen, wenn im UAV Editor „Pre-Check“ geklickt wurde – liegt im Vordergrund (über dem UAV Editor), nicht nur in der Leiste */
+const pcPrepBusy = t => busy('Pre-Check wird vorbereitet', { sub: t });
+const pcPrepEnd = () => { const h = $('busy').querySelector('.bt'); if ($('busy').style.display === 'block' && h && /^Pre-Check wird vorbereitet/.test(h.textContent)) busy(''); };
 window.onUaveSel = r => {
   const raw = r;
+  if (raw && raw.precheck && !raw._fresh) pcPrepBusy('Auswahl aus dem UAV Editor wird gelesen …');
   // Pre-Check aus dem UAV Editor: erst still die aktuelle Feldliste holen (Höhe, Feldgrenze, Flugbahn könnten seit dem letzten Abruf geändert sein)
   if (raw && raw.precheck && !raw._fresh && isOnline() && A.uaveCheck && A.uaveUser && A.uaveUser() && !syncing && !S.uvCatPend) {
     let t = 0; try { t = (JSON.parse(A.uaveCatalog() || 'null') || {}).t || 0; } catch (e) { }
     if (Date.now() - t > 30000) {   // gerade erst geholt: nicht nochmal
       const snap = {}; catAll().forEach(cf => { snap[String(cf.id)] = cfSnap(cf); });
       raw._fresh = true; raw._snap = snap; S.uvCatAt = Date.now(); S.uvCatPend = { raw, again: window.onUaveSel };
-      const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = '⏳ Pre-Check: prüfe im UAV Editor, ob sich die Felder geändert haben (Höhe, Feldgrenze, Flugbahn) …'; h.style.fontWeight = '700'; }
-      catRefresh(true); if (syncing) return; S.uvCatPend = null;
+      pcPrepBusy('Prüfe im UAV Editor, ob sich die Felder geändert haben (Höhe, Feldgrenze, Flugbahn) …');
+      catRefresh(true); if (syncing) { const pd = S.uvCatPend;   // Sicherheit: antwortet der UAV Editor nicht, nach 25 s mit dem bisherigen Stand weiter
+        setTimeout(() => { if (S.uvCatPend === pd) { S.uvCatPend = null; window.onUaveSel(raw); } }, 25000); return; }
+      S.uvCatPend = null;
     }
   }
-  if (raw && uvUnknownIds(raw) && uvCatAuto(raw, window.onUaveSel, t => { const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.fontWeight = '700'; } else toast(t, 'ok', 5000); })) return;
+  if (raw && uvUnknownIds(raw) && uvCatAuto(raw, window.onUaveSel, t => { if (raw.precheck) return pcPrepBusy('Neues Feld im UAV Editor – Feldliste wird aktualisiert …'); const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.fontWeight = '700'; } else toast(t, 'ok', 5000); })) return;
   r = uvIdsToRows(r);
   const tb = $('uvTake'); if (tb) { tb.disabled = false; tb.textContent = '✔ Markierte Felder übernehmen'; }
   // Hinweise im UAV-Editor-Tab direkt in der Leiste zeigen (kein Dialog – der läge sonst unter der eingebetteten Seite)
-  const say = (t, bad) => { const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.color = bad ? '#c62828' : ''; h.style.fontWeight = bad ? '800' : ''; clearTimeout(UV.sayT); UV.sayT = setTimeout(() => { h.style.color = ''; h.style.fontWeight = ''; h.textContent = 'Im UAV Editor Felder anhaken, dann hier übernehmen (oder dort „Check flight zone“ → direkt unser Pre-Check).'; }, 7000); } };
+  const say = (t, bad) => { pcPrepEnd(); const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.color = bad ? '#c62828' : ''; h.style.fontWeight = bad ? '800' : ''; clearTimeout(UV.sayT); UV.sayT = setTimeout(() => { h.style.color = ''; h.style.fontWeight = ''; h.textContent = 'Im UAV Editor Felder anhaken, dann hier übernehmen (oder dort „Check flight zone“ → direkt unser Pre-Check).'; }, 7000); } };
   if (!r || !r.ok) return UV.on ? say('⚠ ' + ((r && r.error) || 'Die Auswahl konnte nicht gelesen werden.'), true) : uvInfo('Übernehmen nicht möglich', (r && r.error) || 'Die Auswahl konnte nicht gelesen werden.', []);
   if (!r.rows.length) return UV.on ? say('⚠ Im UAV Editor ist noch kein Feld angehakt – erst in der Feldliste Haken setzen, dann übernehmen.', true) : uvInfo('Nichts angehakt', 'Im UAV Editor ist in der Feldliste noch kein Feld angehakt.', []);
   const all = catAll(), nm = t => foldTxt(t).replace(/\s+/g, ' ').trim(), drOf = t => /4/.test(t) ? 'M4T' : /3/.test(t) ? 'M3T' : '';
@@ -4222,7 +4228,7 @@ window.onUaveSel = r => {
     if (c.length > 1) { const d = c.filter(cf => !drOf(x.drone) || cfDrone(cf) === drOf(x.drone)); if (d.length) c = d; }
     if (c.length > 1) c = c.filter(cf => !cf.arch).concat(c.filter(cf => cf.arch));
     c.length ? found.push(c[0]) : miss.push(x.name); });
-  if (miss.length && !raw.ids && uvCatAuto(raw, window.onUaveSel, t => say(t))) return;   // neues Feld (nach Namen): Feldliste nachladen, dann nochmal
+  if (miss.length && !raw.ids && uvCatAuto(raw, window.onUaveSel, t => raw.precheck ? pcPrepBusy('Neues Feld im UAV Editor – Feldliste wird aktualisiert …') : say(t))) return;   // neues Feld (nach Namen): Feldliste nachladen, dann nochmal
   S.files.forEach(f => f.selected = false);
   // geänderte Felder: alten Eintrag verwerfen, damit Karte und Pre-Check den neuen Stand zeigen
   const chg = []; if (raw && raw._snap) found.forEach(cf => { const o = raw._snap[String(cf.id)]; if (!o) return; const d = cfDiff(o, cfSnap(cf)); if (!d.length) return;
@@ -4235,7 +4241,8 @@ window.onUaveSel = r => {
   const sp = $('sidePanel'); if (sp && sp.classList.contains('open') && SIDE.tab === 'felder' && S.sideShow) S.sideShow(false); topFelderClose();
   if (fs.length) fitBounds(padBB(bounds(fs))); update(); draw(); sideRender();
   if (r.src === 'karte' && fs.length) toast(`✓ ${fs.length} Feld(er) von der UAV-Karte übernommen (Feldtabelle ist dort ausgeblendet) – Felder in Gruppen-Kreisen werden nicht erkannt.`, 'ok', 6000);
-  if (r.precheck && fs.length) { setTimeout(() => webPreCheck(S.files.filter(f => f.selected)), 120); if (miss.length || (r.want != null && r.rows.length < r.want)) toast(`${miss.length ? miss.length + ' Feld(er) nicht in unserer Feldliste' : 'Nicht alle angehakten Felder gelesen'} – Pre-Check mit ${fs.length} Feld${fs.length === 1 ? '' : 'ern'}.`, 'warn', 7000); return; }
+  if (!(r.precheck && fs.length)) pcPrepEnd();
+  if (r.precheck && fs.length) { pcPrepBusy('Geozonen werden geprüft …'); setTimeout(() => webPreCheck(S.files.filter(f => f.selected)), 120); if (miss.length || (r.want != null && r.rows.length < r.want)) toast(`${miss.length ? miss.length + ' Feld(er) nicht in unserer Feldliste' : 'Nicht alle angehakten Felder gelesen'} – Pre-Check mit ${fs.length} Feld${fs.length === 1 ? '' : 'ern'}.`, 'warn', 7000); return; }
   const part = r.want != null && r.rows.length < r.want ? `Nur ${r.rows.length} von ${r.want} angehakten Feldern gelesen – bitte im UAV Editor einmal durch die Liste scrollen und erneut übernehmen.` : '';
   if (miss.length || part) uvInfo(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} übernommen`, [part, miss.length ? `Nicht in unserer Feldliste – auch nach dem automatischen Nachladen nicht gefunden (Feld im UAV Editor schon gespeichert?):` : ''].filter(Boolean).join('\n\n'), miss.slice(0, 20));
   else toast(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} aus dem UAV Editor übernommen`, 'ok', 3500);
