@@ -65,8 +65,8 @@ jobs:
         run: |
           NOTES="Windows: „Mission-Kitzrettung-Windows-Installation.exe“ (mit Startmenü-Eintrag) oder „…-ohne-Installation.exe“ (direkt starten)."
           TITLE="Mission Kitzrettung – Desktop (Windows) – Build ${{ github.run_number }}"
-          gh release view desktop >/dev/null 2>&1 || gh release create desktop --target "${{ github.sha }}" --title "$TITLE" --notes "$NOTES"
-          gh release edit desktop --title "$TITLE" --notes "$NOTES"
+          gh release view desktop >/dev/null 2>&1 || gh release create desktop --target "${{ github.sha }}" --title "$TITLE" --notes "$NOTES" --latest=false
+          gh release edit desktop --title "$TITLE" --notes "$NOTES" --latest=false   # „Latest“ bleibt bei der APK
           # alte Mac-Dateien aus dem Release entfernen
           for a in $(gh release view desktop --json assets -q '.assets[].name' | grep -i '\.dmg$'); do gh release delete-asset desktop "$a" --yes || true; done
           gh release upload desktop dist/*.exe --clobber
