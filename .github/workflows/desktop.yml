@@ -1,7 +1,8 @@
-name: Desktop-Programm bauen (Windows/Mac)
+name: Desktop-Programm bauen (Windows)
 
-# Baut aus derselben index.html wie die App das Desktop-Programm für Koordinatoren.
+# Baut aus derselben index.html wie die App das Windows-Programm für Koordinatoren.
 # Erwartet im Repo (flach hochgeladen): index.html, ic_launcher.png und desktop.zip (Ordner „desktop“ gepackt).
+# Mac ist herausgenommen (Mac-Rechner bei GitHub hängen oft lange in der Warteschlange, App startete auf dem Mac nicht zuverlässig).
 on:
   push:
     branches: ['**']
@@ -11,13 +12,14 @@ on:
 permissions:
   contents: write
 
+# Ein neuer Lauf bricht einen noch laufenden/wartenden alten ab
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+  windows:
+    runs-on: windows-latest
     defaults:
       run:
         shell: bash
@@ -33,7 +35,6 @@ jobs:
           mkdir -p $D/app
           cp index.html $D/app/index.html
           cp $D/icon.png $D/app/icon.png
-          ls -R $D | head -50
 
       - uses: actions/setup-node@v6
         with:
@@ -48,45 +49,24 @@ jobs:
         run: node test/run.js
 
       - name: Programm bauen (Windows)
-        if: runner.os == 'Windows'
         working-directory: build-desktop/desktop
         run: npx electron-builder --win nsis portable --x64 --publish never
 
-      - name: Programm bauen (Mac)
-        if: runner.os == 'macOS'
-        working-directory: build-desktop/desktop
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        # getrennt für Apple-Chip (arm64) und Intel (x64) – die „universal“-Fassung startete auf M1 nicht (Symbol hüpfte nur)
-        run: npx electron-builder --mac dmg --arm64 --x64 --publish never
-
-      - name: Mac-Programm prüfen (Signatur)
-        if: runner.os == 'macOS'
-        working-directory: build-desktop/desktop
-        run: |
-          for a in dist/mac*/*.app; do echo "== $a"; codesign -dv "$a" 2>&1 | head -5; codesign --verify --deep --strict --verbose=2 "$a" 2>&1 | tail -3; done
-
       - uses: actions/upload-artifact@v6
         with:
-          name: Mission-Kitzrettung-${{ runner.os }}
-          path: |
-            build-desktop/desktop/dist/*.exe
-            build-desktop/desktop/dist/*.dmg
+          name: Mission-Kitzrettung-Windows
+          path: build-desktop/desktop/dist/*.exe
 
-      # Jedes System lädt seine Dateien selbst in den Release „desktop“ hoch – Windows wartet nicht mehr auf den (oft langsameren) Mac
       - name: Im Release „desktop“ veröffentlichen
         working-directory: build-desktop/desktop
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          NOTES="Windows: „Mission-Kitzrettung-Windows-Installation.exe“ (mit Startmenü-Eintrag) oder „…-ohne-Installation.exe“ (direkt starten). Mac: „…-Mac-arm64.dmg“ für Apple-Chip (M1/M2/M3/M4), „…-Mac-x64.dmg“ für Intel. App in „Programme“ ziehen; beim ersten Start ggf. Systemeinstellungen → Datenschutz & Sicherheit → „Dennoch öffnen“."
-          TITLE="Mission Kitzrettung – Desktop (Windows/Mac) – Build ${{ github.run_number }}"
-          gh release view desktop >/dev/null 2>&1 || gh release create desktop --target "${{ github.sha }}" --title "$TITLE" --notes "$NOTES" || true
-          gh release edit desktop --title "$TITLE" --notes "$NOTES" || true
-          if [ "${{ runner.os }}" = "macOS" ]; then
-            gh release delete-asset desktop Mission-Kitzrettung-Mac-universal.dmg --yes || true   # alte gemeinsame Mac-Fassung entfernen
-            gh release upload desktop dist/*.dmg --clobber
-          else
-            gh release upload desktop dist/*.exe --clobber
-          fi
+          NOTES="Windows: „Mission-Kitzrettung-Windows-Installation.exe“ (mit Startmenü-Eintrag) oder „…-ohne-Installation.exe“ (direkt starten)."
+          TITLE="Mission Kitzrettung – Desktop (Windows) – Build ${{ github.run_number }}"
+          gh release view desktop >/dev/null 2>&1 || gh release create desktop --target "${{ github.sha }}" --title "$TITLE" --notes "$NOTES"
+          gh release edit desktop --title "$TITLE" --notes "$NOTES"
+          # alte Mac-Dateien aus dem Release entfernen
+          for a in $(gh release view desktop --json assets -q '.assets[].name' | grep -i '\.dmg$'); do gh release delete-asset desktop "$a" --yes || true; done
+          gh release upload desktop dist/*.exe --clobber
