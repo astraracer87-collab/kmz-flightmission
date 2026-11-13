@@ -499,7 +499,7 @@
   .llist{display:flex;flex-direction:column;gap:6px;padding-bottom:90px}.lsep{height:2px;background:var(--line);margin:4px 0}
   .lrow{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--card2);border:2px solid transparent;font-size:18px}
   .lrow.on{border-color:#00a99d}.lrow input{width:26px;height:26px}.lrow em{display:block;font-style:normal;font-size:14px;color:var(--muted)}
-  .lbot{position:sticky;bottom:0;padding:10px 0;background:linear-gradient(transparent,var(--bg) 30%)}.lbot button{width:100%;font-size:19px;padding:14px}
+  .lbot{position:sticky;bottom:0;padding:10px 0;background:linear-gradient(transparent,var(--bg) 30%)}.lbot button{width:100%;font-size:19px;padding:14px}.lbot .lgo2{display:flex;gap:8px}.lbot .lgo2 #lMap{flex:0 0 38%}.lbot .lgo2 #lGo{flex:1}
   .lcheck{display:flex;flex-direction:column;gap:10px}
   .lrules{margin-top:6px;font-size:15px;line-height:1.4;color:var(--txt)}.lrules>span{font-weight:800;color:var(--muted)}
   .osmt{margin-top:6px}.osmt summary{cursor:pointer;color:var(--acc);font-size:13px}.osmt table{border-collapse:collapse;margin:6px 0;font-size:13px}.osmt td{padding:3px 10px 3px 0;vertical-align:top;border-bottom:1px solid var(--line)}.osmt td small{display:block;color:var(--muted);font-size:11px}
@@ -1925,7 +1925,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { liteSort: 'new', setupDone: '', avs: '', showObs: '1', showLines: '1', liteRcBtn: '0', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
+const DEF = { liteSort: 'new', liteCloudMap: '0', setupDone: '', avs: '', showObs: '1', showLines: '1', liteRcBtn: '0', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
    planTool: '0', sideGroup: '0', catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
@@ -3765,8 +3765,8 @@ function update() {
   const dups = S.files.filter(f => f.dup).length;
   $('count').innerHTML = `${n} markiert<small>${S.files.length - dups} Felder</small>`;
   $('bDl').disabled = !n; $('bNone').style.display = n ? '' : 'none';
-  if (IS_LITE) { const v = n ? 0 : S.files.filter(visible).length, bt = $('bDlT');   // Lite: nichts markiert → alle angezeigten Felder prüfen
-    $('bDl').disabled = !n && !v; if (bt) bt.innerHTML = n || !v ? 'Pre-Check' : `Pre-Check<br><small>alle ${v} Felder</small>`;
+  if (IS_LITE) { liteCloudFill(); const v = n ? 0 : S.files.filter(f => visible(f) && !f.cloudMap).length, bt = $('bDlT');   // Lite: nichts markiert → alle angezeigten Felder prüfen
+    $('bDl').disabled = !n && !v;   // v zählt die nur eingeblendeten DJI-Cloud-Felder nicht mit (siehe liteCloudFill) if (bt) bt.innerHTML = n || !v ? 'Pre-Check' : `Pre-Check<br><small>alle ${v} Felder</small>`;
     let gb = $('bLiteDl'); if (!gb) { gb = document.createElement('button'); gb.id = 'bLiteDl'; gb.className = 'b-ok'; gb.style.background = '#1565c0'; $('bDl').before(gb);
       gb.onclick = () => { const fs = S.files.filter(f => f.selected && f.cat && f.uave && f.uave.id && !f.inDst); if (!fs.length) return;
         S.liteIds = fs.map(f => String(f.uave.id)); liteLoadStart(); }; }
@@ -3925,7 +3925,7 @@ window.onDjiCloud = r => { S.djiBusy = false;
   else if (r && !r.ok) S.djiErr = r.error;
   if (r && !r.ok && djiWanted()) toast('DJI Cloud: ' + (r.error || 'nicht erreichbar') + (S.dji ? ' – zeige die zuletzt geladene Liste.' : ''), true, 7000);
   const cb = S.djiCb; S.djiCb = null; try { cb && cb(r); } catch (e) { } try { sideRender(); } catch (e) { }
-  if (IS_LITE && r && r.ok) liteAreaSync(); };
+  if (IS_LITE && r && r.ok) { liteAreaSync(); if (P.liteCloudMap === '1') { update(); draw(); } } };
 /** Felder laden: aus der DJI Cloud (wenn eingestellt), sonst wie bisher über den UAV-Editor-Export */
 /** Herkunfts-Abzeichen: „UAV“ = liegt im UAV Editor, „☁ DJI“ = liegt in der DJI Cloud; ausgegraut = dort nicht vorhanden. Nur Anzeige – der PC lädt weiter über den UAV-Editor-Export. */
 function srcBadges(cf, uav = true) { const d = djiState(); if (!d) return '';
@@ -5082,7 +5082,7 @@ function briefingHtml(b, sel, wxh) {
 $('bDl').onclick = async () => {
   const sel = S.files.filter(f => f.selected);
   if (IS_WEB) return webPreCheck(sel);   // Zeitraum („Wann wird geflogen?“) wird erst bei der ersten E-Mail abgefragt   // erst „Wann wird geflogen?“, dann Pre-Check
-  if (IS_LITE) return liteCheckDlg(sel.length ? sel : S.files.filter(visible), false);   // nichts markiert: alle Felder, die gerade auf der Karte sind
+  if (IS_LITE) return liteCheckDlg(sel.length ? sel : S.files.filter(f => visible(f) && !f.cloudMap), false);   // nichts markiert: alle Felder, die gerade auf der Karte sind
   if (P.watch === '1' && sel.length && A.watchStart) try { watchStart(sel, true); } catch (e) { }   // Einsatz-Wächter für diese Wiesen
   // Sofort sichtbar, dann alles aus den gespeicherten Daten prüfen – das Wetter lädt danach im offenen Dialog (blockiert nichts)
   busy('Pre-Check läuft…'); await new Promise(r => setTimeout(r, 30));
@@ -10293,6 +10293,26 @@ function catEntry(f, selected) {
   e.areaM2 = x.ring ? ringArea(x.ring) : (bb.n - bb.s) * 111200 * (bb.e - bb.w) * 71000;
   return e;
 }
+/** Lite, Einstellung „Alle Felder der DJI Cloud auf der Karte“: alle Felder, die in der DJI Cloud liegen, unmarkiert einblenden.
+ *  Antippen markiert sie wie gewohnt (Pre-Check / Herunterladen). Gibt es ein Feld für beide Drohnen, nur die Version für die eigene. */
+function liteCloudFill() {
+  if (!IS_LITE) return;
+  const on = P.liteCloudMap === '1' && djiOn(), d = on ? liteCatalog() : null;
+  const keep = f => !f.cloudMap || f.selected || (on && f.uave && djiHas(f.uave));
+  if (S.files.some(f => !keep(f))) S.files = S.files.filter(keep);
+  if (!on || !d) return;
+  const key = (djiState().at || 0) + '|' + d.fields.length + '|' + (P.drone || '');
+  if (!S.cloudMapC || S.cloudMapC.key !== key) {   // einmal je Stand der Listen berechnen (update() läuft oft)
+    const want = P.drone || '', dr = f => { try { return uaveInfo(f).drone || nameDrone(f.name) || ''; } catch (e) { return nameDrone(f.name) || ''; } };
+    let fs = d.fields.filter(f => djiHas(f));
+    if (want) { const byB = new Map(); fs.forEach(f => { const k = baseName(f.name); (byB.get(k) || byB.set(k, []).get(k)).push(f); });
+      fs = fs.filter(f => dr(f) === want || !(byB.get(baseName(f.name)) || []).some(o => o !== f && dr(o) === want)); }
+    S.cloudMapC = { key, list: fs.map(f => catEntry(f, false)).filter(Boolean) }; }
+  const have = new Set(S.files.map(f => f.path)), add = S.cloudMapC.list.filter(e => !have.has(e.path));
+  if (!add.length) return;
+  const io = dstInfo();
+  add.forEach(e => { const c = Object.assign({}, e, { cloudMap: true, selected: false }); c.inDst = io(c); S.files.push(c); });
+}
 function liteCatalog() { try { const d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); return d && Array.isArray(d.fields) ? d : null; } catch (e) { return null; } }
 /** Suche: nur Feldnamen aus dem UAV Editor (aktuelles Jahr), Mehrfachauswahl, unten „Weiter zum Pre-Check“ */
 function liteSearch(afterRefresh) {
@@ -10325,7 +10345,7 @@ function liteSearch(afterRefresh) {
     <button class="b-sec" id="lAll" disabled>Alle markieren</button></div>
     <div class="pcseg" id="lSort" style="margin:6px 0 2px;max-width:420px"><button data-ls="name">Name A–Z</button><button data-ls="new">Neueste zuerst</button></div>
     <div class="meta" id="lInfo"></div><div id="lList" class="llist"></div>
-    <div class="lbot"><div class="meta" style="margin-bottom:6px">Nach dem Pre-Check werden die gewählten Felder auf die Fernsteuerung heruntergeladen – in den Ordner „${esc(liteDstText())}“ für DJI Pilot 2.</div><button class="b-ok" id="lGo" disabled>Weiter zum Pre-Check</button></div>`);
+    <div class="lbot"><div class="meta" style="margin-bottom:6px">Nach dem Pre-Check werden die gewählten Felder auf die Fernsteuerung heruntergeladen – in den Ordner „${esc(liteDstText())}“ für DJI Pilot 2.</div><div class="lgo2"><button class="b-sec" id="lMap" disabled>🗺 Auf Karte zeigen</button><button class="b-ok" id="lGo" disabled>Weiter zum Pre-Check</button></div></div>`);
   const q = $('lq'), list = $('lList'), go = $('lGo'), allB = $('lAll'); q.value = oldQ;
   document.querySelectorAll('#lSort [data-ls]').forEach(b => { b.classList.toggle('on', (P.liteSort === 'name' ? 'name' : 'new') === b.dataset.ls);
     b.onclick = () => { if (P.liteSort === b.dataset.ls) return; setP('liteSort', b.dataset.ls); liteSearch(true); }; });
@@ -10353,12 +10373,16 @@ function liteSearch(afterRefresh) {
     const exact = hits.filter(f => fold(f.name + ' ' + ((f.meta || {}).by || '')).includes(t)), sim = hits.filter(f => !exact.includes(f));   // genaue Treffer oben, ähnliche (Tippfehler) abgesetzt darunter
     list.innerHTML = (picked.length ? picked.map(row).join('') + (hits.length ? '<div class="lsep"></div>' : '') : '') + exact.slice(0, 100).map(row).join('')
       + (sim.length ? `<div class="spsim">${exact.length ? '' : 'Kein genauer Treffer. '}Ähnliche Treffer – vielleicht vertippt?</div>` + sim.slice(0, 30).map(row).join('') : '');
-    allB.disabled = !exact.length; allB.textContent = exact.length ? `Alle markieren (${Math.min(exact.length, 100)})` : 'Alle markieren';
-    allB.onclick = () => { exact.slice(0, 100).forEach(f => sel.add(String(f.id))); render(); };
+    // Gibt es noch unmarkierte Treffer: „Alle markieren“ – sonst wird derselbe Knopf zu „Alle abwählen“
+    if (exact.length) { allB.disabled = false; allB.textContent = `Alle markieren (${Math.min(exact.length, 100)})`; allB.onclick = () => { exact.slice(0, 100).forEach(f => sel.add(String(f.id))); render(); }; }
+    else if (sel.size) { allB.disabled = false; allB.textContent = `Alle abwählen (${sel.size})`; allB.onclick = () => { sel.clear(); render(); }; }
+    else { allB.disabled = true; allB.textContent = 'Alle markieren'; allB.onclick = null; }
     list.querySelectorAll('input[data-id]').forEach(cb => cb.onchange = () => { cb.checked ? sel.add(cb.dataset.id) : sel.delete(cb.dataset.id); render(); });
     upd();
   };
-  const upd = () => { go.disabled = !sel.size; go.textContent = sel.size ? `Weiter zum Pre-Check (${sel.size} Feld${sel.size > 1 ? 'er' : ''}) – danach herunterladen` : 'Felder auswählen'; };
+  const mapB = $('lMap');
+  mapB.onclick = () => { const ids = [...sel]; if (!ids.length) return; $('pgInfo').classList.remove('open'); liteStart(ids, true); };
+  const upd = () => { mapB.disabled = !sel.size; go.disabled = !sel.size; go.textContent = sel.size ? `Pre-Check (${sel.size}) – danach herunterladen` : 'Felder auswählen'; };
   q.oninput = render;
   go.onclick = () => { const ids = [...sel]; $('pgInfo').classList.remove('open'); liteStart(ids); };
   render(); setTimeout(() => q.focus(), 50);
@@ -10386,19 +10410,23 @@ function liteBestIds(d, ids) {
   ids.filter(id => String(id).startsWith('dji:')).forEach(id => out.push(String(id)));   // nur in der DJI Cloud: unverändert mitnehmen
   return { ids: out, swapped, dropped };
 }
-function liteStart(ids) {
+/** mapOnly: nur auf der Karte zeigen (markiert, mit Zonen/Hindernissen) – Pre-Check und Herunterladen dann oben über die Knöpfe */
+function liteStart(ids, mapOnly) {
   const d = liteCatalog(); if (!d) return;
   if (P.drone) { const r = liteBestIds(d, ids); ids = r.ids;
     if (r.swapped || r.dropped) toast(`Passend für deine ${P.drone === 'M3T' ? 'Mavic 3T' : P.drone === 'M4T' ? 'Matrice 4T' : P.drone}: ${[r.swapped ? r.swapped + ' Feld' + (r.swapped > 1 ? 'er' : '') + ' gegen die passende Version getauscht' : '', r.dropped ? r.dropped + ' doppelte Version' + (r.dropped > 1 ? 'en' : '') + ' weggelassen' : ''].filter(Boolean).join(', ')}.`, 'ok', 7000); }
   const fs = ids.map(id => d.fields.find(f => String(f.id) === String(id))).filter(Boolean).map(f => catEntry(f, true)).filter(Boolean);
   const onlyCloud = ids.filter(id => String(id).startsWith('dji:'));
+  if (mapOnly && !fs.length) return toast(onlyCloud.length ? 'Diese Felder liegen nur in der DJI Cloud – ohne Umriss im UAV Editor lassen sie sich nicht auf der Karte zeigen.' : 'Für diese Felder ist im UAV Editor keine Fläche gespeichert.', true, 7000);
   if (!fs.length && onlyCloud.length) { S.liteIds = ids; S.litePick = new Set(); toast(`${onlyCloud.length} Feld${onlyCloud.length > 1 ? 'er liegen' : ' liegt'} nur in der DJI Cloud (nicht mehr im UAV Editor) – ohne Vorab-Prüfung direkt laden.`, 'warn', 6000); return liteLoadStart(); }
   if (!fs.length) return toast('Für diese Felder ist im UAV Editor keine Fläche gespeichert.', true);
-  if (onlyCloud.length) toast(`${onlyCloud.length} Feld${onlyCloud.length > 1 ? 'er liegen' : ' liegt'} nur in der DJI Cloud – ${onlyCloud.length > 1 ? 'sie werden' : 'es wird'} ohne Vorab-Prüfung mitgeladen.`, 'warn', 6000);
+  if (onlyCloud.length && !mapOnly) toast(`${onlyCloud.length} Feld${onlyCloud.length > 1 ? 'er liegen' : ' liegt'} nur in der DJI Cloud – ${onlyCloud.length > 1 ? 'sie werden' : 'es wird'} ohne Vorab-Prüfung mitgeladen.`, 'warn', 6000);
   S.quietSrc = true; try { setSourceTo('none'); } finally { S.quietSrc = false; } S.files = fs; S.liteFiles = null; S.litePick = new Set(); if (S.liteRcUi) S.liteRcUi(); update(); fitBounds(padBB(bounds(fs))); draw();
   setTimeout(() => { fitBounds(padBB(bounds(fs))); draw(); }, 80);   // Karte auf genau diese Felder ausrichten – alle im Blick
   if (isOnline()) geoSyncNow(false, true);   // falls das Gebiet noch fehlt: Geozonen/Hindernisse dafür holen
   S.liteIds = ids;   // geladen wird erst, wenn der Feldcheck bestätigt ist
+  if (mapOnly) { const io = dstInfo(); S.files.forEach(f => { f.inDst = io(f); }); update();
+    return toast(`${fs.length} Feld${fs.length > 1 ? 'er' : ''} auf der Karte – Zonen und Hindernisse siehst du direkt dort.\nOben: „Pre-Check“ für die Hinweise, „⬇ Felder herunterladen“ für die Fernsteuerung.`, 'ok', 8000); }
   liteCheckDlg(fs, true);
 }
 /** Wo die Felder für DJI Pilot 2 liegen – verständlich („Interner Speicher › Kitzrettung Import“) */
@@ -10467,7 +10495,7 @@ function liteImport() {
   liteImportDone(paths);
 }
 function liteImportDone(paths) {
-  setTimeout(() => { busy(''); const io = dstInfo(); S.files.forEach(f => { f.inDst = io(f); f.selected = false; }); update();
+  setTimeout(() => { busy(''); const io = dstInfo(); S.files.forEach(f => { f.inDst = io(f); f.selected = false; if (f.inDst) f.cloudMap = false; }); update();
     const got = S.files.filter(f => f.inDst); if (got.length) fitBounds(padBB(bounds(got))); draw(); S.liteImportedAt = Date.now();   // geladene Felder lila und alle im Bild – antippen markiert sie für einen neuen Pre-Check
     toast(`✓ Fertig! ${paths.length} Feld${paths.length > 1 ? 'er liegen' : ' liegt'} jetzt auf der Fernsteuerung im Ordner\n${liteDstText()}\n\nAuf der Karte sind sie lila. In DJI Pilot 2: Flugroute → Importieren → diesen Ordner wählen.`, 'ok', 15000); }, 1500);
 }
@@ -10855,6 +10883,15 @@ function liteInit() {
       const sh = $('setLiteShow'); if (sh) sh.style.display = e.target.checked ? '' : 'none';
       liteSetShow(e.target.checked ? 'today' : 'off'); };
   }
+  if (anchor && !$('setLiteCloudMap')) {   // alle Felder der DJI Cloud auf der Karte zeigen (Standard aus)
+    const d = document.createElement('div'); d.className = 'set'; d.id = 'setLiteCloudMap';
+    d.innerHTML = '<div class="l"><div class="t">Alle Felder der DJI Cloud auf der Karte</div><div class="v">An: Alle Felder, die in der DJI Cloud liegen, sind auf der Karte zu sehen (nur die Version für deine Drohne). Antippen markiert ein Feld – dann oben „Pre-Check“ oder „⬇ Felder herunterladen“. Aus: Nur die Felder, die du über „DJI Cloud“ auswählst.</div></div><label class="sw"><input type="checkbox" id="sLiteCloudMap"><span></span></label>';
+    anchor.after(d); $('sLiteCloudMap').checked = P.liteCloudMap === '1';
+    $('sLiteCloudMap').onchange = e => { setP('liteCloudMap', e.target.checked ? '1' : '0'); S.cloudMapC = null;
+      if (e.target.checked && !djiState() && isOnline()) djiRefresh();
+      update(); draw();
+      if (e.target.checked) { const n = S.files.filter(f => f.cloudMap).length; toast(n ? `${n} Feld${n > 1 ? 'er' : ''} aus der DJI Cloud auf der Karte.` : 'Die Liste der DJI Cloud wird geladen – die Felder erscheinen gleich auf der Karte.', 'ok', 4000); } };
+  }
   if (anchor && !$('setLiteShow')) {
     const d = document.createElement('div'); d.className = 'set'; d.id = 'setLiteShow';
     d.innerHTML = '<div class="l"><div class="t">Missionen der Fernsteuerung auf der Karte</div><div class="v">Standard: nur Missionen, die heute auf die Fernsteuerung geladen wurden. „Ab 12 Uhr“: seit 12 Uhr – vormittags seit gestern 12 Uhr (für den Einsatz am Morgen). Auch über die Taste „Fernsteuerung“ oben wählbar.</div></div><div class="seg"><button data-lshow="off">Aus</button><button data-lshow="today">Heute</button><button data-lshow="noon">Ab 12 Uhr</button><button data-lshow="all">Alle</button></div>';
@@ -10863,7 +10900,7 @@ function liteInit() {
     if (P.liteRcBtn !== '1') d.style.display = 'none';
   }
   // Lite: Einstellungen auf das Nötigste – nur Drohne, UAV-Editor-Zugang und Fernpilotenzeugnis
-  const KEEP = ['Drohne dieser Fernsteuerung', 'UAV Editor – Zugang', 'Fernpilotenzeugnis', 'Überflughöhe an Stromleitungen', 'Pre-Check', 'Einführung', 'Geozonen-Daten'];   // Geozonen-Daten: Knopf „Aktualisieren“
+  const KEEP = ['Alle Felder der DJI Cloud', 'Drohne dieser Fernsteuerung', 'UAV Editor – Zugang', 'Fernpilotenzeugnis', 'Überflughöhe an Stromleitungen', 'Pre-Check', 'Einführung', 'Geozonen-Daten'];   // Geozonen-Daten: Knopf „Aktualisieren“
   document.querySelectorAll('#pgSet .set').forEach(el => { const t = el.querySelector('.t'), tx = t ? t.textContent.trim() : '';
     if (!KEEP.some(k => tx.startsWith(k)) || HIDE.some(h => tx.startsWith(h))) el.classList.add('vhide'); });
   document.querySelectorAll('#pgSet .setcat, #pgSet .setnav').forEach(el => el.classList.add('vhide'));
