@@ -10608,7 +10608,7 @@ function liteCheckInner(sel, opt) {
   }).sort((a, b) => b.r - a.r || b.its.filter(i => i.r === b.r).length - a.its.filter(i => i.r === a.r).length || ftitle(a.f).localeCompare(ftitle(b.f)));
   const note = rows.filter(x => x.r >= 1).length, bad = rows.filter(x => x.r >= 3).length;
   return `<div class="meta" style="margin:0 0 8px">${note ? `<b>${note} von ${sel.length} Feldern</b>: etwas zu beachten (Zonen, Auflagen, Umrechnung)${bad ? ` – <b>${bad}</b> davon mit Sperre oder Zustimmungspflicht` : ''}. Wichtigstes zuerst.` : 'An keinem Feld gibt es Zonen oder Auflagen.'} Antippen zeigt Einzelheiten.</div>` +
-    lgridHtml(rows, opt, opt.verdict ? x => pcFieldRow(x, sel.indexOf(x.f)) : x => `<details class="lfld"><summary>${fieldThumb(x.f, 120, 90)}<div class="lfi"><div class="lfn">${esc(x.f.title)}${x.v ? ` ${licBadges(x.v)}` : ''}</div>${x.v && x.v.why.length ? `<div class="lchip linfo">A1/A3 reicht nicht wegen: ${esc(x.v.why.map(whyShort).join(' · '))}<small>${x.v.onlyLic ? 'Mit A2 erlaubt (dort gilt nur 30 m Abstand zu Unbeteiligten).' : 'Mit A2 + Allgemeinerlaubnis bzw. Allgemeinverfügung erlaubt – liegt laut Einstellungen vor.'}</small></div>` : ''}<div class="lchips">${x.its.filter(i => !(x.v && i.t === NO_MORE_A2)).map(i => `<div class="lchip" style="border-color:${i.col}">${esc(i.ico)} ${esc(i.t)}${i.ru ? `<small>${i.ru}</small>` : ''}</div>`).join('')}</div></div></summary>${liteMapHtml(x.f, 620, 280, true)}${x.html}</details>`);
+    lgridHtml(rows, opt, opt.verdict ? x => pcFieldRow(x, sel.indexOf(x.f)) : x => `<details class="lfld"><summary>${fieldThumb(x.f, 120, 90, true)}<div class="lfi"><div class="lfn">${esc(x.f.title)}${x.v ? ` ${licBadges(x.v)}` : ''}</div>${x.v && x.v.why.length ? `<div class="lchip linfo">A1/A3 reicht nicht wegen: ${esc(x.v.why.map(whyShort).join(' · '))}<small>${x.v.onlyLic ? 'Mit A2 erlaubt (dort gilt nur 30 m Abstand zu Unbeteiligten).' : 'Mit A2 + Allgemeinerlaubnis bzw. Allgemeinverfügung erlaubt – liegt laut Einstellungen vor.'}</small></div>` : ''}<div class="lchips">${x.its.filter(i => !(x.v && i.t === NO_MORE_A2)).map(i => `<div class="lchip" style="border-color:${i.col}">${esc(i.ico)} ${esc(i.t)}${i.ru ? `<small>${i.ru}</small>` : ''}</div>`).join('')}</div></div></summary>${liteMapHtml(x.f, 620, 280, true)}${x.html}</details>`);
 }
 /** PC-Pre-Check: eine Zeile je Feld – nur das Ergebnis (welches Zeugnis), Details aufklappbar mit Vorschaukarte und Gründen */
 const PCB = (ok, t) => `<div class="pcv" style="--c:${ok ? '#13a538' : '#d42020'}"><i>${ok ? '✓' : '✗'}</i>${t}</div>`;
@@ -10685,18 +10685,18 @@ function pcMapsWire(box, sel, pre) {
   // im Hintergrund vorbereiten – nacheinander, damit der Pre-Check flüssig bleibt (beim Öffnen sind sie meist schon fertig)
   if (!pre) (async () => { for (const f of sel.slice(0, 40)) { if (!$('dlg').classList.contains('open')) break; try { await pcMapMake(f); } catch (e) { } await new Promise(r => setTimeout(r, 30)); } })();
 }
-/** Lite-Feldcheck: Karte wie die Hauptkarte – Hintergrund wie gewählt (Luftbild), Feld mit Umgebung, Geozonen, Stromleitungen, Flugbahn, Hindernis-Symbole.
+/** Lite-Feldcheck: Karte wie im Pre-Check am PC – graue Karte, Feld mit Umgebung, Geozonen, Stromleitungen, Flugbahn, Hindernis-Symbole.
  *  Als HTML (Kacheln + SVG) statt Canvas: funktioniert auch auf der Fernsteuerung (Kacheln fremder Server dürfen dort nicht in ein Canvas). */
 const OBSURL = {};
 function liteMapHtml(f, W, H, lazy) {
-  const b0 = f.bounds; if (!b0) return fieldThumb(f, Math.min(W, 340), Math.min(H, 200));
+  const b0 = f.bounds; if (!b0) return fieldThumb(f, Math.min(W, 340), Math.min(H, 200), true);
   const pad = Math.max(0.0012, (b0.n - b0.s) * 0.35, (b0.e - b0.w) * 0.2);
   const bb = { n: b0.n + pad, s: b0.s - pad, e: b0.e + pad * 1.6, w: b0.w - pad * 1.6 };
   let z = 17; for (; z > 11; z--) if (mX(bb.e, z) - mX(bb.w, z) <= W && mY(bb.s, z) - mY(bb.n, z) <= H) break;
   const ox = (mX(bb.e, z) + mX(bb.w, z)) / 2 - W / 2, oy = (mY(bb.s, z) + mY(bb.n, z)) / 2 - H / 2;
   const px = (la, lo) => [mX(lo, z) - ox, mY(la, z) - oy], ld = lazy ? ' loading="lazy"' : '';
   const vb = { n: b0.n + pad * 3, s: b0.s - pad * 3, e: b0.e + pad * 5, w: b0.w - pad * 5 }, inV = (la, lo) => la <= vb.n && la >= vb.s && lo <= vb.e && lo >= vb.w;
-  let im = ''; const top = P.layer === 'sat' ? 'sat' : null, base = P.layer === 'grey' ? 'grey' : 'osm', flt = LAYER_FILTER[base] ? `;filter:${LAYER_FILTER[base]}` : '';
+  let im = ''; const top = null, base = 'grey', flt = `;filter:${LAYER_FILTER.grey}`;   // immer graue Karte wie am PC – Geozonen gut sichtbar, keine Luftbild-Lücken
   for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + W) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + H) / 256); ty++) {
     const pos = `left:${Math.round(tx * 256 - ox)}px;top:${Math.round(ty * 256 - oy)}px`;
     im += `<img src="${esc(TSRC(LAYERS[base](z, tx, ty)))}"${ld} onerror="this.style.visibility='hidden'" style="${pos}${flt}" alt="">`;
@@ -10726,7 +10726,7 @@ function liteMapHtml(f, W, H, lazy) {
   return `<div class="fthumb lmapv" style="width:${W}px;height:${H}px;max-width:100%">${im}<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${svg}</svg>${ic}</div>`;
 }
 /** Kleines Luftbild eines Feldes mit seinem Umriss (nur in der App – nicht für E-Mails/Bilder an Dritte) */
-function fieldThumb(f, W, H) {
+function fieldThumb(f, W, H, grey) {   // grey: graue Karte wie im Pre-Check am PC (Geozonen gut sichtbar, keine Lücken im Luftbild)
   let rings = (f.shapes || []).filter(sh => sh.type === 'poly' && sh.pts.length > 2).map(sh => sh.pts);
   if (!rings.length && f.outline && f.outline.length > 2) rings = [f.outline];
   if (!rings.length) { const h = fieldRingLL(f); if (h) rings = [h.map(q => [q[1], q[0]])]; }
@@ -10736,7 +10736,7 @@ function fieldThumb(f, W, H) {
   let z = 17; for (; z > 10; z--) if ((mX(bb.e, z) - mX(bb.w, z)) * 1.3 <= W && (mY(bb.s, z) - mY(bb.n, z)) * 1.3 <= H) break;   // höchstens 17: Zoom 18 fehlt im Luftbild oft (graue Kacheln) – kleine Felder werden unten vergrößert
   const ox = (mX(bb.e, z) + mX(bb.w, z)) / 2 - W / 2, oy = (mY(bb.s, z) + mY(bb.n, z)) / 2 - H / 2;
   // Hintergrund wie die Karte: erst die Straßenkarte (lädt immer), darüber – wenn auf der Karte Luftbild gewählt ist – das Luftbild; Lücken im Luftbild zeigen die Karte
-  let im = ''; const top = P.layer === 'sat' ? 'sat' : null, base = P.layer === 'grey' ? 'grey' : 'osm', flt = LAYER_FILTER[base] ? `;filter:${LAYER_FILTER[base]}` : '';
+  let im = ''; const top = !grey && P.layer === 'sat' ? 'sat' : null, base = grey || P.layer === 'grey' ? 'grey' : 'osm', flt = LAYER_FILTER[base] ? `;filter:${LAYER_FILTER[base]}` : '';
   for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + W) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + H) / 256); ty++) {
     const pos = `left:${Math.round(tx * 256 - ox)}px;top:${Math.round(ty * 256 - oy)}px`;
     im += `<img src="${esc(TSRC(LAYERS[base](z, tx, ty)))}" onerror="this.style.visibility='hidden'" style="${pos}${flt}" alt="">`;
