@@ -2082,9 +2082,20 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         try { return new JSONObject(prefs.getString("uave_manifest", "{}")); } catch (Exception e) { return new JSONObject(); }
     }
 
+    /** Läuft schon ein Abgleich (z. B. die erste Feldliste nach der Installation)? Dann warten statt still nichts zu tun –
+     *  sonst wartet die Seite ewig („0 von 1“). Während des Wartens meldet die App {type:"wait"}. */
+    private boolean uaveClaim(long maxMs) {
+        long t0 = System.currentTimeMillis(); boolean said = false;
+        while (true) {
+            synchronized (this) { if (!uaveBusy) { uaveBusy = true; return true; } }
+            if (!said) { said = true; try { uaveEvent(new JSONObject().put("type", "wait")); } catch (Exception ignored) { } }
+            if (System.currentTimeMillis() - t0 > maxMs) return false;
+            try { Thread.sleep(400); } catch (InterruptedException e) { return false; }
+        }
+    }
+
     private void uaveCheckImpl(String srcDir) {
-        if (uaveBusy) return;
-        uaveBusy = true;
+        if (!uaveClaim(180000)) { uaveError("Es läuft noch ein anderer Abgleich – bitte gleich nochmal."); return; }
         uaveCancel = false;
         try {
             uaveProgress("Anmeldung bei UAV Editor…");
@@ -2484,8 +2495,8 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     private void djiDownloadImpl(String idsJson, String srcDir) {
-        if (uaveBusy) return;
-        uaveBusy = true; uaveCancel = false;
+        if (!uaveClaim(180000)) { uaveError("Es läuft noch ein anderer Abgleich – bitte gleich nochmal."); return; }
+        uaveCancel = false;
         try {
             JSONArray ids = new JSONArray(idsJson); File dir = new File(srcDir); JSONObject man = manifest(), files = new JSONObject(); JSONArray errors = new JSONArray(); int ok = 0, done = 0;
             if (uaveToken == null) { uaveProgress("Anmeldung bei UAV Editor…"); uaveLogin(); }
@@ -2514,8 +2525,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     private void uaveDownloadImpl(String idsJson, String srcDir, String tzOffset) {
-        if (uaveBusy) return;
-        uaveBusy = true;
+        if (!uaveClaim(180000)) { uaveError("Es läuft noch ein anderer Abgleich – bitte gleich nochmal."); return; }
         uaveCancel = false;
         try {
             if (uaveToken == null) { uaveProgress("Anmeldung bei UAV Editor…"); uaveLogin(); }
@@ -2529,8 +2539,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     private void uaveChangeDroneImpl(String idsJson, String droneType, String srcDir, String tzOffset) {
-        if (uaveBusy) return;
-        uaveBusy = true;
+        if (!uaveClaim(180000)) { uaveError("Es läuft noch ein anderer Abgleich – bitte gleich nochmal."); return; }
         uaveCancel = false;
         try {
             JSONArray ids = new JSONArray(idsJson);

@@ -10520,9 +10520,28 @@ function kmlHeight(t) {
 /** Lite: Felder, die nur in der DJI Cloud liegen, vor dem Pre-Check holen (in den Quellordner, noch nicht nach „Kitzrettung Import“) und lesen */
 function liteCloudPrefetch(ids, onlyCloud, mapOnly) {
   syncing = true; syncStop = false; S.liteDl = { pre: { ids, mapOnly }, done: 0, total: onlyCloud.length };
-  busy(`Feld${onlyCloud.length > 1 ? 'er' : ''} aus der DJI Cloud ${onlyCloud.length > 1 ? 'werden' : 'wird'} zum Prüfen geholt…`, { done: 0, total: onlyCloud.length });
+  busy(`Feld${onlyCloud.length > 1 ? 'er' : ''} aus der DJI Cloud ${onlyCloud.length > 1 ? 'werden' : 'wird'} zum Prüfen geholt…`, { done: 0, total: onlyCloud.length, cancel: liteDlAbort });
+  const me = S.liteDl; S.liteDl.at = Date.now();
+  setTimeout(() => { if (S.liteDl === me && !me.wait) liteDlAbort('Die DJI Cloud antwortet nicht.'); }, 120000);   // Sicherheit: nie endlos warten
   const st = djiState();
   A.uaveDjiDownload(JSON.stringify(onlyCloud.map(id => { const w = st && st.list.find(x => String(x.id) === String(id).slice(4)); return { id, name: w ? String(w.name).replace(/\.kmz$/i, '') : '', wid: String(id).slice(4) }; })), P.src);
+}
+/** Laufenden Download abbrechen (Knopf im Ladefenster, Zeitüberschreitung, verstecktes Menü). Beim Vorab-Holen ohne dieses Feld weiter. */
+function liteDlAbort(why) {
+  const dl = S.liteDl; if (!dl) return; S.liteDl = null; syncing = false; syncStop = false; busy(''); try { if (A.uaveCancel) A.uaveCancel(); } catch (e) { }
+  if (dl.pre) { toast((typeof why === 'string' ? why + ' ' : '') + 'Feld aus der DJI Cloud ohne Vorab-Prüfung – bitte später nochmal prüfen.', 'warn', 8000); S.liteCloudPre = []; liteStart(dl.pre.ids, dl.pre.mapOnly); }
+  else toast('Download abgebrochen.', 'warn', 4000);
+}
+/** Verstecktes Menü: was läuft gerade im Hintergrund? */
+function liteBgLines() {
+  const t = ms => ms ? new Date(ms).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '–';
+  let ct = 0; try { ct = (JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null') || {}).t || 0; } catch (e) { }
+  const dl = S.liteDl, gp = $('geoPill'), geo = gp && !gp.classList.contains('gone') ? gp.textContent.trim() : '';
+  return [
+    ['Feldliste (UAV Editor)', syncing && !dl ? '⏳ wird geladen…' : 'Stand ' + t(ct)],
+    ['DJI-Cloud-Liste', S.djiBusy ? '⏳ wird geladen…' : djiState() ? `${djiState().list.length} Felder · Stand ${t(djiState().at)}` : 'noch nicht geladen'],
+    ['Download', dl ? `⏳ ${dl.pre ? 'Feld zum Prüfen' : 'Felder auf die Fernsteuerung'} · ${dl.done || 0} von ${dl.total || 0}${dl.wait ? ' · wartet auf die Feldliste' : ''}` : 'nichts'],
+    ['Geodaten', geo ? '⏳ ' + geo : 'nichts']];
 }
 /** KMZ-Datei → Feld-Eintrag (wie beim Laden der Felder) */
 function kmzEntry(path, name) {
@@ -10550,8 +10569,9 @@ function liteLoadStart() {
 function liteUaveEvent(ev) {
   const dl = S.liteDl;
   if (ev.type === 'status') return true;
+  if (ev.type === 'wait') { dl.wait = true; busy('Warte, bis die Feldliste fertig geladen ist…', { sub: 'Nach der Installation lädt die App einmal alle Felder – das kann ein paar Minuten dauern.', cancel: liteDlAbort }); return true; }
   if (dl.pre) {   // Vorab-Holen aus der DJI Cloud für den Pre-Check
-    if (ev.type === 'progress') { busy('Feld aus der DJI Cloud wird zum Prüfen geholt…', { done: ev.done || 0, total: dl.total }); return true; }
+    if (ev.type === 'progress') { dl.wait = false; busy('Feld aus der DJI Cloud wird zum Prüfen geholt…', { done: ev.done || 0, total: dl.total, cancel: liteDlAbort }); return true; }
     if (ev.type === 'error' || ev.type === 'done' || ev.type === 'droneDone') {
       S.liteDl = null; syncing = false; busy('');
       const base = P.src.replace(/\/+$/, '') + '/', st = djiState(), pre = [];
@@ -11609,7 +11629,14 @@ function liteSrcMenu() {
     box.querySelector('#lsrcRc').onchange = e => { const c = $('sLiteRc'); if (c) { c.checked = e.target.checked; c.onchange({ target: c }); } else setP('liteRcBtn', e.target.checked ? '1' : '0'); };
   };
   paint();
-  confirmDlg('Datenquellen (Experten)', '', [], 'Fertig', () => { }, box); $('dNo').style.display = 'none';
+  // Hintergrund-Aktivität live anzeigen (aktualisiert sich, solange das Menü offen ist)
+  const bg = document.createElement('div'); bg.style.cssText = 'margin-top:14px;padding-top:10px;border-top:1px solid rgba(127,127,127,.3)'; box.appendChild(bg);
+  const bgPaint = () => { if (!bg.isConnected) return clearInterval(S.bgT);
+    bg.innerHTML = '<div class="meta" style="margin-bottom:6px"><b>Läuft gerade im Hintergrund</b></div>' + liteBgLines().map(([k, v]) => `<div style="display:flex;gap:10px;font-size:15px;margin:3px 0"><span style="min-width:190px;opacity:.8">${esc(k)}</span><b style="flex:1">${esc(v)}</b></div>`).join('')
+      + (S.liteDl ? '<button class="b-sec" id="bgStop" style="margin-top:8px">Download abbrechen</button>' : '');
+    const b = $('bgStop'); if (b) b.onclick = () => liteDlAbort(); };
+  bgPaint(); clearInterval(S.bgT); S.bgT = setInterval(bgPaint, 1000);
+  confirmDlg('Datenquellen (Experten)', '', [], 'Fertig', () => { clearInterval(S.bgT); }, box); $('dNo').style.display = 'none';
 }
 /** Lite: Geodaten, Hindernisse und Karte fürs ganze Gebiet der Felder (DJI Cloud bzw. UAV Editor) holen – im Hintergrund, nur was fehlt */
 function liteAreaSync() { if (!IS_LITE) return; clearTimeout(S.liteAreaT); S.liteAreaT = setTimeout(() => { S.liteAreaF = null; if (!isOnline()) return; geoSyncNow(false, true); einsatzAuto(); }, 3000); }
@@ -12630,7 +12657,7 @@ loadNotams();
 geoBadge(); setTimeout(geoBadge, 4000);   // Start: kurz warten, bis Internet erkannt ist, dann veraltete Geodaten im Hintergrund holen
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { opImage2: async sel => { const ops = netOps(sel); return ops.length ? opImage(ops, 0) : null; }, fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl, catEntry, liteImport, heightPlan, pwrNeedH, pwrTop, uvCatAuto };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { opImage2: async sel => { const ops = netOps(sel); return ops.length ? opImage(ops, 0) : null; }, fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl, catEntry, liteImport, heightPlan, pwrNeedH, pwrTop, uvCatAuto, liteBgLines, liteDlAbort };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
