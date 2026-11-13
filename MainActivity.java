@@ -377,10 +377,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return t.replaceAll("(<wpml:" + tag + ">)[^<]*(<)", "$1" + Matcher.quoteReplacement(value) + "$2");
     }
 
-    private static String convertKml(String t, String from, String to) {
+    /** base: Flughöhe aus template.kml – für ALLE Dateien der Mission dieselbe (waylines.wpml hat keine globalHeight;
+     *  früher wurde dort mit 50 m gerechnet → Wegpunkte z. B. 90 m, Flughöhe 70 m) */
+    private static String convertKml(String t, String from, String to, double base) {
         int[] a = DRONES.get(from), b = DRONES.get(to);
-        Matcher gm = Pattern.compile("<wpml:globalHeight>([-\\d.]+)<").matcher(t);
-        double base = gm.find() ? Double.parseDouble(gm.group(1)) : 50;
         long newBase;
         if (from.equals(to)) {
             // gleiche Drohne, aber falsche Höhe → auf Sollhöhe setzen
@@ -442,10 +442,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             } else return null;
             // Höhe falsch → durchfallen lassen und umrechnen (from=to, aber convertKml setzt Höhe korrekt)
         }
+        Matcher tb = Pattern.compile("<wpml:globalHeight>([-\\d.]+)<").matcher(tpl);
+        final double tplBase = tb.find() ? Double.parseDouble(tb.group(1)) : 50;
         for (Map.Entry<String, byte[]> en : entries.entrySet()) {
             String ln = en.getKey().toLowerCase(Locale.ROOT);
             if (ln.endsWith(".kml") || ln.endsWith(".wpml"))
-                en.setValue(convertKml(new String(en.getValue(), StandardCharsets.UTF_8), from, to).getBytes(StandardCharsets.UTF_8));
+                en.setValue(convertKml(new String(en.getValue(), StandardCharsets.UTF_8), from, to, tplBase).getBytes(StandardCharsets.UTF_8));
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (java.util.zip.ZipOutputStream zo = new java.util.zip.ZipOutputStream(out)) {
