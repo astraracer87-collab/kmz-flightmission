@@ -3831,18 +3831,20 @@ function toggle(f) {
     if (wrongH) issues.push(`❌ Flughöhe: ${hasH} m (mindestens: ${wantH} m)`);
     const title = wrongDrone && wrongH ? '⚠ Falsche Drohne und Flughöhe'
                 : wrongDrone ? '⚠ Falsche Drohne' : '⚠ Falsche Flughöhe';
-    const msg = issues.join('\n') + `\n\nSoll die Datei auf ${DN[P.drone] || P.drone} (mindestens ${wantH} m) korrigiert werden?`;
+    const hp = heightPlan(f, P.drone, !pwrAdj()), finH = hp ? hp.fin : wantH;   // dieselben Regeln wie überall: Mindesthöhe der Drohne, Stromleitung – nicht hochrechnen
+    const msg = issues.join('\n') + `\n\nSoll die Datei auf ${DN[P.drone] || P.drone} (${finH} m${hp && hp.need && finH >= hp.need && hp.need > wantH ? ' wegen Stromleitung' : ''}) korrigiert werden?`;
     confirmDlg(title, msg, [], `Auf ${DN[P.drone] || P.drone} korrigieren`, () => {
       busy('Rechne um…');
       setTimeout(() => {
         try {
+          try { if (A.setMinHeights) A.setMinHeights(JSON.stringify(pwrAdj() && hp && hp.need ? { [f.path]: hp.need } : {})); } catch (e) { }
           const r = JSON.parse(A.convertInPlace(f.path, P.drone));
           busy('');
           if (r.ok && !r.unchanged) {
-            toast(`✓ ${f.title} → ${DN[P.drone] || P.drone} (${wantH} m) umgerechnet`, 'ok', 5000);
+            toast(`✓ ${f.title} → ${DN[P.drone] || P.drone} (${finH} m) umgerechnet`, 'ok', 5000);
             if (r.newPath) f.path = r.newPath;
             if (r.newName) { f.name = r.newName; f.title = r.newName.replace(/\.km[lz]$/i, ''); f._ft = null; }
-            f.drone = P.drone; f.height = wantH;
+            f.drone = P.drone; f.height = finH;
             update();
           } else if (r.unchanged) toast('Datei hat bereits die richtige Drohne.', 'ok', 3000);
           else toast('Fehler: ' + (r.error || 'unbekannt'), true, 6000);
@@ -4843,6 +4845,12 @@ const DRONE_INFO = {
 
 /** Merkt sich je Feld (Pfad bzw. „uave:<id>“) den Dateinamen, unter dem es im Import-Ordner liegt */
 function dstMap() { try { return JSON.parse(P.dstMap || '{}') || {}; } catch (e) { return {}; } }
+/** Sind für die Umgebung eines Felds Leitungs-/Hindernisdaten geladen? (irgendeine Leitung oder ein Hindernis im Umkreis von 3 km) */
+function geoNear(f) {
+  const c = f && f.center; if (!c) return false; const dLa = 3000 / 111320, dLo = 3000 / (111320 * Math.cos(c[0] * Math.PI / 180));
+  return (S.osm || []).some(l => l.bb && !(l.bb.s > c[0] + dLa || l.bb.n < c[0] - dLa || l.bb.w > c[1] + dLo || l.bb.e < c[1] - dLo))
+    || (S.obs || []).some(o => Math.abs(o.lat - c[0]) < dLa && Math.abs(o.lon - c[1]) < dLo);
+}
 function doTransfer(paths, drone, keys, extraMinH) {
   const move = false;   // immer kopieren: „UAV-Editor“ behält alle Felder
   busy(drone ? 'Rechne um und übertrage…' : 'Übertrage…');
@@ -4850,11 +4858,12 @@ function doTransfer(paths, drone, keys, extraMinH) {
     // Felder mit Freileitung: Mindesthöhe mitgeben – die App hebt die Mission beim Schreiben an (nur wenn niedriger geplant)
     let nRaise = 0;
     const fOf = p => S.files.find(x => x.path === p || (keys && keys[p] && (x.path === keys[p] || 'uave:' + ((x.uave || {}).id || '') === keys[p])));   // Lite: geladene Datei ↔ Feld aus der Liste
-    if (A.setFixHeights) { const fx = {};   // andere Drohne: Zielhöhe nach unseren Regeln (Mindesthöhe der Drohne, Stromleitung) – nicht pauschal hochrechnen
-      if (drone) paths.forEach(p => { const f = fOf(p), hp = f && heightPlan(f, drone, !pwrAdj()); if (hp && hp.orig !== drone) fx[p] = hp.fin; });
-      try { A.setFixHeights(JSON.stringify(fx)); } catch (e) { } }
     if (A.setMinHeights) { const mh = {};
       if (pwrAdj()) paths.forEach(p => { const f = fOf(p), n = f ? pwrNeedH(f) : 0; if (n) mh[p] = n; });   // Mastspitze + 20 m, mind. Einstellung, höchstens 120 m (bzw. 15 m über Masten über 105 m)
+      // Nie tiefer als geplant, wenn für das Gebiet keine Leitungs-/Hindernisdaten da sind (offline, noch nicht geladen) – dann wissen wir nicht, was dort steht
+      let blind = 0; if (drone) paths.forEach(p => { const f = fOf(p); if (!f || !f.height || geoNear(f)) return; const hp = heightPlan(f, drone, !pwrAdj());
+        if (hp && hp.fin < f.height - 2) { mh[p] = Math.max(mh[p] || 0, Math.round(f.height)); blind++; } });
+      if (blind) setTimeout(() => toast(`Für ${blind} Feld${blind > 1 ? 'er' : ''} fehlen Leitungs-/Hindernisdaten – geplante Höhe beibehalten statt abzusenken.`, 'warn', 7000), 1500);
       Object.entries(extraMinH || {}).forEach(([p, h]) => { if (h > 0) mh[p] = Math.max(mh[p] || 0, h); });   // Lite: Pilot hat „Höhe beibehalten“ gewählt
       try { A.setMinHeights(JSON.stringify(mh)); } catch (e) { } }
     const r = JSON.parse(A.transfer(JSON.stringify(paths), P.dst, move, true, drone || ''));
@@ -10609,16 +10618,17 @@ function liteImport() {
   Object.entries(fl).forEach(([id, n]) => { keys[base + n] = 'uave:' + id; paths.push(base + n); });
   if (!paths.length) { busy(''); return; }
   S.liteDlg = false;
-  // Würde ein Feld beim Umrechnen auf die M3T niedriger (z. B. 70 → 50 m) und liegen dort Stromleitungen oder hohe Hindernisse:
-  // den Piloten fragen, ob er auf 50 m umrechnen oder die geplante Höhe beibehalten will
-  const lowTo = DRONE_HEIGHT[P.drone] || 0, risky = [];
-  if (P.drone === 'M3T') Object.entries(fl).forEach(([id, n]) => { const f = S.files.find(x => x.cat && String((x.uave || {}).id || '') === String(id)); if (!f || !f.height || f.height <= lowTo + 5) return;
-    const willLower = (f.drone && f.drone !== 'M3T') || nameDrone(f.title) === 'M4T'; if (!willLower) return;
-    const hz = lowHazards(f, lowTo).filter(x => !(x === 'Stromleitung' && pwrAdj())); if (hz.length) risky.push({ f, path: base + n, hz }); });   // Stromleitung: wird ohnehin auf Mastspitze + 20 m angehoben
+  // Würde ein Feld niedriger als geplant (z. B. 70 → 50 m, egal für welche Drohne geplant) und liegen dort hohe Hindernisse:
+  // den Piloten fragen, ob er die geplante Höhe beibehalten will (Stromleitungen hebt die App ohnehin auf Mastspitze + 20 m an)
+  const risky = [];
+  Object.entries(fl).forEach(([id, n]) => { const f = S.files.find(x => (x.cat && String((x.uave || {}).id || '') === String(id)) || x.cloudId === String(id)); if (!f || !f.height) return;
+    const hp = heightPlan(f, P.drone, !pwrAdj()); if (!hp || hp.fin >= f.height - 2) return;   // wird nicht niedriger
+    const hz = lowHazards(f, hp.fin).filter(x => !(x === 'Stromleitung' && pwrAdj())); if (hz.length) risky.push({ f, path: base + n, hz, to: hp.fin }); });
+  const lowTo = risky.length ? Math.min(...risky.map(x => x.to)) : 0;
   if (risky.length) { busy('');
     const hTxt = [...new Set(risky.map(x => Math.round(x.f.height)))].join('/');
-    confirmDlg('Höhe beim Umrechnen', `${risky.length === 1 ? 'Dieses Feld ist' : 'Diese Felder sind'} für die Matrice 4T auf ${hTxt} m geplant. Für die Mavic 3T würde ${risky.length === 1 ? 'es' : 'sie'} auf ${lowTo} m umgerechnet – dort gibt es aber Hindernisse:`,
-      risky.map(x => `${x.f.title}: ${x.hz.join(', ')}`), `Bei ${hTxt} m bleiben (empfohlen)`, () => {
+    confirmDlg('Höhe beim Umrechnen', `${risky.length === 1 ? 'Dieses Feld ist' : 'Diese Felder sind'} auf ${hTxt} m geplant. Für deine ${DRONE_NAME[P.drone] || P.drone} würde${risky.length === 1 ? '' : 'n sie'} ${risky.length === 1 ? 'es ' : ''}auf ${lowTo} m gesetzt – dort gibt es aber hohe Hindernisse:`,
+      risky.map(x => `${x.f.title} (${Math.round(x.f.height)} → ${x.to} m): ${x.hz.join(', ')}`), `Bei ${hTxt} m bleiben (empfohlen)`, () => {
         const mh = {}; risky.forEach(x => { mh[x.path] = Math.round(x.f.height); }); busy('Rechne um und übertrage…'); doTransfer(paths, P.drone || '', keys, mh); liteImportDone(paths); }, null);
     $('dNo').textContent = `Auf ${lowTo} m umrechnen`; $('dNo').style.display = '';
     S.dNoAlt = () => { busy('Rechne um und übertrage…'); doTransfer(paths, P.drone || '', keys); liteImportDone(paths); };
