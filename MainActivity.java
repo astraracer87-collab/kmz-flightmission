@@ -391,6 +391,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         // nie unter die Mindesthöhe der Zieldrohne (M3T 50 m, M4T 70 m); höher geplante Felder (z. B. wegen Stromleitung) bleiben so hoch
         long minH = Math.round(50.0 * Math.tan(Math.toRadians(49.0 / 2.0)) / Math.tan(Math.toRadians(b[3] / 2.0)));
         newBase = Math.max(newBase, Math.max(minH, from.equals(to) ? Math.round(base) : 0));
+        newBase = Math.min(newBase, 120);   // Open-Kategorie: höchstens 120 m
         double delta = newBase - base;
         t = setTag(t, "droneEnumValue", String.valueOf(b[0]));
         t = setTag(t, "droneSubEnumValue", String.valueOf(b[1]));
@@ -497,6 +498,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             Matcher gm = Pattern.compile("<wpml:globalHeight>([-\\d.]+)<").matcher(new String(en.getValue(), StandardCharsets.UTF_8));
             if (gm.find()) base = Double.parseDouble(gm.group(1));
         }
+        minH = Math.min(minH, 250);   // Obergrenze rechnet die App (120 m, an Masten über 105 m bis 15 m darüber – EU UAS.OPEN.010)
         if (base < 0 || base >= minH - 0.5) return kmz;   // schon hoch genug (oder keine Höhe gefunden)
         double delta = minH - base;
         ByteArrayOutputStream out = new ByteArrayOutputStream();

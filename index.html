@@ -247,6 +247,7 @@
 
   #dTitle{padding-right:48px}
   .dlg .box .dlgx{position:sticky;top:0;float:right;align-self:flex-end;flex:none;margin:-6px -6px -38px auto;width:44px;height:44px;border-radius:50%;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:20px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+  .hwarn{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:45;display:flex;align-items:center;justify-content:center}.hwarn .hwbox{background:var(--card);color:var(--txt);border-radius:16px;border-top:6px solid #d42020;padding:16px 20px;width:min(620px,92%);max-height:86vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.45)}.hwarn h3{margin:0 0 6px;color:#d42020}.hwarn ul{margin:8px 0;padding-left:18px}.hwarn li{margin:6px 0;line-height:1.4}.hwarn button{width:100%;margin-top:10px;font-size:17px;padding:12px}
   .dlg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30}
   .dlg.open{display:flex}
   .dlg .box.wide{width:min(1700px,97%)}
@@ -3012,10 +3013,9 @@ function isDroneMismatch(f) {
  *  (M3T auf 50 m über einer Stromleitung meldet schon lowNearPower.) Liefert { t, why } oder null */
 function heightIssue(f) {
   if (!IS_WEB || !f || f.dup) return null;
-  const d = nameDrone(f.title) || f.drone, h = f.height; if (!d || !h) return null;
-  if (d === 'M4T' && h < DRONE_HEIGHT.M4T - 5) return { t: 'Höhe falsch', why: `Als M4T benannt, aber auf ${h} m geplant – die Matrice 4T fliegt ${DRONE_HEIGHT.M4T} m. Im UAV Editor auf ${DRONE_HEIGHT.M4T} m ändern oder als M3T benennen.` };
-  if (d === 'M3T' && h > DRONE_HEIGHT.M3T + 5 && !touchesPower(f)) return { t: 'Höhe falsch', why: `Als M3T benannt, aber auf ${h} m geplant – ohne Stromleitung auf der Flugbahn fliegt die Mavic 3T ${DRONE_HEIGHT.M3T} m. Im UAV Editor auf ${DRONE_HEIGHT.M3T} m ändern.` };
-  return null;
+  const hp = heightPlan(f); if (!hp) return null;
+  const why = hp.issues.filter(t => !/^Über der Stromleitung zu niedrig/.test(t));
+  return why.length ? { t: 'Höhe falsch', why: why.join(' ') + ' Im UAV Editor korrigieren und neu speichern.' } : null;
 }
 const fieldWrong = f => isDroneMismatch(f) || !!heightIssue(f);
 /** Feldkontur aus UAV Editor als Hintergrund der Flugroute (nicht eigenständig wählbar) */
@@ -3111,7 +3111,44 @@ function touchesPower(f) {
   f._lnp = { k, v }; return v;
 }
 /** Mission niedriger als die eingestellte Überflughöhe geplant, aber Freileitung am/über dem Feld */
-function lowNearPower(f) { return !!(f && f.height && f.height < pwrH() - 0.5 && touchesPower(f)); }
+function lowNearPower(f) { const n = f && f.height ? pwrNeedH(f) : 0; return !!(n && f.height < n - 0.5); }
+/** Sicherheitsabstand über der Mastspitze und Höchstgrenze (Open-Kategorie 120 m) */
+const PWR_CLR = 20, MAX_H = 120, DRONE_FOV = { M3T: 49, M4T: 36 }, DRONE_NAME = { M3T: 'Mavic 3T', M4T: 'Matrice 4T' };
+const ceil5 = v => Math.ceil(v / 5) * 5;
+/** höchste Mastspitze der überflogenen Freileitungen: Masthöhe aus OpenStreetMap, sonst obere typische Höhe der Leitungsart (380 kV bis 80 m) */
+function pwrTop(f) {
+  if (!f || !S.osm || !S.osm.length) return null;
+  const k = S.osm.length + '|' + (S.obs || []).length; if (f._pt && f._pt.k === k) return f._pt.v;
+  let v = null;
+  S.osm.forEach(l => { if (l.p === 'cable' || l.loc === 'underground' || minorLine(l) || !overSections(f, l).length) return;
+    const kn = knownMasts(l, [f]), c = lineClass(l.kv, l.p), top = kn.length ? kn[kn.length - 1] : c.h[1];
+    if (!v || top > v.top) v = { top: Math.round(top), est: !kn.length, kv: +l.kv || 0 }; });
+  f._pt = { k, v }; return v;
+}
+/** nötige Flughöhe an der Stromleitung: Einstellung (Standard 70 m), aber immer mindestens Mastspitze + 20 m. 0 = keine Leitung überflogen */
+/** Höchstgrenze an dieser Leitung: 120 m – bei Masten über 105 m bis 15 m über der Mastspitze (EU 2019/947 UAS.OPEN.010 Abs. 3:
+ *  innerhalb 50 m waagerecht um ein künstliches Hindernis über 105 m, nur auf Verlangen/mit Einverständnis des Verantwortlichen) */
+const pwrMaxH = t => t && t.top > 105 ? t.top + 15 : MAX_H;
+function pwrNeedH(f) { const t = pwrTop(f); return t ? Math.min(pwrMaxH(t), Math.max(pwrH(), ceil5(t.top + PWR_CLR))) : 0; }
+const pwrWhy = t => t ? `${t.kv ? t.kv + '-kV-Leitung' : 'Freileitung'}, Masten ${t.est ? 'bis ca. ' : ''}${t.top} m hoch` : '';
+/** Höhe einer Planung prüfen: für welche Drohne wurde geplant (Kamera/Bahnabstand aus der Datei, sonst Name), ist die Höhe dafür plausibel,
+ *  und welche Höhe ergibt sich für die Drohne „to“ (Bahnabstand bleibt gleich → Höhe umgerechnet; nie unter Mindesthöhe der Drohne,
+ *  an Stromleitungen nie unter Mastspitze + 20 m, nie über 120 m). Liefert { h, orig, to, need, top, fin, issues[] } oder null. */
+function heightPlan(f, to) {
+  const h = Math.round(+(f && f.height) || 0); if (!h) return null;
+  const nd = nameDrone(f.title || f.name || ''), kd = DRONE_HEIGHT[f.drone] ? f.drone : '';
+  const orig = kd || nd || (h >= 65 ? 'M4T' : 'M3T'); to = DRONE_HEIGHT[to] ? to : orig;
+  const need = pwrNeedH(f), top = need ? pwrTop(f) : null, std = DRONE_HEIGHT[orig], issues = [];
+  if (kd && nd && kd !== nd) issues.push(`Als ${nd} benannt, die Planung ist aber für die ${DRONE_NAME[kd]} (Kamera/Bahnabstand).`);
+  if (h < std - 5) issues.push(`Für die ${DRONE_NAME[orig]} zu niedrig: ${h} m – mindestens ${std} m.`);
+  if (need && h < need - 0.5) issues.push(`Über der Stromleitung zu niedrig: ${h} m – nötig ${need} m (${pwrWhy(top)}).`);
+  if (top && top.top > 105) issues.push(`Über 120 m nur mit Einverständnis des Leitungsbetreibers: Masten ${top.top} m hoch – höchstens ${need} m (15 m über der Mastspitze, im Umkreis von 50 m; EU-Regel UAS.OPEN.010).`);
+  else if (top && top.top + PWR_CLR > MAX_H) issues.push(`Nur ${MAX_H - top.top} m über der Mastspitze möglich (Masten ${top.top} m, höchstens ${MAX_H} m) – vorsichtig queren.`);
+  if (!need && h > std + 5 && !lowHazards(f, std).length) issues.push(`Höher als üblich: ${h} m statt ${std} m, obwohl an der Flugbahn weder Stromleitung noch hohes Hindernis liegt.`);
+  const scaled = Math.round(h * Math.tan(DRONE_FOV[orig] * Math.PI / 360) / Math.tan(DRONE_FOV[to] * Math.PI / 360));
+  const fin = Math.min(Math.max(MAX_H, need), Math.max(orig === to ? h : scaled, DRONE_HEIGHT[to], need));
+  return { h, orig, to, need, top, fin, issues };
+}
 /** Wird beim Übertragen automatisch angehoben (Fernsteuerungs-Apps, Anpassung an)? */
 const pwrAutoRaise = () => !IS_WEB && pwrAdj() && !!A.setMinHeights;
 /** rotes Ausrufezeichen oben rechts am Feld – an der Feldecke, die am weitesten oben rechts liegt (nicht an der Ecke des umgebenden Rechtecks, die bei schrägen Feldern daneben liegt) */
@@ -4153,7 +4190,10 @@ function uvIdsToRows(r) {
 function uvCatAuto(raw, again, hint) {
   if (!raw || !isOnline() || !A.uaveCheck) return false;
   if (S.uvCatPend) { S.uvCatPend = { raw, again }; return true; }   // läuft schon: nur die neueste Auswahl merken
-  if (syncing || (S.uvCatAt && Date.now() - S.uvCatAt < 90000)) return false;   // nicht dauernd – höchstens alle 90 s
+  // Pre-Check mit neuem Feld: immer nachladen (bis zu 2×, auch wenn die Liste gerade erst geholt wurde) – nicht warnen, sondern holen
+  const force = raw.precheck && (raw._tries = (raw._tries || 0) + 1) <= 2;
+  if (syncing && force) { S.uvCatPend = { raw, again }; if (hint) hint('⏳ Neues Feld im UAV Editor – wird geladen …'); return true; }
+  if (syncing || (!force && S.uvCatAt && Date.now() - S.uvCatAt < 90000)) return false;   // sonst nicht dauernd – höchstens alle 90 s
   S.uvCatAt = Date.now(); S.uvCatPend = { raw, again };
   if (hint) hint('⏳ Neues Feld im UAV Editor – unsere Feldliste wird im Hintergrund aktualisiert, dann wird es automatisch übernommen …');
   catRefresh(true); if (!syncing) { S.uvCatPend = null; return false; }
@@ -4247,7 +4287,7 @@ window.onUaveSel = r => {
   if (fs.length) fitBounds(padBB(bounds(fs))); update(); draw(); sideRender();
   if (r.src === 'karte' && fs.length) toast(`✓ ${fs.length} Feld(er) von der UAV-Karte übernommen (Feldtabelle ist dort ausgeblendet) – Felder in Gruppen-Kreisen werden nicht erkannt.`, 'ok', 6000);
   if (!(r.precheck && fs.length)) pcPrepEnd();
-  if (r.precheck && fs.length) { pcPrepBusy('Geozonen werden geprüft …'); setTimeout(() => webPreCheck(S.files.filter(f => f.selected)), 120); if (miss.length || (r.want != null && r.rows.length < r.want)) toast(`${miss.length ? miss.length + ' Feld(er) nicht in unserer Feldliste' : 'Nicht alle angehakten Felder gelesen'} – Pre-Check mit ${fs.length} Feld${fs.length === 1 ? '' : 'ern'}.`, 'warn', 7000); return; }
+  if (r.precheck && fs.length) { pcPrepBusy('Geozonen werden geprüft …'); setTimeout(() => webPreCheck(S.files.filter(f => f.selected)), 120); if (miss.length || (r.want != null && r.rows.length < r.want)) toast(miss.length ? `${miss.map(x => '„' + x + '“').join(', ')} fehlt auch nach dem Nachladen in der Feldliste des UAV Editors – dort einmal speichern, dann erneut Pre-Check. Geprüft werden ${fs.length} Feld${fs.length === 1 ? '' : 'er'}.` : `Nicht alle angehakten Felder gelesen – Pre-Check mit ${fs.length} Feld${fs.length === 1 ? '' : 'ern'}.`, 'warn', 9000); return; }
   const part = r.want != null && r.rows.length < r.want ? `Nur ${r.rows.length} von ${r.want} angehakten Feldern gelesen – bitte im UAV Editor einmal durch die Liste scrollen und erneut übernehmen.` : '';
   if (miss.length || part) uvInfo(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} übernommen`, [part, miss.length ? `Nicht in unserer Feldliste – auch nach dem automatischen Nachladen nicht gefunden (Feld im UAV Editor schon gespeichert?):` : ''].filter(Boolean).join('\n\n'), miss.slice(0, 20));
   else toast(`${fs.length} Feld${fs.length === 1 ? '' : 'er'} aus dem UAV Editor übernommen`, 'ok', 3500);
@@ -4643,7 +4683,7 @@ function sideRender() {
   });
 }
 /** Nach dem Holen aus dem UAV Editor: neue Felder erkennen (gegenüber dem letzten Stand) und anbieten, sie anzusehen */
-function newFieldsCheck(manual) {
+function newFieldsCheck(manual, quiet) {
   const all = catAll(); if (!all.length) return;
   const ids = all.map(f => String(f.id)); let known = null; try { known = JSON.parse(P.catKnown || 'null'); } catch (e) { }
   setP('catKnown', JSON.stringify(ids));
@@ -4651,6 +4691,7 @@ function newFieldsCheck(manual) {
   const ks = new Set(known), neu = all.filter(f => !ks.has(String(f.id)));
   if (!neu.length) { if (manual) toast('Keine neuen Felder im UAV Editor.', 'ok', 2500); return; }
   S.newIds = new Set([...(S.newIds || []), ...neu.map(f => String(f.id))]); sideRender();
+  if (quiet) return;   // Pre-Check aus dem UAV Editor: das neue Feld wird gleich direkt geprüft – nicht mit einer Frage dazwischengehen
   const n = neu.length;
   const pk = new Map(); neu.forEach(f => { const k = fieldGroupKey(f.name); pk.set(k, (pk.get(k) || []).concat(f.name)); });
   const lines = [...pk.entries()].map(([k, ns]) => ns.length > 1 ? `${k}: ${ns.length} Felder` : ns[0]);
@@ -4795,7 +4836,7 @@ function doTransfer(paths, drone, keys, extraMinH) {
     // Felder mit Freileitung: Mindesthöhe mitgeben – die App hebt die Mission beim Schreiben an (nur wenn niedriger geplant)
     let nRaise = 0;
     if (A.setMinHeights) { const mh = {};
-      if (pwrAdj()) S.files.forEach(f => { if (paths.includes(f.path) && touchesPower(f)) mh[f.path] = pwrH(); });
+      if (pwrAdj()) S.files.forEach(f => { const n = paths.includes(f.path) ? pwrNeedH(f) : 0; if (n) mh[f.path] = n; });   // Mastspitze + 20 m, mind. Einstellung, höchstens 120 m (bzw. 15 m über Masten über 105 m)
       Object.entries(extraMinH || {}).forEach(([p, h]) => { if (h > 0) mh[p] = Math.max(mh[p] || 0, h); });   // Lite: Pilot hat „Höhe beibehalten“ gewählt
       try { A.setMinHeights(JSON.stringify(mh)); } catch (e) { } }
     const r = JSON.parse(A.transfer(JSON.stringify(paths), P.dst, move, true, drone || ''));
@@ -4805,7 +4846,7 @@ function doTransfer(paths, drone, keys, extraMinH) {
     if (r.names) { const m = dstMap(); paths.forEach(p => { const n = r.names[p]; if (n) { m[p] = n; if (keys && keys[p]) m[keys[p]] = n; } }); setP('dstMap', JSON.stringify(m)); }
     S.files.forEach(f => f.selected = false);
     const nConv = drone ? S.files.filter(f => paths.includes(f.path) && f.drone && f.drone !== drone).length : 0;
-    const what = nConv ? ` (${nConv} auf ${drone === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} umgerechnet)` : '', raiseTxt = nRaise ? `\n⚡ ${nRaise} Feld${nRaise > 1 ? 'er' : ''} wegen Stromleitung auf ${pwrH()} m angehoben` : '';
+    const what = nConv ? ` (${nConv} auf ${drone === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} umgerechnet)` : '', raiseTxt = nRaise ? `\n⚡ ${nRaise} Feld${nRaise > 1 ? 'er' : ''} wegen Stromleitung angehoben (Mastspitze + 20 m, mindestens ${pwrH()} m)` : '';
     if (r.errors && r.errors.length) {
       toast(`${r.done} übertragen${what}, ${r.errors.length} Fehler:\n` + r.errors.join('\n') + raiseTxt, true, 9000);
       if (r.errors.some(e => /nicht mehr im Quellordner|ENOENT/.test(e))) setTimeout(() => load(true), 600);   // Liste ist veraltet: Quellordner neu einlesen
@@ -9392,7 +9433,7 @@ async function webPreCheck0(sel) {
     + (nZ ? `<li style="color:#d42020"><b>${fz(nZ)}</b> am Flugplatz – vorher Zustimmung der Flugaufsicht/des Betreibers einholen</li>` : '')
     + (nNo ? `<li style="color:#d42020"><b>${fz(nNo)}</b> mit Teilen, die auch mit A2 gesperrt sind – diese Teile nicht befliegen</li>` : '') + `</ul></div>`;
   const sv = P.lic; P.lic = 'A2'; let per = ''; try { per = liteCheckInner(sel, { verdict: true }); } finally { P.lic = sv; }
-  const lowHtml = low.length ? `<div class="zone" style="border-left:5px solid #d32f2f"><h4 style="color:#d32f2f">⚠ ${fz(low.length)} falsch geplant: unter ${pwrH()} m, obwohl die Flugbahn eine Stromleitung überquert</h4><div class="meta">An Stromleitungen fliegen wir ${pwrH()} m hoch. Bitte im UAV Editor umplanen: ${low.map(f => `<b>${esc(f.title)}</b> (${f.height} m)`).join(', ')}</div></div>` : '';
+  const lowHtml = low.length ? `<div class="zone" style="border-left:5px solid #d32f2f"><h4 style="color:#d32f2f">⚠ ${fz(low.length)} falsch geplant: zu niedrig, obwohl die Flugbahn eine Stromleitung überquert</h4><div class="meta">An Stromleitungen fliegen wir mindestens ${pwrH()} m hoch, bei hohen Masten Mastspitze + ${PWR_CLR} m. Bitte im UAV Editor umplanen: ${low.map(f => `<b>${esc(f.title)}</b> (${f.height} → ${pwrNeedH(f)} m)`).join(', ')}</div></div>` : '';
   const hk = nNo || nZ ? ['#d42020', '✗', nZ && !nNo ? 'Zustimmung des Flugplatzes nötig' : 'Teile gesperrt – auch mit A2', 'Betroffene Felder unten aufklappen: die Karte zeigt, wo das Problem liegt.']
     : n2 ? ['#e07800', 'A2', vs.some(v => v.k === 'a2' && !v.onlyLic) ? 'A2 + Allgemeinerlaubnis' : 'A2', `${fz(n2)} – Piloten mit A2 einplanen${n13 ? ` · ${fz(n13)} auch mit A1/A3` : ''}.`]
     : ['#13a538', '✓', 'A1/A3', sel.length > 1 ? `Alle ${sel.length} Felder.` : ''];
@@ -9477,11 +9518,24 @@ function pcShow(sel, box) {
   $('dlg').querySelector('.box').classList.add('wide', 'auto');   // Desktop: ganze Fensterbreite nutzen – Felder in Spalten; Höhe nur so viel wie nötig
   $('dlg').querySelector('.box').scrollTop = 0;
   pcDjiChip(sel, box);
+  pcHeightWarn(sel);
   { const old = box.querySelector('#pcChg'); if (old) old.remove(); const ch = S.pcChanged;
     if (ch && Date.now() - ch.at < 10 * 60000) { const ls = ch.list.filter(x => sel.some(f => f.title === x.name)); if (ls.length) {
       const c = document.createElement('div'); c.className = 'fwchip'; c.id = 'pcChg'; c.style.background = 'rgba(255,152,0,.14)'; c.style.borderLeft = '4px solid #e65100';
       c.innerHTML = `<span>✎ <b>Seit dem letzten Abruf im UAV Editor geändert</b> – der Pre-Check nutzt schon den neuen Stand:<br>${ls.map(x => `<b>${esc(x.name)}</b>: ${esc(x.d.join(', '))}`).join('<br>')}</span>`;
       box.prepend(c); } } }
+}
+/** Pre-Check (PC): Flughöhe falsch geplant → Hinweis im Vordergrund, der weggeklickt werden muss – bei jedem Pre-Check, solange die Planung falsch ist */
+function pcHeightWarn(sel) {
+  const old = $('hWarn'); if (old) old.remove();
+  const bad = sel.map(f => ({ f, hp: heightPlan(f) })).filter(x => x.hp && x.hp.issues.length); if (!bad.length) return;
+  const d = document.createElement('div'); d.id = 'hWarn'; d.className = 'hwarn';
+  d.innerHTML = `<div class="hwbox"><h3>⚠ Flughöhe falsch geplant</h3><p>${bad.length === 1 ? 'Bei diesem Feld passt' : `Bei ${bad.length} Feldern passt`} die Flughöhe nicht zur Planung:</p>
+    <ul>${bad.map(x => `<li><b>${esc(x.f.title)}</b> · ${x.hp.h} m · geplant für ${DRONE_NAME[x.hp.orig]}<br>${x.hp.issues.map(esc).join('<br>')}</li>`).join('')}</ul>
+    <p class="meta">Im UAV Editor korrigieren und neu speichern – der Pre-Check übernimmt den neuen Stand. Die Fernsteuerung hebt an Stromleitungen zwar automatisch an, die Planung sollte aber stimmen.</p>
+    <button class="b-ok" id="hwOk">Verstanden</button></div>`;
+  document.body.appendChild(d);
+  $('hwOk').onclick = () => d.remove();
 }
 /** Pre-Check (PC): Wolke neben jedem Feldnamen – blau = liegt in der DJI Cloud, grau = fehlt (anklicken zum Hochladen) */
 function pcDjiChip(sel, box) {
@@ -9806,7 +9860,7 @@ async function briefingHtml(sel, win, opt) {
     ...(ws && !(wx.simple || []).some(it => it[0] > 0) ? [['✅', '<b>Wetter okay</b> – kein Regen, kein starker Wind, kein Scherwind', '#13a538']] : []),
     ...(nZ && !afZonesOf(b).length ? [['✈️', `<b>${fz(nZ)} am Flugplatz</b> – vorher Zustimmung der Flugaufsicht bzw. des Betreibers einholen`, '#c62828']] : []),
     ...(nNo ? [['⛔', `<b>${fz(nNo)} mit gesperrten Teilen</b> (auch mit A2) – diese Teile nicht befliegen`, '#c62828']] : []),
-    ...(low.length ? [['⚡', `<b>Zu niedrig über Stromleitung geplant:</b> ${low.map(f => esc(f.title) + ' (' + f.height + ' m)').join(', ')} – auf ${pwrH()} m`, '#c62828']] : []),
+    ...(low.length ? [['⚡', `<b>Zu niedrig über Stromleitung geplant:</b> ${low.map(f => esc(f.title) + ' (' + f.height + ' m)').join(', ')} – auf ${Math.max(...low.map(pwrNeedH))} m`, '#c62828']] : []),
     ...(ops.length ? [['⚡', `<b>Netzbetreiber informieren:</b> ${ops.map(o => esc(o.name)).join(', ')}`, '#1d2733']] : []),
     ...afZonesOf(b).map(z => { const ph = afPhone(z); return ['✈️', `<b>Flugplatz ${esc(afName(z))}:</b> nur mit Zustimmung – ${ph ? `vor dem Start anrufen: <b>☎ ${esc(ph)}</b>` : '<b>Rufnummer fehlt noch</b> – vor dem Einsatz beim Koordinator erfragen, ohne Anruf nicht starten'}`, '#c62828']; }),
     ...(nz.length ? [['🌿', `<b>Schutzgebiete:</b> ${nz.map(z => esc((z.f.props || {}).name || natLbl(z))).join(', ')} – zuständige Stelle informieren`, '#1d2733']] : [])];
@@ -9835,7 +9889,7 @@ async function briefingHtml(sel, win, opt) {
     h += `<div class="page">${top(`Feld ${i + 1} von ${sel.length}`)}<div class="body">
       <div class="fhead"><span class="big">${i + 1}</span><div><div class="nm">${esc(f.title)}</div>${licBadges(v).replace(/class="lverd"/g, 'class="pill"')}${v.why && v.why.length ? `<div class="sub">A1/A3 reicht nicht wegen: ${esc(v.why.map(whyShort).join(', '))}</div>` : ''}</div></div>
       <div class="tiles"><div class="tile" style="border-top-color:#00695c"><small>Drohne</small><b>${esc(drone(f))}</b></div>
-        <div class="tile" style="border-top-color:${lowNearPower(f) ? '#c62828' : '#00695c'}"><small>Flughöhe</small><b>${f.height ? f.height + ' m' : '—'}</b>${lowNearPower(f) ? `<span style="color:#c62828">Leitung: auf ${pwrH()} m!</span>` : ''}</div>
+        <div class="tile" style="border-top-color:${lowNearPower(f) ? '#c62828' : '#00695c'}"><small>Flughöhe</small><b>${f.height ? f.height + ' m' : '—'}</b>${lowNearPower(f) ? `<span style="color:#c62828">Leitung: auf ${pwrNeedH(f)} m!</span>` : ''}</div>
         <div class="tile" style="border-top-color:#00695c"><small>Fläche</small><b>${area(f)}</b></div>
         <div class="tile" style="border-top-color:#00695c"><small>Ort</small><b style="font-size:10.5pt">${esc(place(f))}</b>${f.center ? `<span>${fmtLL(f.center[0], f.center[1])}<br>Route: ${(m => m ? navLinks(m[0], m[1]) : '')(meetStart(f).mp || f.center)}</span>` : ''}</div></div>
       ${(ms => (ms.mp || ms.sp || f.center) ? `<div class="tiles" style="margin-top:6px">${(q => q ? `<div class="tile qrt" style="border-top-color:#1d2733;display:flex;gap:8px;align-items:center;flex:0 0 auto">${qrSvg(navLink(q[0], q[1]), 84)}<span style="max-width:90px">Handy-Kamera drauf → Route zum ${ms.mp ? 'Treffpunkt' : 'Feld'}</span></div>` : '')(ms.mp || f.center)}${ms.mp ? `<div class="tile" style="border-top-color:#1565c0;flex:2"><small>Treffpunkt (T)</small><b style="font-size:10.5pt">${ms.mpTxt ? esc(ms.mpTxt) : esc(fmtLL(ms.mp[0], ms.mp[1]))}</b><span>${ms.mpTxt ? esc(fmtLL(ms.mp[0], ms.mp[1])) + '<br>' : ''}${navLinks(ms.mp[0], ms.mp[1])}</span></div>` : ''}
@@ -10486,7 +10540,7 @@ function liteImport() {
   const lowTo = DRONE_HEIGHT[P.drone] || 0, risky = [];
   if (P.drone === 'M3T') Object.entries(fl).forEach(([id, n]) => { const f = S.files.find(x => x.cat && String((x.uave || {}).id || '') === String(id)); if (!f || !f.height || f.height <= lowTo + 5) return;
     const willLower = (f.drone && f.drone !== 'M3T') || nameDrone(f.title) === 'M4T'; if (!willLower) return;
-    const hz = lowHazards(f, lowTo); if (hz.length) risky.push({ f, path: base + n, hz }); });
+    const hz = lowHazards(f, lowTo).filter(x => !(x === 'Stromleitung' && pwrAdj())); if (hz.length) risky.push({ f, path: base + n, hz }); });   // Stromleitung: wird ohnehin auf Mastspitze + 20 m angehoben
   if (risky.length) { busy('');
     const hTxt = [...new Set(risky.map(x => Math.round(x.f.height)))].join('/');
     confirmDlg('Höhe beim Umrechnen', `${risky.length === 1 ? 'Dieses Feld ist' : 'Diese Felder sind'} für die Matrice 4T auf ${hTxt} m geplant. Für die Mavic 3T würde ${risky.length === 1 ? 'es' : 'sie'} auf ${lowTo} m umgerechnet – dort gibt es aber Hindernisse:`,
@@ -10569,7 +10623,7 @@ function pcFieldRow(x, idx) {
   const its = x.its.filter(i => i.t !== NO_ZONES && i.t !== NO_MORE_A2);
   const info = i => /🔧/.test(i.ico) || /umgerechnet/.test(i.p || ''), auto = its.filter(pcAuto), prob = its.filter(i => !pcAuto(i) && !info(i) && i.r >= 2), ok = its.filter(i => !pcAuto(i) && (info(i) || i.r < 2));
   const low = lowNearPower(x.f), np = x.f.center ? nearPlace(x.f.center[0], x.f.center[1]) : null;
-  const flags = [low ? ['⚠', `Unter ${pwrH()} m über Stromleitung geplant`, '#d42020'] : null,
+  const flags = [low ? ['⚠', `Unter ${pwrNeedH(x.f)} m über Stromleitung geplant`, '#d42020'] : null,
     auto.some(i => pcAuto(i) === 'pwr') ? ['⚡', 'Stromleitung – Netzbetreiber wird informiert', '#8e24aa'] : null,
     auto.some(i => pcAuto(i) === 'nat') ? ['🌿', 'Schutzgebiet – zuständige Stelle wird informiert', '#2e7d32'] : null,
     heightIssue(x.f) && !low ? ['⚠', 'Höhe falsch – ' + heightIssue(x.f).why, '#d42020'] : null,
@@ -10585,7 +10639,7 @@ function pcFieldRow(x, idx) {
     <div class="pcd"><div class="pcmap" data-map="${idx}"><div class="meta">Karte wird erstellt…</div></div>
       <div class="pcwhy">
         ${why || prob.length ? `<h5>${v.k === 'a13' ? 'Zu beachten' : 'Warum?'}</h5><ul>${why}${prob.map(i => li(i, i.r >= 3 ? '#d42020' : '#e07800')).join('')}</ul>` : `<h5>Warum?</h5><ul><li><span class="pci" style="background:#13a5381f;color:#13a538">✓</span><div><b>Keine Einschränkung</b><span>Auch mit A1/A3 fliegbar.</span></div></li></ul>`}
-        ${low && !its.some(i => /Falsch geplant/.test(i.t)) ? `<ul><li><span class="pci" style="background:#d420201f;color:#d42020">⚠</span><div><b>Zu niedrig geplant</b><span>Flugbahn überquert eine Stromleitung – im UAV Editor auf ${pwrH()} m umplanen (jetzt ${x.f.height} m).</span></div></li></ul>` : ''}
+        ${low && !its.some(i => /Falsch geplant/.test(i.t)) ? `<ul><li><span class="pci" style="background:#d420201f;color:#d42020">⚠</span><div><b>Zu niedrig geplant</b><span>Flugbahn überquert eine Stromleitung – im UAV Editor auf ${pwrNeedH(x.f)} m umplanen (jetzt ${x.f.height} m).</span></div></li></ul>` : ''}
         ${v.k === 'zust' ? '<div class="pcnote">✉ Bitte um Zustimmung: E-Mail und Bild unten bei „To-dos“.</div>' : ''}
         ${auto.length ? `<h5>Automatisch ermittelt – nur informieren</h5><ul>${auto.map(i => li(i, pcAuto(i) === 'pwr' ? '#8e24aa' : '#2e7d32')).join('')}</ul><div class="pcnote">✉ E-Mails dazu unten bei „To-dos“.</div>` : ''}
         ${ok.length ? `<h5>Gut zu wissen</h5><ul>${ok.map(i => li(i, '#13a538')).join('')}</ul>` : ''}
@@ -10754,10 +10808,12 @@ function liteCardsHtml(b, o) {
       return `${esc(e.k)}: ${kn.length ? `Masten laut OpenStreetMap <b>${Math.round(kn[0]) !== Math.round(kn[kn.length - 1]) ? Math.round(kn[0]) + '–' : ''}${Math.round(kn[kn.length - 1])} m hoch</b>` : `Masten <b>geschätzt ${e.h[0]}–${e.h[1]} m hoch</b>`}`; }).join(' · ');
     // überflogen nur, wenn die Flugbahn die Leitung kreuzt – liegen die Bahnen daneben (Feld aufgeteilt), keine Höhenvorgabe
     const ov = pt ? null : sel.filter(f => fs.has(f.title) && touchesPower(f)), none = ov && !ov.length, part = ov && ov.length && ov.length < fs.size;
+    const maxTop = Math.max(...[...per.values()].map(e => e.known.length ? Math.max(...e.known) : e.h[1]));
+    const ovNeed = ov && ov.length ? Math.max(...ov.map(pwrNeedH)) : Math.min(maxTop > 105 ? maxTop + 15 : MAX_H, Math.max(pwrH(), ceil5(maxTop + PWR_CLR)));
     const hTxt = none ? 'Die Flugbahnen liegen neben der Leitung – sie wird <b>nicht überflogen</b>. Nur heranfliegen, Abstand halten.'
-      : `Bei Stromleitungen fliegen wir <b>${pwrH()} m hoch</b>${pwrAutoRaise() ? ' (wird beim Import automatisch angepasst)' : ''}${part ? ` – überflogen wird sie nur bei ${ov.map(f => esc(f.title)).join(', ')}, bei den anderen liegen die Bahnen daneben` : ''}.`;
+      : `Bei dieser Leitung fliegen wir <b>${ovNeed} m hoch</b> (Mastspitze + ${PWR_CLR} m, mindestens ${pwrH()} m)${pwrAutoRaise() ? ' (wird beim Import automatisch angepasst)' : ''}${part ? ` – überflogen wird sie nur bei ${ov.map(f => esc(f.title)).join(', ')}, bei den anderen liegen die Bahnen daneben` : ''}.`;
     card('⚡', '#8e24aa', pt ? `Stromleitung ${place}` : 'Stromleitung wird überflogen', `${ht}. ${hTxt} Nie unter der Leitung durch – die Seile sieht man im Wärmebild kaum. Der Netzbetreiber wird vorher informiert (keine Zustimmung nötig).${where(fs)}`,
-      `<div class="lrules"><span>Fliegen nur:</span> ${none ? '<b>neben der Leitung</b>' : `<b>${pwrH()} m hoch</b>`} · nie unter der Leitung durch · ${ht.replace(/Masten /g, '')}</div>`); }
+      `<div class="lrules"><span>Fliegen nur:</span> ${none ? '<b>neben der Leitung</b>' : `<b>${ovNeed} m hoch</b>`} · nie unter der Leitung durch · ${ht.replace(/Masten /g, '')}</div>`); }
   if (b.rails.length && !b.zones.some(z => z.f.layer === 'bahnanlagen')) {   // Bahn-Geozone vorhanden: deren Auflagen sagen schon alles const fs = new Set(); b.rails.forEach(x => (x.fields || []).forEach(t => fs.add(t)));
     card('🚆', '#2b2f36', `Bahnstrecke ${place}`, `Zügig darüber fliegen, nicht über den Gleisen stehen bleiben. Nicht auf Bahngelände starten.${where(fs)}`); }
   b.obs.slice(0, 6).forEach(x => { const o = x.o, w = o.t === 'wind';
@@ -10779,18 +10835,37 @@ function liteCardsHtml(b, o) {
         `<div class="lrules"><span>Fliegen nur:</span> mit Zustimmung der Flugaufsicht · Allgemeinerlaubnis (A2) nur <b>bis 30 m</b> – Kitzrettung mit ${H} m nicht</div>`); });
   if ((b.vh || []).length && !cards.some(c => c.includes('🚁'))) card('🚁', '#d42020', 'Hubschrauberlandeplatz Krankenhaus in der Nähe', `Bis 1,5 km grundsätzlich gesperrt – mit ${H} m Flughöhe <b>Freigabe der Luftsicherheit St. Vincenz nötig</b>.`);
   // PC: Mission zu niedrig geplant, obwohl eine Stromleitung am Feld ist
-  sel.filter(lowNearPower).forEach(f => pwrAutoRaise()
-    ? card('⚡', '#e07800', `Wird angehoben: ${f.height} → ${pwrH()} m (Stromleitung)`, `${multi ? esc(f.title) + ' – ' : ''}Die Flugbahn überquert eine Stromleitung. Die Mission wird beim Import automatisch auf <b>${pwrH()} m</b> angehoben, die Bahnen bleiben gleich.`,
+  if (IS_WEB) sel.filter(lowNearPower).forEach(f => pwrAutoRaise()
+    ? card('⚡', '#e07800', `Wird angehoben: ${f.height} → ${pwrNeedH(f)} m (Stromleitung)`, `${multi ? esc(f.title) + ' – ' : ''}Die Flugbahn überquert eine Stromleitung (${pwrWhy(pwrTop(f))}). Die Mission wird beim Import automatisch auf <b>${pwrNeedH(f)} m</b> angehoben (Mastspitze + ${PWR_CLR} m), die Bahnen bleiben gleich.`,
       `<div class="lrules"><span>Hinweis:</span> Überflughöhe in den Einstellungen änderbar · nie unter der Leitung durch</div>`)
-    : card('⚠️', '#e07800', `Falsch geplant: ${f.height} m über einer Stromleitung`, `${multi ? esc(f.title) + ' – ' : ''}An Stromleitungen fliegen wir <b>${pwrH()} m hoch</b>. Diese Mission im UAV Editor auf <b>${pwrH()} m</b> umplanen${IS_WEB ? '' : ' – oder in den Einstellungen „Überflughöhe an Stromleitungen“ einschalten'}.`,
-      `<div class="lrules"><span>Zu tun:</span> im UAV Editor Flughöhe auf <b>${pwrH()} m</b> ändern und neu speichern</div>`));
+    : card('⚠️', '#e07800', `Falsch geplant: ${f.height} m über einer Stromleitung`, `${multi ? esc(f.title) + ' – ' : ''}Hier sind <b>${pwrNeedH(f)} m</b> nötig (${pwrWhy(pwrTop(f))}, + ${PWR_CLR} m Abstand). Diese Mission im UAV Editor auf <b>${pwrNeedH(f)} m</b> umplanen${IS_WEB ? '' : ' – oder in den Einstellungen „Überflughöhe an Stromleitungen“ einschalten'}.`,
+      `<div class="lrules"><span>Zu tun:</span> im UAV Editor Flughöhe auf <b>${pwrNeedH(f)} m</b> ändern und neu speichern</div>`));
+  if (!IS_WEB) liteHeightCards(sel, multi, card);
   sel.forEach(f => { const hi = heightIssue(f); if (hi && !lowNearPower(f)) card('⚠️', '#e07800', `Höhe falsch: ${f.height} m`, `${multi ? esc(f.title) + ' – ' : ''}${esc(hi.why)}`, `<div class="lrules"><span>Zu tun:</span> im UAV Editor die Flughöhe korrigieren und neu speichern</div>`); });
   // Falsche Drohne/Höhe: wird beim Import umgerechnet – nur auf der Fernsteuerung; am PC steht noch nicht fest, wer mit welcher Drohne fliegt
   const wantH = DRONE_HEIGHT[P.drone];   // auch UAV-Editor-Felder (Lite-Suche): andere Drohne/Höhe → wird beim Import umgerechnet
   const mm = sel.filter(f => isDroneMismatch(f) || (f.cat && P.drone && ((f.drone && f.drone !== P.drone) || (wantH && f.height && f.height < wantH - 5))));
-  if (mm.length && !IS_WEB) card('🔧', '#e07800', 'Feld für andere Drohne/Höhe geplant', `${mm.map(f => esc(f.title)).join(', ')} – wird beim Import automatisch auf ${P.drone === 'M3T' ? 'Mavic 3T umgerechnet (mindestens 50 m)' : 'Matrice 4T umgerechnet (mindestens 70 m)'}. Höher geplante Felder (z. B. wegen Stromleitung) bleiben so hoch.`);
+  if (mm.length && false) card('🔧', '#e07800', 'Feld für andere Drohne/Höhe geplant', `${mm.map(f => esc(f.title)).join(', ')} – wird beim Import automatisch auf ${P.drone === 'M3T' ? 'Mavic 3T umgerechnet (mindestens 50 m)' : 'Matrice 4T umgerechnet (mindestens 70 m)'}. Höher geplante Felder (z. B. wegen Stromleitung) bleiben so hoch.`);
   if (!cards.length) card('✅', '#13a538', NO_ZONES, '');
   return `<div class="lcheck">${cards.join('')}</div><div class="meta" style="margin-top:8px">Daten: dipul, OpenStreetMap · ohne Gewähr – im Zweifel nicht fliegen.</div>`;
+}
+/** Fernsteuerung: je Feld die Flughöhe, mit der es auf diese Drohne kommt – und warum. Grundlage heightPlan(): erst prüfen, wofür geplant wurde
+ *  und ob das plausibel ist; dann umrechnen (Bahnen lückenlos), nie unter die Mindesthöhe der Drohne, an Stromleitungen nie unter Mastspitze + 20 m. */
+function liteHeightCards(sel, multi, card) {
+  const to = P.drone; if (!DRONE_HEIGHT[to]) return;
+  sel.forEach(f => { const hp = heightPlan(f, to); if (!hp) return;
+    const nm = multi ? esc(f.title) + ' – ' : '', auto = pwrAdj(), need = auto ? hp.need : 0;
+    const finA = Math.min(Math.max(MAX_H, need), Math.max(hp.orig === to ? hp.h : Math.round(hp.h * Math.tan(DRONE_FOV[hp.orig] * Math.PI / 360) / Math.tan(DRONE_FOV[to] * Math.PI / 360)), DRONE_HEIGHT[to], need));
+    const why = [];
+    if (hp.orig !== to) why.push(`geplant für die ${DRONE_NAME[hp.orig]} auf ${hp.h} m – für die ${DRONE_NAME[to]} umgerechnet, damit die Bahnen lückenlos bleiben`);
+    else if (hp.h < DRONE_HEIGHT[to] - 5) why.push(`die ${DRONE_NAME[to]} fliegt mindestens ${DRONE_HEIGHT[to]} m`);
+    if (need && finA >= need - 0.5 && need > (hp.orig === to ? hp.h : 0)) why.push(`Stromleitung (${pwrWhy(hp.top)}) – mindestens ${need} m`);
+    if (Math.abs(finA - hp.h) >= 1) card('📏', '#e07800', `Flughöhe wird angepasst: ${hp.h} → ${finA} m`, `${nm}${why.join('; ')}. Die Bahnen bleiben gleich.`);
+    if (hp.need && !auto && hp.h < hp.need - 0.5 && finA < hp.need - 0.5) card('⚠️', '#d42020', `Zu niedrig über der Stromleitung: ${finA} m`, `${nm}Nötig wären ${hp.need} m (${pwrWhy(hp.top)}, + ${PWR_CLR} m). Automatisches Anheben ist in den Einstellungen aus – <b>nicht über die Leitung fliegen</b> oder im UAV Editor umplanen.`);
+    // Plausibilität der Planung (nur was der Pilot wissen muss)
+    const odd = hp.issues.filter(t => /^Als .* benannt|^Höher als üblich|^Über 120 m|^Nur \d+ m über/.test(t));
+    if (odd.length) card('⚠️', odd.some(t => /^Über 120 m/.test(t)) ? '#d42020' : '#e07800', odd.some(t => /^Über 120 m/.test(t)) ? 'Über 120 m: Einverständnis nötig' : 'Planung prüfen', nm + odd.map(esc).join(' '));
+  });
 }
 /** Auflagen in einfachen Worten (Lite) – Grundlage: Allgemeinerlaubnis bzw. Allgemeinverfügung; H = unsere Flughöhe */
 function liteRules(layer, av, H) {
@@ -11331,6 +11406,7 @@ window.onUave = raw => {
   if (S.catSilent && (ev.type === 'status' || ev.type === 'progress')) return;
   if (S.catSilent && (ev.type === 'list' || ev.type === 'error')) {
     S.catSilent = false; syncEnd();
+    const uvPend = S.uvCatPend;   // läuft gerade die Übernahme aus dem UAV Editor (z. B. Pre-Check)? Dann kein „neue Felder“-Dialog dazwischen
     if (S.uvCatPend) { const pd = S.uvCatPend; S.uvCatPend = null; setTimeout(() => { try { pd.again(pd.raw); } catch (e) { } }, 300); }   // neues UAV-Editor-Feld: Auswahl jetzt nochmal übernehmen
     if (IS_LITE && ev.type === 'list') liteAreaSync();   // neue Felder im UAV Editor: Geodaten/Karte fürs Gebiet nachladen
     const wr = S.webRefresh; S.webRefresh = false;
@@ -11339,7 +11415,7 @@ window.onUave = raw => {
       if (ev.type === 'error') { if (man) toast('UAV Editor: ' + (ev.message || 'Fehler'), true, 7000); if (open) liteSearch(true); }
       else if (open) { liteSearch(true); if (man) toast('Neue Felder geholt – die Liste ist aktuell.', 'ok', 2500); } return; }
     if (ev.type === 'list' && P.fsrc === 'mix') load(true).then(() => { if (wr) toast(`Feldliste aktualisiert · ${S.files.filter(f => f.cat).length} Felder${P.webShow === '24h' ? ' aus den letzten 24 h' : ''} auf der Karte`, 'ok', 4000);
-      if (IS_WEB) newFieldsCheck(wr);   // neue Felder seit dem letzten Abruf melden
+      if (IS_WEB) newFieldsCheck(wr, !!uvPend);   // neue Felder seit dem letzten Abruf melden
       if (IS_WEB) { let d = null; try { d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); } catch (e) { }   // alle Felder des Jahres auf neue Netzbetreiber prüfen
         const Y = String(new Date().getFullYear()); if (d && d.fields) opAutoCheck(d.fields.filter(f => String(CAT_YEAR(f)) === Y).map(f => catEntry(f, false)).filter(Boolean)); } });
     return;
@@ -12496,7 +12572,7 @@ loadNotams();
 geoBadge(); setTimeout(geoBadge, 4000);   // Start: kurz warten, bis Internet erkannt ist, dann veraltete Geodaten im Hintergrund holen
 if (IS_WEB) webInit();
 if (IS_LITE) liteInit();
-window.KR = { opImage2: async sel => { const ops = netOps(sel); return ops.length ? opImage(ops, 0) : null; }, fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl, catEntry, liteImport };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { opImage2: async sel => { const ops = netOps(sel); return ops.length ? opImage(ops, 0) : null; }, fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl, catEntry, liteImport, heightPlan, pwrNeedH, pwrTop, uvCatAuto };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
