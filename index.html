@@ -3855,7 +3855,12 @@ document.querySelectorAll('[data-fsrc]').forEach(b => b.onclick = () => { if (b.
   b.addEventListener('contextmenu', e => e.preventDefault());
 })();
 setTimeout(srcUi, 0);
-$('bNone').onclick = () => { S.files.forEach(f => f.selected = false); update(); toast('Alle Felder abgewählt.'); };
+$('bNone').onclick = () => {
+  if (IS_LITE) {   // Lite: über „DJI Cloud“ gewählte Felder, die noch nicht auf der Fernsteuerung liegen, ganz von der Karte nehmen (nicht nur abwählen)
+    const gone = S.files.filter(f => f.cat && !f.inDst && !f.cloudMap).length;
+    S.files = S.files.filter(f => !(f.cat && !f.inDst && !f.cloudMap)); S.files.forEach(f => f.selected = false); S.liteIds = null; S.litePick = new Set();
+    update(); draw(); return toast(gone ? 'Auswahl aufgehoben – Felder von der Karte entfernt.' : 'Auswahl aufgehoben.', false, 2000); }
+  S.files.forEach(f => f.selected = false); update(); toast('Alle Felder abgewählt.'); };
 // Suche: Lupe in der Leiste öffnet ein Suchfeld unten mittig über der Karte
 // Orte (Dörfer, Ortsteile, Flurnamen) aus OpenStreetMap – offline gespeichert
 const PLACE_RANK = { city: 0, town: 1, village: 2, suburb: 3, quarter: 4, hamlet: 4, neighbourhood: 5, isolated_dwelling: 6, farm: 6, locality: 7 };
