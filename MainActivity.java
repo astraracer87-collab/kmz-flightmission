@@ -2447,7 +2447,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
     }
 
-    private static String djiNorm(String t) { return (t == null ? "" : t).toLowerCase(Locale.ROOT).replaceAll("\\.kmz$", "").replaceAll("[\\s_]+", "-").trim(); }
+    private static String djiNorm(String t) { return (t == null ? "" : t).toLowerCase(Locale.ROOT).replaceAll("\\.kmz$", "").replaceAll("[^\\p{L}\\p{N}]+", ""); }   // DJI Cloud entfernt _ und Leerzeichen aus Namen → nur Buchstaben/Ziffern vergleichen
 
     private String djiKmz(String id, String name, File dir) throws Exception {
         Resp r = djiGet("/waylines/" + java.net.URLEncoder.encode(id, "UTF-8") + "/url", false);   // folgt der Weiterleitung auf den Speicher

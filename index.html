@@ -875,7 +875,7 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
     <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div><div class="v">Auch über ⓘ → „Felder“ schaltbar</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Hindernisse aus OpenStreetMap</div><div class="v">Windräder (grün, mit Gesamthöhe), Masten/Türme/Schornsteine (braunes Dreieck), Bahnstrecken (schwarz-weiß) und alle Freileitungen nach Spannung: violett dick = Höchstspannung (220/380 kV), violett = Hochspannung (110 kV), orange = Mittelspannung, grau gestrichelt = Nieder-/unbekannte Spannung. Auch Leitungen ohne dipul-Geozone – Hindernis beim Start und Tiefflug. <span class="lnk" id="bLineGuide">Strommasten &amp; Leitungen erkennen</span></div></div><label class="sw"><input type="checkbox" id="sOsmPower"><span></span></label></div>
     <h3 class="setcat" id="sc-luft">Luftraum &amp; Regeln</h3>
-    <div class="set" id="setPwr"><div class="l"><div class="t">Überflughöhe an Stromleitungen</div><div class="v">Felder mit einer Freileitung am oder über dem Feld werden beim Übertragen auf die Fernsteuerung automatisch auf diese Höhe angehoben, wenn sie niedriger geplant sind (Bahnen bleiben gleich). Der Pre-Check weist auf zu niedrig geplante Felder hin.</div></div><input id="sPwrH" class="inp" style="width:72px;min-width:0;flex:none;padding:0 6px;text-align:center;font-weight:700" type="number" min="30" max="120" step="1" inputmode="numeric"><span style="font-weight:700;margin:0 4px">m</span><label class="sw" title="Anpassung ein/aus"><input type="checkbox" id="sPwrAdj"><span></span></label></div>
+    <div class="set" id="setPwr"><div class="l"><div class="t">Überflughöhe an Stromleitungen</div><div class="v">Mindesthöhe über Freileitungen. Bei hohen Masten mehr: immer Mastspitze + 20 m (z. B. 380 kV → 100 m), höchstens 120 m – bei Masten über 105 m bis 15 m über der Mastspitze, nur mit Einverständnis des Betreibers. Schalter an: Felder werden beim Übertragen auf die Fernsteuerung automatisch so angehoben (Bahnen bleiben gleich). Aus: nichts wird angehoben, der Pre-Check warnt rot.</div></div><input id="sPwrH" class="inp" style="width:72px;min-width:0;flex:none;padding:0 6px;text-align:center;font-weight:700" type="number" min="30" max="120" step="1" inputmode="numeric"><span style="font-weight:700;margin:0 4px">m</span><label class="sw" title="Anpassung ein/aus"><input type="checkbox" id="sPwrAdj"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Fernpilotenzeugnis</div><div class="v" id="vLic"></div></div><div class="seg"><button data-lic="A1A3">A1/A3</button><button data-lic="A2">A2</button></div></div>
     <div class="set" id="aeBox" style="flex-direction:column;align-items:stretch"><div class="t">Allgemeinerlaubnis (§ 21h LuftVO) liegt vor für</div>
       <div class="v" id="vAe" style="margin-bottom:8px"></div>
@@ -3894,8 +3894,9 @@ document.querySelectorAll('[data-fsrc]').forEach(b => b.onclick = () => { if (b.
 setTimeout(srcUi, 0);
 $('bNone').onclick = () => {
   if (IS_LITE) {   // Lite: über „DJI Cloud“ gewählte Felder ganz von der Karte nehmen (nicht nur abwählen)
-    const gone = S.files.filter(f => f.cat && !f.cloudMap).length;   // auch schon heruntergeladene – die liegen weiter auf der Fernsteuerung, nur nicht mehr auf der Karte
-    S.files = S.files.filter(f => !(f.cat && !f.cloudMap)); S.files.forEach(f => f.selected = false); S.liteIds = null; S.litePick = new Set();
+    const sel0 = f => (f.cat || f.cloudId) && !f.cloudMap;   // über „DJI Cloud“ gewählt (auch nur aus der Cloud geholte) – auch schon heruntergeladene
+    const gone = S.files.filter(sel0).length;
+    S.files = S.files.filter(f => !sel0(f)); S.files.forEach(f => f.selected = false); S.liteIds = null; S.litePick = new Set();
     update(); draw(); return toast(gone ? 'Auswahl aufgehoben – Felder von der Karte entfernt.' : 'Auswahl aufgehoben.', false, 2000); }
   S.files.forEach(f => f.selected = false); update(); toast('Alle Felder abgewählt.'); };
 // Suche: Lupe in der Leiste öffnet ein Suchfeld unten mittig über der Karte
@@ -3951,7 +3952,7 @@ function goPlace(p) {
 }
 /** Desktop: Suche „UAV-Editor“ – alle Feldnamen aus dem UAV Editor (auch außerhalb des Filters 24 h/48 h/Jahr) */
 // ---------- DJI Cloud (über UAV Editor): nur Felder anzeigen und laden, die dort liegen ----------
-const djiNorm = t => String(t || '').toLowerCase().replace(/\.kmz$/, '').replace(/[\s_]+/g, '-').trim();
+const djiNorm = t => String(t || '').toLowerCase().replace(/\.kmz$/, '').replace(/[^\p{L}\p{N}]+/gu, '');   // DJI Cloud macht aus „David_APP_TEST“ „DavidAPPTEST“ → nur Buchstaben/Ziffern vergleichen
 /** an = Lite-App mit Einstellung „Nur Felder aus der DJI Cloud“ (Standard an) */
 const djiWanted = () => IS_LITE && !!A.uaveDjiDownload && P.djiOnly !== '0';   // nur die Lite-App – PC/Koordinator lädt und verschickt KMZ weiter über den UAV-Editor-Export
 function djiState() {
@@ -10488,7 +10489,10 @@ function liteStart(ids, mapOnly) {
   if (P.drone) { const r = liteBestIds(d, ids); ids = r.ids;
     if (r.swapped || r.dropped) toast(`Passend für deine ${P.drone === 'M3T' ? 'Mavic 3T' : P.drone === 'M4T' ? 'Matrice 4T' : P.drone}: ${[r.swapped ? r.swapped + ' Feld' + (r.swapped > 1 ? 'er' : '') + ' gegen die passende Version getauscht' : '', r.dropped ? r.dropped + ' doppelte Version' + (r.dropped > 1 ? 'en' : '') + ' weggelassen' : ''].filter(Boolean).join(', ')}.`, 'ok', 7000); }
   const fs = ids.map(id => d.fields.find(f => String(f.id) === String(id))).filter(Boolean).map(f => catEntry(f, true)).filter(Boolean);
-  const onlyCloud = ids.filter(id => String(id).startsWith('dji:'));
+  let onlyCloud = ids.filter(id => String(id).startsWith('dji:'));
+  // Felder nur in der DJI Cloud: erst aus der Cloud holen, dann wie alle anderen prüfen (nicht ungeprüft durchwinken)
+  if (onlyCloud.length && !S.liteCloudPre && isOnline() && A.uaveDjiDownload && !syncing) return liteCloudPrefetch(ids, onlyCloud, mapOnly);
+  if (S.liteCloudPre) { const pre = S.liteCloudPre; S.liteCloudPre = null; pre.forEach(e => { if (onlyCloud.includes(e.cloudId)) fs.push(e); }); onlyCloud = onlyCloud.filter(id => !pre.some(e => e.cloudId === id)); }
   if (mapOnly && !fs.length) return toast(onlyCloud.length ? 'Diese Felder liegen nur in der DJI Cloud – ohne Umriss im UAV Editor lassen sie sich nicht auf der Karte zeigen.' : 'Für diese Felder ist im UAV Editor keine Fläche gespeichert.', true, 7000);
   if (!fs.length && onlyCloud.length) { S.liteIds = ids; S.litePick = new Set(); toast(`${onlyCloud.length} Feld${onlyCloud.length > 1 ? 'er liegen' : ' liegt'} nur in der DJI Cloud (nicht mehr im UAV Editor) – ohne Vorab-Prüfung direkt laden.`, 'warn', 6000); return liteLoadStart(); }
   if (!fs.length) return toast('Für diese Felder ist im UAV Editor keine Fläche gespeichert.', true);
@@ -10500,6 +10504,20 @@ function liteStart(ids, mapOnly) {
   if (mapOnly) { const io = dstInfo(); S.files.forEach(f => { f.inDst = io(f); }); update();
     return toast(`${fs.length} Feld${fs.length > 1 ? 'er' : ''} auf der Karte`, false, 2000); }   // kurz – die Knöpfe oben erklären sich selbst
   liteCheckDlg(fs, true);
+}
+/** Lite: Felder, die nur in der DJI Cloud liegen, vor dem Pre-Check holen (in den Quellordner, noch nicht nach „Kitzrettung Import“) und lesen */
+function liteCloudPrefetch(ids, onlyCloud, mapOnly) {
+  syncing = true; syncStop = false; S.liteDl = { pre: { ids, mapOnly }, done: 0, total: onlyCloud.length };
+  busy(`Feld${onlyCloud.length > 1 ? 'er' : ''} aus der DJI Cloud ${onlyCloud.length > 1 ? 'werden' : 'wird'} zum Prüfen geholt…`, { done: 0, total: onlyCloud.length });
+  const st = djiState();
+  A.uaveDjiDownload(JSON.stringify(onlyCloud.map(id => { const w = st && st.list.find(x => String(x.id) === String(id).slice(4)); return { id, name: w ? String(w.name).replace(/\.kmz$/i, '') : '', wid: String(id).slice(4) }; })), P.src);
+}
+/** KMZ-Datei → Feld-Eintrag (wie beim Laden der Felder) */
+function kmzEntry(path, name) {
+  const kml = A.readKml(path), shapes = parseKml(kml); if (!shapes.length) return null;
+  const hm = /<wpml:globalHeight>([\d.]+)</.exec(kml) || /<wpml:executeHeight>([\d.]+)</.exec(kml);
+  const e = { name, path, ue: true, title: String(name).replace(/\.km[lz]$/i, ''), shapes, selected: true, drone: droneOf(kml), mtime: Date.now(), recent: Date.now(), height: hm ? Math.round(+hm[1]) : null, outline: null };
+  const b = bounds([e]); e.bounds = b; e.center = [(b.n + b.s) / 2, (b.e + b.w) / 2]; return e;
 }
 /** Wo die Felder für DJI Pilot 2 liegen – verständlich („Interner Speicher › Kitzrettung Import“) */
 function liteDstText() {
@@ -10520,6 +10538,17 @@ function liteLoadStart() {
 function liteUaveEvent(ev) {
   const dl = S.liteDl;
   if (ev.type === 'status') return true;
+  if (dl.pre) {   // Vorab-Holen aus der DJI Cloud für den Pre-Check
+    if (ev.type === 'progress') { busy('Feld aus der DJI Cloud wird zum Prüfen geholt…', { done: ev.done || 0, total: dl.total }); return true; }
+    if (ev.type === 'error' || ev.type === 'done' || ev.type === 'droneDone') {
+      S.liteDl = null; syncing = false; busy('');
+      const base = P.src.replace(/\/+$/, '') + '/', st = djiState(), pre = [];
+      Object.entries(ev.files || {}).forEach(([id, n]) => { try { const w = st && st.list.find(x => String(x.id) === String(id).slice(4)); const e = kmzEntry(base + n, w ? String(w.name) : n); if (e) { e.cloudId = String(id); pre.push(e); } } catch (e) { } });
+      const miss = dl.total - pre.length;
+      if (miss > 0) toast(`${miss} Feld${miss > 1 ? 'er' : ''} konnte${miss > 1 ? 'n' : ''} nicht aus der DJI Cloud geholt werden – ${ev.type === 'error' ? (ev.message || 'Fehler') : 'bitte „Neue Felder holen“ und nochmal'}.`, true, 8000);
+      S.liteCloudPre = pre; liteStart(dl.pre.ids, dl.pre.mapOnly); return true; }
+    return true;
+  }
   if (ev.type === 'progress') { dl.done = ev.done || 0; busy('Felder werden auf die Fernsteuerung geladen…', { done: dl.done, total: dl.total }); return true; }
   if (ev.type === 'error') { S.liteDl = null; syncing = false; busy('');
     toast('Laden fehlgeschlagen: ' + (ev.message || 'Fehler'), true, 0, { label: 'Nochmal', fn: liteLoadStart }); return true; }
@@ -10716,14 +10745,18 @@ function liteMapHtml(f, W, H, lazy) {
     if (top) im += `<img src="${esc(TSRC(LAYERS.sat(z, tx, ty)))}"${ld} data-fb="${esc(TSRC(ESRI_SAT(z, tx, ty)))}" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb=''}else this.remove()" style="${pos}" alt="">`; }
   const P2 = pts => pts.map((q, i) => { const [x, y] = px(q[0], q[1]); return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1); }).join('');
   let svg = '';
-  // Geozonen am Feld (A2 und A1/A3 zusammen, auch Wohngebiete in der Nähe) – Farben wie auf der Karte
-  let zs = []; const sv = P.lic;
-  try { P.lic = 'A1A3'; zs = flightBriefing([f]).zones; P.lic = 'A2'; flightBriefing([f]).zones.forEach(q => { if (!zs.some(y => y.f === q.f)) zs.push(q); }); } catch (e) { } finally { P.lic = sv; }
-  zs.forEach(q => { if (!q.f.rings) return; const col = NAT_LAYERS.includes(q.f.layer) ? '#2e7d32' : /flugpl|flugh/.test(q.f.layer) ? '#d32f2f' : q.near != null ? '#e53935' : '#1565c0';
-    svg += `<path d="${q.f.rings.map(r => P2(r.map(c => [c[1], c[0]])) + 'Z').join('')}" fill="${col}" fill-opacity=".22" fill-rule="evenodd" stroke="${col}" stroke-width="2"/>`; });
-  // Stromleitungen (oberirdisch) im Ausschnitt
-  (S.osm || []).forEach(l => { if (l.p === 'cable' || l.loc === 'underground' || !l.bb || l.bb.s > vb.n || l.bb.n < vb.s || l.bb.w > vb.e || l.bb.e < vb.w) return;
-    const d = P2(l.pts), w = l.kv >= 220 ? 5 : l.kv >= 60 ? 4 : 3; svg += `<path d="${d}" fill="none" stroke="#fff" stroke-width="${w + 3}" stroke-opacity=".85"/><path d="${d}" fill="none" stroke="#8e24aa" stroke-width="${w}"/>`; });
+  // Alles in der Umgebung wie im Pre-Check am PC / auf der UAV-Editor-Karte: Geozonen (grün = A1/A3, gelb = A2, rot = nur mit Antrag),
+  // Stromtrassen, Flug-/Hubschrauberlandeplätze, Windräder (mit 100-m-Kreis), Masten, Türme, Strommasten
+  const tl = (x, y) => { const n = Math.PI - 2 * Math.PI * (y / (256 * 2 ** z)); return [180 / Math.PI * Math.atan(Math.sinh(n)), x / (256 * 2 ** z) * 360 - 180]; };
+  const [vn, vw] = tl(ox, oy), [vs, ve] = tl(ox + W, oy + H);
+  let fc = { features: [], icons: {} }; try { fc = uvOverlayFC({ n: vn, s: vs, e: ve, w: vw, z: Math.max(z, 14) }); } catch (e) { }
+  const LL = c => c.map(q => [q[1], q[0]]);
+  const geoPath = g => g.type === 'Polygon' ? g.coordinates.map(r => P2(LL(r)) + 'Z').join('') : g.type === 'MultiPolygon' ? g.coordinates.map(pl => pl.map(r => P2(LL(r)) + 'Z').join('')).join('')
+    : g.type === 'LineString' ? P2(LL(g.coordinates)) : g.type === 'MultiLineString' ? g.coordinates.map(r => P2(LL(r))).join('') : '';
+  const isArea = g => /Polygon/.test(g.type);
+  [...fc.features.filter(x => isArea(x.geometry)), ...fc.features.filter(x => /LineString/.test(x.geometry.type))].forEach(x => { const pr = x.properties || {}, d = geoPath(x.geometry); if (!d) return;
+    if (isArea(x.geometry)) svg += `<path d="${d}" fill="${pr.c || '#1565c0'}" fill-opacity="${pr.fo != null ? Math.max(pr.fo, 0.14) : 0.16}" fill-rule="evenodd" stroke="${pr.c || '#1565c0'}" stroke-width="${pr.w || 1.6}"/>`;
+    else { if ((pr.w || 0) >= 3) svg += `<path d="${d}" fill="none" stroke="#fff" stroke-width="${(pr.w || 2) + 3}" stroke-opacity=".8"/>`; svg += `<path d="${d}" fill="none" stroke="${pr.c || '#8e24aa'}" stroke-width="${pr.w || 2}"/>`; } });
   // Feld (orange wie markiert auf der Karte) und Flugbahn
   let rings = (f.shapes || []).filter(sh => sh.type === 'poly' && sh.pts.length > 2).map(sh => sh.pts);
   if (!rings.length && f.outline && f.outline.length > 2) rings = [f.outline];
@@ -10731,11 +10764,12 @@ function liteMapHtml(f, W, H, lazy) {
   rings.forEach(r => { svg += `<path d="${P2(r)}Z" fill="#ff8a00" fill-opacity=".28" stroke="#ff7a00" stroke-width="3" stroke-linejoin="round"/>`; });
   const rt = f.route || (f.shapes || []).filter(x => x.type === 'line').flatMap(x => x.pts);
   if (rt && rt.length > 1) svg += `<path d="${P2(rt)}" fill="none" stroke="#fff" stroke-width="1.6" stroke-opacity=".9"/>`;
-  // Hindernisse (Windräder, Masten, Türme …) als Symbole wie auf der Karte
+  // Symbole (Hindernisse, Flugplätze) obendrauf
   let ic = '';
-  (S.obs || []).forEach(o => { if (!inV(o.lat, o.lon) || (o.t !== 'wind' && !o.top && o.t === 'pmast')) return; const [x, y] = px(o.lat, o.lon); if (x < -20 || y < -20 || x > W + 20 || y > H + 20) return;
-    const k = o.t + '|' + (o.tt || ''); const u = OBSURL[k] || (OBSURL[k] = obsIconUrl(o.t, o.tt));
-    ic += `<img src="${u}" style="position:absolute;left:${(x - 16).toFixed(0)}px;top:${(y - 16).toFixed(0)}px;width:32px;height:32px" title="${esc(obsName(o))}" alt="">`; });
+  fc.features.filter(x => x.geometry.type === 'Point').forEach(x => { const pr = x.properties || {}, [lo, la] = x.geometry.coordinates, [px_, py_] = px(la, lo);
+    if (px_ < -20 || py_ < -20 || px_ > W + 20 || py_ > H + 20) return;
+    if (pr.ic && fc.icons[pr.ic]) ic += `<img src="${fc.icons[pr.ic]}" style="position:absolute;left:${(px_ - 15).toFixed(0)}px;top:${(py_ - 15).toFixed(0)}px;width:30px;height:30px" alt="">`;
+    else if (pr.pt) ic += `<b style="position:absolute;left:${(px_ - 12).toFixed(0)}px;top:${(py_ - 12).toFixed(0)}px;width:24px;height:24px;border-radius:50%;background:${pr.c || '#7a1fa2'};color:#fff;border:2px solid #fff;font:700 12px/20px sans-serif;text-align:center;box-sizing:border-box">${esc(pr.pt)}</b>`; });
   return `<div class="fthumb lmapv" style="width:${W}px;height:${H}px;max-width:100%">${im}<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${svg}</svg>${ic}</div>`;
 }
 /** Kleines Luftbild eines Feldes mit seinem Umriss (nur in der App – nicht für E-Mails/Bilder an Dritte) */
