@@ -485,9 +485,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     // ---------- Mindesthöhe an Stromleitungen: Pfad → Mindesthöhe (m), von der Seite vor dem Übertragen gesetzt ----------
     private static final Map<String, Double> MIN_H = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<String, Double> FIX_H = new java.util.concurrent.ConcurrentHashMap<>();
 
     /** Hebt alle Höhenangaben einer Mission an, wenn die Flughöhe unter minH liegt (z. B. 50 → 70 m an Stromleitungen). Routen bleiben gleich. */
-    private static byte[] raiseKmz(byte[] kmz, double minH) throws Exception {
+    private static byte[] raiseKmz(byte[] kmz, double minH, boolean exact) throws Exception {   // exact: auf genau diese Höhe (auch niedriger)
         java.util.LinkedHashMap<String, byte[]> entries = new java.util.LinkedHashMap<>();
         try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(kmz))) {
             ZipEntry e; while ((e = z.getNextEntry()) != null) { if (!e.isDirectory()) entries.put(e.getName(), readBytes(z)); }
@@ -499,7 +500,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (gm.find()) base = Double.parseDouble(gm.group(1));
         }
         minH = Math.min(minH, 250);   // Obergrenze rechnet die App (120 m, an Masten über 105 m bis 15 m darüber – EU UAS.OPEN.010)
-        if (base < 0 || base >= minH - 0.5) return kmz;   // schon hoch genug (oder keine Höhe gefunden)
+        if (base < 0 || (exact ? Math.abs(base - minH) < 0.5 : base >= minH - 0.5)) return kmz;   // schon passend (oder keine Höhe gefunden)
         double delta = minH - base;
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (java.util.zip.ZipOutputStream zo = new java.util.zip.ZipOutputStream(out)) {
@@ -866,6 +867,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
         /** Vor transfer(): { Quellpfad: Mindesthöhe in m } – für Felder mit Stromleitung */
         @JavascriptInterface
+        public void setFixHeights(String json) {   // Zielhöhe beim Umrechnen auf eine andere Drohne (Regeln der Seite: Mindesthöhe der Drohne, Stromleitung) – ersetzt das pauschale Hochrechnen
+            FIX_H.clear();
+            try { JSONObject o = new JSONObject(json); java.util.Iterator<String> it = o.keys(); while (it.hasNext()) { String k = it.next(); FIX_H.put(k, o.optDouble(k, 0)); } } catch (Exception ignored) { }
+        }
+
+        @JavascriptInterface
         public void setMinHeights(String json) {
             MIN_H.clear();
             try { JSONObject o = new JSONObject(json); java.util.Iterator<String> it = o.keys(); while (it.hasNext()) { String k = it.next(); MIN_H.put(k, o.optDouble(k, 0)); } } catch (Exception ignored) { }
@@ -900,8 +907,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         boolean conv = drone != null && !drone.isEmpty() && needsConvert(src, drone);
                         // immer neu schreiben: Zeitstempel in der Planung (createTime/updateTime) auf jetzt, ggf. umrechnen
                         byte[] converted = rewriteKmz(src, conv ? drone : null);
+                        Double fx = FIX_H.get(paths.getString(i));   // umgerechnet: genaue Zielhöhe der Seite (Mindesthöhe der Drohne, Stromleitung)
+                        if (conv && fx != null && fx > 0) converted = raiseKmz(converted, fx, true);
                         Double mh = MIN_H.get(paths.getString(i));   // Stromleitung am Feld: Mindesthöhe (Einstellung „Überflughöhe an Stromleitungen“)
-                        if (mh != null && mh > 0) { byte[] r = raiseKmz(converted, mh); if (r != converted) res.put("raised", res.optInt("raised", 0) + 1); converted = r; }
+                        if (mh != null && mh > 0) { byte[] r = raiseKmz(converted, mh, false); if (r != converted) res.put("raised", res.optInt("raised", 0) + 1); converted = r; }
                         String name = conv ? swapDroneInName(src.getName(), drone) : src.getName();
                         File target = new File(dst, name);
                         if (src.getCanonicalPath().equals(target.getCanonicalPath())) {

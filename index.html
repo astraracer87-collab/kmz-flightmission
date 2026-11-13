@@ -3134,20 +3134,22 @@ const pwrWhy = t => t ? `${t.kv ? t.kv + '-kV-Leitung' : 'Freileitung'}, Masten 
 /** Höhe einer Planung prüfen: für welche Drohne wurde geplant (Kamera/Bahnabstand aus der Datei, sonst Name), ist die Höhe dafür plausibel,
  *  und welche Höhe ergibt sich für die Drohne „to“ (Bahnabstand bleibt gleich → Höhe umgerechnet; nie unter Mindesthöhe der Drohne,
  *  an Stromleitungen nie unter Mastspitze + 20 m, nie über 120 m). Liefert { h, orig, to, need, top, fin, issues[] } oder null. */
-function heightPlan(f, to) {
+function heightPlan(f, to, noPwr) {
   const h = Math.round(+(f && f.height) || 0); if (!h) return null;
   const nd = nameDrone(f.title || f.name || ''), kd = DRONE_HEIGHT[f.drone] ? f.drone : '';
   const orig = kd || nd || (h >= 65 ? 'M4T' : 'M3T'); to = DRONE_HEIGHT[to] ? to : orig;
-  const need = pwrNeedH(f), top = need ? pwrTop(f) : null, std = DRONE_HEIGHT[orig], issues = [];
+  const need0 = pwrNeedH(f), need = noPwr ? 0 : need0, top = need0 ? pwrTop(f) : null, std = DRONE_HEIGHT[orig], issues = [];
   if (kd && nd && kd !== nd) issues.push(`Als ${nd} benannt, die Planung ist aber für die ${DRONE_NAME[kd]} (Kamera/Bahnabstand).`);
   if (h < std - 5) issues.push(`Für die ${DRONE_NAME[orig]} zu niedrig: ${h} m – mindestens ${std} m.`);
-  if (need && h < need - 0.5) issues.push(`Über der Stromleitung zu niedrig: ${h} m – nötig ${need} m (${pwrWhy(top)}).`);
-  if (top && top.top > 105) issues.push(`Über 120 m nur mit Einverständnis des Leitungsbetreibers: Masten ${top.top} m hoch – höchstens ${need} m (15 m über der Mastspitze, im Umkreis von 50 m; EU-Regel UAS.OPEN.010).`);
+  if (need0 && h < need0 - 0.5) issues.push(`Über der Stromleitung zu niedrig: ${h} m – nötig ${need0} m (${pwrWhy(top)}).`);
+  if (top && top.top > 105) issues.push(`Über 120 m nur mit Einverständnis des Leitungsbetreibers: Masten ${top.top} m hoch – höchstens ${need0} m (15 m über der Mastspitze, im Umkreis von 50 m; EU-Regel UAS.OPEN.010).`);
   else if (top && top.top + PWR_CLR > MAX_H) issues.push(`Nur ${MAX_H - top.top} m über der Mastspitze möglich (Masten ${top.top} m, höchstens ${MAX_H} m) – vorsichtig queren.`);
-  if (!need && h > std + 5 && !lowHazards(f, std).length) issues.push(`Höher als üblich: ${h} m statt ${std} m, obwohl an der Flugbahn weder Stromleitung noch hohes Hindernis liegt.`);
-  const scaled = Math.round(h * Math.tan(DRONE_FOV[orig] * Math.PI / 360) / Math.tan(DRONE_FOV[to] * Math.PI / 360));
-  const fin = Math.min(Math.max(MAX_H, need), Math.max(orig === to ? h : scaled, DRONE_HEIGHT[to], need));
-  return { h, orig, to, need, top, fin, issues };
+  if (!need0 && h > std + 5 && !lowHazards(f, std).length) issues.push(`Höher als üblich: ${h} m statt ${std} m, obwohl an der Flugbahn weder Stromleitung noch hohes Hindernis liegt.`);
+  // andere Drohne: nach unseren Regeln, nicht hochrechnen – Mindesthöhe der Drohne (M3T 50 m, M4T 70 m), an Stromleitungen die nötige Höhe.
+  // (War eine M3T-Planung wegen der Leitung auf 70 m, fliegt die M4T dort auch 70 m.) Gleiche Drohne: geplante Höhe, aber nie darunter.
+  const conv = orig === to ? h : DRONE_HEIGHT[to];
+  const fin = Math.min(Math.max(MAX_H, need), Math.max(conv, DRONE_HEIGHT[to], need));
+  return { h, orig, to, need, top, fin, issues, conv };
 }
 /** Wird beim Übertragen automatisch angehoben (Fernsteuerungs-Apps, Anpassung an)? */
 const pwrAutoRaise = () => !IS_WEB && pwrAdj() && !!A.setMinHeights;
@@ -4847,8 +4849,12 @@ function doTransfer(paths, drone, keys, extraMinH) {
   setTimeout(async () => {
     // Felder mit Freileitung: Mindesthöhe mitgeben – die App hebt die Mission beim Schreiben an (nur wenn niedriger geplant)
     let nRaise = 0;
+    const fOf = p => S.files.find(x => x.path === p || (keys && keys[p] && (x.path === keys[p] || 'uave:' + ((x.uave || {}).id || '') === keys[p])));   // Lite: geladene Datei ↔ Feld aus der Liste
+    if (A.setFixHeights) { const fx = {};   // andere Drohne: Zielhöhe nach unseren Regeln (Mindesthöhe der Drohne, Stromleitung) – nicht pauschal hochrechnen
+      if (drone) paths.forEach(p => { const f = fOf(p), hp = f && heightPlan(f, drone, !pwrAdj()); if (hp && hp.orig !== drone) fx[p] = hp.fin; });
+      try { A.setFixHeights(JSON.stringify(fx)); } catch (e) { } }
     if (A.setMinHeights) { const mh = {};
-      if (pwrAdj()) S.files.forEach(f => { const n = paths.includes(f.path) ? pwrNeedH(f) : 0; if (n) mh[f.path] = n; });   // Mastspitze + 20 m, mind. Einstellung, höchstens 120 m (bzw. 15 m über Masten über 105 m)
+      if (pwrAdj()) paths.forEach(p => { const f = fOf(p), n = f ? pwrNeedH(f) : 0; if (n) mh[p] = n; });   // Mastspitze + 20 m, mind. Einstellung, höchstens 120 m (bzw. 15 m über Masten über 105 m)
       Object.entries(extraMinH || {}).forEach(([p, h]) => { if (h > 0) mh[p] = Math.max(mh[p] || 0, h); });   // Lite: Pilot hat „Höhe beibehalten“ gewählt
       try { A.setMinHeights(JSON.stringify(mh)); } catch (e) { } }
     const r = JSON.parse(A.transfer(JSON.stringify(paths), P.dst, move, true, drone || ''));
@@ -10858,9 +10864,9 @@ function liteCardsHtml(b, o) {
     const maxTop = Math.max(...[...per.values()].map(e => e.known.length ? Math.max(...e.known) : e.h[1]));
     const ovNeed = ov && ov.length ? Math.max(...ov.map(pwrNeedH)) : Math.min(maxTop > 105 ? maxTop + 15 : MAX_H, Math.max(pwrH(), ceil5(maxTop + PWR_CLR)));
     const hTxt = none ? 'Die Flugbahnen liegen neben der Leitung – sie wird <b>nicht überflogen</b>. Nur heranfliegen, Abstand halten.'
-      : `Bei dieser Leitung fliegen wir <b>${ovNeed} m hoch</b> (Mastspitze + ${PWR_CLR} m, mindestens ${pwrH()} m)${pwrAutoRaise() ? ' (wird beim Import automatisch angepasst)' : ''}${part ? ` – überflogen wird sie nur bei ${ov.map(f => esc(f.title)).join(', ')}, bei den anderen liegen die Bahnen daneben` : ''}.`;
+      : `Über dieser Leitung fliegen wir <b>mindestens ${ovNeed} m hoch</b> (Mastspitze + ${PWR_CLR} m, mindestens ${pwrH()} m)${pwrAutoRaise() ? ' (wird beim Import automatisch angepasst)' : ''}${part ? ` – überflogen wird sie nur bei ${ov.map(f => esc(f.title)).join(', ')}, bei den anderen liegen die Bahnen daneben` : ''}.`;
     card('⚡', '#8e24aa', pt ? `Stromleitung ${place}` : 'Stromleitung wird überflogen', `${ht}. ${hTxt} Nie unter der Leitung durch – die Seile sieht man im Wärmebild kaum. Der Netzbetreiber wird vorher informiert (keine Zustimmung nötig).${where(fs)}`,
-      `<div class="lrules"><span>Fliegen nur:</span> ${none ? '<b>neben der Leitung</b>' : `<b>${ovNeed} m hoch</b>`} · nie unter der Leitung durch · ${ht.replace(/Masten /g, '')}</div>`); }
+      `<div class="lrules"><span>Fliegen nur:</span> ${none ? '<b>neben der Leitung</b>' : `<b>mindestens ${ovNeed} m hoch</b>`} · nie unter der Leitung durch · ${ht.replace(/Masten /g, '')}</div>`); }
   if (b.rails.length && !b.zones.some(z => z.f.layer === 'bahnanlagen')) {   // Bahn-Geozone vorhanden: deren Auflagen sagen schon alles const fs = new Set(); b.rails.forEach(x => (x.fields || []).forEach(t => fs.add(t)));
     card('🚆', '#2b2f36', `Bahnstrecke ${place}`, `Zügig darüber fliegen, nicht über den Gleisen stehen bleiben. Nicht auf Bahngelände starten.${where(fs)}`); }
   b.obs.slice(0, 6).forEach(x => { const o = x.o, w = o.t === 'wind';
@@ -10901,13 +10907,12 @@ function liteCardsHtml(b, o) {
 function liteHeightCards(sel, multi, card) {
   const to = P.drone; if (!DRONE_HEIGHT[to]) return;
   sel.forEach(f => { const hp = heightPlan(f, to); if (!hp) return;
-    const nm = multi ? esc(f.title) + ' – ' : '', auto = pwrAdj(), need = auto ? hp.need : 0;
-    const finA = Math.min(Math.max(MAX_H, need), Math.max(hp.orig === to ? hp.h : Math.round(hp.h * Math.tan(DRONE_FOV[hp.orig] * Math.PI / 360) / Math.tan(DRONE_FOV[to] * Math.PI / 360)), DRONE_HEIGHT[to], need));
+    const nm = multi ? esc(f.title) + ' – ' : '', auto = pwrAdj(), hq = heightPlan(f, to, !auto), finA = hq.fin, need = hq.need;
     const why = [];
-    if (hp.orig !== to) why.push(`geplant für die ${DRONE_NAME[hp.orig]} auf ${hp.h} m – für die ${DRONE_NAME[to]} umgerechnet, damit die Bahnen lückenlos bleiben`);
+    if (hp.orig !== to) why.push(`geplant für die ${DRONE_NAME[hp.orig]} auf ${hp.h} m – die ${DRONE_NAME[to]} fliegt mindestens ${DRONE_HEIGHT[to]} m`);
     else if (hp.h < DRONE_HEIGHT[to] - 5) why.push(`die ${DRONE_NAME[to]} fliegt mindestens ${DRONE_HEIGHT[to]} m`);
-    if (need && finA >= need - 0.5 && need > (hp.orig === to ? hp.h : 0)) why.push(`Stromleitung (${pwrWhy(hp.top)}) – mindestens ${need} m`);
-    if (Math.abs(finA - hp.h) >= 1) card('📏', '#e07800', `Flughöhe wird angepasst: ${hp.h} → ${finA} m`, `${nm}${why.join('; ')}. Die Bahnen bleiben gleich.`);
+    if (need && finA >= need - 0.5 && need > (hp.orig === to ? hp.h : DRONE_HEIGHT[to])) why.push(`Stromleitung (${pwrWhy(hp.top)}) – mindestens ${need} m`);
+    if (Math.abs(finA - hp.h) >= 1) card('📏', '#e07800', `Flughöhe wird angepasst: ${hp.h} → ${finA} m`, `${nm}${why.join('; ')}.`);
     if (hp.need && !auto && hp.h < hp.need - 0.5 && finA < hp.need - 0.5) card('⚠️', '#d42020', `Zu niedrig über der Stromleitung: ${finA} m`, `${nm}Nötig wären ${hp.need} m (${pwrWhy(hp.top)}, + ${PWR_CLR} m). Automatisches Anheben ist in den Einstellungen aus – <b>nicht über die Leitung fliegen</b> oder im UAV Editor umplanen.`);
     // Plausibilität der Planung (nur was der Pilot wissen muss)
     const odd = hp.issues.filter(t => /^Als .* benannt|^Höher als üblich|^Über 120 m|^Nur \d+ m über/.test(t));
