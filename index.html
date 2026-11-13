@@ -4047,7 +4047,7 @@ function uvMode(on) {
   const hint = document.querySelector('#uvHost .uvbar span'); if (hint) hint.textContent = uaveReady() ? 'Im UAV Editor Felder anhaken, dann hier übernehmen (oder dort „Check flight zone“ → direkt unser Pre-Check).' : 'Melde dich hier mit deinem UAV-Editor-Zugang an – das Programm übernimmt ihn (verschlüsselt auf diesem PC) und lädt danach die Feldliste.';
   UV.hid = false; requestAnimationFrame(uvPlace);
   // Popup (Pre-Check, Briefing, Einstellungen, Einführung) über dem UAV Editor: Standbild der Seite zeigen, echte Seite kurz ausblenden
-  UV.t = setInterval(() => { if (UV.shooting) return; const cover = $('dlg').classList.contains('open') || $('busy').style.display === 'block' || !!document.querySelector('.page.open') || ($('coachBub') && $('coachBub').style.display === 'block');
+  UV.t = setInterval(() => { if (UV.shooting) return; const cover = $('dlg').classList.contains('open') || $('busy').style.display === 'block' || !!document.querySelector('.page.open') || ($('coachBub') && $('coachBub').style.display === 'block') || !!document.querySelector('.hwarn');   // auch große Hinweise (Flughöhe, „nichts angehakt“)
     if (cover === UV.hid) return; UV.hid = cover; const sl = $('uvSlot');
     if (cover) { if (A.uaveViewSnap) A.uaveViewSnap(); else uvPlace(); }
     else { uvPlace(); setTimeout(() => { if (!UV.hid && sl) { sl.style.backgroundImage = ''; sl.classList.remove('snap'); } }, 150); } }, 150);
@@ -4180,7 +4180,7 @@ const uvInfo = (t, x, l) => { pcPrepEnd(); confirmDlg(t, x, l, 'OK', null); cons
 /** Auswahl kam nur als Feld-IDs (aus dem Speicher der UAV-Editor-Seite): über unsere UAV-Editor-Feldliste in Zeilen umsetzen */
 function uvIdsToRows(r) {
   if (!r || !r.ids) return r;
-  const all = catAll(), by = new Map(all.map(cf => [String(cf.id), cf]));
+  const all = catAll().concat(catOthers()), by = new Map(all.map(cf => [String(cf.id), cf]));
   const rows = r.ids.map(id => by.get(String(id))).filter(Boolean).map(cf => ({ name: cf.name, drone: cfDrone(cf) || '', year: String(CAT_YEAR(cf) || '') }));
   if (!rows.length) return { ok: false, error: 'Auswahl im UAV Editor nicht zuzuordnen.' };   // IDs passen nicht zu unserer Liste: lieber nichts ändern
   return Object.assign({}, r, { rows });   // fehlen welche: want bleibt größer → nur dazunehmen, nichts abwählen
@@ -4210,7 +4210,7 @@ function cfDiff(a, b) { const out = [];
   if (a.rt !== b.rt && !out.some(t => /Feldgrenze/.test(t))) out.push('Flugbahn geändert');
   if (!out.length && a.lm !== b.lm && a.lm && b.lm) out.push('im UAV Editor bearbeitet');
   return out; }
-const uvUnknownIds = raw => { if (!raw || !raw.ids) return 0; const by = new Set(catAll().map(cf => String(cf.id))); return raw.ids.filter(id => !by.has(String(id))).length; };
+const uvUnknownIds = raw => { if (!raw || !raw.ids) return 0; const by = new Set(catAll().concat(catOthers()).map(cf => String(cf.id))); return raw.ids.filter(id => !by.has(String(id))).length; };
 window.onUaveLive = r => {
   const raw = r; if (raw && P.uvLive !== '0' && uvUnknownIds(raw) && uvCatAuto(raw, window.onUaveLive, (t) => { const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.color = ''; h.style.fontWeight = '700'; } }) && !(raw.ids || []).some(id => catAll().some(cf => String(cf.id) === String(id)))) return;
   r = uvIdsToRows(r);
@@ -4240,6 +4240,13 @@ window.onUaveLive = r => {
     update(); draw(); sideRender(); }
   hint(now.size ? `✓ ${now.size} Feld${now.size > 1 ? 'er' : ''} aus dem UAV Editor markiert – live, auch in der Missionsplanung.` : 'Im UAV Editor Felder anhaken – sie werden sofort auch in der Missionsplanung markiert.');
 };
+/** Wichtige Hinweise aus dem UAV-Editor-Tab groß in der Mitte (über dem UAV Editor) – die Leiste oben übersieht man */
+function uvAlert(t) {
+  const old = $('uvAlert'); if (old) old.remove();
+  const d = document.createElement('div'); d.id = 'uvAlert'; d.className = 'hwarn';
+  d.innerHTML = `<div class="hwbox" style="border-top-color:#e07800"><h3 style="color:#c65d00">${esc(String(t).replace(/^⚠\s*/, '').split(' – ')[0])}</h3>${/ – /.test(t) ? `<p style="font-size:17px;line-height:1.45">${esc(String(t).split(' – ').slice(1).join(' – '))}</p>` : ''}<button class="b-ok" id="uvAlOk">OK</button></div>`;
+  document.body.appendChild(d); $('uvAlOk').onclick = () => d.remove(); $('uvAlOk').focus();
+}
 /** Ladefenster sofort zeigen, wenn im UAV Editor „Pre-Check“ geklickt wurde – liegt im Vordergrund (über dem UAV Editor), nicht nur in der Leiste */
 const pcPrepBusy = t => busy('Pre-Check wird vorbereitet', { sub: t });
 const pcPrepEnd = () => { const h = $('busy').querySelector('.bt'); if ($('busy').style.display === 'block' && h && /^Pre-Check wird vorbereitet/.test(h.textContent)) busy(''); };
@@ -4262,7 +4269,7 @@ window.onUaveSel = r => {
   r = uvIdsToRows(r);
   const tb = $('uvTake'); if (tb) { tb.disabled = false; tb.textContent = '✔ Markierte Felder übernehmen'; }
   // Hinweise im UAV-Editor-Tab direkt in der Leiste zeigen (kein Dialog – der läge sonst unter der eingebetteten Seite)
-  const say = (t, bad) => { pcPrepEnd(); const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.color = bad ? '#c62828' : ''; h.style.fontWeight = bad ? '800' : ''; clearTimeout(UV.sayT); UV.sayT = setTimeout(() => { h.style.color = ''; h.style.fontWeight = ''; h.textContent = 'Im UAV Editor Felder anhaken, dann hier übernehmen (oder dort „Check flight zone“ → direkt unser Pre-Check).'; }, 7000); } };
+  const say = (t, bad) => { pcPrepEnd(); if (bad) uvAlert(t); const h = document.querySelector('#uvHost .uvbar span'); if (h) { h.textContent = t; h.style.color = bad ? '#c62828' : ''; h.style.fontWeight = bad ? '800' : ''; clearTimeout(UV.sayT); UV.sayT = setTimeout(() => { h.style.color = ''; h.style.fontWeight = ''; h.textContent = 'Im UAV Editor Felder anhaken, dann hier übernehmen (oder dort „Check flight zone“ → direkt unser Pre-Check).'; }, 7000); } };
   if (!r || !r.ok) return UV.on ? say('⚠ ' + ((r && r.error) || 'Die Auswahl konnte nicht gelesen werden.'), true) : uvInfo('Übernehmen nicht möglich', (r && r.error) || 'Die Auswahl konnte nicht gelesen werden.', []);
   if (!r.rows.length) return UV.on ? say('⚠ Im UAV Editor ist noch kein Feld angehakt – erst in der Feldliste Haken setzen, dann übernehmen.', true) : uvInfo('Nichts angehakt', 'Im UAV Editor ist in der Feldliste noch kein Feld angehakt.', []);
   const all = catAll(), nm = t => foldTxt(t).replace(/\s+/g, ' ').trim(), drOf = t => /4/.test(t) ? 'M4T' : /3/.test(t) ? 'M3T' : '';
@@ -4272,6 +4279,7 @@ window.onUaveSel = r => {
     if (c.length > 1) { const y = c.filter(cf => !x.year || String(CAT_YEAR(cf)) === x.year.slice(0, 4)); if (y.length) c = y; }
     if (c.length > 1) { const d = c.filter(cf => !drOf(x.drone) || cfDrone(cf) === drOf(x.drone)); if (d.length) c = d; }
     if (c.length > 1) c = c.filter(cf => !cf.arch).concat(c.filter(cf => cf.arch));
+    if (!c.length) c = catOthers().filter(cf => nm(cf.name) === nm(x.name));   // anderes Drohnenprofil: trotzdem prüfen und deutlich darauf hinweisen
     c.length ? found.push(c[0]) : miss.push(x.name); });
   if (miss.length && !raw.ids && uvCatAuto(raw, window.onUaveSel, t => raw.precheck ? pcPrepBusy('Neues Feld im UAV Editor – Feldliste wird aktualisiert …') : say(t))) return;   // neues Feld (nach Namen): Feldliste nachladen, dann nochmal
   S.files.forEach(f => f.selected = false);
@@ -4279,7 +4287,7 @@ window.onUaveSel = r => {
   const chg = []; if (raw && raw._snap) found.forEach(cf => { const o = raw._snap[String(cf.id)]; if (!o) return; const d = cfDiff(o, cfSnap(cf)); if (!d.length) return;
     chg.push({ name: cf.name, d }); S.files = S.files.filter(x => !(x.cat && String((x.uave || {}).id || x.id) === String(cf.id))); });
   S.pcChanged = chg.length ? { at: Date.now(), list: chg } : null; if (chg.length) S.pcCache = null;
-  const fs = found.map(cf => webCatPick(cf, 'all')).filter(Boolean);
+  const fs = found.map(cf => { const f = webCatPick(cf, 'all'); if (f && cf.status === 'other') f.prof = cf.prof || ''; return f; }).filter(Boolean);
   const half = r.precheck && (P.uaveMode === 'half' || P.uaveMode === 'full') && UV.on;   // Halbintegration: im UAV Editor bleiben, Pre-Check rechts daneben
   if (!half) uvMode(false);
   // schon im UAV Editor ausgewählt → Feldliste wird nicht gebraucht: zuklappen, Karte in voller Breite
@@ -4404,6 +4412,9 @@ function webSearchPanel(box) {
 /** Namensanfang eines Feldes für Pakete: „Aumenau-1+2-M3T“ → „Aumenau“, „Schröter-Kerkerbach-6a“ → „Schröter-Kerkerbach“ */
 function fieldGroupKey(n) { const b = String(n).replace(/[-_\s]+(M3T|M4T|M30T|M3E)\s*$/i, '').replace(/[-_\s]+$/, ''); const m = /^(.*?[A-Za-zÄÖÜäöüß][^\s_-]*)[-_\s]+\d[\w+.]*$/.exec(b); return (m ? m[1] : b).trim(); }
 const SIDE = { tab: 'felder', q: '', year: P.sideYear || null, stand: P.sideStand || 'alle', drone: P.sideDrone || 'alle', sort: P.sideSort || 'name' };   // Standard: Name A–Z, aktuelles Jahr, alle Drohnen, Aktiv + Archiv, nicht gebündelt – Änderungen werden gemerkt
+/** Felder im UAV Editor mit anderem Drohnenprofil als DJI Pilot 2 (nicht in der Feldliste – nur, um sie beim Pre-Check aus dem UAV Editor zu erkennen) */
+function catOthers() { try { const d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); return d && Array.isArray(d.others) ? d.others : []; } catch (e) { return []; } }
+const PROF_NAME = p => !p ? 'kein Drohnenprofil' : /agras|spray|t\d\d/i.test(p) ? `„${p}“ (Ausbringung)` : `„${p}“`;
 function catAll() { try { const d = JSON.parse((A.uaveCatalog && A.uaveCatalog()) || 'null'); return d && Array.isArray(d.fields) ? d.fields : []; } catch (e) { return []; } }
 const cfTime = f => { const c = dOk(f.created || (f.meta || {}).created), l = dOk(f.lm); return Math.max(c ? +c : 0, l ? +l : 0); };
 const cfDrone = f => { const d = uaveInfo(f).drone, h = f.meta && f.meta.h; return d === 'M3T' || d === 'M4T' ? d : h ? (h < 60 ? 'M3T' : 'M4T') : ''; };
@@ -9528,11 +9539,13 @@ function pcShow(sel, box) {
 /** Pre-Check (PC): Flughöhe falsch geplant → Hinweis im Vordergrund, der weggeklickt werden muss – bei jedem Pre-Check, solange die Planung falsch ist */
 function pcHeightWarn(sel) {
   const old = $('hWarn'); if (old) old.remove();
-  const bad = sel.map(f => ({ f, hp: heightPlan(f) })).filter(x => x.hp && x.hp.issues.length); if (!bad.length) return;
+  const prof = sel.filter(f => f.prof != null);   // im UAV Editor nicht als DJI-Pilot-2-Mission eingestellt
+  const bad = sel.map(f => ({ f, hp: heightPlan(f) })).filter(x => x.hp && x.hp.issues.length && !prof.includes(x.f)); if (!bad.length && !prof.length) return;
   const d = document.createElement('div'); d.id = 'hWarn'; d.className = 'hwarn';
-  d.innerHTML = `<div class="hwbox"><h3>⚠ Flughöhe falsch geplant</h3><p>${bad.length === 1 ? 'Bei diesem Feld passt' : `Bei ${bad.length} Feldern passt`} die Flughöhe nicht zur Planung:</p>
-    <ul>${bad.map(x => `<li><b>${esc(x.f.title)}</b> · ${x.hp.h} m · geplant für ${DRONE_NAME[x.hp.orig]}<br>${x.hp.issues.map(esc).join('<br>')}</li>`).join('')}</ul>
-    <p class="meta">Im UAV Editor korrigieren und neu speichern – der Pre-Check übernimmt den neuen Stand. Die Fernsteuerung hebt an Stromleitungen zwar automatisch an, die Planung sollte aber stimmen.</p>
+  const profHtml = prof.length ? `<p><b>Nicht für DJI Pilot 2 eingestellt:</b></p><ul>${prof.map(f => `<li><b>${esc(f.title)}</b> · Drohnenprofil ${esc(PROF_NAME(f.prof))}<br>So kommt das Feld nicht als Mission in die DJI Cloud und nicht auf die Fernsteuerung. Im UAV Editor bei den Missionseinstellungen „DJI Pilot 2“ wählen und speichern.</li>`).join('')}</ul>` : '';
+  d.innerHTML = `<div class="hwbox"><h3>⚠ ${bad.length ? 'Flughöhe falsch geplant' : 'Feld falsch eingestellt'}</h3>${profHtml}${!bad.length ? '' : `<p>${bad.length === 1 ? 'Bei diesem Feld passt' : `Bei ${bad.length} Feldern passt`} die Flughöhe nicht zur Planung:</p>
+    <ul>${bad.map(x => `<li><b>${esc(x.f.title)}</b> · ${x.hp.h} m · geplant für ${DRONE_NAME[x.hp.orig]}<br>${x.hp.issues.map(esc).join('<br>')}</li>`).join('')}</ul>`}
+    ${bad.length ? '<p class="meta">Im UAV Editor korrigieren und neu speichern – der Pre-Check übernimmt den neuen Stand. Die Fernsteuerung hebt an Stromleitungen zwar automatisch an, die Planung sollte aber stimmen.</p>' : ''}
     <button class="b-ok" id="hwOk">Verstanden</button></div>`;
   document.body.appendChild(d);
   $('hwOk').onclick = () => d.remove();
