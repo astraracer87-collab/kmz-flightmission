@@ -551,7 +551,7 @@
   .lfld .lcheck{margin-top:10px}.lfi{flex:1;min-width:0}.lfn{font-size:18px;font-weight:800;margin-bottom:6px;overflow-wrap:anywhere;line-height:1.5}.lfn .lverd{font-size:12px;padding:2px 7px}
   .lchip.linfo{background:transparent;border-left-color:var(--line);font-size:13px;color:var(--muted);padding:1px 8px}
   .lchip{display:block;box-sizing:border-box;width:100%;font-size:14px;line-height:1.3;padding:3px 8px;margin:0 6px 6px 0;border-radius:8px;border-left:5px solid;background:var(--card)}
-  .lfld1{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:10px}.lfld1 .fthumb{max-width:100%}
+  .lmapv svg{width:auto!important;height:auto!important}.lfld .lmapv{margin:4px auto 8px}.lfld1{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:10px}.lfld1 .fthumb{max-width:100%}
   #bar .srcseg button.lbtn{background:#00a99d;color:#fff;font-weight:800;display:flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(0,0,0,.25)}
   #bar .srcseg button.lbtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round}
   .lmenu{position:fixed;z-index:60;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:6px;display:flex;flex-direction:column;min-width:210px}
@@ -3766,7 +3766,7 @@ function update() {
   $('count').innerHTML = `${n} markiert<small>${S.files.length - dups} Felder</small>`;
   $('bDl').disabled = !n; $('bNone').style.display = n ? '' : 'none';
   if (IS_LITE) { liteCloudFill(); const v = n ? 0 : S.files.filter(f => visible(f) && !f.cloudMap).length, bt = $('bDlT');   // Lite: nichts markiert → alle angezeigten Felder prüfen
-    $('bDl').disabled = !n && !v;   // v zählt die nur eingeblendeten DJI-Cloud-Felder nicht mit (siehe liteCloudFill) if (bt) bt.innerHTML = n || !v ? 'Pre-Check' : `Pre-Check<br><small>alle ${v} Felder</small>`;
+    $('bDl').disabled = !n && !v; if (bt) bt.innerHTML = n || !v ? 'Pre-Check' : `Pre-Check<br><small>alle ${v} Felder</small>`;
     let gb = $('bLiteDl'); if (!gb) { gb = document.createElement('button'); gb.id = 'bLiteDl'; gb.className = 'b-ok'; gb.style.background = '#1565c0'; $('bDl').before(gb);
       gb.onclick = () => { const fs = S.files.filter(f => f.selected && f.cat && f.uave && f.uave.id && !f.inDst); if (!fs.length) return;
         S.liteIds = fs.map(f => String(f.uave.id)); liteLoadStart(); }; }
@@ -10426,7 +10426,7 @@ function liteStart(ids, mapOnly) {
   if (isOnline()) geoSyncNow(false, true);   // falls das Gebiet noch fehlt: Geozonen/Hindernisse dafür holen
   S.liteIds = ids;   // geladen wird erst, wenn der Feldcheck bestätigt ist
   if (mapOnly) { const io = dstInfo(); S.files.forEach(f => { f.inDst = io(f); }); update();
-    return toast(`${fs.length} Feld${fs.length > 1 ? 'er' : ''} auf der Karte – Zonen und Hindernisse siehst du direkt dort.\nOben: „Pre-Check“ für die Hinweise, „⬇ Felder herunterladen“ für die Fernsteuerung.`, 'ok', 8000); }
+    return toast(`${fs.length} Feld${fs.length > 1 ? 'er' : ''} auf der Karte`, false, 2000); }   // kurz – die Knöpfe oben erklären sich selbst
   liteCheckDlg(fs, true);
 }
 /** Wo die Felder für DJI Pilot 2 liegen – verständlich („Interner Speicher › Kitzrettung Import“) */
@@ -10535,21 +10535,21 @@ function lgridHtml(rows, opt, one) {
 function liteCheckInner(sel, opt) {
   opt = opt || {};
   const one = f => liteCardsHtml(flightBriefing([f]), { sel: [f], centers: f.center ? [f.center] : [] });
-  if (sel.length === 1 && !opt.verdict) return `<div class="lfld1">${fieldThumb(sel[0], 340, 200)}<div class="lfn">${esc(sel[0].title)}</div></div>` + one(sel[0]);
+  if (sel.length === 1 && !opt.verdict) return `<div class="lfld1">${liteMapHtml(sel[0], 620, 300)}<div class="lfn">${esc(sel[0].title)}</div></div>` + one(sel[0]);
   // mehrere Felder: Feld für Feld – Bild, Name und was an genau diesem Feld besonders ist (Wichtigstes zuerst)
   const RANK = { '#d42020': 3, '#e07800': 2, '#c77800': 2, '#8e24aa': 2, '#13a538': 1 };   // grün = erlaubt mit Auflagen; nur „Alles frei“ zählt 0
   const rows = sel.map(f => {
     const html = one(f), d = document.createElement('div'); d.innerHTML = html;
     const its = [...d.querySelectorAll('.lcard')].map(c => { const col = c.style.borderLeftColor, hex = '#' + (col.match(/\d+/g) || []).slice(0, 3).map(x => (+x).toString(16).padStart(2, '0')).join('');
       const t = c.querySelector('b').textContent, ru = c.querySelector('.lrules'), pp = c.querySelector('p');
-      return { ico: c.querySelector('.lico').textContent, t, p: pp ? pp.textContent : '', ru: ru ? ru.innerHTML : '', col: col || '#888', r: t === 'Alles frei' ? 0 : RANK[hex] ?? 1 }; }).sort((a, b) => b.r - a.r);
+      return { ico: c.querySelector('.lico').textContent, t, p: pp ? pp.textContent : '', ru: ru ? ru.innerHTML : '', col: col || '#888', r: t === NO_ZONES ? 0 : RANK[hex] ?? 1 }; }).sort((a, b) => b.r - a.r);
     const v = opt.verdict ? fieldVerdict(f) : null;
-    if (v && v.why.length) its.forEach(i => { if (i.t === 'Alles frei') i.t = 'Mit A2 sonst nichts Besonderes'; });   // „Alles frei“ wäre neben „A2 nötig“ missverständlich
+    if (v && v.why.length) its.forEach(i => { if (i.t === NO_ZONES) i.t = NO_MORE_A2; });   // „Keine Geozonen“ wäre neben „A2 nötig“ missverständlich
     return { f, html, its, r: Math.max(its.length ? its[0].r : 0, v ? (v.k === 'no' || v.k === 'zust' ? 3 : v.k === 'a2' ? 2 : 0) : 0), v };
   }).sort((a, b) => b.r - a.r || b.its.filter(i => i.r === b.r).length - a.its.filter(i => i.r === a.r).length || ftitle(a.f).localeCompare(ftitle(b.f)));
   const note = rows.filter(x => x.r >= 1).length, bad = rows.filter(x => x.r >= 3).length;
   return `<div class="meta" style="margin:0 0 8px">${note ? `<b>${note} von ${sel.length} Feldern</b>: etwas zu beachten (Zonen, Auflagen, Umrechnung)${bad ? ` – <b>${bad}</b> davon mit Sperre oder Zustimmungspflicht` : ''}. Wichtigstes zuerst.` : 'An keinem Feld gibt es Zonen oder Auflagen.'} Antippen zeigt Einzelheiten.</div>` +
-    lgridHtml(rows, opt, opt.verdict ? x => pcFieldRow(x, sel.indexOf(x.f)) : x => `<details class="lfld"><summary>${fieldThumb(x.f, 120, 90)}<div class="lfi"><div class="lfn">${esc(x.f.title)}${x.v ? ` ${licBadges(x.v)}` : ''}</div>${x.v && x.v.why.length ? `<div class="lchip linfo">A1/A3 reicht nicht wegen: ${esc(x.v.why.map(whyShort).join(' · '))}<small>${x.v.onlyLic ? 'Mit A2 erlaubt (dort gilt nur 30 m Abstand zu Unbeteiligten).' : 'Mit A2 + Allgemeinerlaubnis bzw. Allgemeinverfügung erlaubt – liegt laut Einstellungen vor.'}</small></div>` : ''}<div class="lchips">${x.its.filter(i => !(x.v && i.t === 'Mit A2 sonst nichts Besonderes')).map(i => `<div class="lchip" style="border-color:${i.col}">${esc(i.ico)} ${esc(i.t)}${i.ru ? `<small>${i.ru}</small>` : ''}</div>`).join('')}</div></div></summary>${x.html}</details>`);
+    lgridHtml(rows, opt, opt.verdict ? x => pcFieldRow(x, sel.indexOf(x.f)) : x => `<details class="lfld"><summary>${fieldThumb(x.f, 120, 90)}<div class="lfi"><div class="lfn">${esc(x.f.title)}${x.v ? ` ${licBadges(x.v)}` : ''}</div>${x.v && x.v.why.length ? `<div class="lchip linfo">A1/A3 reicht nicht wegen: ${esc(x.v.why.map(whyShort).join(' · '))}<small>${x.v.onlyLic ? 'Mit A2 erlaubt (dort gilt nur 30 m Abstand zu Unbeteiligten).' : 'Mit A2 + Allgemeinerlaubnis bzw. Allgemeinverfügung erlaubt – liegt laut Einstellungen vor.'}</small></div>` : ''}<div class="lchips">${x.its.filter(i => !(x.v && i.t === NO_MORE_A2)).map(i => `<div class="lchip" style="border-color:${i.col}">${esc(i.ico)} ${esc(i.t)}${i.ru ? `<small>${i.ru}</small>` : ''}</div>`).join('')}</div></div></summary>${liteMapHtml(x.f, 620, 280, true)}${x.html}</details>`);
 }
 /** PC-Pre-Check: eine Zeile je Feld – nur das Ergebnis (welches Zeugnis), Details aufklappbar mit Vorschaukarte und Gründen */
 const PCB = (ok, t) => `<div class="pcv" style="--c:${ok ? '#13a538' : '#d42020'}"><i>${ok ? '✓' : '✗'}</i>${t}</div>`;
@@ -10561,7 +10561,7 @@ const pcAuto = i => i.r >= 3 && !/^Stromleitung/i.test(i.t) ? '' : /^Stromleitun
 const pcShort = s => { s = String(s || '').replace(/\s+/g, ' ').trim(); const m = s.match(/^.{20,140}?[.!](\s|$)/); return m ? m[0].trim() : s.length > 140 ? s.slice(0, 137) + '…' : s; };
 function pcFieldRow(x, idx) {
   const v = x.v;
-  const its = x.its.filter(i => i.t !== 'Alles frei' && i.t !== 'Mit A2 sonst nichts Besonderes');
+  const its = x.its.filter(i => i.t !== NO_ZONES && i.t !== NO_MORE_A2);
   const info = i => /🔧/.test(i.ico) || /umgerechnet/.test(i.p || ''), auto = its.filter(pcAuto), prob = its.filter(i => !pcAuto(i) && !info(i) && i.r >= 2), ok = its.filter(i => !pcAuto(i) && (info(i) || i.r < 2));
   const low = lowNearPower(x.f), np = x.f.center ? nearPlace(x.f.center[0], x.f.center[1]) : null;
   const flags = [low ? ['⚠', `Unter ${pwrH()} m über Stromleitung geplant`, '#d42020'] : null,
@@ -10626,6 +10626,46 @@ function pcMapsWire(box, sel, pre) {
   // im Hintergrund vorbereiten – nacheinander, damit der Pre-Check flüssig bleibt (beim Öffnen sind sie meist schon fertig)
   if (!pre) (async () => { for (const f of sel.slice(0, 40)) { if (!$('dlg').classList.contains('open')) break; try { await pcMapMake(f); } catch (e) { } await new Promise(r => setTimeout(r, 30)); } })();
 }
+/** Lite-Feldcheck: Karte wie die Hauptkarte – Hintergrund wie gewählt (Luftbild), Feld mit Umgebung, Geozonen, Stromleitungen, Flugbahn, Hindernis-Symbole.
+ *  Als HTML (Kacheln + SVG) statt Canvas: funktioniert auch auf der Fernsteuerung (Kacheln fremder Server dürfen dort nicht in ein Canvas). */
+const OBSURL = {};
+function liteMapHtml(f, W, H, lazy) {
+  const b0 = f.bounds; if (!b0) return fieldThumb(f, Math.min(W, 340), Math.min(H, 200));
+  const pad = Math.max(0.0012, (b0.n - b0.s) * 0.35, (b0.e - b0.w) * 0.2);
+  const bb = { n: b0.n + pad, s: b0.s - pad, e: b0.e + pad * 1.6, w: b0.w - pad * 1.6 };
+  let z = 17; for (; z > 11; z--) if (mX(bb.e, z) - mX(bb.w, z) <= W && mY(bb.s, z) - mY(bb.n, z) <= H) break;
+  const ox = (mX(bb.e, z) + mX(bb.w, z)) / 2 - W / 2, oy = (mY(bb.s, z) + mY(bb.n, z)) / 2 - H / 2;
+  const px = (la, lo) => [mX(lo, z) - ox, mY(la, z) - oy], ld = lazy ? ' loading="lazy"' : '';
+  const vb = { n: b0.n + pad * 3, s: b0.s - pad * 3, e: b0.e + pad * 5, w: b0.w - pad * 5 }, inV = (la, lo) => la <= vb.n && la >= vb.s && lo <= vb.e && lo >= vb.w;
+  let im = ''; const top = P.layer === 'sat' ? 'sat' : null, base = P.layer === 'grey' ? 'grey' : 'osm', flt = LAYER_FILTER[base] ? `;filter:${LAYER_FILTER[base]}` : '';
+  for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + W) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + H) / 256); ty++) {
+    const pos = `left:${Math.round(tx * 256 - ox)}px;top:${Math.round(ty * 256 - oy)}px`;
+    im += `<img src="${esc(TSRC(LAYERS[base](z, tx, ty)))}"${ld} onerror="this.style.visibility='hidden'" style="${pos}${flt}" alt="">`;
+    if (top) im += `<img src="${esc(TSRC(LAYERS.sat(z, tx, ty)))}"${ld} data-fb="${esc(TSRC(ESRI_SAT(z, tx, ty)))}" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb=''}else this.remove()" style="${pos}" alt="">`; }
+  const P2 = pts => pts.map((q, i) => { const [x, y] = px(q[0], q[1]); return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1); }).join('');
+  let svg = '';
+  // Geozonen am Feld (A2 und A1/A3 zusammen, auch Wohngebiete in der Nähe) – Farben wie auf der Karte
+  let zs = []; const sv = P.lic;
+  try { P.lic = 'A1A3'; zs = flightBriefing([f]).zones; P.lic = 'A2'; flightBriefing([f]).zones.forEach(q => { if (!zs.some(y => y.f === q.f)) zs.push(q); }); } catch (e) { } finally { P.lic = sv; }
+  zs.forEach(q => { if (!q.f.rings) return; const col = NAT_LAYERS.includes(q.f.layer) ? '#2e7d32' : /flugpl|flugh/.test(q.f.layer) ? '#d32f2f' : q.near != null ? '#e53935' : '#1565c0';
+    svg += `<path d="${q.f.rings.map(r => P2(r.map(c => [c[1], c[0]])) + 'Z').join('')}" fill="${col}" fill-opacity=".22" fill-rule="evenodd" stroke="${col}" stroke-width="2"/>`; });
+  // Stromleitungen (oberirdisch) im Ausschnitt
+  (S.osm || []).forEach(l => { if (l.p === 'cable' || l.loc === 'underground' || !l.bb || l.bb.s > vb.n || l.bb.n < vb.s || l.bb.w > vb.e || l.bb.e < vb.w) return;
+    const d = P2(l.pts), w = l.kv >= 220 ? 5 : l.kv >= 60 ? 4 : 3; svg += `<path d="${d}" fill="none" stroke="#fff" stroke-width="${w + 3}" stroke-opacity=".85"/><path d="${d}" fill="none" stroke="#8e24aa" stroke-width="${w}"/>`; });
+  // Feld (orange wie markiert auf der Karte) und Flugbahn
+  let rings = (f.shapes || []).filter(sh => sh.type === 'poly' && sh.pts.length > 2).map(sh => sh.pts);
+  if (!rings.length && f.outline && f.outline.length > 2) rings = [f.outline];
+  if (!rings.length) { const h = fieldRingLL(f); if (h) rings = [h.map(q => [q[1], q[0]])]; }
+  rings.forEach(r => { svg += `<path d="${P2(r)}Z" fill="#ff8a00" fill-opacity=".28" stroke="#ff7a00" stroke-width="3" stroke-linejoin="round"/>`; });
+  const rt = f.route || (f.shapes || []).filter(x => x.type === 'line').flatMap(x => x.pts);
+  if (rt && rt.length > 1) svg += `<path d="${P2(rt)}" fill="none" stroke="#fff" stroke-width="1.6" stroke-opacity=".9"/>`;
+  // Hindernisse (Windräder, Masten, Türme …) als Symbole wie auf der Karte
+  let ic = '';
+  (S.obs || []).forEach(o => { if (!inV(o.lat, o.lon) || (o.t !== 'wind' && !o.top && o.t === 'pmast')) return; const [x, y] = px(o.lat, o.lon); if (x < -20 || y < -20 || x > W + 20 || y > H + 20) return;
+    const k = o.t + '|' + (o.tt || ''); const u = OBSURL[k] || (OBSURL[k] = obsIconUrl(o.t, o.tt));
+    ic += `<img src="${u}" style="position:absolute;left:${(x - 16).toFixed(0)}px;top:${(y - 16).toFixed(0)}px;width:32px;height:32px" title="${esc(obsName(o))}" alt="">`; });
+  return `<div class="fthumb lmapv" style="width:${W}px;height:${H}px;max-width:100%">${im}<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${svg}</svg>${ic}</div>`;
+}
 /** Kleines Luftbild eines Feldes mit seinem Umriss (nur in der App – nicht für E-Mails/Bilder an Dritte) */
 function fieldThumb(f, W, H) {
   let rings = (f.shapes || []).filter(sh => sh.type === 'poly' && sh.pts.length > 2).map(sh => sh.pts);
@@ -10648,11 +10688,12 @@ function fieldThumb(f, W, H) {
   return `<div class="fthumb" style="width:${W}px;height:${H}px"><div style="position:absolute;inset:0;transform:scale(${k.toFixed(3)})">${im}<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><path d="${d}" fill="rgba(0,229,212,.18)" stroke="#00e5d4" stroke-width="2.5" stroke-linejoin="round" fill-rule="evenodd" vector-effect="non-scaling-stroke"/></svg></div></div>`;
 }
 /** Einfache Karten für Feldcheck UND Antippen einer Stelle (gleiches Aussehen) – o: { sel (Felder) | point:[lat,lon], centers } */
+const NO_ZONES = 'Keine Geozonen', NO_MORE_A2 = 'Mit A2 keine weiteren Einschränkungen';
 function liteCardsHtml(b, o) {
   const sel = o.sel || [], pt = !!o.point, a2 = P.lic === 'A2', H = flightHeight() || 70, cards = [];
   let heliZone = false, afZone = false;
   const place = pt ? 'an dieser Stelle' : 'am Feld', notHere = pt ? '<b>Hier nicht fliegen.</b>' : '<b>Diesen Teil des Feldes nicht befliegen.</b>';
-  const card = (ico, col, title, text, extra) => cards.push(`<div class="lcard" style="border-left-color:${col}"><span class="lico">${ico}</span><div><b>${title}</b><p>${text}</p>${extra || ''}</div></div>`);
+  const card = (ico, col, title, text, extra) => cards.push(`<div class="lcard" style="border-left-color:${col}"><span class="lico">${ico}</span><div><b>${title}</b>${text ? `<p>${text}</p>` : ''}${extra || ''}</div></div>`);
   // Auflagen kompakt in einer Zeile: „Auflagen: a · b · c“
   const rulesUl = (layer, av) => { const r = liteRules(layer, av, H); return r.length ? `<div class="lrules"><span>Auflagen:</span> ${r.join(' · ')}</div>` : ''; };
   const km = d => (d / 1000).toFixed(1).replace('.', ',') + ' km', m = d => Math.round(d) + ' m';
@@ -10729,7 +10770,7 @@ function liteCardsHtml(b, o) {
         `<div class="lrules"><span>Ohne Freigabe nur:</span> mit <b>A2 + Allgemeinerlaubnis</b> · <b>unter Dach-/Baumhöhe</b> · Rettungsleitstelle (ILS) vorher anrufen · 100 m ums Klinikgelände frei${d < 750 ? ' · <b>zweite Person als Luftraumbeobachter</b> (750-m-Bereich)' : ''}</div>`);
     } else if (isRescueHeli(a)) card('🚁', '#c77800', `Achtung: Rettungshubschrauber-Landeplatz in ${km(d)}`, `${nm}Rettungshubschrauber können <b>plötzlich auftauchen</b> – Himmel beobachten und bei einem Hubschrauber sofort tiefer gehen.`,
         d < 1500 || heliZone ? `<div class="lrules"><span>Fliegen nur:</span> mit Zustimmung des Betreibers · Allgemeinerlaubnis (A2) nur <b>bis 30 m</b> – Kitzrettung mit ${H} m nicht</div>` : '');
-    else if (!(afZone && a.kind !== 'heliport')) card(a.kind === 'heliport' ? '🚁' : '✈️', '#1e7bff', `${a.kind === 'heliport' ? 'Hubschrauberlandeplatz' : 'Flugplatz'} in ${km(d)}`, `${nm}${a.kind === 'heliport' ? 'Mit Hubschraubern' : 'Mit Flugzeugen'} rechnen – Himmel beobachten.`,
+    else if (!(afZone && a.kind !== 'heliport')) card(a.kind === 'heliport' ? '🚁' : '✈️', '#1e7bff', `${a.kind === 'heliport' ? 'Hubschrauberlandeplatz' : 'Flugplatz'} in ${km(d)}`, `${nm}${a.kind === 'heliport' ? 'Mit Hubschrauberverkehr' : 'Mit Flugverkehr'} rechnen.`,
         `<div class="lrules"><span>Fliegen nur:</span> mit Zustimmung der Flugaufsicht · Allgemeinerlaubnis (A2) nur <b>bis 30 m</b> – Kitzrettung mit ${H} m nicht</div>`); });
   if ((b.vh || []).length && !cards.some(c => c.includes('🚁'))) card('🚁', '#d42020', 'Hubschrauberlandeplatz Krankenhaus in der Nähe', `Bis 1,5 km grundsätzlich gesperrt – mit ${H} m Flughöhe <b>Freigabe der Luftsicherheit St. Vincenz nötig</b>.`);
   // PC: Mission zu niedrig geplant, obwohl eine Stromleitung am Feld ist
@@ -10743,7 +10784,7 @@ function liteCardsHtml(b, o) {
   const wantH = DRONE_HEIGHT[P.drone];   // auch UAV-Editor-Felder (Lite-Suche): andere Drohne/Höhe → wird beim Import umgerechnet
   const mm = sel.filter(f => isDroneMismatch(f) || (f.cat && P.drone && ((f.drone && f.drone !== P.drone) || (wantH && f.height && f.height < wantH - 5))));
   if (mm.length && !IS_WEB) card('🔧', '#e07800', 'Feld für andere Drohne/Höhe geplant', `${mm.map(f => esc(f.title)).join(', ')} – wird beim Import automatisch auf ${P.drone === 'M3T' ? 'Mavic 3T umgerechnet (mindestens 50 m)' : 'Matrice 4T umgerechnet (mindestens 70 m)'}. Höher geplante Felder (z. B. wegen Stromleitung) bleiben so hoch.`);
-  if (!cards.length) card('✅', '#13a538', 'Alles frei', pt ? 'An dieser Stelle haben wir nichts Besonderes gefunden. Trotzdem: Himmel beobachten.' : 'An diesen Feldern haben wir nichts Besonderes gefunden. Trotzdem: Himmel beobachten.');
+  if (!cards.length) card('✅', '#13a538', NO_ZONES, '');
   return `<div class="lcheck">${cards.join('')}</div><div class="meta" style="margin-top:8px">Daten: dipul, OpenStreetMap · ohne Gewähr – im Zweifel nicht fliegen.</div>`;
 }
 /** Auflagen in einfachen Worten (Lite) – Grundlage: Allgemeinerlaubnis bzw. Allgemeinverfügung; H = unsere Flughöhe */
