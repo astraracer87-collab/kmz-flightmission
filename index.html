@@ -3856,9 +3856,9 @@ document.querySelectorAll('[data-fsrc]').forEach(b => b.onclick = () => { if (b.
 })();
 setTimeout(srcUi, 0);
 $('bNone').onclick = () => {
-  if (IS_LITE) {   // Lite: über „DJI Cloud“ gewählte Felder, die noch nicht auf der Fernsteuerung liegen, ganz von der Karte nehmen (nicht nur abwählen)
-    const gone = S.files.filter(f => f.cat && !f.inDst && !f.cloudMap).length;
-    S.files = S.files.filter(f => !(f.cat && !f.inDst && !f.cloudMap)); S.files.forEach(f => f.selected = false); S.liteIds = null; S.litePick = new Set();
+  if (IS_LITE) {   // Lite: über „DJI Cloud“ gewählte Felder ganz von der Karte nehmen (nicht nur abwählen)
+    const gone = S.files.filter(f => f.cat && !f.cloudMap).length;   // auch schon heruntergeladene – die liegen weiter auf der Fernsteuerung, nur nicht mehr auf der Karte
+    S.files = S.files.filter(f => !(f.cat && !f.cloudMap)); S.files.forEach(f => f.selected = false); S.liteIds = null; S.litePick = new Set();
     update(); draw(); return toast(gone ? 'Auswahl aufgehoben – Felder von der Karte entfernt.' : 'Auswahl aufgehoben.', false, 2000); }
   S.files.forEach(f => f.selected = false); update(); toast('Alle Felder abgewählt.'); };
 // Suche: Lupe in der Leiste öffnet ein Suchfeld unten mittig über der Karte
