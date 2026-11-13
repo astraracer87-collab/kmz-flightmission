@@ -3737,11 +3737,11 @@ async function load(keepView) {
       const kmlText = A.readKml(f.path);
       const shapes = parseKml(kmlText);
       if (!shapes.length) { bad++; badNames.push(rc ? rcTitle(f) : f.name.replace(/\.km[lz]$/i, '')); continue; }
-      const hm_ = /<wpml:globalHeight>([\d.]+)</.exec(kmlText) || /<wpml:executeHeight>([\d.]+)</.exec(kmlText);
+      const hm_ = kmlHeight(kmlText);
       const ct = /<wpml:createTime>(\d+)</.exec(kmlText), ut = /<wpml:updateTime>(\d+)</.exec(kmlText);
       const e = { name: f.name, path: f.path, ue: !rc, title: f.name.replace(/\.km[lz]$/i, ''), shapes, selected: keep.has(f.path), drone: droneOf(kmlText),
         mtime: +f.mtime || 0, recent: Math.max(+f.mtime || 0, ct ? +ct[1] : 0, ut ? +ut[1] : 0),   // auf die RC geladen (Datei) bzw. zuletzt angelegt/geändert (ms)
-        height: hm_ ? Math.round(+hm_[1]) : null, outline: null };
+        height: hm_, outline: null };
       const b = bounds([e]); e.bounds = b; e.center = [(b.n + b.s) / 2, (b.e + b.w) / 2];
       out.push(e);
     } catch (err) { bad++; badNames.push(rc ? rcTitle(f) : f.name.replace(/\.km[lz]$/i, '')); }
@@ -10511,6 +10511,12 @@ function liteStart(ids, mapOnly) {
     return toast(`${fs.length} Feld${fs.length > 1 ? 'er' : ''} auf der Karte`, false, 2000); }   // kurz – die Knöpfe oben erklären sich selbst
   liteCheckDlg(fs, true);
 }
+/** Geflogene Höhe einer Mission: Median der Wegpunkthöhen (die fliegt Pilot 2) – erst ohne Wegpunkte die angezeigte „Flughöhe“ (globalHeight) */
+function kmlHeight(t) {
+  const hs = [...String(t || '').matchAll(/<wpml:(?:executeHeight|height)>([-\d.]+)</g)].map(m => +m[1]).filter(v => v > 0).sort((a, b) => a - b);
+  if (hs.length) return Math.round(hs[Math.floor(hs.length / 2)]);
+  const g = /<wpml:globalHeight>([\d.]+)</.exec(t || ''); return g ? Math.round(+g[1]) : null;
+}
 /** Lite: Felder, die nur in der DJI Cloud liegen, vor dem Pre-Check holen (in den Quellordner, noch nicht nach „Kitzrettung Import“) und lesen */
 function liteCloudPrefetch(ids, onlyCloud, mapOnly) {
   syncing = true; syncStop = false; S.liteDl = { pre: { ids, mapOnly }, done: 0, total: onlyCloud.length };
@@ -10521,8 +10527,8 @@ function liteCloudPrefetch(ids, onlyCloud, mapOnly) {
 /** KMZ-Datei → Feld-Eintrag (wie beim Laden der Felder) */
 function kmzEntry(path, name) {
   const kml = A.readKml(path), shapes = parseKml(kml); if (!shapes.length) return null;
-  const hm = /<wpml:globalHeight>([\d.]+)</.exec(kml) || /<wpml:executeHeight>([\d.]+)</.exec(kml);
-  const e = { name, path, ue: true, title: String(name).replace(/\.km[lz]$/i, ''), shapes, selected: true, drone: droneOf(kml), mtime: Date.now(), recent: Date.now(), height: hm ? Math.round(+hm[1]) : null, outline: null };
+  const hm = kmlHeight(kml);
+  const e = { name, path, ue: true, title: String(name).replace(/\.km[lz]$/i, ''), shapes, selected: true, drone: droneOf(kml), mtime: Date.now(), recent: Date.now(), height: hm, outline: null };
   const b = bounds([e]); e.bounds = b; e.center = [(b.n + b.s) / 2, (b.e + b.w) / 2]; return e;
 }
 /** Wo die Felder für DJI Pilot 2 liegen – verständlich („Interner Speicher › Kitzrettung Import“) */

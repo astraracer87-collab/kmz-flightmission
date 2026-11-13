@@ -377,6 +377,36 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return t.replaceAll("(<wpml:" + tag + ">)[^<]*(<)", "$1" + Matcher.quoteReplacement(value) + "$2");
     }
 
+    /** Tatsächlich geflogene Höhe einer Mission: Median der Wegpunkthöhen (waylines.wpml executeHeight, sonst template.kml height),
+     *  erst wenn es keine gibt die „Flughöhe“ (globalHeight). Grund: Pilot 2 fliegt die Wegpunkthöhen – die globalHeight kann davon abweichen
+     *  (z. B. Flughöhe 70 m, Wegpunkte aber 50 m). -1 = keine Höhe gefunden. */
+    private static double missionHeight(Map<String, byte[]> entries) {
+        java.util.List<Double> ex = new java.util.ArrayList<>(), ht = new java.util.ArrayList<>(); double g = -1;
+        for (Map.Entry<String, byte[]> en : entries.entrySet()) {
+            String ln = en.getKey().toLowerCase(Locale.ROOT); if (!ln.endsWith(".kml") && !ln.endsWith(".wpml")) continue;
+            String t = new String(en.getValue(), StandardCharsets.UTF_8);
+            Matcher m = Pattern.compile("<wpml:executeHeight>([-\\d.]+)<").matcher(t); while (m.find()) ex.add(Double.parseDouble(m.group(1)));
+            if (ln.endsWith("template.kml")) { Matcher h = Pattern.compile("<wpml:height>([-\\d.]+)<").matcher(t); while (h.find()) ht.add(Double.parseDouble(h.group(1)));
+                Matcher gm = Pattern.compile("<wpml:globalHeight>([-\\d.]+)<").matcher(t); if (gm.find()) g = Double.parseDouble(gm.group(1)); }
+        }
+        java.util.List<Double> l = !ex.isEmpty() ? ex : ht; if (l.isEmpty()) return g;
+        java.util.Collections.sort(l); return l.get(l.size() / 2);
+    }
+    private static Map<String, byte[]> kmzEntries(byte[] kmz) throws Exception {
+        java.util.LinkedHashMap<String, byte[]> entries = new java.util.LinkedHashMap<>();
+        try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(kmz))) { ZipEntry e; while ((e = z.getNextEntry()) != null) { if (!e.isDirectory()) entries.put(e.getName(), readBytes(z)); } }
+        return entries;
+    }
+    /** Alle Höhen um delta verschieben (Gelände-Unterschiede der Wegpunkte bleiben), die Flughöhe danach genau auf target setzen */
+    private static String shiftHeights(String t, double delta, long target) {
+        Matcher m = Pattern.compile("(<wpml:(?:takeOffSecurityHeight|height|ellipsoidHeight|executeHeight)>)([-\\d.]+)(<)").matcher(t);
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) { String v = m.group(2); double nv = Double.parseDouble(v) + delta;
+            m.appendReplacement(sb, Matcher.quoteReplacement(m.group(1) + (v.contains(".") ? String.format(Locale.ROOT, "%.1f", nv) : String.valueOf(Math.round(nv))) + m.group(3))); }
+        m.appendTail(sb);
+        return setTag(sb.toString(), "globalHeight", String.valueOf(target));
+    }
+
     /** base: Flughöhe aus template.kml – für ALLE Dateien der Mission dieselbe (waylines.wpml hat keine globalHeight;
      *  früher wurde dort mit 50 m gerechnet → Wegpunkte z. B. 90 m, Flughöhe 70 m) */
     private static String convertKml(String t, String from, String to, double base) {
@@ -397,16 +427,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         t = setTag(t, "droneSubEnumValue", String.valueOf(b[1]));
         t = setTag(t, "payloadEnumValue", String.valueOf(b[2]));
         t = setTag(t, "updateTime", String.valueOf(System.currentTimeMillis()));
-        Matcher m = Pattern.compile("(<wpml:(?:globalHeight|takeOffSecurityHeight|height|ellipsoidHeight|executeHeight)>)([-\\d.]+)(<)").matcher(t);
-        StringBuffer sb = new StringBuffer();
-        while (m.find()) {
-            String v = m.group(2);
-            double nv = Double.parseDouble(v) + delta;
-            String out = v.contains(".") ? String.format(Locale.ROOT, "%.1f", nv) : String.valueOf(Math.round(nv));
-            m.appendReplacement(sb, Matcher.quoteReplacement(m.group(1) + out + m.group(3)));
-        }
-        m.appendTail(sb);
-        return sb.toString();
+        return shiftHeights(t, delta, newBase);
     }
 
     /** Rechnet eine KMZ auf die Zieldrohne um. null = keine Änderung nötig (schon richtige Drohne). */
@@ -434,16 +455,16 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         if (from.equals(to)) {
             // Höhe prüfen – bei gleicher Drohne nur korrigieren, wenn Höhe abweicht
             int[] td = DRONES.get(to);
-            Matcher gm = Pattern.compile("<wpml:globalHeight>([-\\d.]+)<").matcher(tpl);
-            if (gm.find() && td != null) {
-                double h = Double.parseDouble(gm.group(1));
+            double mh0 = missionHeight(entries);
+            if (mh0 > 0 && td != null) {
+                double h = mh0;
                 double wantH = 50.0 * Math.tan(Math.toRadians(49.0 / 2.0)) / Math.tan(Math.toRadians(td[3] / 2.0));
                 if (h >= wantH - 5) return null;   // Mindesthöhe erreicht (höher ist erlaubt, z. B. 70 m wegen Stromleitung) → nichts zu tun
             } else return null;
             // Höhe falsch → durchfallen lassen und umrechnen (from=to, aber convertKml setzt Höhe korrekt)
         }
-        Matcher tb = Pattern.compile("<wpml:globalHeight>([-\\d.]+)<").matcher(tpl);
-        final double tplBase = tb.find() ? Double.parseDouble(tb.group(1)) : 50;
+        double mh1 = missionHeight(entries);
+        final double tplBase = mh1 > 0 ? mh1 : 50;   // geflogene Höhe (Wegpunkte), nicht nur die angezeigte Flughöhe
         for (Map.Entry<String, byte[]> en : entries.entrySet()) {
             String ln = en.getKey().toLowerCase(Locale.ROOT);
             if (ln.endsWith(".kml") || ln.endsWith(".wpml"))
@@ -471,10 +492,9 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 String t = new String(readBytes(z), StandardCharsets.UTF_8);
                 String from = droneOfKml(t);
                 if (from != null && !from.equals(to)) return true;   // falsche Drohne
-                // gleiche (oder unbekannte) Drohne – Höhe prüfen
-                Matcher gm = Pattern.compile("<wpml:globalHeight>([-\\d.]+)<").matcher(t);
-                if (gm.find()) {
-                    double h = Double.parseDouble(gm.group(1));
+                // gleiche (oder unbekannte) Drohne – Höhe prüfen (geflogene Höhe = Wegpunkte, nicht nur die Flughöhe)
+                double h = -1; try { h = missionHeight(kmzEntries(java.nio.file.Files.readAllBytes(src.toPath()))); } catch (Exception ignored) { }
+                if (h > 0) {
                     // Sollhöhe für Zieldrohne berechnen (gleiche Streifenbreite)
                     double wantH = 50.0 * Math.tan(Math.toRadians(49.0 / 2.0)) / Math.tan(Math.toRadians(td[3] / 2.0));
                     if (h < wantH - 5) return true;   // unter der Mindesthöhe der Drohne (M3T 50 m, M4T 70 m) – höher ist in Ordnung
@@ -495,12 +515,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(kmz))) {
             ZipEntry e; while ((e = z.getNextEntry()) != null) { if (!e.isDirectory()) entries.put(e.getName(), readBytes(z)); }
         }
-        double base = -1;
-        for (Map.Entry<String, byte[]> en : entries.entrySet()) {
-            if (!en.getKey().toLowerCase(Locale.ROOT).endsWith("template.kml")) continue;
-            Matcher gm = Pattern.compile("<wpml:globalHeight>([-\\d.]+)<").matcher(new String(en.getValue(), StandardCharsets.UTF_8));
-            if (gm.find()) base = Double.parseDouble(gm.group(1));
-        }
+        double base = missionHeight(entries);   // geflogene Höhe (Wegpunkte)
         minH = Math.min(minH, 250);   // Obergrenze rechnet die App (120 m, an Masten über 105 m bis 15 m darüber – EU UAS.OPEN.010)
         if (base < 0 || (exact ? Math.abs(base - minH) < 0.5 : base >= minH - 0.5)) return kmz;   // schon passend (oder keine Höhe gefunden)
         double delta = minH - base;
@@ -509,11 +524,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             for (Map.Entry<String, byte[]> en : entries.entrySet()) {
                 byte[] v = en.getValue(); String ln = en.getKey().toLowerCase(Locale.ROOT);
                 if (ln.endsWith(".kml") || ln.endsWith(".wpml")) {
-                    Matcher m = Pattern.compile("(<wpml:(?:globalHeight|takeOffSecurityHeight|height|ellipsoidHeight|executeHeight)>)([-\\d.]+)(<)").matcher(new String(v, StandardCharsets.UTF_8));
-                    StringBuffer sb = new StringBuffer();
-                    while (m.find()) { String x = m.group(2); double nv = Double.parseDouble(x) + delta;
-                        m.appendReplacement(sb, Matcher.quoteReplacement(m.group(1) + (x.contains(".") ? String.format(Locale.ROOT, "%.1f", nv) : String.valueOf(Math.round(nv))) + m.group(3))); }
-                    m.appendTail(sb); v = sb.toString().getBytes(StandardCharsets.UTF_8);
+                    v = shiftHeights(new String(v, StandardCharsets.UTF_8), delta, Math.round(minH)).getBytes(StandardCharsets.UTF_8);
                 }
                 ZipEntry ze = new ZipEntry(en.getKey()); ze.setTime(System.currentTimeMillis()); zo.putNextEntry(ze); zo.write(v); zo.closeEntry();
             }
