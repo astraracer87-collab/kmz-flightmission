@@ -3007,6 +3007,7 @@ function isDroneMismatch(f) {
   // Fall 2: richtige Drohne (oder keine erkannt), aber unter der Mindesthöhe (M3T 50 m, M4T 70 m). Höher ist in Ordnung –
   // z. B. 70 m mit der M3T wegen Stromleitung oder Hindernis. Die M4T darf aber nie unter 70 m fliegen.
   if (f.height && f.height < wantH - 5) return true;
+  if (f.height && f.height > Math.max(wantH, pwrNeedH(f)) + 5 && pwrAdj()) return true;   // höher als nötig (keine Leitung, die das verlangt) → auf Sollhöhe
   return false;
 }
 /** PC: Name und Höhe passen nicht zusammen – „…-M4T“ unter 70 m geplant, oder „…-M3T“ auf 70 m, obwohl die Flugbahn keine Stromleitung überquert.
@@ -3147,7 +3148,9 @@ function heightPlan(f, to, noPwr) {
   if (!need0 && h > std + 5 && !lowHazards(f, std).length) issues.push(`Höher als üblich: ${h} m statt ${std} m, obwohl an der Flugbahn weder Stromleitung noch hohes Hindernis liegt.`);
   // andere Drohne: nach unseren Regeln, nicht hochrechnen – Mindesthöhe der Drohne (M3T 50 m, M4T 70 m), an Stromleitungen die nötige Höhe.
   // (War eine M3T-Planung wegen der Leitung auf 70 m, fliegt die M4T dort auch 70 m.) Gleiche Drohne: geplante Höhe, aber nie darunter.
-  const conv = orig === to ? h : DRONE_HEIGHT[to];
+  // Regel: immer die Sollhöhe der fliegenden Drohne (egal wofür/wie geplant – Fehlplanungen), an Stromleitungen die nötige Höhe.
+  // Ausnahme: Stromleitung, aber automatisches Anheben aus → nie unter die geplante Höhe.
+  const conv = noPwr && need0 ? Math.max(h, DRONE_HEIGHT[to]) : DRONE_HEIGHT[to];
   const fin = Math.min(Math.max(MAX_H, need), Math.max(conv, DRONE_HEIGHT[to], need));
   return { h, orig, to, need, top, fin, issues, conv };
 }
@@ -3824,11 +3827,11 @@ function toggle(f) {
     const wantH = DRONE_HEIGHT[P.drone] || '?';
     const hasH = f.height || '?';
     const wrongDrone = f.drone && f.drone !== P.drone;
-    const wrongH = f.height && f.height < wantH - 5;   // nur zu niedrig ist falsch
+    const wrongH = f.height && (f.height < wantH - 5 || f.height > Math.max(wantH, pwrNeedH(f)) + 5);   // zu niedrig – oder höher als nötig
     // Fehlerliste zusammenbauen
     const issues = [];
     if (wrongDrone) issues.push(`❌ Drohne: ${DN[f.drone] || f.drone} (soll: ${DN[P.drone] || P.drone})`);
-    if (wrongH) issues.push(`❌ Flughöhe: ${hasH} m (mindestens: ${wantH} m)`);
+    if (wrongH) issues.push(`❌ Flughöhe: ${hasH} m (soll: ${Math.max(wantH, pwrNeedH(f))} m)`);
     const title = wrongDrone && wrongH ? '⚠ Falsche Drohne und Flughöhe'
                 : wrongDrone ? '⚠ Falsche Drohne' : '⚠ Falsche Flughöhe';
     const hp = heightPlan(f, P.drone, !pwrAdj()), finH = hp ? hp.fin : wantH;   // dieselben Regeln wie überall: Mindesthöhe der Drohne, Stromleitung – nicht hochrechnen
@@ -4861,6 +4864,7 @@ function doTransfer(paths, drone, keys, extraMinH) {
     if (A.setMinHeights) { const mh = {};
       if (pwrAdj()) paths.forEach(p => { const f = fOf(p), n = f ? pwrNeedH(f) : 0; if (n) mh[p] = n; });   // Mastspitze + 20 m, mind. Einstellung, höchstens 120 m (bzw. 15 m über Masten über 105 m)
       // Nie tiefer als geplant, wenn für das Gebiet keine Leitungs-/Hindernisdaten da sind (offline, noch nicht geladen) – dann wissen wir nicht, was dort steht
+      if (!pwrAdj()) paths.forEach(p => { const f = fOf(p); if (f && f.height && pwrNeedH(f)) mh[p] = Math.max(mh[p] || 0, Math.round(f.height)); });   // Anheben aus: über Leitungen nie tiefer als geplant
       let blind = 0; if (drone) paths.forEach(p => { const f = fOf(p); if (!f || !f.height || geoNear(f)) return; const hp = heightPlan(f, drone, !pwrAdj());
         if (hp && hp.fin < f.height - 2) { mh[p] = Math.max(mh[p] || 0, Math.round(f.height)); blind++; } });
       if (blind) setTimeout(() => toast(`Für ${blind} Feld${blind > 1 ? 'er' : ''} fehlen Leitungs-/Hindernisdaten – geplante Höhe beibehalten statt abzusenken.`, 'warn', 7000), 1500);
@@ -10621,7 +10625,9 @@ function liteImport() {
   // Würde ein Feld niedriger als geplant (z. B. 70 → 50 m, egal für welche Drohne geplant) und liegen dort hohe Hindernisse:
   // den Piloten fragen, ob er die geplante Höhe beibehalten will (Stromleitungen hebt die App ohnehin auf Mastspitze + 20 m an)
   const risky = [];
-  Object.entries(fl).forEach(([id, n]) => { const f = S.files.find(x => (x.cat && String((x.uave || {}).id || '') === String(id)) || x.cloudId === String(id)); if (!f || !f.height) return;
+  Object.entries(fl).forEach(([id, n]) => { const f = S.files.find(x => (x.cat && String((x.uave || {}).id || '') === String(id)) || x.cloudId === String(id)); if (!f) return;
+    try { const kh = kmlHeight(A.readKml(base + n)); if (kh) f.height = kh; } catch (e) { }   // geflogene Höhe aus der geladenen Datei (Wegpunkte) – die Angabe im UAV Editor kann abweichen
+    if (!f.height) return;
     const hp = heightPlan(f, P.drone, !pwrAdj()); if (!hp || hp.fin >= f.height - 2) return;   // wird nicht niedriger
     const hz = lowHazards(f, hp.fin).filter(x => !(x === 'Stromleitung' && pwrAdj())); if (hz.length) risky.push({ f, path: base + n, hz, to: hp.fin }); });
   const lowTo = risky.length ? Math.min(...risky.map(x => x.to)) : 0;

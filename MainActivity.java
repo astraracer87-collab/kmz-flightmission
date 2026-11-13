@@ -392,6 +392,24 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         java.util.List<Double> l = !ex.isEmpty() ? ex : ht; if (l.isEmpty()) return g;
         java.util.Collections.sort(l); return l.get(l.size() / 2);
     }
+    /** Flughöhe und sichere Startflughöhe immer auf die geflogene Höhe (Wegpunkte) setzen – die Exporte aus dem UAV Editor
+     *  haben dort oft andere Werte (z. B. Flughöhe 95 m, Wegpunkte 70 m, sichere Startflughöhe 50 m). */
+    private static byte[] normalizeKmz(byte[] kmz) throws Exception {
+        Map<String, byte[]> entries = kmzEntries(kmz); double base = missionHeight(entries); if (base <= 0) return kmz;
+        String hv = String.valueOf(Math.round(base)); boolean changed = false;
+        for (Map.Entry<String, byte[]> en : entries.entrySet()) {
+            String ln = en.getKey().toLowerCase(Locale.ROOT); if (!ln.endsWith(".kml") && !ln.endsWith(".wpml")) continue;
+            String t = new String(en.getValue(), StandardCharsets.UTF_8), n = setTag(setTag(t, "globalHeight", hv), "takeOffSecurityHeight", hv);
+            if (!n.equals(t)) { en.setValue(n.getBytes(StandardCharsets.UTF_8)); changed = true; }
+        }
+        if (!changed) return kmz;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zo = new java.util.zip.ZipOutputStream(out)) {
+            for (Map.Entry<String, byte[]> en : entries.entrySet()) { ZipEntry ze = new ZipEntry(en.getKey()); ze.setTime(System.currentTimeMillis()); zo.putNextEntry(ze); zo.write(en.getValue()); zo.closeEntry(); }
+        }
+        return out.toByteArray();
+    }
+
     /** Höhe über Meeresspiegel geplant (EGM96/WGS84)? Dann rechnen wir keine Höhen um – das ginge schief (z. B. 300 m ü. NN). */
     private static boolean absHeight(Map<String, byte[]> entries) {
         for (Map.Entry<String, byte[]> en : entries.entrySet()) {
@@ -424,7 +442,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         // Regel (nicht hochrechnen): andere Drohne → deren Mindesthöhe (M3T 50 m, M4T 70 m); gleiche Drohne → geplante Höhe, nie darunter.
         // Stromleitungen hebt danach raiseKmz an (Mastspitze + 20 m, mind. Einstellung).
         long minH = Math.round(50.0 * Math.tan(Math.toRadians(49.0 / 2.0)) / Math.tan(Math.toRadians(b[3] / 2.0)));
-        long newBase = Math.max(minH, from.equals(to) ? Math.round(base) : 0);
+        long newBase = minH;   // immer die Sollhöhe der Drohne, egal was geplant war (Fehlplanungen) – Stromleitung/„Höhe beibehalten“ hebt raiseKmz danach an
         newBase = Math.min(newBase, 120);   // Open-Kategorie: höchstens 120 m
         double delta = newBase - base;
         t = setTag(t, "droneEnumValue", String.valueOf(b[0]));
@@ -463,7 +481,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (mh0 > 0 && td != null) {
                 double h = mh0;
                 double wantH = 50.0 * Math.tan(Math.toRadians(49.0 / 2.0)) / Math.tan(Math.toRadians(td[3] / 2.0));
-                if (h >= wantH - 5) return null;   // Mindesthöhe erreicht (höher ist erlaubt, z. B. 70 m wegen Stromleitung) → nichts zu tun
+                if (Math.abs(h - wantH) <= 5) return null;   // passt schon zur Drohne → nichts zu tun
             } else return null;
             // Höhe falsch → durchfallen lassen und umrechnen (from=to, aber convertKml setzt Höhe korrekt)
         }
@@ -501,7 +519,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 if (h > 0) {
                     // Sollhöhe für Zieldrohne berechnen (gleiche Streifenbreite)
                     double wantH = 50.0 * Math.tan(Math.toRadians(49.0 / 2.0)) / Math.tan(Math.toRadians(td[3] / 2.0));
-                    if (h < wantH - 5) return true;   // unter der Mindesthöhe der Drohne (M3T 50 m, M4T 70 m) – höher ist in Ordnung
+                    if (Math.abs(h - wantH) > 5) return true;   // weicht von der Sollhöhe der Drohne ab (M3T 50 m, M4T 70 m) – auf Sollhöhe, Stromleitung hebt danach an
                 }
                 return false;
             }
@@ -864,6 +882,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 byte[] converted = rewriteKmz(f, toDrone);
                 // dieselben Höhenregeln wie beim Übertragen: genaue Zielhöhe der Seite, dann Stromleitung (Mastspitze + 20 m, mind. Einstellung)
                 Double mh = MIN_H.get(filePath); if (mh != null && mh > 0) converted = raiseKmz(converted, mh, false);
+                converted = normalizeKmz(converted);
                 // neuen Dateinamen: Drohnenkürzel im Namen tauschen
                 String newName = swapDroneInName(f.getName(), toDrone);
                 File target = new File(f.getParentFile(), newName);
@@ -924,6 +943,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         byte[] converted = rewriteKmz(src, conv ? drone : null);
                         Double mh = abs ? null : MIN_H.get(paths.getString(i));   // Stromleitung am Feld: Mindesthöhe (Einstellung „Überflughöhe an Stromleitungen“)
                         if (mh != null && mh > 0) { byte[] r = raiseKmz(converted, mh, false); if (r != converted) res.put("raised", res.optInt("raised", 0) + 1); converted = r; }
+                        if (!abs) converted = normalizeKmz(converted);   // Flughöhe/sichere Startflughöhe = Wegpunkthöhe
                         String name = conv ? swapDroneInName(src.getName(), drone) : src.getName();
                         File target = new File(dst, name);
                         if (src.getCanonicalPath().equals(target.getCanonicalPath())) {
