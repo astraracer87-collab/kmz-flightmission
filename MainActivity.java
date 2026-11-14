@@ -1767,8 +1767,17 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     private File uaveBackupFile() { return new File(hasFileAccess() ? extDataDir() : dataDir(), "Sonstiges/.uave-zugang"); }
-    private static javax.crypto.spec.SecretKeySpec backupKey() throws Exception {
+    /** v1 (alt): Schlüssel nur aus festem Text – den kennt jeder, der den Quellcode sieht. Nur noch zum einmaligen Übernehmen alter Sicherungen.
+     *  v2: zusätzlich die ANDROID_ID dieser App auf diesem Gerät. Die ist je App-Signatur verschieden (andere Apps sehen eine andere),
+     *  bleibt aber bei Neuinstallation derselben App gleich – die Sicherung funktioniert also weiter, ist für fremde Apps aber nicht entschlüsselbar. */
+    private static javax.crypto.spec.SecretKeySpec backupKeyV1() throws Exception {
         byte[] k = java.security.MessageDigest.getInstance("SHA-256").digest("MissionKitzrettung|UAV-Editor-Zugang|v1|Kitzrettung-Limburg".getBytes(StandardCharsets.UTF_8));
+        return new javax.crypto.spec.SecretKeySpec(k, "AES");
+    }
+    private javax.crypto.spec.SecretKeySpec backupKey() throws Exception {
+        String aid = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+        if (aid == null || aid.isEmpty()) throw new Exception("keine Geräte-ID");
+        byte[] k = java.security.MessageDigest.getInstance("SHA-256").digest(("MissionKitzrettung|UAV-Editor-Zugang|v2|" + aid).getBytes(StandardCharsets.UTF_8));
         return new javax.crypto.spec.SecretKeySpec(k, "AES");
     }
     private void uaveBackupSave(String user, String password) {
@@ -1780,19 +1789,23 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
             c.init(Cipher.ENCRYPT_MODE, backupKey(), new GCMParameterSpec(128, iv));
             byte[] ct = c.doFinal(new JSONObject().put("u", user.trim()).put("p", pw).toString().getBytes(StandardCharsets.UTF_8));
-            writeFileAtomic(uaveBackupFile(), Base64.encodeToString(iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(ct, Base64.NO_WRAP));
+            writeFileAtomic(uaveBackupFile(), "v2:" + Base64.encodeToString(iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(ct, Base64.NO_WRAP));
         } catch (Exception ignored) { }
     }
     /** Beim Start: kein Zugang in der App, aber Sicherung im Cache-Ordner → übernehmen */
     private void uaveBackupRestore() {
         try {
-            if (prefs.contains("uave_pw") && !prefs.getString("uave_user", "").isEmpty()) { if (!uaveBackupFile().isFile()) uaveBackupSave(prefs.getString("uave_user", ""), null); return; }
-            File f = uaveBackupFile(); if (!f.isFile()) return;
-            String[] p = readFile(f).trim().split(":");
+            File f = uaveBackupFile();
+            boolean have = prefs.contains("uave_pw") && !prefs.getString("uave_user", "").isEmpty();
+            String raw = f.isFile() ? readFile(f).trim() : "";
+            if (have) { if (!raw.startsWith("v2:")) uaveBackupSave(prefs.getString("uave_user", ""), null); return; }   // fehlt oder noch alte (unsichere) Fassung → neu schreiben
+            if (raw.isEmpty()) return;
+            boolean v2 = raw.startsWith("v2:"); String[] p = (v2 ? raw.substring(3) : raw).split(":");
             Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
-            c.init(Cipher.DECRYPT_MODE, backupKey(), new GCMParameterSpec(128, Base64.decode(p[0], Base64.NO_WRAP)));
+            c.init(Cipher.DECRYPT_MODE, v2 ? backupKey() : backupKeyV1(), new GCMParameterSpec(128, Base64.decode(p[0], Base64.NO_WRAP)));
             JSONObject o = new JSONObject(new String(c.doFinal(Base64.decode(p[1], Base64.NO_WRAP)), StandardCharsets.UTF_8));
             prefs.edit().putString("uave_user", o.getString("u")).putString("uave_pw", encrypt(o.getString("p"))).putString("uave_restored", "1").commit();
+            if (!v2) uaveBackupSave(o.getString("u"), o.getString("p"));   // alte Sicherung sofort durch die sichere ersetzen
         } catch (Exception ignored) { }
     }
 
@@ -4768,6 +4781,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (!have) viewReqAt = System.currentTimeMillis();   // Ansicht braucht Netz: Vorab-Download kurz pausieren
             boolean on = online();
             long fresh = km[0].startsWith("dipul/") ? Long.MAX_VALUE / 2 : km[0].startsWith("bmv/") && km[0].endsWith(".json") ? 7L * 24 * 3600 * 1000 : TILE_FRESH;   // Geozonen: nur auf Knopfdruck neu (dipulClear)
+            if (have && on && km[0].startsWith("dop3/") && System.currentTimeMillis() - f.lastModified() < fresh) {   // Luftbild nur teilweise abgedeckt (PNG mit Lücken): Esri drunterlegen, nur anzeigen
+                byte[] cb = readAll(f);
+                if (isPng(cb)) { List<String> sg = u.getPathSegments(); byte[] e = withEsri(Integer.parseInt(sg.get(0)), Integer.parseInt(sg.get(1)), Integer.parseInt(sg.get(2)), cb); return wr(isPng(e) ? "image/png" : "image/jpeg", new ByteArrayInputStream(e)); }
+            }
             if (have && (!on || System.currentTimeMillis() - f.lastModified() < fresh)) return tileResp(f, km[1]);
             if (!on && km[0].startsWith("dipul/c/")) {   // offline: aus gespeicherten Einzelbildern zusammensetzen
                 List<String> sg = u.getPathSegments();
@@ -4788,7 +4805,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     List<String> seg = u.getPathSegments();
                     DOP_PARTIAL.set(false);
                     b = dopTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("s"));
-                    if (b != null && DOP_PARTIAL.get()) return wr("image/jpeg", new ByteArrayInputStream(b));   // unvollständig: zeigen, nicht speichern
+                    if (b != null && (DOP_PARTIAL.get() || isPng(b))) {   // Lücken im amtlichen Luftbild: Esri drunter (nur anzeigen); vollständig geantwortet → amtlichen Teil speichern (offline)
+                        int z = Integer.parseInt(seg.get(0)), x = Integer.parseInt(seg.get(1)), y = Integer.parseInt(seg.get(2));
+                        boolean part = DOP_PARTIAL.get();
+                        byte[] e = isPng(b) ? withEsri(z, x, y, b) : b;
+                        if (!part) saveTile(f, b);
+                        return wr(isPng(e) ? "image/png" : "image/jpeg", new ByteArrayInputStream(e));
+                    }
                     if (b == null) {   // außerhalb HE/RP: Esri nur zum Ansehen
                         byte[] e = httpBytes("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + seg.get(0) + "/" + seg.get(2) + "/" + seg.get(1));
                         if (e != null) return wr("image/jpeg", new ByteArrayInputStream(e));
@@ -4914,16 +4937,20 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             try { b = httpBytes((he ? DOP_HE : DOP_RP).replace("FORMAT=image/png&TRANSPARENT=TRUE", "FORMAT=image/jpeg") + bbox); } catch (Exception ignored) { }
             if (b == null) return null;
             android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
-            boolean ok = bm != null && hasContent(bm);
+            int cov = bm != null ? coverage(bm) : 0;
             if (bm != null) bm.recycle();
-            return ok ? b : null;
+            if (cov <= 3) return null;          // hier kein Luftbild (z. B. Zoomstufe ohne Daten) → Esri
+            if (cov >= 254) return b;           // voll abgedeckt: JPEG direkt
+            // Rand des Landes: weiße Fläche im JPEG → transparent nachladen, damit drunter Esri statt Weiß/Grau erscheint
+            fHe = he ? dp.submit(() -> httpBytes(DOP_HE + bbox)) : null;
+            fRp = rp ? dp.submit(() -> httpBytes(DOP_RP + bbox)) : null;
         }
         android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas cv = new android.graphics.Canvas(out);
-        cv.drawColor(0xffd9d9d0);
         boolean any = false;
         DOP_PARTIAL.set(false);
         for (java.util.concurrent.Future<byte[]> fu : new java.util.concurrent.Future[]{fRp, fHe}) {
+            if (fu == null) continue;
             byte[] b = null;
             try { b = fu.get(40, java.util.concurrent.TimeUnit.SECONDS); } catch (Exception ignored) { }
             if (b == null) { DOP_PARTIAL.set(true); continue; }   // ein Landesdienst fehlt: anzeigen, aber nicht speichern (sonst bleibt ein grauer Fleck)
@@ -4933,10 +4960,42 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             bm.recycle();
         }
         if (!any) { out.recycle(); return null; }
+        boolean full = coverage(out) >= 254;
         ByteArrayOutputStream bo = new ByteArrayOutputStream();
-        out.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, bo);
+        if (full) {   // voll: als JPEG (klein)
+            android.graphics.Bitmap j = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas c2 = new android.graphics.Canvas(j); c2.drawColor(0xffffffff); c2.drawBitmap(out, 0, 0, null);
+            j.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, bo); j.recycle();
+        } else out.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, bo);   // Lücken bleiben durchsichtig (kein grauer Streifen) – beim Anzeigen kommt Esri drunter
         out.recycle();
         return bo.toByteArray();
+    }
+
+    /** Anteil der Stichproben (von 256) mit echtem Bildinhalt – nicht durchsichtig, nicht weiß, nicht Füllgrau */
+    private static int coverage(android.graphics.Bitmap bm) {
+        int w = bm.getWidth(), h = bm.getHeight(), hits = 0;
+        for (int i = 0; i < 16; i++) for (int j = 0; j < 16; j++) {
+            int p = bm.getPixel(Math.min(w - 1, i * w / 16 + w / 32), Math.min(h - 1, j * h / 16 + h / 32));
+            int a = p >>> 24, r = (p >> 16) & 255, g = (p >> 8) & 255, b = p & 255;
+            if (a > 40 && !(r > 250 && g > 250 && b > 250)) hits++;
+        }
+        return hits;
+    }
+    static boolean isPng(byte[] b) { return b != null && b.length > 4 && (b[0] & 255) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G'; }
+    private static byte[] readAll(File f) throws Exception { try (FileInputStream in = new FileInputStream(f)) { ByteArrayOutputStream bo = new ByteArrayOutputStream(); byte[] buf = new byte[16384]; int n; while ((n = in.read(buf)) > 0) bo.write(buf, 0, n); return bo.toByteArray(); } }
+    /** Teil-Luftbild (PNG mit Lücken) auf Esri legen – nur zum Anzeigen, wird nicht gespeichert. Ohne Esri: PNG unverändert */
+    private static byte[] withEsri(int z, int x, int y, byte[] png) {
+        try {
+            byte[] e = httpBytes("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + z + "/" + y + "/" + x);
+            if (e == null) return png;
+            android.graphics.Bitmap eb = android.graphics.BitmapFactory.decodeByteArray(e, 0, e.length), pb = android.graphics.BitmapFactory.decodeByteArray(png, 0, png.length);
+            if (eb == null || pb == null) { if (eb != null) eb.recycle(); if (pb != null) pb.recycle(); return png; }
+            android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas cv = new android.graphics.Canvas(out); android.graphics.Rect r = new android.graphics.Rect(0, 0, 256, 256);
+            cv.drawBitmap(eb, null, r, null); cv.drawBitmap(pb, null, r, null); eb.recycle(); pb.recycle();
+            ByteArrayOutputStream bo = new ByteArrayOutputStream(); out.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, bo); out.recycle();
+            return bo.toByteArray();
+        } catch (Throwable t) { return png; }
     }
 
     /** Für den Vorab-Download: nur vollständige Luftbilder (beide Landesdienste geantwortet) */
@@ -4949,7 +5008,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     /** Einmalig: früher gespeicherte Luftbilder mit grauem Fleck (ein Landesdienst fehlte) löschen – werden neu geladen */
     private void dopCleanup() {
-        if (prefs.getBoolean("dop_clean1", false)) return;
+        if (prefs.getBoolean("dop_clean2", false)) return;
         new Thread(() -> {
             int del = 0;
             java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
@@ -4965,14 +5024,14 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         int w = bm.getWidth(), h = bm.getHeight(), grey = 0, tot = 0;
                         for (int yy = 0; yy < h; yy += 2) for (int xx = 0; xx < w; xx += 2) {
                             int p = bm.getPixel(xx, yy), r = (p >> 16) & 255, g = (p >> 8) & 255, bl = p & 255; tot++;
-                            if (Math.abs(r - 0xd9) < 7 && Math.abs(g - 0xd9) < 7 && Math.abs(bl - 0xd0) < 7) grey++;
+                            if ((Math.abs(r - 0xd9) < 7 && Math.abs(g - 0xd9) < 7 && Math.abs(bl - 0xd0) < 7) || (r > 250 && g > 250 && bl > 250)) grey++;   // Füllgrau oder Weiß (Rand des Landes)
                         }
                         bm.recycle();
                         if (grey * 10 > tot) { f.delete(); del++; }   // mehr als 10 % Füllgrau = unvollständig
                     } catch (Throwable ignored) { }
                 }
             }
-            prefs.edit().putBoolean("dop_clean1", true).apply();
+            prefs.edit().putBoolean("dop_clean2", true).apply();
             if (del > 0) { prefs.edit().remove("esBox5").apply(); js("window.onDopCleaned && window.onDopCleaned(" + del + ")"); }
         }).start();
     }

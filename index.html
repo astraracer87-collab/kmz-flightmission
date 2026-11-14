@@ -838,7 +838,7 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
   <div class="body">
     <nav class="setnav"><button data-sc="drohne">Drohne &amp; Dateien</button><button data-sc="karte">Karte</button><button data-sc="luft">Luftraum &amp; Regeln</button><button data-sc="notam">NOTAMs</button><button data-sc="radar">Flugradar</button><button data-sc="wetter">Wetter</button></nav>
     <h3 class="setcat" id="sc-drohne">Drohne &amp; Dateien</h3>
-    <div class="set"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Gibt es ein Feld als M3T und M4T, zeigt die Karte nur die passende Version; Felder, die es nur einmal gibt, immer (sie werden beim Download bei Bedarf umgerechnet).</div></div><div class="seg"><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
+    <div class="set" data-lite="1"><div class="l"><div class="t">Drohne dieser Fernsteuerung</div><div class="v">Wird beim Download automatisch vorgewählt. Gibt es ein Feld als M3T und M4T, zeigt die Karte nur die passende Version; Felder, die es nur einmal gibt, immer (sie werden beim Download bei Bedarf umgerechnet).</div></div><div class="seg"><button data-rcdrone="M3T">Mavic 3T</button><button data-rcdrone="M4T">Matrice 4T</button></div></div>
     <div class="set"><div class="l"><div class="t">Einsatzplan</div><div class="v">Zeigt für die markierten Wiesen eine sinnvolle Reihenfolge (kürzeste Wege), Flugzeit, Akku-Bedarf und das voraussichtliche Ende – im Vergleich dazu, ab wann es wärmer wird und das Wärmebild nachlässt. Knopf „Plan“ unten, sobald Wiesen markiert sind.</div></div><input id="sPlanBatt" class="inp" style="width:90px" type="number" min="10" max="60" placeholder="Min/Akku"><label class="sw"><input type="checkbox" id="sPlan"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Quellordner (KMZ aus UAV Editor)</div><div class="v" id="vSrc"></div></div><button class="b-sec" data-pick="src">Ordner wählen</button></div>
     <div class="set"><div class="l"><div class="t">Felder löschen</div><div class="v" id="vKmzDel">Markierte Felder auf der Karte löschen: UAV-Editor-Felder aus dem Ordner „UAV-Editor“ (wieder holbar), Missionen der Fernsteuerung samt Ordner aus DJI Pilot 2 (endgültig). Es wird vorher nachgefragt.</div></div><button class="b-sec" id="bKmzDelSel">Markierte</button><button class="b-sec" id="bKmzDelAll">Alle</button></div>
@@ -850,7 +850,7 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
     <div class="set" style="display:none"><div class="l"><div class="t">Verschieben statt kopieren</div></div><label class="sw"><input type="checkbox" id="sMove"><span></span></label></div>
     <div class="set" style="display:none"><div class="l"><div class="t">Zielordner vor Download leeren</div></div><label class="sw"><input type="checkbox" id="sClear"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Import-Ordner</div><div class="v">Im Ordner „UAV-Editor“ liegen alle Felder. Bei jedem Download wird der Import-Ordner zuerst geleert und dann nur mit den ausgewählten Feldern befüllt (kopiert) – so liegen in Pilot 2 unter „Route importieren“ keine alten Dateien herum.</div></div></div>
-    <div class="set" style="flex-direction:column;align-items:stretch">
+    <div class="set" data-lite="1" style="flex-direction:column;align-items:stretch">
       <div class="t">UAV Editor – Zugang für „UAV Editor“</div>
       <div class="v" id="vUave" style="margin-bottom:8px"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -875,8 +875,8 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
     <div class="set"><div class="l"><div class="t">Feldnamen auf Karte</div><div class="v">Auch über ⓘ → „Felder“ schaltbar</div></div><label class="sw"><input type="checkbox" id="sLabels"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Hindernisse aus OpenStreetMap</div><div class="v">Windräder (grün, mit Gesamthöhe), Masten/Türme/Schornsteine (braunes Dreieck), Bahnstrecken (schwarz-weiß) und alle Freileitungen nach Spannung: violett dick = Höchstspannung (220/380 kV), violett = Hochspannung (110 kV), orange = Mittelspannung, grau gestrichelt = Nieder-/unbekannte Spannung. Auch Leitungen ohne dipul-Geozone – Hindernis beim Start und Tiefflug. <span class="lnk" id="bLineGuide">Strommasten &amp; Leitungen erkennen</span></div></div><label class="sw"><input type="checkbox" id="sOsmPower"><span></span></label></div>
     <h3 class="setcat" id="sc-luft">Luftraum &amp; Regeln</h3>
-    <div class="set" id="setPwr"><div class="l"><div class="t">Überflughöhe an Stromleitungen</div><div class="v">Mindesthöhe über Freileitungen. Bei hohen Masten mehr: immer Mastspitze + 20 m (z. B. 380 kV → 100 m), höchstens 120 m – bei Masten über 105 m bis 15 m über der Mastspitze, nur mit Einverständnis des Betreibers. Schalter an: Felder werden beim Übertragen auf die Fernsteuerung automatisch so angehoben (Bahnen bleiben gleich). Aus: nichts wird angehoben, der Pre-Check warnt rot.</div></div><input id="sPwrH" class="inp" style="width:72px;min-width:0;flex:none;padding:0 6px;text-align:center;font-weight:700" type="number" min="30" max="120" step="1" inputmode="numeric"><span style="font-weight:700;margin:0 4px">m</span><label class="sw" title="Anpassung ein/aus"><input type="checkbox" id="sPwrAdj"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Fernpilotenzeugnis</div><div class="v" id="vLic"></div></div><div class="seg"><button data-lic="A1A3">A1/A3</button><button data-lic="A2">A2</button></div></div>
+    <div class="set" id="setPwr" data-lite="1"><div class="l"><div class="t">Überflughöhe an Stromleitungen</div><div class="v">Mindesthöhe über Freileitungen. Bei hohen Masten mehr: immer Mastspitze + 20 m (z. B. 380 kV → 100 m), höchstens 120 m – bei Masten über 105 m bis 15 m über der Mastspitze, nur mit Einverständnis des Betreibers. Schalter an: Felder werden beim Übertragen auf die Fernsteuerung automatisch so angehoben (Bahnen bleiben gleich). Aus: nichts wird angehoben, der Pre-Check warnt rot.</div></div><input id="sPwrH" class="inp" style="width:72px;min-width:0;flex:none;padding:0 6px;text-align:center;font-weight:700" type="number" min="30" max="120" step="1" inputmode="numeric"><span style="font-weight:700;margin:0 4px">m</span><label class="sw" title="Anpassung ein/aus"><input type="checkbox" id="sPwrAdj"><span></span></label></div>
+    <div class="set" data-lite="1"><div class="l"><div class="t">Fernpilotenzeugnis</div><div class="v" id="vLic"></div></div><div class="seg"><button data-lic="A1A3">A1/A3</button><button data-lic="A2">A2</button></div></div>
     <div class="set" id="aeBox" style="flex-direction:column;align-items:stretch"><div class="t">Allgemeinerlaubnis (§ 21h LuftVO) liegt vor für</div>
       <div class="v" id="vAe" style="margin-bottom:8px"></div>
       <div class="roots" id="aeStates"></div>
@@ -890,7 +890,7 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
     <div class="set"><div class="l"><div class="t">Eigene Zonen-Karte im Einsatzgebiet</div><div class="v">An: Um eure Felder zeichnet die App die Geozonen selbst – grün = Überflug erlaubt, orange = nur mit Abstand, rot = gesperrt (nach Allgemeinerlaubnis/Allgemeinverfügung), auch offline. Aus: überall das normale dipul-Bild.</div></div><label class="sw"><input type="checkbox" id="sGeoOwn"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Geozonen in ganz Deutschland</div><div class="v">Außerhalb eurer Felder zeigt die Karte die Geozonen als Bild vom dipul-Kartendienst (Aussehen wie die dipul-Karte, ab Zoom 7, angesehene Kacheln bleiben 30 Tage offline gespeichert). Antippen zeigt auch dort die Zonen-Infos. Um eure Felder zeichnet die App die Zonen selbst mit grün/orange/rot.</div></div><label class="sw"><input type="checkbox" id="sGeoAll"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Wohngrundstücke einbeziehen</div><div class="v">Zeigt auch Wohngrundstücke als Geozone (deckt Ortschaften flächig ab)</div></div><label class="sw"><input type="checkbox" id="sGeoRes"><span></span></label></div>
-    <div class="set"><div class="l"><div class="t">Geozonen-Daten</div><div class="v" id="vGeo"></div></div><button class="b-sec" id="bGeoNow">Neu holen</button></div>
+    <div class="set" data-lite="1"><div class="l"><div class="t">Geozonen-Daten</div><div class="v" id="vGeo"></div></div><button class="b-sec" id="bGeoNow">Neu holen</button></div>
     <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Bundesland-Erkennung</div>
       <div class="v" id="vReg"></div>
     </div>
@@ -952,7 +952,7 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
     <div class="set"><div class="l"><div class="t">METAR-Wetter der Flughäfen auf der Karte</div><div class="v">Alle deutschen Flughäfen mit Wettermeldung als Kennung mit Farbpunkt (grün/orange/rot nach Sicht, Nebel, Regen, Böen) – antippen zeigt die aktuelle Meldung auf Deutsch · NOAA Aviation Weather Center, alle 20 min neu</div></div><label class="sw"><input type="checkbox" id="sMetar"><span></span></label></div>
     <h3 class="setcat" id="sc-info">Über die App</h3>
     <div class="set"><div class="l"><div class="t">Einrichtung</div><div class="v">Drohne, Genehmigungen, Allgemeinverfügungen, UAV Editor und Ordner Schritt für Schritt einstellen</div></div><button class="b-sec" id="bSetup">Erneut starten</button></div>
-    <div class="set"><div class="l"><div class="t">Einführung</div><div class="v">Rundgang durch die App: Ablauf eines Einsatzes, alle Knöpfe, Kartenfarben, Pre-Check, Offline-Daten und Einstellungen</div></div><button class="b-sec" id="bTour">Starten</button></div>
+    <div class="set" data-lite="1"><div class="l"><div class="t">Einführung</div><div class="v">Rundgang durch die App: Ablauf eines Einsatzes, alle Knöpfe, Kartenfarben, Pre-Check, Offline-Daten und Einstellungen</div></div><button class="b-sec" id="bTour">Starten</button></div>
     <div class="set"><img class="logo" data-logo alt="" style="width:64px;height:64px;border-radius:50%"><div class="l"><div class="t">Mission Kitzrettung</div><div class="v">Version 2.0 · Kitzrettung Limburg e. V.</div></div></div>
   </div>
 </div>
@@ -2114,7 +2114,10 @@ const LAYERS = {
   sat: (z, x, y) => {
     if (GSAT()) return `https://google.sat/${z}/${x}/${y}`;
     const esri = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
-    if (z < 12) return esri;   // Übersicht: Esri (amtliche Luftbilder erst ab Zoom 12 sinnvoll)
+    if (z < 12) return esri;   // Übersicht: Esri
+    // Mittlere Zoomstufen (12–15): online Esri – die Landesdienste liefern dort oft nur Teile (graue Streifen); ganz nah (ab 16) das schärfere amtliche Luftbild.
+    // Offline weiter die gespeicherten amtlichen Kacheln (Esri darf nicht gespeichert werden)
+    if (z < DOP_MINZ && navigator.onLine !== false) return esri;
     const n = 1 << z, st = new Set();
     if (S.regions.length) [[0, 0], [1, 0], [0, 1], [1, 1], [.5, .5]].forEach(([a, b]) => { const r = regionAt(y2lat((y + b) / n), x2lon((x + a) / n)); if (r.st) st.add(r.st); });
     else { st.add('HE'); st.add('RP'); }
@@ -2125,6 +2128,7 @@ const LAYERS = {
   grey: BM_URL('grau')
 };
 const LAYER_MAXZ = { sat: 19, osm: 18, grey: 18 };
+const DOP_MINZ = 16;   // ab dieser Zoomstufe amtliches Luftbild HE/RP, darunter Esri
 const ESRI_SAT = (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;   // Ersatz, wenn das amtliche Luftbild eine Lücke hat
 const LAYER_FILTER = { grey: 'saturate(.3) brightness(1.1) contrast(.85)' };
 const V = { lat: 50.39, lon: 8.07, z: 12 };
@@ -2288,7 +2292,8 @@ function makeTileLayer(div, cfg) {   // cfg: { url(z,x,y), maxz(), minz, id() = 
       else {
         im = new Image(); im.decoding = 'async'; im.draggable = false; im.alt = ''; im.dataset.k = fk;
         im.onload = () => { tileFail.delete(fk); im.classList.add('ok'); tileDraw(250); };
-        im.onerror = () => { for (const o of T.levels.values()) if (o.tiles.get(key) === im) { o.tiles.delete(key); break; } im.remove();
+        im.onerror = () => { if (cfg.fb && !im.dataset.fb) { const u = cfg.fb(tz, xx, ty); if (u) { im.dataset.fb = '1'; im.src = TSRC(u); return; } }   // Luftbild-Lücke: Esri statt grauer Fläche
+          for (const o of T.levels.values()) if (o.tiles.get(key) === im) { o.tiles.delete(key); break; } im.remove();
           const o = tileFail.get(fk); tileFail.set(fk, { t: Date.now(), n: o ? o.n + 1 : 1 }); tileDraw(4500); };
         im.src = TSRC(cfg.url(tz, xx, ty));
       }
@@ -2310,7 +2315,7 @@ function makeTileLayer(div, cfg) {   // cfg: { url(z,x,y), maxz(), minz, id() = 
   return T;
 }
 // Kartenhintergrund: jede Kachel ein eigenes Bild (wie Leaflet) – beim Wischen/Zoomen wird nur per GPU verschoben, nichts neu gemalt
-const BASE = makeTileLayer(tdiv, { url: (z, x, y) => LAYERS[P.layer](z, x, y), key: tKey, maxz: () => LAYER_MAXZ[P.layer] || 18, id: () => P.layer });
+const BASE = makeTileLayer(tdiv, { url: (z, x, y) => LAYERS[P.layer](z, x, y), fb: (z, x, y) => P.layer === 'sat' && !GSAT() ? ESRI_SAT(z, x, y) : '', key: tKey, maxz: () => LAYER_MAXZ[P.layer] || 18, id: () => P.layer });
 // Zonengruppen zum Ein-/Ausschalten (wie auf der dipul-Karte) – gelten für die eigene Zonenkarte und die dipul-Ebene
 const ZG = [
   ['luft', 'Luftfahrt', ['flughaefen', 'flugplaetze', 'kontrollzonen', 'flugbeschraenkungsgebiete', 'modellflugplaetze']],
@@ -2528,6 +2533,7 @@ async function loadGeoVectors() {
     if (run !== geoLoadRun) return;
     S.geo = out;
     const nb = geoVecBox(); if (JSON.stringify(nb) !== JSON.stringify(S.geoBox)) { S.geoBox = nb; GEOR.reset(); }
+    if (S.liteRecheck) setTimeout(() => S.liteRecheck && S.liteRecheck(), 50);   // offener Feldcheck: mit den neuen Zonen neu rechnen
   } catch (e) { S.geo = []; }
   draw();
 }
@@ -4112,7 +4118,7 @@ function uvOverlayFC(b) {
     const c2 = covFor(f.layer, reg, 'A2'), basis = c2.av ? 'Allgemeinverfügung' : c2.ae ? 'Allgemeinerlaubnis' : P.power === '1' && f.layer === 'stromleitungen' ? 'Genehmigung Netzbetreiber' : '';
     const nr5 = (LUFTVO_NR[f.layer] || [])[0] === 5;
     const c1 = covFor(f.layer, reg, 'A1A3'), verdict = k1 !== 'off' ? `<b style="color:#13a538">✓ mit A1/A3 möglich${c1.av ? ' (Allgemeinverfügung Wildtierrettung)' : ''}</b>` : k2 !== 'off' ? `<b style="color:#b38600">✓ mit A2${basis ? ' + ' + basis : ''}</b> · <span style="color:#c62828">✗ A1/A3</span>` : '<b style="color:#c43e00">✗ nur mit Antrag bzw. Zustimmung</b>';
-    const rule = nr5 ? '1:1-Regel: seitlich immer weiter weg als hoch (z. B. 50 m hoch → mehr als 50 m Abstand zur Fahrbahn bzw. zum Gleis).'
+    const rule = nr5 ? '1:1-Regel (§ 21h Abs. 3 Nr. 5 c LuftVO): seitlich immer weiter weg als hoch und mehr als 10 m – Mavic 3T (50 m) braucht mehr als 50 m, Matrice 4T (70 m) mehr als 70 m Abstand zur Fahrbahn bzw. zum Gleis. Dann geht es auch mit A1/A3 ohne Allgemeinerlaubnis.'
       : (k1 === 'dist' || k2 === 'dist') ? 'Nur mit Abstand, nicht direkt darüber.' : (k1 === 'off' && k2 === 'off' && BLOCKED_RULES[f.layer]) ? BLOCKED_RULES[f.layer] : '';
     return `<div style="font-weight:800;font-size:14px">${esc(p.name || lbl)}</div><div style="color:#5d6975">${esc(lbl)} · ${esc(regionText(reg))}</div><div style="margin-top:4px">${verdict}</div>${rule ? `<div style="margin-top:4px">${esc(rule)}</div>` : ''}`; };
   // Leitungsdaten zum Anklicken: Spannung, Masthöhe (OpenStreetMap, sonst üblicher Bereich), Netzbetreiber – den Flug plant der Pilot selbst
@@ -4854,7 +4860,7 @@ function geoNear(f) {
   return (S.osm || []).some(l => l.bb && !(l.bb.s > c[0] + dLa || l.bb.n < c[0] - dLa || l.bb.w > c[1] + dLo || l.bb.e < c[1] - dLo))
     || (S.obs || []).some(o => Math.abs(o.lat - c[0]) < dLa && Math.abs(o.lon - c[1]) < dLo);
 }
-function doTransfer(paths, drone, keys, extraMinH) {
+function doTransfer(paths, drone, keys, extraMinH, onDone) {   // onDone(r): Ergebnis an den Aufrufer (Lite: Abschluss-Dialog) statt eigener Meldungen
   const move = false;   // immer kopieren: „UAV-Editor“ behält alle Felder
   busy(drone ? 'Rechne um und übertrage…' : 'Übertrage…');
   setTimeout(async () => {
@@ -4873,11 +4879,12 @@ function doTransfer(paths, drone, keys, extraMinH) {
     const r = JSON.parse(A.transfer(JSON.stringify(paths), P.dst, move, true, drone || ''));
     nRaise = r.raised || 0;
     busy('');
-    if (r.error) return toast('Fehler: ' + r.error, true);
+    if (r.error) { if (onDone) return onDone(r); return toast('Fehler: ' + r.error, true); }
     if (r.names) { const m = dstMap(); paths.forEach(p => { const n = r.names[p]; if (n) { m[p] = n; if (keys && keys[p]) m[keys[p]] = n; } }); setP('dstMap', JSON.stringify(m)); }
     S.files.forEach(f => f.selected = false);
     const nConv = drone ? S.files.filter(f => paths.includes(f.path) && f.drone && f.drone !== drone).length : 0;
     const what = nConv ? ` (${nConv} auf ${drone === 'M4T' ? 'Matrice 4T' : 'Mavic 3T'} umgerechnet)` : '', raiseTxt = nRaise ? `\n⚡ ${nRaise} Feld${nRaise > 1 ? 'er' : ''} wegen Stromleitung angehoben (Mastspitze + 20 m, mindestens ${pwrH()} m)` : '';
+    if (onDone) { const ps = new Set(paths), ks = new Set(Object.values(keys || {})); S.files.forEach(f => { if (ps.has(f.path) || ks.has(f.path)) f.inDst = true; }); onDone(r); return; }
     if (r.errors && r.errors.length) {
       toast(`${r.done} übertragen${what}, ${r.errors.length} Fehler:\n` + r.errors.join('\n') + raiseTxt, true, 9000);
       if (r.errors.some(e => /nicht mehr im Quellordner|ENOENT/.test(e))) setTimeout(() => load(true), 600);   // Liste ist veraltet: Quellordner neu einlesen
@@ -4909,6 +4916,8 @@ function fieldSamples(f) {
   if (f.outline) add(f.outline, true);
   return out;
 }
+/** Höhe, in der die Drohne d dieses Feld tatsächlich fliegt (Sollhöhe der Drohne, an Stromleitungen mehr) – für die 1:1-Regel */
+function flyH(f, d) { const hp = f && f.height ? heightPlan(f, d) : null; return hp ? hp.fin : Math.max(DRONE_HEIGHT[d] || 70, (f && pwrNeedH(f)) || 0); }
 /** Straßen, Bahn, Wasserstraßen (§ 21h Abs. 3 Nr. 5): kleinster seitlicher Abstand der Flugbahn zur Zone in m (0 = Flugbahn berührt/quert die Zone)
  *  und wie die Bahnen dazu liegen: { d, cross } – cross = Anzahl Bahnen, die quer auf die Zone zulaufen und an ihr wenden */
 function routeZoneInfo(f, zf, H) {
@@ -4992,8 +5001,9 @@ function flightBriefing(sel) {
       const touch = polyTouch(fr, f.rings);
       if (touch) { const z = z0 || { f, reg, fields: new Set() }; delete z.near; z.fields.add(fl.title); zones.set(key, z); continue; }
       if ((LUFTVO_NR[f.layer] || [])[0] === 5) {   // Straße/Bahn/Wasserstraße nicht berührt: trotzdem melden, wenn die Flugbahn näher als die Flughöhe kommt (1:1-Regel)
-        const ri = routeZoneInfo(fl, f, fl.height || flightHeight() || 70);
-        if (ri && ri.d <= (fl.height || flightHeight() || 70)) { const z = z0 || { f, reg, fields: new Set() }; z.fields.add(fl.title); zones.set(key, z); }
+        const hDet = IS_LITE && DRONE_HEIGHT[P.drone] ? flyH(fl, P.drone) : Math.max(fl.height || 0, flyH(fl, 'M4T'));   // am PC: mit der höchsten Sollhöhe suchen (M4T 70 m)
+        const ri = routeZoneInfo(fl, f, hDet);
+        if (ri && ri.d <= hDet) { const z = z0 || { f, reg, fields: new Set() }; z.fields.add(fl.title); zones.set(key, z); }
         continue; }
       if (!a3 || f.layer !== 'wohngrundstuecke' || (z0 && !z0.near)) continue;
       const d = polyDistM(fr, f.rings);
@@ -6318,6 +6328,7 @@ function loadOsmLines() {
     });
     osmFillOperators(S.osm);
   } catch (e) { S.osm = []; }
+  if (S.liteRecheck) setTimeout(() => S.liteRecheck && S.liteRecheck(), 50);
   draw();
 }
 window.onOsmLines = () => { loadOsmLines(); loadObstacles(); };
@@ -10456,7 +10467,7 @@ function liteSearch(afterRefresh) {
     return `<label class="lrow${on ? ' on' : ''}"><input type="checkbox" data-id="${esc(f.id)}"${on ? ' checked' : ''}><span><b>${esc(f.name)}</b>${dj ? '' : srcBadges(f)}<em>${[tTxt(f), f.area ? fieldArea(f.area) : '', dd ? DN[dd] || dd : '', h ? h + ' m' : ''].filter(Boolean).join(' · ')}${conv}</em></span></label>`; };
   const render = () => {
     const t = fold(q.value.trim()), picked = all.filter(f => sel.has(String(f.id)));
-    const hits = t.length >= 3 ? all.filter(f => !sel.has(String(f.id)) && fuzzyHas(fold(f.name + ' ' + ((f.meta || {}).by || '')), t)) : dj ? all.filter(f => !sel.has(String(f.id))) : [];   // DJI Cloud: gleich alle Felder zeigen
+    const hits = t.length >= 3 ? all.filter(f => !sel.has(String(f.id)) && fuzzyHas(fold(f.name + ' ' + ((f.meta || {}).by || '')), t)) : dj ? all.filter(f => !sel.has(String(f.id))) : [...all].filter(f => !sel.has(String(f.id))).sort((a, b) => tOf(b) - tOf(a)).slice(0, 15);   // DJI Cloud: alle; UAV Editor: die 15 zuletzt geänderten
     $('lInfo').textContent = !d ? 'Noch keine Feldliste – mit Internet ↻ tippen.' : t.length >= 3 && !hits.length ? 'Kein Feld gefunden.' : '';
     if (dj && d && t.length >= 3 && !hits.length) { const nd = (d.fields || []).filter(f => !djiHas(f) && fuzzyHas(fold(f.name), t)).slice(0, 3);   // gibt es das Feld nur im UAV Editor?
       if (nd.length) $('lInfo').textContent = `Nicht in der DJI Cloud, aber im UAV Editor: ${nd.map(f => f.name).join(', ')} – zuerst im UAV Editor in die DJI Cloud hochladen.`; }
@@ -10635,18 +10646,34 @@ function liteImport() {
     const hTxt = [...new Set(risky.map(x => Math.round(x.f.height)))].join('/');
     confirmDlg('Höhe beim Umrechnen', `${risky.length === 1 ? 'Dieses Feld ist' : 'Diese Felder sind'} auf ${hTxt} m geplant. Für deine ${DRONE_NAME[P.drone] || P.drone} würde${risky.length === 1 ? '' : 'n sie'} ${risky.length === 1 ? 'es ' : ''}auf ${lowTo} m gesetzt – dort gibt es aber hohe Hindernisse:`,
       risky.map(x => `${x.f.title} (${Math.round(x.f.height)} → ${x.to} m): ${x.hz.join(', ')}`), `Bei ${hTxt} m bleiben (empfohlen)`, () => {
-        const mh = {}; risky.forEach(x => { mh[x.path] = Math.round(x.f.height); }); busy('Rechne um und übertrage…'); doTransfer(paths, P.drone || '', keys, mh); liteImportDone(paths); }, null);
+        const mh = {}; risky.forEach(x => { mh[x.path] = Math.round(x.f.height); }); busy('Rechne um und übertrage…'); doTransfer(paths, P.drone || '', keys, mh, r => liteImportDone(paths, r, keys)); }, null);
     $('dNo').textContent = `Auf ${lowTo} m umrechnen`; $('dNo').style.display = '';
-    S.dNoAlt = () => { busy('Rechne um und übertrage…'); doTransfer(paths, P.drone || '', keys); liteImportDone(paths); };
-    dlgOnCancel = () => { const mh = {}; risky.forEach(x => { mh[x.path] = Math.round(x.f.height); }); busy('Übertrage…'); doTransfer(paths, P.drone || '', keys, mh); liteImportDone(paths); };   // ✕ = sicher: Höhe beibehalten
+    S.dNoAlt = () => { busy('Rechne um und übertrage…'); doTransfer(paths, P.drone || '', keys, null, r => liteImportDone(paths, r, keys)); };
+    dlgOnCancel = () => { const mh = {}; risky.forEach(x => { mh[x.path] = Math.round(x.f.height); }); busy('Übertrage…'); doTransfer(paths, P.drone || '', keys, mh, r => liteImportDone(paths, r, keys)); };   // ✕ = sicher: Höhe beibehalten
     return; }
-  doTransfer(paths, P.drone || '', keys);   // auf die Drohne dieser RC umrechnen (Höhe/Drohne), in „Kitzrettung Import“
-  liteImportDone(paths);
+  doTransfer(paths, P.drone || '', keys, null, r => liteImportDone(paths, r, keys));   // auf die Drohne dieser RC umrechnen (Höhe/Drohne), in „Kitzrettung Import“ – danach Abschluss-Dialog mit dem echten Ergebnis
 }
-function liteImportDone(paths) {
-  setTimeout(() => { busy(''); const io = dstInfo(); S.files.forEach(f => { f.inDst = io(f); f.selected = false; if (f.inDst) f.cloudMap = false; }); update();
-    const got = S.files.filter(f => f.inDst); if (got.length) fitBounds(padBB(bounds(got))); draw(); S.liteImportedAt = Date.now();   // geladene Felder lila und alle im Bild – antippen markiert sie für einen neuen Pre-Check
-    toast(`✓ Fertig! ${paths.length} Feld${paths.length > 1 ? 'er liegen' : ' liegt'} jetzt auf der Fernsteuerung im Ordner\n${liteDstText()}\n\nAuf der Karte sind sie lila. In DJI Pilot 2: Flugroute → Importieren → diesen Ordner wählen.`, 'ok', 15000); }, 1500);
+/** Abschluss nach dem Übertragen (Lite): bleibt stehen, bis der Pilot ihn schließt – je Feld geladen / fehlgeschlagen,
+ *  mit der Höhe, die WIRKLICH in der Datei auf der Fernsteuerung steht (nachgelesen), und was angepasst wurde */
+function liteImportDone(paths, r, keys) {
+  busy(''); r = r || {};
+  const io = dstInfo(); S.files.forEach(f => { f.inDst = io(f); f.selected = false; if (f.inDst) f.cloudMap = false; }); update();
+  const got = S.files.filter(f => f.inDst); if (got.length) fitBounds(padBB(bounds(got))); draw(); S.liteImportedAt = Date.now();
+  const dst = String(P.dst || '').replace(/\/+$/, ''), names = r.names || {};
+  const fOf = p => S.files.find(x => x.path === p || x.cloudId && keys && keys[p] === x.cloudId || (keys && keys[p] && (x.path === keys[p] || 'uave:' + ((x.uave || {}).id || '') === keys[p])));
+  const ok = [], bad = [];
+  paths.forEach(p => { const n = names[p], f = fOf(p), title = f ? f.title : String(p).split('/').pop().replace(/\.km[lz]$/i, '');
+    if (!n) return;
+    let h = null; try { h = kmlHeight(A.readKml(dst + '/' + n)); } catch (e) { }
+    const h0 = f && f.height ? Math.round(f.height) : null, ch = h && h0 && Math.abs(h - h0) >= 2;
+    const why = ch ? (h > h0 && f && pwrNeedH(f) && h <= pwrNeedH(f) + 1 ? 'Stromleitung' : `Sollhöhe ${DRONE_NAME[P.drone] || P.drone}`) : '';
+    ok.push(`✓ ${title} – ${h ? h + ' m' : 'Höhe ?'}${ch ? ` (geplant ${h0} m → ${why})` : ''}`); });
+  (r.errors || []).forEach(e => bad.push('✗ ' + e));
+  if (r.error) bad.push('✗ ' + r.error);
+  paths.forEach(p => { if (!names[p] && !(r.errors || []).some(e => e.startsWith(String(p).split('/').pop()))) { const f = fOf(p); if (!r.error) bad.push(`✗ ${f ? f.title : String(p).split('/').pop()}: nicht übertragen`); } });
+  const title = bad.length ? (ok.length ? `⚠ ${ok.length} von ${ok.length + bad.length} Feldern geladen` : '✗ Kein Feld geladen') : `✓ ${ok.length} Feld${ok.length === 1 ? '' : 'er'} auf der Fernsteuerung`;
+  confirmDlg(title, ok.length ? `In DJI Pilot 2: Flugroute → Importieren → Ordner „${liteDstText()}“. Auf der Karte sind die Felder lila.\nVor dem Start in Pilot 2 kurz die Flughöhe prüfen.` : 'Bitte nochmal versuchen – mit Internet.', ok.concat(bad), 'Fertig', () => { });
+  if (bad.length) { $('dNo').textContent = 'Nochmal laden'; S.dNoAlt = () => setTimeout(liteLoadStart, 50); } else $('dNo').style.display = 'none';
 }
 /** Einfacher Pre-Check: kurze Karten, was in der Nähe ist und was man tun muss – keine Paragraphen */
 function liteCheckHtml(sel, lic) {
@@ -10658,7 +10685,7 @@ function fieldVerdict(f) {
   // rote Karten (Verbote) je Zeugnis – Titel merken, damit man sieht, WARUM A2 nötig ist
   // Stromleitungen zählen hier nicht: mit den Netzbetreibern besteht eine Vereinbarung – das hängt nicht vom Zeugnis ab
   const red = lic => { const sv = P.lic, sp = P.power; P.lic = lic; P.power = '1'; try { const d = document.createElement('div'); d.innerHTML = liteCardsHtml(flightBriefing([f]), { sel: [f], centers: f.center ? [f.center] : [] });
-    return [...d.querySelectorAll('.lcard')].filter(c => /212, 32, 32|#d42020/i.test(c.style.borderLeftColor)).map(c => c.querySelector('b').textContent).filter(t => !/^Stromleitung/.test(t)); } finally { P.lic = sv; P.power = sp; } };
+    return [...d.querySelectorAll('.lcard')].filter(c => c.dataset.r === '3').map(c => c.querySelector('b').textContent).filter(t => !/^Stromleitung/.test(t)); } finally { P.lic = sv; P.power = sp; } };
   const r13 = red('A1A3'); if (!r13.length) return { k: 'a13', t: '✓ auch mit A1/A3 fliegbar', col: '#13a538', why: [] };
   const r2 = red('A2'), why = r13.filter(t => !r2.includes(t));
   const onlyLic = why.length && why.every(t => /^Wohngebiet/.test(t));   // 150-m-Regel gilt nur in A1/A3 – A2 reicht, ohne Allgemeinerlaubnis
@@ -10691,7 +10718,7 @@ function liteCheckInner(sel, opt) {
     const html = one(f), d = document.createElement('div'); d.innerHTML = html;
     const its = [...d.querySelectorAll('.lcard')].map(c => { const col = c.style.borderLeftColor, hex = '#' + (col.match(/\d+/g) || []).slice(0, 3).map(x => (+x).toString(16).padStart(2, '0')).join('');
       const t = c.querySelector('b').textContent, ru = c.querySelector('.lrules'), pp = c.querySelector('p');
-      return { ico: c.querySelector('.lico').textContent, t, p: pp ? pp.textContent : '', ru: ru ? ru.innerHTML : '', col: col || '#888', r: t === NO_ZONES ? 0 : RANK[hex] ?? 1 }; }).sort((a, b) => b.r - a.r);
+      return { ico: c.querySelector('.lico').textContent, t, p: pp ? pp.textContent : '', ru: ru ? ru.innerHTML : '', col: col || '#888', r: c.dataset.r != null ? +c.dataset.r : t === NO_ZONES ? 0 : RANK[hex] ?? 1 }; }).sort((a, b) => b.r - a.r);
     const v = opt.verdict ? fieldVerdict(f) : null;
     if (v && v.why.length) its.forEach(i => { if (i.t === NO_ZONES) i.t = NO_MORE_A2; });   // „Keine Geozonen“ wäre neben „A2 nötig“ missverständlich
     return { f, html, its, r: Math.max(its.length ? its[0].r : 0, v ? (v.k === 'no' || v.k === 'zust' ? 3 : v.k === 'a2' ? 2 : 0) : 0), v };
@@ -10843,11 +10870,18 @@ function fieldThumb(f, W, H, grey) {   // grey: graue Karte wie im Pre-Check am 
 }
 /** Einfache Karten für Feldcheck UND Antippen einer Stelle (gleiches Aussehen) – o: { sel (Felder) | point:[lat,lon], centers } */
 const NO_ZONES = 'Keine Geozonen', NO_MORE_A2 = 'Mit A2 keine weiteren Einschränkungen';
+/** Sind für diese Stelle Geozonen geladen? (Feld bzw. Punkt im Gebiet der gespeicherten Zonendaten) */
+function geoCovered(la, lo) { if (!S.geo || !S.geo.length) return false; const b = S.geoBox || geoVecBox();
+  if (b) return la <= b.n && la >= b.s && lo <= b.e && lo >= b.w;
+  return S.geo.some(f => f.bb && la <= f.bb.n + 0.1 && la >= f.bb.s - 0.1 && lo <= f.bb.e + 0.15 && lo >= f.bb.w - 0.15); }   // ohne gespeicherten Rahmen: Zonen in der Nähe?
 function liteCardsHtml(b, o) {
   const sel = o.sel || [], pt = !!o.point, a2 = P.lic === 'A2', H = flightHeight() || 70, cards = [];
+  const pts0 = pt ? [o.point] : (o.centers && o.centers.length ? o.centers : sel.map(f => f.center).filter(Boolean));
+  const noZones = pts0.some(c => c && !geoCovered(c[0], c[1])), noObs = !pt && sel.some(f => !geoNear(f));
   let heliZone = false, afZone = false;
   const place = pt ? 'an dieser Stelle' : 'am Feld', notHere = pt ? '<b>Hier nicht fliegen.</b>' : '<b>Diesen Teil des Feldes nicht befliegen.</b>';
-  const card = (ico, col, title, text, extra) => cards.push(`<div class="lcard" style="border-left-color:${col}"><span class="lico">${ico}</span><div><b>${title}</b>${text ? `<p>${text}</p>` : ''}${extra || ''}</div></div>`);
+  const LVL = { '#d42020': 3, '#e07800': 2, '#c77800': 2, '#8e24aa': 2, '#7a8692': 2, '#13a538': 1 };
+  const card = (ico, col, title, text, extra) => cards.push(`<div class="lcard" data-r="${title === NO_ZONES ? 0 : LVL[String(col).toLowerCase()] ?? 1}" style="border-left-color:${col}"><span class="lico">${ico}</span><div><b>${title}</b>${text ? `<p>${text}</p>` : ''}${extra || ''}</div></div>`);
   // Auflagen kompakt in einer Zeile: „Auflagen: a · b · c“
   const rulesUl = (layer, av) => { const r = liteRules(layer, av, H); return r.length ? `<div class="lrules"><span>Auflagen:</span> ${r.join(' · ')}</div>` : ''; };
   const km = d => (d / 1000).toFixed(1).replace('.', ',') + ' km', m = d => Math.round(d) + ' m';
@@ -10872,9 +10906,19 @@ function liteCardsHtml(b, o) {
     // Verbot: was wäre nötig? (z. B. mit A1/A3 → „mit A2 + Allgemeinerlaubnis erlaubt“)
     const c2 = !a2 ? covFor(z.f.layer, z.reg, 'A2') : {}, need = c2.ae || c2.av ? `mit <b>A2 + ${c2.ae ? 'Allgemeinerlaubnis' : 'Allgemeinverfügung'}</b>` : '';
     // 1:1-Regel wirklich nachrechnen: seitlicher Abstand der Flugbahn zur Zone gegen die Missionshöhe des Feldes
-    const rz = nr5 && !pt ? sel.filter(f => z.fields.has(f.title)).map(f => { const h = f.height || H, ri = routeZoneInfo(f, z.f, h); return { f, h, d: ri ? ri.d : 0, cross: ri ? ri.cross : 0 }; }) : null;
+    // Höhe je Drohne: Fernsteuerung (Lite) → die eingestellte Drohne; PC → beide prüfen (M3T fliegt 50 m, M4T 70 m – das kann über die 1:1-Regel entscheiden)
+    const rcD = IS_LITE && DRONE_HEIGHT[P.drone] ? P.drone : '';
+    const rz = nr5 && !pt ? sel.filter(f => z.fields.has(f.title)).map(f => { const h = rcD ? flyH(f, rcD) : Math.max(f.height || 0, flyH(f, 'M4T')), h3 = flyH(f, 'M3T'), ri = routeZoneInfo(f, z.f, h);
+      return { f, h, h3, d: ri ? ri.d : 0, cross: ri ? ri.cross : 0 }; }) : null;
     const hx = rz && rz.length ? Math.max(...rz.map(x => x.h)) : H, dmin = rz && rz.length ? Math.min(...rz.map(x => x.d)) : 0;
-    if (rz && rz.length && rz.every(x => x.d > x.h)) return card('✅', '#13a538', `${esc(lbl)}: Abstand reicht (1:1)`, `${nm} – die Flugbahn bleibt etwa <b>${m(dmin)}</b> von der ${esc(lbl)} weg, geflogen wird in <b>${hx} m</b>: seitlich weiter weg als hoch, also ohne Allgemeinerlaubnis erlaubt. (Abstand zur Fahrbahn bzw. zum Gleis, aus der Mitte der dipul-Zone berechnet.)${where(z.fields)}`);
+    const ok11 = (d, h) => d > h && d > 10;   // § 21h Abs. 3 Nr. 5 c: Höhe stets kleiner als der seitliche Abstand, Abstand stets > 10 m
+    if (rz && rz.length && rz.every(x => ok11(x.d, x.h))) return card('✅', '#13a538', `${esc(lbl)}: Abstand reicht (1:1)`, `${nm} – die Flugbahn bleibt etwa <b>${m(dmin)}</b> von der ${esc(lbl)} weg, geflogen wird in <b>${hx} m</b>${rcD ? ` (${DRONE_NAME[rcD]})` : ''}: seitlich weiter weg als hoch, also <b>auch mit A1/A3 und ohne Allgemeinerlaubnis</b> erlaubt. (Abstand zur Fahrbahn bzw. zum Gleis, aus der Mitte der dipul-Zone berechnet.)${where(z.fields)}`);
+    // Nur die Mavic 3T (50 m) hält den Abstand ein, die Matrice 4T (70 m) nicht
+    const m3ok = !!(rz && rz.length && rz.every(x => ok11(x.d, x.h3))), m3txt = !m3ok ? '' : `Mit der <b>Mavic 3T</b> (${Math.max(...rz.map(x => x.h3))} m) ist der Abstand von etwa <b>${m(dmin)}</b> größer als die Flughöhe – dann reicht die 1:1-Regel, <b>auch mit A1/A3</b>, ohne Allgemeinerlaubnis.`;
+    if (m3ok && !rcD) return card('🚁', '#e07800', `${esc(lbl)}: nur mit Mavic 3T ohne Allgemeinerlaubnis`, `${nm} – ${m3txt} Die <b>Matrice 4T</b> fliegt ${hx} m hoch und wäre damit zu nah: dafür ${k === 'on' ? 'gilt hier die Allgemeinerlaubnis (A2)' : 'bräuchte es A2 + Allgemeinerlaubnis bzw. eine Zustimmung'}. <b>Für dieses Feld die Mavic 3T einplanen.</b>${where(z.fields)}`,
+      `<div class="lrules"><span>Fliegen nur:</span> <b>Mavic 3T</b> mit seitlich mehr als ${Math.max(...rz.map(x => x.h3))} m (1:1-Regel)${k === 'on' ? ' · Matrice 4T mit A2 + Allgemeinerlaubnis' : ''}</div>`);
+    if (m3ok && rcD === 'M4T' && k !== 'on') card('🚁', '#e07800', `${esc(lbl)}: mit Mavic 3T`, `${m3txt} Mit dieser Matrice 4T (${hx} m) nicht${need ? ` – alternativ ${need}` : ''}.${where(z.fields)}`,
+      `<div class="lrules"><span>Fliegen nur:</span> <b>Mavic 3T</b> (1:1-Regel)${need ? ` · alternativ ${need}` : ''}</div>`);
     const dTxt = rz && rz.length ? (dmin === 0 ? `Die Flugbahn führt über die ${esc(lbl)}.` : `Die Flugbahn kommt der ${esc(lbl)} bis etwa <b>${m(dmin)}</b> nahe – bei ${hx} m Flughöhe müssten es mehr als ${hx} m sein.`) : '';
     const crossN = rz ? rz.reduce((n, x) => n + (x.cross >= 2 ? 1 : 0), 0) : 0;
     if (k === 'on') { const info = (NAT_LAYERS.includes(z.f.layer) && !(av && av.link === LINK_AVGI)) || z.f.layer === 'stromleitungen';   // Wildtierrettung: steht schon in den Auflagen
@@ -10941,6 +10985,7 @@ function liteCardsHtml(b, o) {
   const wantH = DRONE_HEIGHT[P.drone];   // auch UAV-Editor-Felder (Lite-Suche): andere Drohne/Höhe → wird beim Import umgerechnet
   const mm = sel.filter(f => isDroneMismatch(f) || (f.cat && P.drone && ((f.drone && f.drone !== P.drone) || (wantH && f.height && f.height < wantH - 5))));
   if (mm.length && false) card('🔧', '#e07800', 'Feld für andere Drohne/Höhe geplant', `${mm.map(f => esc(f.title)).join(', ')} – wird beim Import automatisch auf ${P.drone === 'M3T' ? 'Mavic 3T umgerechnet (mindestens 50 m)' : 'Matrice 4T umgerechnet (mindestens 70 m)'}. Höher geplante Felder (z. B. wegen Stromleitung) bleiben so hoch.`);
+  if (noZones || noObs) cards.unshift(`<div class="lcard" data-r="2" style="border-left-color:#7a8692"><span class="lico">⏳</span><div><b>${noZones ? 'Geozonen für dieses Gebiet noch nicht geladen' : 'Leitungs-/Hindernisdaten für dieses Gebiet fehlen'}</b><p>${isOnline() ? 'Werden gerade geholt – die Prüfung aktualisiert sich dann von selbst.' : 'Offline – die Prüfung ist hier unvollständig. Mit Internet „Aktualisieren“ in den Einstellungen.'} Bis dahin <b>nicht als „frei“ ansehen</b>.</p></div></div>`);
   if (!cards.length) card('✅', '#13a538', NO_ZONES, '');
   return `<div class="lcheck">${cards.join('')}</div><div class="meta" style="margin-top:8px">Daten: dipul, OpenStreetMap · ohne Gewähr – im Zweifel nicht fliegen.</div>`;
 }
@@ -10984,8 +11029,10 @@ function liteLicBox(box, render) {
   box.innerHTML = '<div class="llic"><span>Fernpilotenzeugnis:</span><div class="seg"><button data-llic="A2">A2</button><button data-llic="A1A3">A1/A3</button></div></div><div class="lcBody"></div>';
   const show = lic => { const sv = P.lic; P.lic = lic; try { box.querySelector('.lcBody').innerHTML = render(lic); } finally { P.lic = sv; }
     box.querySelectorAll('[data-llic]').forEach(b => b.classList.toggle('on', b.dataset.llic === lic)); };
-  box.querySelectorAll('[data-llic]').forEach(b => b.onclick = () => show(b.dataset.llic));
-  show('A2');
+  box.querySelectorAll('[data-llic]').forEach(b => b.onclick = () => { cur = b.dataset.llic; show(cur); });
+  let cur = P.lic === 'A1A3' ? 'A1A3' : 'A2';   // mit dem eingestellten Zeugnis beginnen
+  show(cur);
+  S.liteRecheck = () => { if (box.isConnected) { const sc = $('dlg').querySelector('.box'), y = sc ? sc.scrollTop : 0; show(cur); if (sc) sc.scrollTop = y; } else S.liteRecheck = null; };   // Geodaten nachgeladen → neu rechnen
 }
 /** Lite: Antippen einer Stelle – gleiche Karten und gleicher Umschalter wie im Feldcheck */
 function liteGeoPage(r) {
@@ -11011,7 +11058,7 @@ function liteCheckDlg(sel, withImport, idx) {
     fitBounds(padBB(bounds([f]))); draw();
     confirmDlg(`Feldcheck – Feld ${i + 1} von ${sel.length}`, 'Lies die Hinweise zu diesem Feld.', [], last ? (withImport ? `Alle geprüft – auf die Fernsteuerung herunterladen (${sel.length})` : 'Verstanden') : `Nächstes Feld (${i + 2} von ${sel.length}) →`,
       last ? (withImport ? liteLoadStart : null) : () => setTimeout(() => liteCheckDlg(sel, withImport, i + 1), 30), box);
-    if (last && withImport) box.insertAdjacentHTML('beforeend', `<div class="meta" style="margin-top:10px">Die Felder werden dann geladen, automatisch auf deine Drohne umgerechnet und abgelegt in: <b>${esc(liteDstText())}</b></div>`);
+    if (last && withImport) { box.insertAdjacentHTML('beforeend', `<div class="meta" style="margin-top:10px">Die Felder werden dann geladen, automatisch auf deine Drohne umgerechnet und abgelegt in: <b>${esc(liteDstText())}</b></div>`); liteGuardDl(box, sel); }
     $('dNo').textContent = i ? '← Vorheriges Feld' : 'Zurück';
     const closeAll = () => { S.liteDlg = false; fitBounds(padBB(bounds(sel))); draw(); };
     dlgOnCancel = i ? () => setTimeout(() => liteCheckDlg(sel, withImport, i - 1), 30) : closeAll; S.dlgXClose = closeAll;
@@ -11023,9 +11070,21 @@ function liteCheckDlg(sel, withImport, idx) {
   S.liteDlg = !!withImport;
   confirmDlg(`Feldcheck – ${sel.length} Feld${sel.length > 1 ? 'er' : ''}`, withImport ? 'Lies die Hinweise. Wenn alles passt, tippe unten auf „Geprüft – herunterladen“: dann kommen die Felder auf die Fernsteuerung.' : 'Das ist an deinen Feldern wichtig:', [], withImport ? `Geprüft – auf die Fernsteuerung herunterladen (${sel.length})` : 'Verstanden', withImport ? liteLoadStart : null, box);
   if (withImport) box.insertAdjacentHTML('beforeend', `<div class="meta" style="margin-top:10px">Die Felder werden dann geladen, automatisch auf deine Drohne umgerechnet und abgelegt in: <b>${esc(liteDstText())}</b></div>`);
+  if (withImport) liteGuardDl(box, sel);
   $('dNo').textContent = 'Zurück';
   dlgOnCancel = () => { S.liteDlg = false; fitBounds(padBB(bounds(sel))); draw(); };   // nach dem Schließen: alle geprüften Felder im Blick
   $('dlg').querySelector('.box').scrollTop = 0;
+}
+/** Feldcheck mit Herunterladen: offline gleich sagen (nicht erst am Ende); bei roten Karten (Sperre/Verbot) ausdrücklich bestätigen lassen */
+function liteGuardDl(box, sel) {
+  if (!isOnline()) box.insertAdjacentHTML('afterbegin', '<div class="lcard" data-r="2" style="border-left-color:#7a8692;margin-bottom:8px"><span class="lico">📵</span><div><b>Kein Internet</b><p>Prüfen geht, <b>Herunterladen erst mit Internet</b>.</p></div></div>');
+  const ok0 = dlgCb;
+  dlgCb = () => {
+    const red = new Set(); box.querySelectorAll('.lcard[data-r="3"] b').forEach(b => red.add(b.textContent.trim()));
+    if (!red.size) return ok0 && ok0();
+    setTimeout(() => { confirmDlg('⛔ Wirklich herunterladen?', 'Im Feldcheck gibt es Sperren bzw. Verbote:', [...red].slice(0, 8), 'Trotzdem herunterladen – ich beachte die Sperren', () => ok0 && ok0());
+      $('dNo').textContent = 'Zurück zum Feldcheck'; dlgOnCancel = () => setTimeout(() => liteCheckDlg(sel, true), 30); }, 30);
+  };
 }
 async function showWeatherLite(force) {
   const loc = wxLoc();
@@ -11085,7 +11144,7 @@ function liteInit() {
   const anchor = $('sc-drohne');
   if (anchor && !$('setLiteMode')) {   // Pre-Check: alle Felder zusammen oder Feld für Feld
     const d = document.createElement('div'); d.className = 'set'; d.id = 'setLiteMode';
-    d.innerHTML = '<div class="l"><div class="t">Pre-Check</div><div class="v">„Alle zusammen“: alle gewählten Felder auf einer Seite. „Feld für Feld“: jedes Feld einzeln nacheinander – die Karte zeigt dabei jeweils dieses Feld.</div></div><div class="seg"><button data-lcm="alle">Alle zusammen</button><button data-lcm="einzeln">Feld für Feld</button></div>';
+    d.dataset.lite = '1'; d.innerHTML = '<div class="l"><div class="t">Pre-Check</div><div class="v">„Alle zusammen“: alle gewählten Felder auf einer Seite. „Feld für Feld“: jedes Feld einzeln nacheinander – die Karte zeigt dabei jeweils dieses Feld.</div></div><div class="seg"><button data-lcm="alle">Alle zusammen</button><button data-lcm="einzeln">Feld für Feld</button></div>';
     anchor.after(d);
     const ui = () => d.querySelectorAll('[data-lcm]').forEach(b => b.classList.toggle('on', b.dataset.lcm === P.liteCheckMode));
     d.querySelectorAll('[data-lcm]').forEach(b => b.onclick = () => { setP('liteCheckMode', b.dataset.lcm); ui(); }); ui();
@@ -11099,7 +11158,7 @@ function liteInit() {
       liteSetShow(e.target.checked ? 'today' : 'off'); };
   }
   if (anchor && !$('setLiteCloudMap')) {   // alle Felder der DJI Cloud auf der Karte zeigen (Standard aus)
-    const d = document.createElement('div'); d.className = 'set'; d.id = 'setLiteCloudMap';
+    const d = document.createElement('div'); d.className = 'set'; d.id = 'setLiteCloudMap'; d.dataset.lite = '1';
     d.innerHTML = '<div class="l"><div class="t">Alle Felder der DJI Cloud auf der Karte</div><div class="v">An: Alle Felder, die in der DJI Cloud liegen, sind auf der Karte zu sehen (nur die Version für deine Drohne). Antippen markiert ein Feld – dann oben „Pre-Check“ oder „⬇ Felder herunterladen“. Aus: Nur die Felder, die du über „DJI Cloud“ auswählst.</div></div><label class="sw"><input type="checkbox" id="sLiteCloudMap"><span></span></label>';
     anchor.after(d); $('sLiteCloudMap').checked = P.liteCloudMap === '1';
     $('sLiteCloudMap').onchange = e => { setP('liteCloudMap', e.target.checked ? '1' : '0'); S.cloudMapC = null;
@@ -11116,8 +11175,10 @@ function liteInit() {
   }
   // Lite: Einstellungen auf das Nötigste – nur Drohne, UAV-Editor-Zugang und Fernpilotenzeugnis
   const KEEP = ['Alle Felder der DJI Cloud', 'Drohne dieser Fernsteuerung', 'UAV Editor – Zugang', 'Fernpilotenzeugnis', 'Überflughöhe an Stromleitungen', 'Pre-Check', 'Einführung', 'Geozonen-Daten'];   // Geozonen-Daten: Knopf „Aktualisieren“
+  // Fest markiert (data-lite="1") statt nach der Überschrift – eine umformulierte Beschriftung ändert so nichts mehr. KEEP bleibt nur als Rückfall.
   document.querySelectorAll('#pgSet .set').forEach(el => { const t = el.querySelector('.t'), tx = t ? t.textContent.trim() : '';
-    if (!KEEP.some(k => tx.startsWith(k)) || HIDE.some(h => tx.startsWith(h))) el.classList.add('vhide'); });
+    const keep = el.dataset.lite === '1' || (el.dataset.lite !== '0' && KEEP.some(k => tx.startsWith(k)) && !HIDE.some(h => tx.startsWith(h)));
+    if (!keep) el.classList.add('vhide'); });
   document.querySelectorAll('#pgSet .setcat, #pgSet .setnav').forEach(el => el.classList.add('vhide'));
 }
 /** Desktop-Variante: Kopfleiste „Letzte 24 h · Alle · Keine“, Aktualisieren-Knopf, Fernsteuerungs-Einstellungen ausblenden */
