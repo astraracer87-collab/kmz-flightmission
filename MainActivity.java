@@ -608,6 +608,28 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return o;
     }
 
+    private String pilotPkg = null;
+    /** DJI Pilot 2 finden: bekannte Paketnamen, sonst unter den installierten Apps nach „Pilot“ von DJI suchen */
+    private String findPilotApp() {
+        if (pilotPkg != null) return pilotPkg;
+        android.content.pm.PackageManager pm = getPackageManager();
+        for (String pk : new String[]{"dji.pilot2", "com.dji.industry.pilot", "dji.pilot"}) {
+            if (pm.getLaunchIntentForPackage(pk) != null) return pilotPkg = pk;
+        }
+        try {
+            Intent q = new Intent(Intent.ACTION_MAIN); q.addCategory(Intent.CATEGORY_LAUNCHER);
+            String best = "";
+            for (android.content.pm.ResolveInfo ri : pm.queryIntentActivities(q, 0)) {
+                String pk = ri.activityInfo.packageName, lb = String.valueOf(ri.loadLabel(pm));
+                if (pk.equals(getPackageName())) continue;
+                boolean dji = pk.toLowerCase(Locale.ROOT).contains("dji") || lb.toLowerCase(Locale.ROOT).contains("dji");
+                if (dji && lb.toLowerCase(Locale.ROOT).matches(".*pilot\\s*2.*")) { best = pk; break; }
+                if (dji && best.isEmpty() && lb.toLowerCase(Locale.ROOT).contains("pilot")) best = pk;
+            }
+            return pilotPkg = best;
+        } catch (Exception e) { return ""; }
+    }
+
     /** Schnittstelle für die Oberfläche (assets/index.html) */
     public class Bridge {
 
@@ -625,6 +647,24 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         /** true, wenn eine Internetverbindung besteht */
         @JavascriptInterface
         public boolean isOnline() { return online(); }
+
+        /** Paketname von DJI Pilot 2 auf dieser Fernsteuerung ("" = nicht installiert) */
+        @JavascriptInterface
+        public String pilotApp() { return findPilotApp(); }
+
+        /** DJI Pilot 2 in den Vordergrund holen (läuft sie schon, geht es dort weiter, wo der Pilot war) */
+        @JavascriptInterface
+        public boolean openPilot() {
+            String pk = findPilotApp();
+            if (pk.isEmpty()) return false;
+            try {
+                Intent i = getPackageManager().getLaunchIntentForPackage(pk);
+                if (i == null) return false;
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                runOnUiThread(() -> { try { startActivity(i); } catch (Exception ignored) { } });
+                return true;
+            } catch (Exception e) { return false; }
+        }
 
         /** Tag-/Nachtmodus: Statusleiste und Navigationsleiste passend einfärben */
         @JavascriptInterface
