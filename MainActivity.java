@@ -1034,12 +1034,68 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         // ---------- UAV Editor ----------
         @JavascriptInterface
         public void uaveSetCredentials(String user, String password) {
-            prefs.edit().putString("uave_user", user == null ? "" : user.trim()).apply();
+            String u = user == null ? "" : user.trim(), old = prefs.getString("uave_user", "");
+            if (!u.equalsIgnoreCase(old) && !old.isEmpty()) { acctSync(); acctStash(old); acctUnstash(u); uaveResetSession(); }   // anderes Konto: Feldliste des alten merken
+            prefs.edit().putString("uave_user", u).apply();
             if (password != null && !password.isEmpty()) {
                 try { prefs.edit().putString("uave_pw", encrypt(password)).apply(); }
                 catch (Exception e) { prefs.edit().remove("uave_pw").apply(); }
-            }
-            uaveBackupSave(user, password);
+            } else if (!u.equalsIgnoreCase(old)) { JSONObject a = acctGet(u); if (a != null && a.has("p")) prefs.edit().putString("uave_pw", a.optString("p")).apply(); else prefs.edit().remove("uave_pw").apply(); }
+            acctSync();
+            uaveBackupSave(u, password);
+        }
+
+        /** true = gerade läuft eine Abfrage/ein Download beim UAV Editor (dann nicht umschalten) */
+        @JavascriptInterface
+        public boolean uaveIsBusy() { return uaveBusy; }
+
+        /** Alle eingetragenen UAV-Editor-Konten (ohne Passwörter): [{u, n, active, pw}] */
+        @JavascriptInterface
+        public String uaveAccounts() {
+            acctSync();
+            JSONArray out = new JSONArray(); String cur = prefs.getString("uave_user", "");
+            try { JSONArray a = acctList(); for (int i = 0; i < a.length(); i++) { JSONObject o = a.getJSONObject(i);
+                out.put(new JSONObject().put("u", o.optString("u")).put("n", o.optString("n")).put("active", o.optString("u").equalsIgnoreCase(cur)).put("pw", o.has("p"))); } } catch (Exception ignored) { }
+            return out.toString();
+        }
+
+        /** Konto benennen (z. B. „Verein“ / „Privat“) */
+        @JavascriptInterface
+        public void uaveAccountName(String user, String name) {
+            try { JSONArray a = acctList(); for (int i = 0; i < a.length(); i++) if (a.getJSONObject(i).optString("u").equalsIgnoreCase(user)) a.getJSONObject(i).put("n", name == null ? "" : name.trim());
+                prefs.edit().putString("uave_accts", a.toString()).apply(); uaveBackupSave(prefs.getString("uave_user", ""), null); } catch (Exception ignored) { }
+        }
+
+        /** Auf ein anderes eingetragenes Konto umschalten. false = läuft gerade ein Download oder Konto unbekannt */
+        @JavascriptInterface
+        public boolean uaveSwitch(String user) {
+            if (uaveBusy) return false;
+            JSONObject a = acctGet(user);
+            if (a == null || !a.has("p")) return false;
+            String old = prefs.getString("uave_user", "");
+            if (a.optString("u").equalsIgnoreCase(old)) return true;
+            acctSync(); acctStash(old); acctUnstash(a.optString("u"));
+            prefs.edit().putString("uave_user", a.optString("u")).putString("uave_pw", a.optString("p")).apply();
+            uaveResetSession();
+            uaveBackupSave(a.optString("u"), null);
+            return true;
+        }
+
+        /** Ein Konto entfernen; war es das aktive, wird auf ein anderes umgeschaltet (falls vorhanden) */
+        @JavascriptInterface
+        public void uaveRemoveAccount(String user) {
+            try {
+                acctSync();
+                JSONArray a = acctList(), keep = new JSONArray(); for (int i = 0; i < a.length(); i++) if (!a.getJSONObject(i).optString("u").equalsIgnoreCase(user)) keep.put(a.getJSONObject(i));
+                prefs.edit().putString("uave_accts", keep.toString()).remove("uave_manifest@" + acctKey(user)).apply();
+                try { dataFile("uave_katalog@" + acctKey(user) + ".json").delete(); dataFile("dji_cloud@" + acctKey(user) + ".json").delete(); } catch (Exception ignored) { }
+                if (user.equalsIgnoreCase(prefs.getString("uave_user", ""))) {
+                    if (keep.length() > 0) { JSONObject n = keep.getJSONObject(0); acctUnstash(n.optString("u")); prefs.edit().putString("uave_user", n.optString("u")).putString("uave_pw", n.optString("p")).apply(); }
+                    else { prefs.edit().remove("uave_user").remove("uave_pw").remove("uave_manifest").apply(); try { dataFile("uave_katalog.json").delete(); dataFile("dji_cloud.json").delete(); } catch (Exception ignored) { } }
+                    uaveResetSession();
+                }
+                if (keep.length() > 0) uaveBackupSave(prefs.getString("uave_user", ""), null); else { try { uaveBackupFile().delete(); } catch (Exception ignored) { } }
+            } catch (Exception ignored) { }
         }
 
         /** Zugang sofort prüfen (Anmeldung beim UAV Editor). Ergebnis über window.onUaveTest({ok, error}) */
@@ -1064,9 +1120,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public boolean uaveHasPassword() { return prefs.contains("uave_pw"); }
 
+        /** Alle Konten löschen (auch die Sicherung im Cache-Ordner) */
         @JavascriptInterface
         public void uaveForget() {
-            prefs.edit().remove("uave_user").remove("uave_pw").remove("uave_manifest").apply();
+            try { JSONArray a = acctList(); for (int i = 0; i < a.length(); i++) { String k = acctKey(a.getJSONObject(i).optString("u")); prefs.edit().remove("uave_manifest@" + k).apply(); dataFile("uave_katalog@" + k + ".json").delete(); dataFile("dji_cloud@" + k + ".json").delete(); } } catch (Exception ignored) { }
+            prefs.edit().remove("uave_user").remove("uave_pw").remove("uave_manifest").remove("uave_accts").apply();
+            uaveResetSession();
             try { uaveBackupFile().delete(); } catch (Exception ignored) { }
         }
 
@@ -1737,6 +1796,42 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         js("window.onUave && window.onUave(" + JSONObject.quote(ev.toString()) + ")");
     }
 
+    // ---------- Mehrere UAV-Editor-Konten ----------
+    // Aktives Konto = uave_user/uave_pw (wie bisher). Alle Konten in uave_accts [{u, n, p(verschlüsselt)}].
+    // Beim Umschalten werden Feldliste, Download-Stand und DJI-Cloud-Liste des alten Kontos beiseitegelegt und die des neuen zurückgeholt.
+    private static String acctKey(String u) { return Integer.toHexString((u == null ? "" : u.trim().toLowerCase(Locale.ROOT)).hashCode()); }
+    private JSONArray acctList() { try { return new JSONArray(prefs.getString("uave_accts", "[]")); } catch (Exception e) { return new JSONArray(); } }
+    private JSONObject acctGet(String u) { try { JSONArray a = acctList(); for (int i = 0; i < a.length(); i++) if (a.getJSONObject(i).optString("u").equalsIgnoreCase(u == null ? "" : u.trim())) return a.getJSONObject(i); } catch (Exception ignored) { } return null; }
+    /** Aktives Konto in die Liste übernehmen (neu oder mit aktuellem Passwort) */
+    private synchronized void acctSync() {
+        String u = prefs.getString("uave_user", "").trim(), p = prefs.getString("uave_pw", null);
+        if (u.isEmpty()) return;
+        try {
+            JSONArray a = acctList(); JSONObject hit = null;
+            for (int i = 0; i < a.length(); i++) if (a.getJSONObject(i).optString("u").equalsIgnoreCase(u)) hit = a.getJSONObject(i);
+            if (hit == null) { hit = new JSONObject().put("u", u).put("n", ""); a.put(hit); }
+            if (p != null) hit.put("p", p);
+            prefs.edit().putString("uave_accts", a.toString()).apply();
+        } catch (Exception ignored) { }
+    }
+    private void acctMove(File from, File to) { try { to.delete(); if (from.isFile() && !from.renameTo(to)) { writeFileAtomic(to, readFile(from)); from.delete(); } } catch (Exception ignored) { } }
+    /** Daten des (bisher aktiven) Kontos u beiseitelegen */
+    private void acctStash(String u) {
+        if (u == null || u.isEmpty()) return; String k = acctKey(u);
+        try { acctMove(dataFile("uave_katalog.json"), dataFile("uave_katalog@" + k + ".json")); acctMove(dataFile("dji_cloud.json"), dataFile("dji_cloud@" + k + ".json")); } catch (Exception ignored) { }
+        prefs.edit().putString("uave_manifest@" + k, prefs.getString("uave_manifest", "{}")).remove("uave_manifest").apply();
+    }
+    /** Daten des Kontos u zurückholen (falls schon einmal benutzt) */
+    private void acctUnstash(String u) {
+        String k = acctKey(u);
+        try { dataFile("uave_katalog.json").delete(); dataFile("dji_cloud.json").delete();
+            acctMove(dataFile("uave_katalog@" + k + ".json"), dataFile("uave_katalog.json")); acctMove(dataFile("dji_cloud@" + k + ".json"), dataFile("dji_cloud.json")); } catch (Exception ignored) { }
+        SharedPreferences.Editor e = prefs.edit(); String m = prefs.getString("uave_manifest@" + k, null);
+        if (m != null) e.putString("uave_manifest", m).remove("uave_manifest@" + k); else e.remove("uave_manifest");
+        e.apply();
+    }
+    private void uaveResetSession() { uaveToken = null; uaveAuthHeader = null; synchronized (uaveFields) { uaveFields.clear(); } }
+
     private void uaveError(String msg) {
         try { uaveEvent(new JSONObject().put("type", "error").put("message", msg)); } catch (Exception ignored) { }
     }
@@ -1766,7 +1861,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     // wer die App zerlegt, könnte ihn ermitteln. Der eigentliche Speicher bleibt der Android-Keystore.
     // ---------- Einstellungen zusätzlich als Datei in „Kitzrettung Cache" – übersteht Neuinstallation ----------
     private File prefsBackupFile() { return new File(hasFileAccess() ? extDataDir() : dataDir(), "Sonstiges/einstellungen.json"); }
-    private static final java.util.Set<String> PREFS_SKIP = new java.util.HashSet<>(Arrays.asList("uave_pw", "uave_restored", "prefs_restored", "geoTapCache"));
+    private static final java.util.Set<String> PREFS_SKIP = new java.util.HashSet<>(Arrays.asList("uave_pw", "uave_accts", "uave_restored", "prefs_restored", "geoTapCache"));
     private final android.os.Handler prefsH = new android.os.Handler(Looper.getMainLooper());
     private final Runnable prefsSaveR = () -> new Thread(this::prefsBackupNow).start();
     private void prefsBackupLater() { prefsH.removeCallbacks(prefsSaveR); prefsH.postDelayed(prefsSaveR, 2500); }
@@ -1828,7 +1923,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             byte[] iv = new byte[12]; new java.security.SecureRandom().nextBytes(iv);
             Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
             c.init(Cipher.ENCRYPT_MODE, backupKey(), new GCMParameterSpec(128, iv));
-            byte[] ct = c.doFinal(new JSONObject().put("u", user.trim()).put("p", pw).toString().getBytes(StandardCharsets.UTF_8));
+            JSONArray all = new JSONArray(), a = acctList();   // alle Konten mitsichern (Passwörter im Klartext nur innerhalb dieser verschlüsselten Datei)
+            for (int i = 0; i < a.length(); i++) { JSONObject o = a.getJSONObject(i); if (!o.has("p")) continue;
+                try { all.put(new JSONObject().put("u", o.optString("u")).put("n", o.optString("n")).put("p", o.optString("u").equalsIgnoreCase(user.trim()) ? pw : decrypt(o.getString("p")))); } catch (Exception ignored) { } }
+            byte[] ct = c.doFinal(new JSONObject().put("u", user.trim()).put("p", pw).put("a", all).toString().getBytes(StandardCharsets.UTF_8));
             writeFileAtomic(uaveBackupFile(), "v2:" + Base64.encodeToString(iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(ct, Base64.NO_WRAP));
         } catch (Exception ignored) { }
     }
@@ -1845,6 +1943,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             c.init(Cipher.DECRYPT_MODE, v2 ? backupKey() : backupKeyV1(), new GCMParameterSpec(128, Base64.decode(p[0], Base64.NO_WRAP)));
             JSONObject o = new JSONObject(new String(c.doFinal(Base64.decode(p[1], Base64.NO_WRAP)), StandardCharsets.UTF_8));
             prefs.edit().putString("uave_user", o.getString("u")).putString("uave_pw", encrypt(o.getString("p"))).putString("uave_restored", "1").commit();
+            JSONArray ra = o.optJSONArray("a");
+            if (ra != null) { JSONArray acc = new JSONArray(); for (int i = 0; i < ra.length(); i++) { JSONObject x = ra.getJSONObject(i); acc.put(new JSONObject().put("u", x.optString("u")).put("n", x.optString("n")).put("p", encrypt(x.optString("p")))); }
+                prefs.edit().putString("uave_accts", acc.toString()).commit(); }
+            acctSync();
             if (!v2) uaveBackupSave(o.getString("u"), o.getString("p"));   // alte Sicherung sofort durch die sichere ersetzen
         } catch (Exception ignored) { }
     }

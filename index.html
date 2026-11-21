@@ -786,6 +786,18 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
   .brand{display:flex;align-items:center;gap:10px}
   .brand b{color:var(--brand)} body.dark .brand b{color:#e0b98a}
   #bar .logo{width:48px;height:48px;border-radius:50%;flex:none;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+/* Mehrere UAV-Editor-Konten */
+.uaccts{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.uaccts:empty{display:none}
+.uacct{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(128,128,128,.35);border-radius:10px}
+.uacct.on{border-color:#13a538;background:rgba(19,165,56,.08)}
+.uacct .nm{flex:1;min-width:0}
+.uacct .nm b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uacct .nm small{display:block;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uacct .tag{font-size:12px;font-weight:700;color:#fff;background:#13a538;border-radius:6px;padding:2px 8px;white-space:nowrap}
+.uacct button{height:38px;padding:0 12px}
+.lacct{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:14px}
+.lacct b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </head>
 <body class="bartop">
@@ -854,13 +866,15 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
     <div class="set" data-lite="1" style="flex-direction:column;align-items:stretch">
       <div class="t">UAV Editor – Zugang für „UAV Editor“</div>
       <div class="v" id="vUave" style="margin-bottom:8px"></div>
+      <div id="uAccts" class="uaccts"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <input id="uUser" class="inp" type="email" placeholder="E-Mail / Login" autocomplete="off">
         <input id="uPw" class="inp" type="password" placeholder="Passwort" autocomplete="off">
+        <input id="uName" class="inp" type="text" placeholder="Name (optional, z. B. Verein)" autocomplete="off" maxlength="30">
         <button class="b-ok" id="uSave" style="height:46px;padding:0 14px">Speichern</button>
         <button class="b-sec" id="uForget" style="height:46px;padding:0 14px">Löschen</button>
       </div>
-      <div class="v" style="margin-top:6px">Das Passwort wird verschlüsselt nur auf diesem Gerät gespeichert.</div>
+      <div class="v" style="margin-top:6px">Das Passwort wird verschlüsselt nur auf diesem Gerät gespeichert. Mehrere Konten: neue E-Mail eintragen und speichern – oben lässt sich dann umschalten.</div>
     </div>
     <div class="set"><div class="l"><div class="t">Dateizugriff</div><div class="v" id="vAcc"></div></div><button class="b-sec" id="bAcc">Berechtigung</button></div>
     <h3 class="setcat" id="sc-karte">Karte</h3>
@@ -1927,7 +1941,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { liteSort: 'new', liteCloudMap: '0', setupDone: '', avs: '', showObs: '1', showLines: '1', liteRcBtn: '0', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
+const DEF = { liteSort: 'new', uaveSwitched: '', liteCloudMap: '0', setupDone: '', avs: '', showObs: '1', showLines: '1', liteRcBtn: '0', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
    planTool: '0', sideGroup: '0', catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
@@ -5440,10 +5454,11 @@ function fillSettings() {
   if (A.uaveUser) {
     $('uUser').value = A.uaveUser();
     $('uPw').value = '';
+    { const L = uvAccts(), act = L.find(a => a.active); $('uName').value = act ? act.n || '' : ''; $('uAccts').innerHTML = acctListHtml(); }
     $('uPw').placeholder = A.uaveHasPassword() ? '●●●●●●●●  gespeichert – zum Ändern neu eingeben' : 'Passwort';
     // Zugang gespeichert, aber noch nie geprüft (z. B. nach Update/Wiederherstellung): einmal automatisch prüfen
     if (A.uaveUser() && A.uaveHasPassword() && !P.uaveTest && isOnline() && !uaveAutoTested) { uaveAutoTested = true; setTimeout(uaveTestNow, 300); }
-    $('vUave').innerHTML = A.uaveUser() && A.uaveHasPassword() ? 'Eingerichtet für ' + esc(A.uaveUser()) + (P.uaveTest === 'ok' ? ' <b style="color:#fff;background:#13a538;border-radius:6px;padding:1px 7px;white-space:nowrap">✓ Login erfolgreich</b>' : !P.uaveTest ? ' <b style="color:#fff;background:#1e7bff;border-radius:6px;padding:1px 7px;white-space:nowrap">✓ Zugang gespeichert</b>' : P.uaveTest === 'fail' ? ' <b style="color:#fff;background:#b3131b;border-radius:6px;padding:1px 7px;white-space:nowrap">✗ Login fehlgeschlagen</b>' : '') : 'Noch nicht eingerichtet';
+    $('vUave').innerHTML = A.uaveUser() && A.uaveHasPassword() ? 'Eingerichtet für ' + esc(acctLabel(uvAccts().find(a => a.active)) || A.uaveUser()) + (uvAccts().length > 1 ? ` <span style="opacity:.7">(${uvAccts().length} Konten)</span>` : '') + (P.uaveTest === 'ok' ? ' <b style="color:#fff;background:#13a538;border-radius:6px;padding:1px 7px;white-space:nowrap">✓ Login erfolgreich</b>' : !P.uaveTest ? ' <b style="color:#fff;background:#1e7bff;border-radius:6px;padding:1px 7px;white-space:nowrap">✓ Zugang gespeichert</b>' : P.uaveTest === 'fail' ? ' <b style="color:#fff;background:#b3131b;border-radius:6px;padding:1px 7px;white-space:nowrap">✗ Login fehlgeschlagen</b>' : '') : 'Noch nicht eingerichtet';
   }
 }
 let srcAtOpen = '';
@@ -8757,12 +8772,37 @@ window.onGeo = raw => {
 };
 setInterval(() => { geoSyncNow(false); geoBadge(); }, 60 * 60 * 1000);   // stündlich: NOTAMs; Geozonen nur, wenn das Feldgebiet noch nicht gespeichert ist
 $('uSave').onclick = () => {
-  const u = $('uUser').value.trim(), pw = $('uPw').value;
+  const u = $('uUser').value.trim(), pw = $('uPw').value, nm = $('uName') ? $('uName').value.trim() : '';
   if (!u) return toast('Bitte E-Mail / Login eintragen.', true);
-  if (!pw && !A.uaveHasPassword()) return toast('Bitte Passwort eintragen.', true);
-  A.uaveSetCredentials(u, pw); $('uPw').value = ''; fillSettings(); uaveTestNow();
+  const cur = A.uaveUser ? A.uaveUser() : '', known = uvAccts().find(a => a.u.toLowerCase() === u.toLowerCase());
+  const other = !!cur && cur.toLowerCase() !== u.toLowerCase();
+  if (!pw && !(known && known.pw) && !(!other && A.uaveHasPassword())) return toast('Bitte Passwort eintragen.', true);
+  if (other && (A.uaveIsBusy && A.uaveIsBusy())) return toast('Gerade läuft ein Download aus dem UAV Editor – bitte kurz warten.', true);
+  A.uaveSetCredentials(u, pw); if (A.uaveAccountName) A.uaveAccountName(u, nm); $('uPw').value = '';
+  if (other) return acctChanged(nm || u, !!pw);
+  fillSettings(); uaveTestNow();
 };
-$('uForget').onclick = () => deleteDlg('UAV-Editor-Zugang löschen?', 'Login und Passwort werden von der Fernsteuerung gelöscht – auch die Sicherung im Cache-Ordner. Danach müssen sie neu eingegeben werden.', 'Zugang löschen', () => { A.uaveForget(); setP('uaveTest', ''); fillSettings(); toast('Zugang gelöscht.', 'ok'); });
+/** Eingetragene UAV-Editor-Konten (Fernsteuerung); am PC bzw. ohne Liste nur das eine */
+function uvAccts() { try { if (A.uaveAccounts) return JSON.parse(A.uaveAccounts()) || []; } catch (e) { } const u = A.uaveUser ? A.uaveUser() : ''; return u ? [{ u, n: '', active: true, pw: !!(A.uaveHasPassword && A.uaveHasPassword()) }] : []; }
+const acctLabel = a => a ? (a.n || a.u) : '';
+/** Nach dem Umschalten: alles neu laden (Feldliste, DJI Cloud und Karte gehören zum Konto) */
+function acctChanged(label, test) { setP('uaveTest', ''); setP('uaveSwitched', label || '1'); toast('Konto gewechselt: ' + (label || '') + ' – lade neu…', 'ok', 3000); setTimeout(() => location.reload(), 700); }
+function acctSwitch(a) {
+  if (!a || a.active) return;
+  if (!A.uaveSwitch || !A.uaveSwitch(a.u)) return toast((A.uaveIsBusy && A.uaveIsBusy()) ? 'Gerade läuft ein Download aus dem UAV Editor – bitte kurz warten.' : 'Umschalten nicht möglich – Passwort für dieses Konto fehlt.', true, 5000);
+  acctChanged(acctLabel(a));
+}
+function acctListHtml() {
+  const L = uvAccts(); if (L.length < 2) return '';
+  return L.map((a, i) => `<div class="uacct${a.active ? ' on' : ''}"><div class="nm"><b>${esc(acctLabel(a))}</b>${a.n ? `<small>${esc(a.u)}</small>` : ''}</div>`
+    + (a.active ? '<span class="tag">Aktiv</span>' : `<button class="b-ok" data-acsw="${i}">Wechseln</button>`) + `<button class="b-sec" data-aced="${i}" title="Bearbeiten">✎</button></div>`).join('');
+}
+$('uAccts').onclick = e => { const L = uvAccts(), sw = e.target.closest('[data-acsw]'), ed = e.target.closest('[data-aced]');
+  if (sw) acctSwitch(L[+sw.dataset.acsw]);
+  else if (ed) { const a = L[+ed.dataset.aced]; $('uUser').value = a.u; $('uName').value = a.n || ''; $('uPw').value = ''; $('uPw').placeholder = a.pw ? '●●●●●●●●  gespeichert – zum Ändern neu eingeben' : 'Passwort'; $('uName').focus(); } };
+$('uForget').onclick = () => { const L = uvAccts(), act = L.find(a => a.active);
+  if (L.length > 1 && act && A.uaveRemoveAccount) return deleteDlg(`Konto „${acctLabel(act)}“ entfernen?`, 'Login und Passwort dieses Kontos werden von der Fernsteuerung gelöscht. Danach wird auf ein anderes eingetragenes Konto umgeschaltet.', 'Konto entfernen', () => { A.uaveRemoveAccount(act.u); const n = uvAccts().find(a => a.active); acctChanged(acctLabel(n)); });
+  deleteDlg('UAV-Editor-Zugang löschen?', 'Login und Passwort werden von der Fernsteuerung gelöscht – auch die Sicherung im Cache-Ordner. Danach müssen sie neu eingegeben werden.', 'Zugang löschen', () => { A.uaveForget(); setP('uaveTest', ''); fillSettings(); toast('Zugang gelöscht.', 'ok'); }); };
 
 // ================= Abgleich mit UAV Editor =================
 let syncing = false;
@@ -10445,12 +10485,14 @@ function liteSearch(afterRefresh) {
       return !g.some(o => o !== f && dr(o) === want && (() => { const p = c(f), q = c(o); return !p || !q || distM(p[0], p[1], q[0], q[1]) < 400; })()); }); }
   const sel = S.litePick || (S.litePick = new Set());
   const oldQ = afterRefresh && $('lq') ? $('lq').value : '';
-  openInfoPage('Feldsuche', `<div class="lsrch"><input id="lq" type="search" placeholder="Suchbegriff eingeben (mind. 3 Buchstaben)" autocomplete="off">
+  const accL = uvAccts(), accA = accL.find(a => a.active);
+  openInfoPage('Feldsuche', `${accL.length > 1 ? `<div class="lacct">Konto: <b>${esc(acctLabel(accA))}</b><button class="b-sec" id="lAcct" style="height:34px;padding:0 10px;margin-left:auto">⇄ Konto wechseln</button></div>` : ''}<div class="lsrch"><input id="lq" type="search" placeholder="Suchbegriff eingeben (mind. 3 Buchstaben)" autocomplete="off">
     <button class="b-sec" id="lAll" disabled>Alle markieren</button></div>
     <div class="pcseg" id="lSort" style="margin:6px 0 2px;max-width:420px"><button data-ls="name">Name A–Z</button><button data-ls="new">Neueste zuerst</button></div>
     <div class="meta" id="lInfo"></div><div id="lList" class="llist"></div>
     <div class="lbot"><div class="meta" style="margin-bottom:6px">Nach dem Pre-Check werden die gewählten Felder auf die Fernsteuerung heruntergeladen – in den Ordner „${esc(liteDstText())}“ für DJI Pilot 2.</div><div class="lgo2"><button class="b-sec" id="lMap" disabled>🗺 Auf Karte zeigen</button><button class="b-ok" id="lGo" disabled>Weiter zum Pre-Check</button></div></div>`);
   const q = $('lq'), list = $('lList'), go = $('lGo'), allB = $('lAll'); q.value = oldQ;
+  if ($('lAcct')) $('lAcct').onclick = () => { const L = uvAccts(); if (L.length === 2) acctSwitch(L.find(a => !a.active)); else { $('pgInfo').classList.remove('open'); gotoSetting('#uAccts'); } };
   document.querySelectorAll('#lSort [data-ls]').forEach(b => { b.classList.toggle('on', (P.liteSort === 'name' ? 'name' : 'new') === b.dataset.ls);
     b.onclick = () => { if (P.liteSort === b.dataset.ls) return; setP('liteSort', b.dataset.ls); liteSearch(true); }; });
   // „Neue Felder holen“ oben neben „Zurück zur Karte“
@@ -12738,8 +12780,9 @@ if (IS_WEB) webInit();
 function openPilot() { if (!(A.openPilot && A.openPilot())) toast('DJI Pilot 2 wurde auf dieser Fernsteuerung nicht gefunden.', true); }
 const hasPilot = () => { try { return !IS_WEB && !!(A.pilotApp && A.pilotApp()); } catch (e) { return false; } };
 if ($('bPilot') && hasPilot()) { $('bPilot').style.display = ''; $('bPilot').onclick = e => { e.stopPropagation(); openPilot(); }; }
+if (P.uaveSwitched) { const nm = P.uaveSwitched; setP('uaveSwitched', ''); setTimeout(() => { toast('✓ Jetzt aktiv: UAV-Editor-Konto „' + (nm === '1' ? '' : nm) + '“', 'ok', 4000); if (isOnline() && A.uaveTest) A.uaveTest(); }, 800); }
 if (IS_LITE) liteInit();
-window.KR = { opImage2: async sel => { const ops = netOps(sel); return ops.length ? opImage(ops, 0) : null; }, fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl, catEntry, liteImport, heightPlan, pwrNeedH, pwrTop, uvCatAuto, liteBgLines, liteDlAbort, openPilot, hasPilot };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { opImage2: async sel => { const ops = netOps(sel); return ops.length ? opImage(ops, 0) : null; }, fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl, catEntry, liteImport, heightPlan, pwrNeedH, pwrTop, uvCatAuto, liteBgLines, liteDlAbort, openPilot, hasPilot, liteSearch };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
