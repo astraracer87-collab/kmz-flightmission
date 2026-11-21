@@ -608,6 +608,28 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         return o;
     }
 
+    private String pilotPkg = null;
+    /** DJI Pilot 2 finden: bekannte Paketnamen, sonst unter den installierten Apps nach „Pilot“ von DJI suchen */
+    private String findPilotApp() {
+        if (pilotPkg != null) return pilotPkg;
+        android.content.pm.PackageManager pm = getPackageManager();
+        for (String pk : new String[]{"dji.pilot2", "com.dji.industry.pilot", "dji.pilot"}) {
+            if (pm.getLaunchIntentForPackage(pk) != null) return pilotPkg = pk;
+        }
+        try {
+            Intent q = new Intent(Intent.ACTION_MAIN); q.addCategory(Intent.CATEGORY_LAUNCHER);
+            String best = "";
+            for (android.content.pm.ResolveInfo ri : pm.queryIntentActivities(q, 0)) {
+                String pk = ri.activityInfo.packageName, lb = String.valueOf(ri.loadLabel(pm));
+                if (pk.equals(getPackageName())) continue;
+                boolean dji = pk.toLowerCase(Locale.ROOT).contains("dji") || lb.toLowerCase(Locale.ROOT).contains("dji");
+                if (dji && lb.toLowerCase(Locale.ROOT).matches(".*pilot\\s*2.*")) { best = pk; break; }
+                if (dji && best.isEmpty() && lb.toLowerCase(Locale.ROOT).contains("pilot")) best = pk;
+            }
+            return pilotPkg = best;
+        } catch (Exception e) { return ""; }
+    }
+
     /** Schnittstelle für die Oberfläche (assets/index.html) */
     public class Bridge {
 
@@ -625,6 +647,24 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         /** true, wenn eine Internetverbindung besteht */
         @JavascriptInterface
         public boolean isOnline() { return online(); }
+
+        /** Paketname von DJI Pilot 2 auf dieser Fernsteuerung ("" = nicht installiert) */
+        @JavascriptInterface
+        public String pilotApp() { return findPilotApp(); }
+
+        /** DJI Pilot 2 in den Vordergrund holen (läuft sie schon, geht es dort weiter, wo der Pilot war) */
+        @JavascriptInterface
+        public boolean openPilot() {
+            String pk = findPilotApp();
+            if (pk.isEmpty()) return false;
+            try {
+                Intent i = getPackageManager().getLaunchIntentForPackage(pk);
+                if (i == null) return false;
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                runOnUiThread(() -> { try { startActivity(i); } catch (Exception ignored) { } });
+                return true;
+            } catch (Exception e) { return false; }
+        }
 
         /** Tag-/Nachtmodus: Statusleiste und Navigationsleiste passend einfärben */
         @JavascriptInterface
@@ -994,12 +1034,68 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         // ---------- UAV Editor ----------
         @JavascriptInterface
         public void uaveSetCredentials(String user, String password) {
-            prefs.edit().putString("uave_user", user == null ? "" : user.trim()).apply();
+            String u = user == null ? "" : user.trim(), old = prefs.getString("uave_user", "");
+            if (!u.equalsIgnoreCase(old) && !old.isEmpty()) { acctSync(); acctStash(old); acctUnstash(u); uaveResetSession(); }   // anderes Konto: Feldliste des alten merken
+            prefs.edit().putString("uave_user", u).apply();
             if (password != null && !password.isEmpty()) {
                 try { prefs.edit().putString("uave_pw", encrypt(password)).apply(); }
                 catch (Exception e) { prefs.edit().remove("uave_pw").apply(); }
-            }
-            uaveBackupSave(user, password);
+            } else if (!u.equalsIgnoreCase(old)) { JSONObject a = acctGet(u); if (a != null && a.has("p")) prefs.edit().putString("uave_pw", a.optString("p")).apply(); else prefs.edit().remove("uave_pw").apply(); }
+            acctSync();
+            uaveBackupSave(u, password);
+        }
+
+        /** true = gerade läuft eine Abfrage/ein Download beim UAV Editor (dann nicht umschalten) */
+        @JavascriptInterface
+        public boolean uaveIsBusy() { return uaveBusy; }
+
+        /** Alle eingetragenen UAV-Editor-Konten (ohne Passwörter): [{u, n, active, pw}] */
+        @JavascriptInterface
+        public String uaveAccounts() {
+            acctSync();
+            JSONArray out = new JSONArray(); String cur = prefs.getString("uave_user", "");
+            try { JSONArray a = acctList(); for (int i = 0; i < a.length(); i++) { JSONObject o = a.getJSONObject(i);
+                out.put(new JSONObject().put("u", o.optString("u")).put("n", o.optString("n")).put("active", o.optString("u").equalsIgnoreCase(cur)).put("pw", o.has("p"))); } } catch (Exception ignored) { }
+            return out.toString();
+        }
+
+        /** Konto benennen (z. B. „Verein“ / „Privat“) */
+        @JavascriptInterface
+        public void uaveAccountName(String user, String name) {
+            try { JSONArray a = acctList(); for (int i = 0; i < a.length(); i++) if (a.getJSONObject(i).optString("u").equalsIgnoreCase(user)) a.getJSONObject(i).put("n", name == null ? "" : name.trim());
+                prefs.edit().putString("uave_accts", a.toString()).apply(); uaveBackupSave(prefs.getString("uave_user", ""), null); } catch (Exception ignored) { }
+        }
+
+        /** Auf ein anderes eingetragenes Konto umschalten. false = läuft gerade ein Download oder Konto unbekannt */
+        @JavascriptInterface
+        public boolean uaveSwitch(String user) {
+            if (uaveBusy) return false;
+            JSONObject a = acctGet(user);
+            if (a == null || !a.has("p")) return false;
+            String old = prefs.getString("uave_user", "");
+            if (a.optString("u").equalsIgnoreCase(old)) return true;
+            acctSync(); acctStash(old); acctUnstash(a.optString("u"));
+            prefs.edit().putString("uave_user", a.optString("u")).putString("uave_pw", a.optString("p")).apply();
+            uaveResetSession();
+            uaveBackupSave(a.optString("u"), null);
+            return true;
+        }
+
+        /** Ein Konto entfernen; war es das aktive, wird auf ein anderes umgeschaltet (falls vorhanden) */
+        @JavascriptInterface
+        public void uaveRemoveAccount(String user) {
+            try {
+                acctSync();
+                JSONArray a = acctList(), keep = new JSONArray(); for (int i = 0; i < a.length(); i++) if (!a.getJSONObject(i).optString("u").equalsIgnoreCase(user)) keep.put(a.getJSONObject(i));
+                prefs.edit().putString("uave_accts", keep.toString()).remove("uave_manifest@" + acctKey(user)).apply();
+                try { dataFile("uave_katalog@" + acctKey(user) + ".json").delete(); dataFile("dji_cloud@" + acctKey(user) + ".json").delete(); } catch (Exception ignored) { }
+                if (user.equalsIgnoreCase(prefs.getString("uave_user", ""))) {
+                    if (keep.length() > 0) { JSONObject n = keep.getJSONObject(0); acctUnstash(n.optString("u")); prefs.edit().putString("uave_user", n.optString("u")).putString("uave_pw", n.optString("p")).apply(); }
+                    else { prefs.edit().remove("uave_user").remove("uave_pw").remove("uave_manifest").apply(); try { dataFile("uave_katalog.json").delete(); dataFile("dji_cloud.json").delete(); } catch (Exception ignored) { } }
+                    uaveResetSession();
+                }
+                if (keep.length() > 0) uaveBackupSave(prefs.getString("uave_user", ""), null); else { try { uaveBackupFile().delete(); } catch (Exception ignored) { } }
+            } catch (Exception ignored) { }
         }
 
         /** Zugang sofort prüfen (Anmeldung beim UAV Editor). Ergebnis über window.onUaveTest({ok, error}) */
@@ -1024,9 +1120,12 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         @JavascriptInterface
         public boolean uaveHasPassword() { return prefs.contains("uave_pw"); }
 
+        /** Alle Konten löschen (auch die Sicherung im Cache-Ordner) */
         @JavascriptInterface
         public void uaveForget() {
-            prefs.edit().remove("uave_user").remove("uave_pw").remove("uave_manifest").apply();
+            try { JSONArray a = acctList(); for (int i = 0; i < a.length(); i++) { String k = acctKey(a.getJSONObject(i).optString("u")); prefs.edit().remove("uave_manifest@" + k).apply(); dataFile("uave_katalog@" + k + ".json").delete(); dataFile("dji_cloud@" + k + ".json").delete(); } } catch (Exception ignored) { }
+            prefs.edit().remove("uave_user").remove("uave_pw").remove("uave_manifest").remove("uave_accts").apply();
+            uaveResetSession();
             try { uaveBackupFile().delete(); } catch (Exception ignored) { }
         }
 
@@ -1697,6 +1796,42 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         js("window.onUave && window.onUave(" + JSONObject.quote(ev.toString()) + ")");
     }
 
+    // ---------- Mehrere UAV-Editor-Konten ----------
+    // Aktives Konto = uave_user/uave_pw (wie bisher). Alle Konten in uave_accts [{u, n, p(verschlüsselt)}].
+    // Beim Umschalten werden Feldliste, Download-Stand und DJI-Cloud-Liste des alten Kontos beiseitegelegt und die des neuen zurückgeholt.
+    private static String acctKey(String u) { return Integer.toHexString((u == null ? "" : u.trim().toLowerCase(Locale.ROOT)).hashCode()); }
+    private JSONArray acctList() { try { return new JSONArray(prefs.getString("uave_accts", "[]")); } catch (Exception e) { return new JSONArray(); } }
+    private JSONObject acctGet(String u) { try { JSONArray a = acctList(); for (int i = 0; i < a.length(); i++) if (a.getJSONObject(i).optString("u").equalsIgnoreCase(u == null ? "" : u.trim())) return a.getJSONObject(i); } catch (Exception ignored) { } return null; }
+    /** Aktives Konto in die Liste übernehmen (neu oder mit aktuellem Passwort) */
+    private synchronized void acctSync() {
+        String u = prefs.getString("uave_user", "").trim(), p = prefs.getString("uave_pw", null);
+        if (u.isEmpty()) return;
+        try {
+            JSONArray a = acctList(); JSONObject hit = null;
+            for (int i = 0; i < a.length(); i++) if (a.getJSONObject(i).optString("u").equalsIgnoreCase(u)) hit = a.getJSONObject(i);
+            if (hit == null) { hit = new JSONObject().put("u", u).put("n", ""); a.put(hit); }
+            if (p != null) hit.put("p", p);
+            prefs.edit().putString("uave_accts", a.toString()).apply();
+        } catch (Exception ignored) { }
+    }
+    private void acctMove(File from, File to) { try { to.delete(); if (from.isFile() && !from.renameTo(to)) { writeFileAtomic(to, readFile(from)); from.delete(); } } catch (Exception ignored) { } }
+    /** Daten des (bisher aktiven) Kontos u beiseitelegen */
+    private void acctStash(String u) {
+        if (u == null || u.isEmpty()) return; String k = acctKey(u);
+        try { acctMove(dataFile("uave_katalog.json"), dataFile("uave_katalog@" + k + ".json")); acctMove(dataFile("dji_cloud.json"), dataFile("dji_cloud@" + k + ".json")); } catch (Exception ignored) { }
+        prefs.edit().putString("uave_manifest@" + k, prefs.getString("uave_manifest", "{}")).remove("uave_manifest").apply();
+    }
+    /** Daten des Kontos u zurückholen (falls schon einmal benutzt) */
+    private void acctUnstash(String u) {
+        String k = acctKey(u);
+        try { dataFile("uave_katalog.json").delete(); dataFile("dji_cloud.json").delete();
+            acctMove(dataFile("uave_katalog@" + k + ".json"), dataFile("uave_katalog.json")); acctMove(dataFile("dji_cloud@" + k + ".json"), dataFile("dji_cloud.json")); } catch (Exception ignored) { }
+        SharedPreferences.Editor e = prefs.edit(); String m = prefs.getString("uave_manifest@" + k, null);
+        if (m != null) e.putString("uave_manifest", m).remove("uave_manifest@" + k); else e.remove("uave_manifest");
+        e.apply();
+    }
+    private void uaveResetSession() { uaveToken = null; uaveAuthHeader = null; synchronized (uaveFields) { uaveFields.clear(); } }
+
     private void uaveError(String msg) {
         try { uaveEvent(new JSONObject().put("type", "error").put("message", msg)); } catch (Exception ignored) { }
     }
@@ -1726,7 +1861,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     // wer die App zerlegt, könnte ihn ermitteln. Der eigentliche Speicher bleibt der Android-Keystore.
     // ---------- Einstellungen zusätzlich als Datei in „Kitzrettung Cache" – übersteht Neuinstallation ----------
     private File prefsBackupFile() { return new File(hasFileAccess() ? extDataDir() : dataDir(), "Sonstiges/einstellungen.json"); }
-    private static final java.util.Set<String> PREFS_SKIP = new java.util.HashSet<>(Arrays.asList("uave_pw", "uave_restored", "prefs_restored", "geoTapCache"));
+    private static final java.util.Set<String> PREFS_SKIP = new java.util.HashSet<>(Arrays.asList("uave_pw", "uave_accts", "uave_restored", "prefs_restored", "geoTapCache"));
     private final android.os.Handler prefsH = new android.os.Handler(Looper.getMainLooper());
     private final Runnable prefsSaveR = () -> new Thread(this::prefsBackupNow).start();
     private void prefsBackupLater() { prefsH.removeCallbacks(prefsSaveR); prefsH.postDelayed(prefsSaveR, 2500); }
@@ -1767,8 +1902,17 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
     }
 
     private File uaveBackupFile() { return new File(hasFileAccess() ? extDataDir() : dataDir(), "Sonstiges/.uave-zugang"); }
-    private static javax.crypto.spec.SecretKeySpec backupKey() throws Exception {
+    /** v1 (alt): Schlüssel nur aus festem Text – den kennt jeder, der den Quellcode sieht. Nur noch zum einmaligen Übernehmen alter Sicherungen.
+     *  v2: zusätzlich die ANDROID_ID dieser App auf diesem Gerät. Die ist je App-Signatur verschieden (andere Apps sehen eine andere),
+     *  bleibt aber bei Neuinstallation derselben App gleich – die Sicherung funktioniert also weiter, ist für fremde Apps aber nicht entschlüsselbar. */
+    private static javax.crypto.spec.SecretKeySpec backupKeyV1() throws Exception {
         byte[] k = java.security.MessageDigest.getInstance("SHA-256").digest("MissionKitzrettung|UAV-Editor-Zugang|v1|Kitzrettung-Limburg".getBytes(StandardCharsets.UTF_8));
+        return new javax.crypto.spec.SecretKeySpec(k, "AES");
+    }
+    private javax.crypto.spec.SecretKeySpec backupKey() throws Exception {
+        String aid = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+        if (aid == null || aid.isEmpty()) throw new Exception("keine Geräte-ID");
+        byte[] k = java.security.MessageDigest.getInstance("SHA-256").digest(("MissionKitzrettung|UAV-Editor-Zugang|v2|" + aid).getBytes(StandardCharsets.UTF_8));
         return new javax.crypto.spec.SecretKeySpec(k, "AES");
     }
     private void uaveBackupSave(String user, String password) {
@@ -1779,20 +1923,31 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             byte[] iv = new byte[12]; new java.security.SecureRandom().nextBytes(iv);
             Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
             c.init(Cipher.ENCRYPT_MODE, backupKey(), new GCMParameterSpec(128, iv));
-            byte[] ct = c.doFinal(new JSONObject().put("u", user.trim()).put("p", pw).toString().getBytes(StandardCharsets.UTF_8));
-            writeFileAtomic(uaveBackupFile(), Base64.encodeToString(iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(ct, Base64.NO_WRAP));
+            JSONArray all = new JSONArray(), a = acctList();   // alle Konten mitsichern (Passwörter im Klartext nur innerhalb dieser verschlüsselten Datei)
+            for (int i = 0; i < a.length(); i++) { JSONObject o = a.getJSONObject(i); if (!o.has("p")) continue;
+                try { all.put(new JSONObject().put("u", o.optString("u")).put("n", o.optString("n")).put("p", o.optString("u").equalsIgnoreCase(user.trim()) ? pw : decrypt(o.getString("p")))); } catch (Exception ignored) { } }
+            byte[] ct = c.doFinal(new JSONObject().put("u", user.trim()).put("p", pw).put("a", all).toString().getBytes(StandardCharsets.UTF_8));
+            writeFileAtomic(uaveBackupFile(), "v2:" + Base64.encodeToString(iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(ct, Base64.NO_WRAP));
         } catch (Exception ignored) { }
     }
     /** Beim Start: kein Zugang in der App, aber Sicherung im Cache-Ordner → übernehmen */
     private void uaveBackupRestore() {
         try {
-            if (prefs.contains("uave_pw") && !prefs.getString("uave_user", "").isEmpty()) { if (!uaveBackupFile().isFile()) uaveBackupSave(prefs.getString("uave_user", ""), null); return; }
-            File f = uaveBackupFile(); if (!f.isFile()) return;
-            String[] p = readFile(f).trim().split(":");
+            File f = uaveBackupFile();
+            boolean have = prefs.contains("uave_pw") && !prefs.getString("uave_user", "").isEmpty();
+            String raw = f.isFile() ? readFile(f).trim() : "";
+            if (have) { if (!raw.startsWith("v2:")) uaveBackupSave(prefs.getString("uave_user", ""), null); return; }   // fehlt oder noch alte (unsichere) Fassung → neu schreiben
+            if (raw.isEmpty()) return;
+            boolean v2 = raw.startsWith("v2:"); String[] p = (v2 ? raw.substring(3) : raw).split(":");
             Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
-            c.init(Cipher.DECRYPT_MODE, backupKey(), new GCMParameterSpec(128, Base64.decode(p[0], Base64.NO_WRAP)));
+            c.init(Cipher.DECRYPT_MODE, v2 ? backupKey() : backupKeyV1(), new GCMParameterSpec(128, Base64.decode(p[0], Base64.NO_WRAP)));
             JSONObject o = new JSONObject(new String(c.doFinal(Base64.decode(p[1], Base64.NO_WRAP)), StandardCharsets.UTF_8));
             prefs.edit().putString("uave_user", o.getString("u")).putString("uave_pw", encrypt(o.getString("p"))).putString("uave_restored", "1").commit();
+            JSONArray ra = o.optJSONArray("a");
+            if (ra != null) { JSONArray acc = new JSONArray(); for (int i = 0; i < ra.length(); i++) { JSONObject x = ra.getJSONObject(i); acc.put(new JSONObject().put("u", x.optString("u")).put("n", x.optString("n")).put("p", encrypt(x.optString("p")))); }
+                prefs.edit().putString("uave_accts", acc.toString()).commit(); }
+            acctSync();
+            if (!v2) uaveBackupSave(o.getString("u"), o.getString("p"));   // alte Sicherung sofort durch die sichere ersetzen
         } catch (Exception ignored) { }
     }
 
@@ -4768,6 +4923,10 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             if (!have) viewReqAt = System.currentTimeMillis();   // Ansicht braucht Netz: Vorab-Download kurz pausieren
             boolean on = online();
             long fresh = km[0].startsWith("dipul/") ? Long.MAX_VALUE / 2 : km[0].startsWith("bmv/") && km[0].endsWith(".json") ? 7L * 24 * 3600 * 1000 : TILE_FRESH;   // Geozonen: nur auf Knopfdruck neu (dipulClear)
+            if (have && on && km[0].startsWith("dop3/") && System.currentTimeMillis() - f.lastModified() < fresh) {   // Luftbild nur teilweise abgedeckt (PNG mit Lücken): Esri drunterlegen, nur anzeigen
+                byte[] cb = readAll(f);
+                if (isPng(cb)) { List<String> sg = u.getPathSegments(); byte[] e = withEsri(Integer.parseInt(sg.get(0)), Integer.parseInt(sg.get(1)), Integer.parseInt(sg.get(2)), cb); return wr(isPng(e) ? "image/png" : "image/jpeg", new ByteArrayInputStream(e)); }
+            }
             if (have && (!on || System.currentTimeMillis() - f.lastModified() < fresh)) return tileResp(f, km[1]);
             if (!on && km[0].startsWith("dipul/c/")) {   // offline: aus gespeicherten Einzelbildern zusammensetzen
                 List<String> sg = u.getPathSegments();
@@ -4788,7 +4947,13 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                     List<String> seg = u.getPathSegments();
                     DOP_PARTIAL.set(false);
                     b = dopTile(Integer.parseInt(seg.get(0)), Integer.parseInt(seg.get(1)), Integer.parseInt(seg.get(2)), u.getQueryParameter("s"));
-                    if (b != null && DOP_PARTIAL.get()) return wr("image/jpeg", new ByteArrayInputStream(b));   // unvollständig: zeigen, nicht speichern
+                    if (b != null && (DOP_PARTIAL.get() || isPng(b))) {   // Lücken im amtlichen Luftbild: Esri drunter (nur anzeigen); vollständig geantwortet → amtlichen Teil speichern (offline)
+                        int z = Integer.parseInt(seg.get(0)), x = Integer.parseInt(seg.get(1)), y = Integer.parseInt(seg.get(2));
+                        boolean part = DOP_PARTIAL.get();
+                        byte[] e = isPng(b) ? withEsri(z, x, y, b) : b;
+                        if (!part) saveTile(f, b);
+                        return wr(isPng(e) ? "image/png" : "image/jpeg", new ByteArrayInputStream(e));
+                    }
                     if (b == null) {   // außerhalb HE/RP: Esri nur zum Ansehen
                         byte[] e = httpBytes("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + seg.get(0) + "/" + seg.get(2) + "/" + seg.get(1));
                         if (e != null) return wr("image/jpeg", new ByteArrayInputStream(e));
@@ -4914,16 +5079,20 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             try { b = httpBytes((he ? DOP_HE : DOP_RP).replace("FORMAT=image/png&TRANSPARENT=TRUE", "FORMAT=image/jpeg") + bbox); } catch (Exception ignored) { }
             if (b == null) return null;
             android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
-            boolean ok = bm != null && hasContent(bm);
+            int cov = bm != null ? coverage(bm) : 0;
             if (bm != null) bm.recycle();
-            return ok ? b : null;
+            if (cov <= 3) return null;          // hier kein Luftbild (z. B. Zoomstufe ohne Daten) → Esri
+            if (cov >= 254) return b;           // voll abgedeckt: JPEG direkt
+            // Rand des Landes: weiße Fläche im JPEG → transparent nachladen, damit drunter Esri statt Weiß/Grau erscheint
+            fHe = he ? dp.submit(() -> httpBytes(DOP_HE + bbox)) : null;
+            fRp = rp ? dp.submit(() -> httpBytes(DOP_RP + bbox)) : null;
         }
         android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas cv = new android.graphics.Canvas(out);
-        cv.drawColor(0xffd9d9d0);
         boolean any = false;
         DOP_PARTIAL.set(false);
         for (java.util.concurrent.Future<byte[]> fu : new java.util.concurrent.Future[]{fRp, fHe}) {
+            if (fu == null) continue;
             byte[] b = null;
             try { b = fu.get(40, java.util.concurrent.TimeUnit.SECONDS); } catch (Exception ignored) { }
             if (b == null) { DOP_PARTIAL.set(true); continue; }   // ein Landesdienst fehlt: anzeigen, aber nicht speichern (sonst bleibt ein grauer Fleck)
@@ -4933,10 +5102,42 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             bm.recycle();
         }
         if (!any) { out.recycle(); return null; }
+        boolean full = coverage(out) >= 254;
         ByteArrayOutputStream bo = new ByteArrayOutputStream();
-        out.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, bo);
+        if (full) {   // voll: als JPEG (klein)
+            android.graphics.Bitmap j = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas c2 = new android.graphics.Canvas(j); c2.drawColor(0xffffffff); c2.drawBitmap(out, 0, 0, null);
+            j.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, bo); j.recycle();
+        } else out.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, bo);   // Lücken bleiben durchsichtig (kein grauer Streifen) – beim Anzeigen kommt Esri drunter
         out.recycle();
         return bo.toByteArray();
+    }
+
+    /** Anteil der Stichproben (von 256) mit echtem Bildinhalt – nicht durchsichtig, nicht weiß, nicht Füllgrau */
+    private static int coverage(android.graphics.Bitmap bm) {
+        int w = bm.getWidth(), h = bm.getHeight(), hits = 0;
+        for (int i = 0; i < 16; i++) for (int j = 0; j < 16; j++) {
+            int p = bm.getPixel(Math.min(w - 1, i * w / 16 + w / 32), Math.min(h - 1, j * h / 16 + h / 32));
+            int a = p >>> 24, r = (p >> 16) & 255, g = (p >> 8) & 255, b = p & 255;
+            if (a > 40 && !(r > 250 && g > 250 && b > 250)) hits++;
+        }
+        return hits;
+    }
+    static boolean isPng(byte[] b) { return b != null && b.length > 4 && (b[0] & 255) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G'; }
+    private static byte[] readAll(File f) throws Exception { try (FileInputStream in = new FileInputStream(f)) { ByteArrayOutputStream bo = new ByteArrayOutputStream(); byte[] buf = new byte[16384]; int n; while ((n = in.read(buf)) > 0) bo.write(buf, 0, n); return bo.toByteArray(); } }
+    /** Teil-Luftbild (PNG mit Lücken) auf Esri legen – nur zum Anzeigen, wird nicht gespeichert. Ohne Esri: PNG unverändert */
+    private static byte[] withEsri(int z, int x, int y, byte[] png) {
+        try {
+            byte[] e = httpBytes("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + z + "/" + y + "/" + x);
+            if (e == null) return png;
+            android.graphics.Bitmap eb = android.graphics.BitmapFactory.decodeByteArray(e, 0, e.length), pb = android.graphics.BitmapFactory.decodeByteArray(png, 0, png.length);
+            if (eb == null || pb == null) { if (eb != null) eb.recycle(); if (pb != null) pb.recycle(); return png; }
+            android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas cv = new android.graphics.Canvas(out); android.graphics.Rect r = new android.graphics.Rect(0, 0, 256, 256);
+            cv.drawBitmap(eb, null, r, null); cv.drawBitmap(pb, null, r, null); eb.recycle(); pb.recycle();
+            ByteArrayOutputStream bo = new ByteArrayOutputStream(); out.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, bo); out.recycle();
+            return bo.toByteArray();
+        } catch (Throwable t) { return png; }
     }
 
     /** Für den Vorab-Download: nur vollständige Luftbilder (beide Landesdienste geantwortet) */
@@ -4949,7 +5150,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
 
     /** Einmalig: früher gespeicherte Luftbilder mit grauem Fleck (ein Landesdienst fehlte) löschen – werden neu geladen */
     private void dopCleanup() {
-        if (prefs.getBoolean("dop_clean1", false)) return;
+        if (prefs.getBoolean("dop_clean2", false)) return;
         new Thread(() -> {
             int del = 0;
             java.util.ArrayDeque<File> st = new java.util.ArrayDeque<>();
@@ -4965,14 +5166,14 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                         int w = bm.getWidth(), h = bm.getHeight(), grey = 0, tot = 0;
                         for (int yy = 0; yy < h; yy += 2) for (int xx = 0; xx < w; xx += 2) {
                             int p = bm.getPixel(xx, yy), r = (p >> 16) & 255, g = (p >> 8) & 255, bl = p & 255; tot++;
-                            if (Math.abs(r - 0xd9) < 7 && Math.abs(g - 0xd9) < 7 && Math.abs(bl - 0xd0) < 7) grey++;
+                            if ((Math.abs(r - 0xd9) < 7 && Math.abs(g - 0xd9) < 7 && Math.abs(bl - 0xd0) < 7) || (r > 250 && g > 250 && bl > 250)) grey++;   // Füllgrau oder Weiß (Rand des Landes)
                         }
                         bm.recycle();
                         if (grey * 10 > tot) { f.delete(); del++; }   // mehr als 10 % Füllgrau = unvollständig
                     } catch (Throwable ignored) { }
                 }
             }
-            prefs.edit().putBoolean("dop_clean1", true).apply();
+            prefs.edit().putBoolean("dop_clean2", true).apply();
             if (del > 0) { prefs.edit().remove("esBox5").apply(); js("window.onDopCleaned && window.onDopCleaned(" + del + ")"); }
         }).start();
     }

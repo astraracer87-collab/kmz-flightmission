@@ -12,10 +12,10 @@ on:
 permissions:
   contents: write
 
-# Ein neuer Lauf bricht einen noch laufenden/wartenden alten ab
+# Läufe nacheinander, nie mittendrin abbrechen – sonst kann ein halb hochgeladenes Programm im Release landen
 concurrency:
   group: desktop-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   windows:
@@ -69,4 +69,12 @@ jobs:
           gh release edit desktop --title "$TITLE" --notes "$NOTES" --latest=false   # „Latest“ bleibt bei der APK
           # alte Mac-Dateien aus dem Release entfernen
           for a in $(gh release view desktop --json assets -q '.assets[].name' | grep -i '\.dmg$'); do gh release delete-asset desktop "$a" --yes || true; done
-          gh release upload desktop dist/*.exe --clobber
+          # Erst unter vorläufigem Namen vollständig hochladen, dann alte Datei löschen und die neue umbenennen:
+          # wer gerade herunterlädt, bekommt nie eine halbe Datei (Fehler „Installer integrity check has failed“)
+          for f in dist/*.exe; do
+            n=$(basename "$f"); t="neu-$n"; cp "$f" "$t"
+            gh release upload desktop "$t" --clobber
+            gh release delete-asset desktop "$n" --yes || true
+            id=$(gh api "repos/$GH_REPO/releases/tags/desktop" --jq ".assets[] | select(.name==\"$t\") | .id")
+            gh api -X PATCH "repos/$GH_REPO/releases/assets/$id" -f name="$n" >/dev/null
+          done
