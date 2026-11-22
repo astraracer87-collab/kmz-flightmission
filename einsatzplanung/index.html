@@ -1,0 +1,481 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Kitzrettung Einsatzplan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: Tagesraster wie ein Flugplan – Zeitachse links, drei Team-Spalten, Kernzeit 03–12 Uhr hell, Randzeiten schraffiert. */
+:root{
+  --bg:#eef2f0; --surface:#ffffff; --ink:#16231d; --muted:#586860; --line:#d3dcd6; --line-soft:#e6ece8;
+  --accent:#1c6b47; --on-accent:#ffffff; --warn:#a4460a; --danger:#b3261e;
+  --t1:#1f5fa8; --t2:#b0520c; --t3:#77409e;
+  --display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --row:44px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1512; --surface:#18211c; --ink:#e7ede9; --muted:#97a69e; --line:#2c3932; --line-soft:#222d27;
+  --accent:#5cc08c; --on-accent:#08130d; --warn:#f0a35c; --danger:#ff8a80;
+  --t1:#72aaf0; --t2:#f09a4c; --t3:#c592e6; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0f1512; --surface:#18211c; --ink:#e7ede9; --muted:#97a69e; --line:#2c3932; --line-soft:#222d27;
+  --accent:#5cc08c; --on-accent:#08130d; --warn:#f0a35c; --danger:#ff8a80;
+  --t1:#72aaf0; --t2:#f09a4c; --t3:#c592e6; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:60rem;margin:0 auto;padding-block:14px 96px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:12px}
+
+/* Kopf */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:700;font-size:1.5rem;line-height:1.1;margin:0;letter-spacing:.01em}
+h1 small{display:block;font-family:var(--body);font-weight:500;font-size:.8rem;color:var(--muted);letter-spacing:0}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:.55rem .8rem;min-height:44px;font-weight:500}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+.btn.danger{color:var(--danger)}
+.btn.ghost{background:transparent}
+.nav{display:flex;gap:6px;align-items:stretch}
+.nav .day{flex:1;min-width:0;position:relative;font-family:var(--display);font-weight:600;font-size:1.15rem;text-align:center}
+.nav .day input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.nav .arrow{width:48px;font-size:1.2rem}
+
+/* Wochenleiste */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.wd{border:1px solid transparent;background:transparent;border-radius:8px;padding:6px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.wd .n{font-family:var(--display);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.wd .d{font-family:var(--display);font-weight:600;font-size:1.1rem;font-variant-numeric:tabular-nums}
+.wd.today .d{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:2px}
+.wd[aria-current="date"]{background:var(--surface);border-color:var(--line)}
+.bars{display:flex;flex-direction:column;gap:2px;width:100%;max-width:44px}
+.bar{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%}
+.legend{font-size:.8rem;color:var(--muted);margin:0}
+
+.banner{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;font-size:.9rem;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.banner button{border:0;background:none;color:var(--accent);font-weight:600;padding:.3rem 0;text-decoration:underline}
+
+/* Raster */
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.cols{display:grid;grid-template-columns:3.1rem repeat(3,minmax(0,1fr))}
+.heads{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line);border-radius:10px 10px 0 0}
+.head{padding:8px 6px;border-left:1px solid var(--line-soft);min-width:0}
+.head b{display:flex;align-items:center;gap:6px;font-family:var(--display);font-weight:700;font-size:1.05rem}
+.head b::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--tc);flex:none}
+.head span{display:block;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.more{display:block;width:100%;border:0;border-bottom:1px solid var(--line-soft);background:transparent;color:var(--muted);padding:.6rem;font-size:.88rem;min-height:44px}
+.more.bottom{border-bottom:0;border-top:1px solid var(--line-soft)}
+.times{position:relative}
+.times span{position:absolute;right:6px;transform:translateY(-50%);font-family:var(--display);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.times span.first{transform:none}
+.col{position:relative;border-left:1px solid var(--line-soft);min-width:0}
+.slot{display:block;width:100%;height:var(--row);border:0;border-bottom:1px dashed var(--line-soft);background:transparent;color:transparent;font-size:1.1rem;padding:0}
+.slot.hour{border-bottom:1px solid var(--line)}
+.slot.off{background:repeating-linear-gradient(135deg,transparent 0 6px,var(--line-soft) 6px 7px)}
+.slot::after{content:"+";color:var(--muted);opacity:.35}
+.slot:hover::after,.slot:focus-visible::after{opacity:1;color:var(--accent);font-weight:600}
+.job{position:absolute;left:3px;right:3px;border:1.5px solid var(--tc);border-radius:6px;padding:3px 6px;text-align:left;overflow:hidden;
+  background:color-mix(in srgb,var(--tc) 14%,var(--surface));line-height:1.2;display:block}
+.job.soft{border-style:dashed}
+.job .t{display:block;font-family:var(--display);font-size:.8rem;color:var(--tc);font-weight:600;font-variant-numeric:tabular-nums}
+.job .w{display:block;font-family:var(--display);font-weight:600;font-size:.98rem;overflow-wrap:anywhere}
+.job .o{display:block;font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+.empty{padding:.7rem .9rem;font-size:.9rem;color:var(--muted);border-bottom:1px solid var(--line-soft);margin:0}
+.empty button{border:0;background:none;color:var(--accent);font-weight:600;text-decoration:underline;padding:0}
+.fab{position:fixed;z-index:6;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  box-shadow:0 4px 14px rgb(0 0 0 / .25);padding:.8rem 1.1rem;border-radius:999px;font-size:1.05rem}
+
+/* Formular */
+dialog{border:0;padding:0;background:var(--surface);color:var(--ink);width:min(34rem,100%);max-width:100%;max-height:92dvh;border-radius:14px;overflow:hidden}
+dialog[open]{display:flex}
+dialog::backdrop{background:rgb(0 0 0 / .45)}
+@media (max-width:640px){ dialog{margin:auto 0 0;width:100%;max-width:100vw;border-radius:16px 16px 0 0} }
+form{display:flex;flex-direction:column;min-height:0;width:100%}
+.fh{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+.fh h2{font-family:var(--display);font-size:1.25rem;margin:0}
+.fb{overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:14px}
+.ff{display:flex;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+.ff .primary{flex:1}
+fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+legend{font-family:var(--display);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:0;margin-bottom:6px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:.85rem;color:var(--muted);min-width:0;flex:1}
+.f input,.f textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:.6rem .7rem;font-size:16px;color:var(--ink);width:100%;min-height:44px}
+.rowf{display:flex;gap:8px;flex-wrap:wrap}
+.rowf>*{flex:1 1 9rem}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips label{position:relative}
+.chips input{position:absolute;opacity:0;inset:0}
+.chips span{display:block;border:1px solid var(--line);border-radius:999px;padding:.5rem .8rem;font-variant-numeric:tabular-nums;color:var(--ink)}
+.chips input:checked+span{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.chips input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-size:.82rem;color:var(--muted);margin:0}
+.hint a{color:var(--accent)}
+.teams{display:flex;flex-direction:column;gap:6px}
+.team{position:relative;display:block}
+.team input{position:absolute;opacity:0;inset:0}
+.team .box{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:center;border:1.5px solid var(--line);border-radius:8px;padding:.55rem .7rem}
+.team .dot{width:12px;height:12px;border-radius:50%;background:var(--tc)}
+.team .nm{font-family:var(--display);font-weight:700;color:var(--ink);font-size:1.05rem}
+.team .why{grid-column:2 / -1;font-size:.85rem;color:var(--muted)}
+.team .why.warn{color:var(--warn)}
+.team .tag{font-family:var(--display);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;background:var(--accent);color:var(--on-accent);border-radius:4px;padding:2px 6px}
+.team input:checked+.box{border-color:var(--tc);background:color-mix(in srgb,var(--tc) 12%,var(--surface))}
+.team input:focus-visible+.box{outline:2px solid var(--accent);outline-offset:2px}
+.team.busy .box{opacity:.55}
+details summary{cursor:pointer;color:var(--accent);font-weight:600;padding:.4rem 0}
+details .inner{display:flex;flex-direction:column;gap:10px;padding-top:8px}
+.check{display:flex;gap:8px;align-items:center;font-size:.95rem;min-height:44px}
+.check input{width:20px;height:20px}
+.err{color:var(--danger);font-size:.9rem;margin:0;font-weight:500}
+@media (prefers-reduced-motion:no-preference){ .slot::after,.btn{transition:opacity .12s,background-color .12s} }
+</style>
+
+<div class="app">
+  <div class="top">
+    <h1>Einsatzplan<small>Kitzrettung · 3 Drohnenteams</small></h1>
+    <button class="btn primary" id="btn-new" type="button">+ Einsatz</button>
+  </div>
+
+  <div class="nav">
+    <button class="btn arrow" id="prev" type="button" aria-label="Vorheriger Tag">‹</button>
+    <div class="btn day"><span id="day-label"></span><input type="date" id="pick" aria-label="Datum wählen"></div>
+    <button class="btn arrow" id="next" type="button" aria-label="Nächster Tag">›</button>
+    <button class="btn" id="today" type="button">Heute</button>
+  </div>
+
+  <div class="week" id="week"></div>
+  <p class="legend">Balken je Tag: Auslastung von Team 1, 2 und 3 in der Kernzeit 03–12 Uhr.</p>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <div class="plan">
+    <div class="cols heads" id="heads"></div>
+    <button class="more" id="earlier" type="button"></button>
+    <p class="empty" id="empty" hidden></p>
+    <div class="cols" id="body"></div>
+    <button class="more bottom" id="later" type="button"></button>
+  </div>
+</div>
+
+<dialog id="sheet" aria-labelledby="sheet-title">
+  <form id="form" novalidate>
+    <div class="fh"><h2 id="sheet-title">Neuer Einsatz</h2><button class="btn ghost" type="button" id="f-close" aria-label="Schließen">✕</button></div>
+    <div class="fb">
+      <fieldset>
+        <legend>Wann</legend>
+        <div class="rowf">
+          <label class="f">Datum<input type="date" id="f-datum" required></label>
+          <label class="f">Beginn<input type="time" id="f-start" step="900" required></label>
+        </div>
+        <div class="chips" id="f-dauer" role="radiogroup" aria-label="Dauer"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Wer</legend>
+        <div class="rowf">
+          <label class="f">Name (Landwirt / Melder)<input type="text" id="f-name" autocomplete="off" required></label>
+          <label class="f">Telefon<input type="tel" id="f-telefon" autocomplete="off" inputmode="tel"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Wo</legend>
+        <div class="rowf">
+          <label class="f">Ort<input type="text" id="f-ort" autocomplete="off" list="orte"></label>
+          <label class="f">Feld / Beschreibung<input type="text" id="f-feld" autocomplete="off" placeholder="z. B. Wiese hinterm Hof"></label>
+        </div>
+        <datalist id="orte"></datalist>
+        <label class="f">Koordinaten oder Google-Maps-Link (optional)<input type="text" id="f-coords" autocomplete="off" placeholder="48.12345, 11.45678"></label>
+        <p class="hint" id="coord-hint"></p>
+      </fieldset>
+      <fieldset>
+        <legend>Team</legend>
+        <div class="teams" id="f-teams" role="radiogroup" aria-label="Team"></div>
+      </fieldset>
+      <details id="f-more">
+        <summary>Weitere Angaben</summary>
+        <div class="inner">
+          <div class="rowf">
+            <label class="f">Fläche in ha<input type="number" id="f-flaeche" min="0" step="0.1" inputmode="decimal"></label>
+            <label class="f">Mahd geplant ab<input type="time" id="f-mahd"></label>
+          </div>
+          <label class="f">Notiz<textarea id="f-notiz" rows="2"></textarea></label>
+          <label class="check"><input type="checkbox" id="f-fest"> Termin ist fest zugesagt</label>
+          <label class="f">Eingetragen von<input type="text" id="f-von" autocomplete="off"></label>
+        </div>
+      </details>
+      <p class="err" id="f-err" role="alert" hidden></p>
+    </div>
+    <div class="ff">
+      <button class="btn danger" type="button" id="f-del" hidden>Löschen</button>
+      <button class="btn primary" type="submit" id="f-save">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+const CORE_FROM = 180, CORE_TO = 720, STEP = 30, ROW = 44, PPM = ROW / STEP;
+const TEAMS = [1, 2, 3], DAUERN = [30, 60, 90, 120, 180];
+const LS_DATA = 'kitz-einsaetze', LS_VON = 'kitz-von';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return iso(d); };
+const hm = m => `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
+const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+
+let entries = [], sel = iso(new Date()), showEarly = false, showLate = false;
+let db = null, mode = 'loading', slow = false, readOnly = false;
+let editId = null, teamTouched = false, delArmed = false;
+
+/* ---------- Speicher ---------- */
+async function boot() {
+  render();
+  try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch { db = null; }
+  if (!db) { mode = 'local'; try { entries = JSON.parse(ls.get(LS_DATA)) || []; } catch { entries = []; } render(); return; }
+  const timer = setTimeout(() => { slow = true; render(); }, 10000);
+  db.collection('einsaetze').limit(1000).onSnapshot(snap => {
+    entries = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+    if (!snap.metadata.fromCache) { clearTimeout(timer); slow = false; mode = 'shared'; }
+    render(); if ($('sheet').open) renderTeams();
+  }, () => { clearTimeout(timer); slow = false; mode = 'error'; render(); });
+}
+async function saveEntry(e) {
+  const { id, ...body } = e;
+  if (db) { const col = db.collection('einsaetze'); await (id ? col.doc(id) : col.doc()).set(body); return; }
+  if (id) entries = entries.map(x => x.id === id ? e : x);
+  else entries = [...entries, { ...body, id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) }];
+  ls.set(LS_DATA, JSON.stringify(entries)); render();
+}
+async function removeEntries(ids) {
+  if (db) { for (const id of ids) await db.collection('einsaetze').doc(id).delete(); return; }
+  entries = entries.filter(x => !ids.includes(x.id)); ls.set(LS_DATA, JSON.stringify(entries)); render();
+}
+
+/* ---------- Ort und Entfernung ---------- */
+function parseCoords(s) {
+  if (!s) return null;
+  let m = s.match(/(-?\d{1,2}\.\d{3,})\s*[,;\s]\s*(-?\d{1,3}\.\d{3,})/);
+  if (!m) { m = s.match(/(-?\d{1,2},\d{3,})\s*[;\s]\s*(-?\d{1,3},\d{3,})/); if (m) m = [0, m[1].replace(',', '.'), m[2].replace(',', '.')]; }
+  if (!m) return null;
+  const lat = +m[1], lon = +m[2];
+  return Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? { lat, lon } : null;
+}
+function km(a, b) {
+  if (a.lat == null || b.lat == null) return null;
+  const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLon / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+const norm = s => (s || '').trim().toLowerCase();
+const kmTxt = d => d < 10 ? d.toFixed(1).replace('.', ',') : String(Math.round(d));
+
+/* Für jedes Team: frei oder belegt, und wie gut es zum neuen Ort passt (kleiner Wert = besser). */
+function teamOptions(draft, excludeId) {
+  const end = draft.start + draft.dauer;
+  const opts = TEAMS.map(team => {
+    const day = entries.filter(e => e.datum === draft.datum && e.team === team && e.id !== excludeId).sort((a, b) => a.start - b.start);
+    const clash = day.find(e => e.start < end && draft.start < e.start + e.dauer);
+    if (clash) return { team, frei: false, text: `Belegt ${hm(clash.start)}–${hm(clash.start + clash.dauer)} (${clash.name || 'Einsatz'})` };
+    if (!day.length) return { team, frei: true, score: 15, text: 'An diesem Tag noch ganz frei' };
+    const prev = [...day].reverse().find(e => e.start + e.dauer <= draft.start), next = day.find(e => e.start >= end);
+    let best = null;
+    for (const [n, davor] of [[prev, true], [next, false]]) {
+      if (!n) continue;
+      const d = km(draft, n), gap = davor ? draft.start - (n.start + n.dauer) : n.start - end;
+      const wer = `${davor ? 'Einsatz davor' : 'Einsatz danach'} (${hm(n.start)}, ${n.ort || n.name || 'ohne Ort'})`;
+      let c;
+      if (d != null) c = { score: d, text: `${kmTxt(d)} km vom ${wer}`, warn: gap < d * 1.5 ? `Knapp: nur ${gap} min für ${kmTxt(d)} km Fahrt` : '' };
+      else if (norm(draft.ort) && norm(draft.ort) === norm(n.ort)) c = { score: 1, text: `Gleicher Ort wie ${wer}`, warn: '' };
+      else c = { score: 40, text: `Entfernung zum ${wer} unbekannt`, warn: '' };
+      if (!best || c.score < best.score) best = c;
+    }
+    return { team, frei: true, ...best };
+  });
+  const free = opts.filter(o => o.frei).sort((a, b) => a.score - b.score || a.team - b.team);
+  if (free.length) free[0].tipp = true;
+  return opts;
+}
+
+/* ---------- Tagesansicht ---------- */
+const dayEntries = d => entries.filter(e => e.datum === d);
+function bookedCore(d, team) {
+  return dayEntries(d).filter(e => e.team === team)
+    .reduce((s, e) => s + Math.max(0, Math.min(e.start + e.dauer, CORE_TO) - Math.max(e.start, CORE_FROM)), 0);
+}
+function range() {
+  const day = dayEntries(sel);
+  let from = showEarly ? 0 : CORE_FROM, to = showLate ? 1440 : CORE_TO;
+  for (const e of day) { from = Math.min(from, Math.floor(e.start / 60) * 60); to = Math.max(to, Math.min(1440, Math.ceil((e.start + e.dauer) / 60) * 60)); }
+  return { from, to };
+}
+function render() {
+  const d = parse(sel), todayIso = iso(new Date());
+  $('day-label').textContent = d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long' });
+  $('pick').value = sel;
+
+  const mon = addDays(sel, -((d.getDay() + 6) % 7));
+  $('week').innerHTML = Array.from({ length: 7 }, (_, i) => {
+    const day = addDays(mon, i), dd = parse(day);
+    const bars = TEAMS.map(t => `<span class="bar"><i style="width:${Math.round(bookedCore(day, t) / (CORE_TO - CORE_FROM) * 100)}%;background:var(--t${t})"></i></span>`).join('');
+    return `<button type="button" class="wd${day === todayIso ? ' today' : ''}" data-day="${day}" ${day === sel ? 'aria-current="date"' : ''}
+      aria-label="${dd.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}, ${dayEntries(day).length} Einsätze">
+      <span class="n">${dd.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '')}</span><span class="d">${dd.getDate()}</span><span class="bars">${bars}</span></button>`;
+  }).join('');
+
+  $('heads').innerHTML = '<div></div>' + TEAMS.map(t => {
+    const free = (CORE_TO - CORE_FROM - bookedCore(sel, t)) / 60;
+    return `<div class="head" style="--tc:var(--t${t})"><b>Team ${t}</b><span>${free ? String(free).replace('.', ',') + ' h frei' : 'voll'}</span></div>`;
+  }).join('');
+
+  const { from, to } = range(), day = dayEntries(sel);
+  $('earlier').hidden = from === 0; $('earlier').textContent = 'Früher anzeigen (vor ' + hm(from) + ' Uhr)';
+  $('later').hidden = to === 1440; $('later').textContent = 'Später anzeigen (nach ' + hm(to) + ' Uhr)';
+
+  let times = '';
+  for (let m = from; m <= to; m += 60) times += `<span class="${m === from ? 'first' : ''}" style="top:${(m - from) * PPM}px">${m === 1440 ? '24:00' : hm(m)}</span>`;
+  let html = `<div class="times" style="height:${(to - from) * PPM}px">${times}</div>`;
+  for (const t of TEAMS) {
+    html += `<div class="col" style="--tc:var(--t${t})">`;
+    for (let m = from; m < to; m += STEP) {
+      const off = m < CORE_FROM || m >= CORE_TO;
+      html += `<button type="button" class="slot${(m + STEP) % 60 === 0 ? ' hour' : ''}${off ? ' off' : ''}" data-start="${m}" data-team="${t}" aria-label="Team ${t}, ${hm(m)} Uhr frei – Einsatz anlegen"></button>`;
+    }
+    for (const e of day.filter(x => x.team === t)) {
+      html += `<button type="button" class="job${e.fest ? '' : ' soft'}" data-id="${esc(e.id)}" style="top:${(e.start - from) * PPM + 1}px;height:${e.dauer * PPM - 2}px"
+        aria-label="Team ${t}, ${hm(e.start)} bis ${hm(e.start + e.dauer)} Uhr, ${esc(e.name)}${e.fest ? '' : ', vorläufig'}">
+        <span class="t">${hm(e.start)}–${hm(e.start + e.dauer)}${e.fest ? '' : ' · vorl.'}</span><span class="w">${esc(e.name)}</span><span class="o">${esc([e.ort, e.feld].filter(Boolean).join(' · '))}</span></button>`;
+    }
+    html += '</div>';
+  }
+  $('body').innerHTML = html;
+
+  const em = $('empty');
+  em.hidden = day.length > 0;
+  if (!day.length) em.innerHTML = 'Noch nichts geplant. Freies Feld antippen, um einen Einsatz anzulegen.' +
+    (entries.length || mode === 'loading' || readOnly ? '' : ' <button type="button" id="demo">Beispieltag laden</button>');
+
+  const b = $('banner'), demo = entries.filter(e => e.beispiel).map(e => e.id);
+  let msg = '';
+  if (readOnly) msg = 'Du kannst den Plan ansehen, aber nicht ändern. Bitte den Besitzer um Schreibrechte.';
+  else if (mode === 'error') msg = 'Der Plan ist gerade nicht erreichbar. Bitte Seite später neu öffnen.';
+  else if (slow) msg = entries.length ? 'Verbindung langsam – der Plan ist eventuell nicht aktuell.' : 'Der Plan ist noch nicht erreichbar …';
+  else if (demo.length) msg = `Beispieldaten sichtbar (${demo.length}). <button type="button" id="demo-del">Beispiele entfernen</button>`;
+  else if (mode === 'local') msg = 'Dieser Plan wird gerade nur auf diesem Gerät gespeichert.';
+  b.hidden = !msg; b.innerHTML = msg;
+}
+
+/* ---------- Formular ---------- */
+function draft() {
+  const c = parseCoords($('f-coords').value);
+  return { datum: $('f-datum').value, start: $('f-start').value ? toMin($('f-start').value) : CORE_FROM,
+    dauer: +(document.querySelector('input[name=dauer]:checked') || {}).value || 60, ort: $('f-ort').value.trim(), lat: c ? c.lat : null, lon: c ? c.lon : null };
+}
+function renderTeams() {
+  const cur = +(document.querySelector('input[name=team]:checked') || {}).value || 0;
+  const opts = teamOptions(draft(), editId), tipp = opts.find(o => o.tipp);
+  const pick = teamTouched && cur ? cur : (tipp ? tipp.team : cur || 1);
+  $('f-teams').innerHTML = opts.map(o => `<label class="team${o.frei ? '' : ' busy'}" style="--tc:var(--t${o.team})">
+    <input type="radio" name="team" value="${o.team}" ${o.team === pick ? 'checked' : ''}>
+    <span class="box"><span class="dot"></span><span class="nm">Team ${o.team}</span>${o.tipp ? '<span class="tag">Empfohlen</span>' : '<span></span>'}
+    <span class="why${o.warn || !o.frei ? ' warn' : ''}">${esc(o.text + (o.warn ? ' · ' + o.warn : ''))}</span></span></label>`).join('');
+  const c = parseCoords($('f-coords').value), raw = $('f-coords').value.trim();
+  $('coord-hint').innerHTML = c ? `Erkannt: ${c.lat.toFixed(5)}, ${c.lon.toFixed(5)} · <a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" rel="noopener">In Google Maps öffnen</a>`
+    : raw ? 'Keine Koordinaten erkannt. Beispiel: 48.12345, 11.45678'
+    : 'Mit Koordinaten wird das Team mit dem kürzesten Weg vorgeschlagen. Ohne Koordinaten zählt der gleiche Ortsname.';
+}
+function firstFree(d) {
+  for (let m = CORE_FROM; m + 60 <= CORE_TO; m += STEP)
+    if (TEAMS.some(t => !dayEntries(d).some(e => e.team === t && e.start < m + 60 && m < e.start + e.dauer))) return m;
+  return CORE_FROM;
+}
+function openForm(e, preset) {
+  editId = e ? e.id : null; teamTouched = !!(e || (preset && preset.team)); delArmed = false;
+  const v = e || { datum: sel, start: firstFree(sel), dauer: 60, ...preset };
+  $('sheet-title').textContent = e ? 'Einsatz bearbeiten' : 'Neuer Einsatz';
+  $('f-datum').value = v.datum; $('f-start').value = hm(v.start);
+  const dauern = DAUERN.includes(v.dauer) ? DAUERN : [...DAUERN, v.dauer].sort((a, b) => a - b);
+  $('f-dauer').innerHTML = dauern.map(m => `<label><input type="radio" name="dauer" value="${m}" ${m === v.dauer ? 'checked' : ''}><span>${m < 60 ? m + ' min' : String(m / 60).replace('.', ',') + ' h'}</span></label>`).join('');
+  $('f-name').value = v.name || ''; $('f-telefon').value = v.telefon || ''; $('f-ort').value = v.ort || ''; $('f-feld').value = v.feld || '';
+  $('f-coords').value = v.lat != null ? `${v.lat}, ${v.lon}` : '';
+  $('f-flaeche').value = v.flaeche ?? ''; $('f-mahd').value = v.mahd || ''; $('f-notiz').value = v.notiz || '';
+  $('f-fest').checked = !!v.fest; $('f-von').value = v.von || ls.get(LS_VON) || '';
+  $('f-more').open = !!(v.flaeche || v.mahd || v.notiz);
+  $('orte').innerHTML = [...new Set(entries.map(x => x.ort).filter(Boolean))].map(o => `<option value="${esc(o)}">`).join('');
+  $('f-teams').innerHTML = v.team ? `<input type="radio" name="team" value="${v.team}" checked>` : '';
+  $('f-del').hidden = !e; $('f-del').textContent = 'Löschen'; $('f-err').hidden = true; $('f-save').disabled = false;
+  renderTeams();
+  $('sheet').showModal();
+  if (!e) $('f-name').focus();
+}
+function fail(msg) { const el = $('f-err'); el.textContent = msg; el.hidden = false; el.scrollIntoView({ block: 'nearest' }); }
+function writeFailed(err) {
+  if (err && err.code === 'invalid_argument') { readOnly = true; render(); return 'Du hast keine Schreibrechte für diesen Plan.'; }
+  return 'Speichern hat nicht geklappt. Bitte noch einmal versuchen.';
+}
+
+$('form').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const d = draft(), name = $('f-name').value.trim(), team = +(document.querySelector('input[name=team]:checked') || {}).value;
+  if (!d.datum || !$('f-start').value) return fail('Bitte Datum und Beginn angeben.');
+  if (!name) { $('f-name').focus(); return fail('Bitte einen Namen eintragen.'); }
+  if (d.start + d.dauer > 1440) return fail('Der Einsatz muss vor Mitternacht enden.');
+  const o = teamOptions(d, editId).find(x => x.team === team);
+  if (!o) return fail('Bitte ein Team wählen.');
+  if (!o.frei) return fail(`Team ${team} ist zu dieser Zeit schon verplant. ${o.text}.`);
+  const von = $('f-von').value.trim(); if (von) ls.set(LS_VON, von);
+  const e = { ...d, team, name, telefon: $('f-telefon').value.trim(), feld: $('f-feld').value.trim(),
+    flaeche: $('f-flaeche').value ? +$('f-flaeche').value : null, mahd: $('f-mahd').value || null, notiz: $('f-notiz').value.trim(),
+    fest: $('f-fest').checked, von, geaendert: new Date().toISOString() };
+  if (editId) e.id = editId;
+  $('f-save').disabled = true;
+  try { await saveEntry(e); sel = e.datum; $('sheet').close(); render(); }
+  catch (err) { fail(writeFailed(err)); }
+  $('f-save').disabled = false;
+});
+$('f-del').addEventListener('click', async () => {
+  if (!delArmed) { delArmed = true; $('f-del').textContent = 'Wirklich löschen?'; return; }
+  try { await removeEntries([editId]); $('sheet').close(); } catch (err) { fail(writeFailed(err)); }
+});
+$('f-close').addEventListener('click', () => $('sheet').close());
+$('form').addEventListener('input', ev => { if (ev.target.name === 'team') teamTouched = true; else if (['f-datum', 'f-start', 'f-ort', 'f-coords'].includes(ev.target.id) || ev.target.name === 'dauer') renderTeams(); });
+
+/* ---------- Bedienung ---------- */
+const go = d => { sel = d; showEarly = showLate = false; render(); };
+$('prev').addEventListener('click', () => go(addDays(sel, -1)));
+$('next').addEventListener('click', () => go(addDays(sel, 1)));
+$('today').addEventListener('click', () => go(iso(new Date())));
+$('pick').addEventListener('change', ev => { if (ev.target.value) go(ev.target.value); });
+$('week').addEventListener('click', ev => { const b = ev.target.closest('[data-day]'); if (b) go(b.dataset.day); });
+$('earlier').addEventListener('click', () => { showEarly = true; render(); });
+$('later').addEventListener('click', () => { showLate = true; render(); });
+$('btn-new').addEventListener('click', () => openForm(null));
+$('body').addEventListener('click', ev => {
+  const job = ev.target.closest('.job'), slot = ev.target.closest('.slot');
+  if (job) openForm(entries.find(e => e.id === job.dataset.id));
+  else if (slot) openForm(null, { start: +slot.dataset.start, team: +slot.dataset.team });
+});
+document.addEventListener('click', async ev => {
+  if (ev.target.id === 'demo-del') { try { await removeEntries(entries.filter(e => e.beispiel).map(e => e.id)); } catch (err) { writeFailed(err); } }
+  if (ev.target.id === 'demo') {
+    const base = { datum: sel, beispiel: true, fest: true, telefon: '', notiz: 'Beispiel', flaeche: null, mahd: null, von: 'Beispiel' };
+    const rows = [
+      [1, 180, 60, 'Beispiel Huber', 'Moosbach', 'Wiese am Bach', 48.0412, 11.0125],
+      [1, 270, 90, 'Beispiel Lechner', 'Moosbach', 'Hangwiese Süd', 48.0455, 11.0201],
+      [2, 210, 60, 'Beispiel Maier', 'Oberau', 'Feld beim Sportplatz', 48.1103, 11.1512],
+      [2, 330, 60, 'Beispiel Bauer', 'Oberau', 'Streuwiese', 48.1161, 11.1444],
+      [3, 240, 120, 'Beispiel Wagner', 'Talham', 'Große Wiese', 47.9801, 10.9307],
+    ];
+    try { for (const [team, start, dauer, name, ort, feld, lat, lon] of rows) await saveEntry({ ...base, team, start, dauer, name, ort, feld, lat, lon, fest: team !== 3 }); }
+    catch (err) { writeFailed(err); }
+  }
+});
+
+boot();
+})();
+</script>
