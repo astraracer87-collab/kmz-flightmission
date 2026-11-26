@@ -5693,11 +5693,31 @@ const STATES = [['BW','Baden-Württemberg'],['BY','Bayern'],['BE','Berlin'],['BB
 // ---------- Allgemeinverfügungen (Naturschutz-/FFH-/Vogelschutzgebiete): frei eintragbar, je mit Bundesländern, Zeitraum und Zonenarten ----------
 const AV_ZONES = [['naturschutzgebiete', 'Naturschutzgebiete'], ['ffh-gebiete', 'FFH-Gebiete'], ['vogelschutzgebiete', 'Vogelschutzgebiete'], ['nationalparks', 'Nationalparks']];
 // Die AV Wildtierrettung setzt KEIN A2-Fernpilotenzeugnis voraus (anders als die Allgemeinerlaubnis der Länder) – a2: false
+// Saarland (MUKMAV): Zustimmung nach § 21h Abs. 3 Nr. 6 LuftVO + Ausnahme von den Schutzgebietsverordnungen, nur 15.04.–15.07., kein Ablaufdatum (Widerruf vorbehalten)
+const LINK_AVSL = 'https://www.saarland.de/SharedDocs/Downloads/DE/mukmav/naturschutz/dl_allgemeinverfuegung_LuftVO_naturschutz.pdf?__blob=publicationFile';
+const AVSL_RULES = [
+  'Nur zur Wildtierrettung im Zusammenhang mit einer naturschutzrechtlich zulässigen Mahd, jährlich 15.04.–15.07.',
+  'Gilt für Naturschutzgebiete sowie FFH- und Vogelschutzgebiete (auch als Landschaftsschutzgebiet ausgewiesen) im Saarland',
+  'Vorher die Oberste Naturschutzbehörde (Umweltministerium Saarland) über die geplanten Flüge informieren',
+  'Einmal im Jahr Bericht an die Oberste Naturschutzbehörde: wann, wie lange geflogen, welche Tiere gefunden/gerettet',
+  'Flughöhe so hoch wie möglich, bei der Tiere noch sicher erkannt werden; gleichbleibende Höhe',
+  'Ruhig fliegen, keine plötzlichen Richtungswechsel oder rasanten Manöver, Tiere nicht direkt anfliegen',
+  'Leise, kleine, möglichst elektrische Drohnen',
+  'Start und Landung möglichst auf Wegen, Parkplätzen oder befestigten Flächen, nicht in Tiernähe',
+  'Kitze nach Jagdrecht aus dem Wiesenbereich bringen; Gelege von Bodenbrütern abstecken und von der Mahd ausnehmen',
+  'Zusammenhängende Wiesen möglichst an einem Tag befliegen (mit den Landwirten absprechen)',
+  'Bei Reaktionen von Vögeln Abstand halten, bei wiederholten Angriffen Flug abbrechen',
+  'Passanten über Zweck und Verbotslage informieren; umweltrelevante Zwischenfälle dokumentieren und sofort melden'
+];
+const avSaarland = () => ({ id: 'slwtr', name: 'Allgemeinverfügung Saarland – Wildtierrettung', states: ['SL'], from: '04-15', to: '07-15', until: '', a2: false,
+  layers: ['naturschutzgebiete', 'ffh-gebiete', 'vogelschutzgebiete'], rules: AVSL_RULES.slice(), link: LINK_AVSL, note: 'Umweltministerium Saarland (MUKMAV) · § 21h Abs. 3 Nr. 6 LuftVO · Widerruf vorbehalten', on: true });
 function avDefault() { return [{ id: 'rpgi', name: 'Allgemeinverfügung RP Gießen – Wildtierrettung', states: ['HE'], rbGi: true, from: '04-15', to: '06-30', until: '2029-06-30', a2: false,
-  layers: AVGI_LAYERS.slice(), rules: AVGI_RULES.slice(), link: LINK_AVGI, note: 'Az. RPGI-53.3-21a0500/2-2017/4 vom 26.04.2024 · nur Regierungsbezirk Gießen', on: P.avgi !== '0' }]; }
+  layers: AVGI_LAYERS.slice(), rules: AVGI_RULES.slice(), link: LINK_AVGI, note: 'Az. RPGI-53.3-21a0500/2-2017/4 vom 26.04.2024 · nur Regierungsbezirk Gießen', on: P.avgi !== '0' }, avSaarland()]; }
 function avList() { try { const a = JSON.parse(P.avs || 'null'); if (Array.isArray(a)) { a.forEach(av => { if (av.a2 === undefined) av.a2 = false; }); return a; } } catch (e) { } return avDefault(); }   // ohne Angabe: kein A2 nötig
 // einmalig: AV Wildtierrettung RP Gießen war versehentlich als „nur mit A2“ gespeichert – korrigieren
 if (A.getPref('avA2fix', '') !== '1') { try { const l = JSON.parse(P.avs || 'null'); if (Array.isArray(l)) { l.forEach(av => { if (av.id === 'rpgi' || /wildtier/i.test(av.name || '')) av.a2 = false; }); setP('avs', JSON.stringify(l)); } } catch (e) { } setP('avA2fix', 1); }
+// einmalig: neue Allgemeinverfügung Saarland in schon gespeicherte Listen aufnehmen
+if (A.getPref('avSLadd', '') !== '1') { try { const l = JSON.parse(P.avs || 'null'); if (Array.isArray(l) && !l.some(av => av.id === 'slwtr')) { l.push(avSaarland()); setP('avs', JSON.stringify(l)); } } catch (e) { } setP('avSLadd', 1); }
 function avSave(list) { setP('avs', JSON.stringify(list)); applyGeoConfig(); fillRules(); }
 const avUntil = av => av.until ? new Date(av.until + 'T23:59:59') : null;
 function avSeasonOn(av, d) {
