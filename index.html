@@ -4933,6 +4933,8 @@ function fieldSamples(f) {
   if (f.outline) add(f.outline, true);
   return out;
 }
+const TSR_REF = 'Allgemeinverfügung des BMDV „Geografische Gebiete zum Zwecke des Tierschutzes und der Wildtierrettung“ (Az. PG Unb LF 6312.1/5-4, gültig ab 20.11.2024, über land- und forstwirtschaftlichen Flächen)';
+const NR5C_REF = '§ 21h Abs. 3 Nr. 5 Buchst. c LuftVO (Höhe stets kleiner als der seitliche Abstand, Abstand stets mehr als 10 m)';
 /** Höhe, in der die Drohne d dieses Feld tatsächlich fliegt (Sollhöhe der Drohne, an Stromleitungen mehr) – für die 1:1-Regel */
 function flyH(f, d) { const hp = f && f.height ? heightPlan(f, d) : null; return hp ? hp.fin : Math.max(DRONE_HEIGHT[d] || 70, (f && pwrNeedH(f)) || 0); }
 /** Straßen, Bahn, Wasserstraßen (§ 21h Abs. 3 Nr. 5): kleinster seitlicher Abstand der Flugbahn zur Zone in m (0 = Flugbahn berührt/quert die Zone)
@@ -5029,8 +5031,10 @@ function flightBriefing(sel) {
       const tsr = P.tsr !== '0', rcD = IS_LITE && DRONE_HEIGHT[P.drone] ? P.drone : '';
       const hN = rcD ? flyH(fl, rcD) : Math.max(fl.height || 0, flyH(fl, 'M4T')), h3 = flyH(fl, 'M3T');
       const lim = tsr ? Math.max(10, hN) : 150;
-      if (d <= lim) { const z = z0 || { f, reg, fields: new Set(), near: d }; z.near = Math.min(z.near, d); z.fields.add(fl.title);
+      if (d < 150 && (tsr || d <= lim)) {   // auch „reicht“ melden – mit Angabe, welche Allgemeinverfügung es erlaubt
+        const z = z0 || { f, reg, fields: new Set(), near: d }; z.near = Math.min(z.near, d); z.fields.add(fl.title);
         z.tsr = tsr; z.needH = Math.max(z.needH || 0, hN); z.h3 = Math.max(z.h3 || 0, h3);
+        z.ok = z.ok !== false && d > lim;
         z.m3 = tsr && rcD !== 'M3T' && (z.m3 !== false) && d > Math.max(10, h3); zones.set(key, z); }
     }
   });
@@ -5135,7 +5139,7 @@ function wxFill(sel) {
 function briefingHtml(b, sel, wxh) {
   const fh = flightHeight(), multi = sel.length > 1;
   const fl = set => multi ? `<div class="meta">Betrifft: ${[...set].map(esc).join(', ')}</div>` : '';
-  const zs = b.zones.map(z => Object.assign(z, { k: z.near != null ? (z.m3 && !IS_LITE ? 'dist' : 'off') : covKind(z.f.layer, z.reg) })).sort((a, c) => KIND_ORDER[a.k] - KIND_ORDER[c.k]);
+  const zs = b.zones.map(z => Object.assign(z, { k: z.near != null ? (z.ok ? 'on' : z.m3 && !IS_LITE ? 'dist' : 'off') : covKind(z.f.layer, z.reg) })).sort((a, c) => KIND_ORDER[a.k] - KIND_ORDER[c.k]);
   const cnt = k => zs.filter(z => z.k === k).length;
   let h = `<div class="meta" style="margin-bottom:8px">${zs.length ? `<b style="color:#d42020">${cnt('off')} gesperrt</b> · <b style="color:#e07800">${cnt('dist')} nur mit Abstand</b> · <b style="color:#13a538">${cnt('on')} erlaubt mit Auflagen</b>` : '<b style="color:#13a538">Keine Geozone im Flugbereich.</b>'}${fh ? ` · Missionshöhe ${fh} m` : ''} · Daten offline (dipul/OSM), maßgeblich ist dipul.de</div>`;
   h += wxh || '';
@@ -5146,7 +5150,11 @@ function briefingHtml(b, sel, wxh) {
   zs.forEach(z => {
     const p = z.f.props || {}, label = z.f.layer === 'flugplaetze' && isHeliZone(z.f) ? 'Hubschrauberlandeplatz' : (LAYER_LABEL[z.f.layer] || z.f.layer);
     if (z.near != null) {   // A1/A3: Wohngebiet nicht berührt, aber zu nah (150 m bzw. mit BMDV-AV Tierschutz: 1:1)
-      const col = z.m3 && !IS_LITE ? '#e07800' : '#d42020', dn = Math.round(z.near);
+      const col = z.ok ? '#13a538' : z.m3 && !IS_LITE ? '#e07800' : '#d42020', dn = Math.round(z.near);
+      if (z.ok) { h += `<div class="zone" style="border-left:5px solid ${col}"><h4>${esc(p.name || label)} <span class="chip cov">${dn} m daneben – erlaubt</span></h4>
+        <div class="meta">${esc(label)} · ${esc(regionText(z.reg))}</div>${fl(z.fields)}
+        <div style="color:${col};font-weight:700">Abstand reicht: seitlich ca. ${dn} m, geflogen wird in ${z.needH} m (1:1, mehr als 10 m).</div>
+        <div class="meta">Grundlage: ${TSR_REF}. Ohne diese Allgemeinverfügung wären mit A1/A3 (Unterkategorie A3) 150 m nötig.</div></div>`; return; }
       const txt = z.tsr
         ? (z.m3 && !IS_LITE ? `Mit A1/A3 (Unterkategorie A3) gilt die Allgemeinverfügung des BMDV zur Wildtierrettung: seitlicher Abstand größer als die Flughöhe und mehr als 10 m. Hier ca. ${dn} m – reicht mit der <b>Mavic 3T</b> (${z.h3} m), nicht mit der Matrice 4T (${z.needH} m).`
           : `Mit A1/A3 (Unterkategorie A3) gilt die Allgemeinverfügung des BMDV zur Wildtierrettung: seitlicher Abstand größer als die Flughöhe (${z.needH} m) und mehr als 10 m – hier nur ca. ${dn} m.`)
@@ -10881,7 +10889,7 @@ async function pcMapMake(f) {
     const sv = P.lic; let zs = [];
     try { P.lic = 'A1A3'; zs = flightBriefing([f]).zones; P.lic = 'A2'; flightBriefing([f]).zones.forEach(z => { if (!zs.some(y => y.f === z.f)) zs.push(z); }); } finally { P.lic = sv; }
     // rot = Zone, wegen der es nicht mit jedem Zeugnis geht (z. B. Wohngebiet zu nah, ohne Allgemeinerlaubnis gesperrt)
-    const red = new Set(zs.filter(z => (z.near != null && !(z.m3 && !IS_LITE)) || (() => { const s2 = P.lic; P.lic = 'A1A3'; try { return covKind(z.f.layer, z.reg) === 'off'; } finally { P.lic = s2; } })()));
+    const red = new Set(zs.filter(z => (z.near != null && !z.ok && !(z.m3 && !IS_LITE)) || (() => { const s2 = P.lic; P.lic = 'A1A3'; try { return covKind(z.f.layer, z.reg) === 'off'; } finally { P.lic = s2; } })()));
     const cv = await briefMap([f], [f], zs, 560, { cw: 900, base: P.pcMapBase || 'grey', near: true, red });
     return cv ? { url: cv.toDataURL('image/jpeg', 0.86), red: red.size, full: !!cv.__full, k } : null;
   })();
@@ -10997,9 +11005,10 @@ function liteCardsHtml(b, o) {
     const p = z.f.props || {}, lbl = LAYER_LABEL[z.f.layer] || z.f.layer, nm = esc(p.name || lbl);
     if (z.near != null) {
       const rcD = IS_LITE && DRONE_HEIGHT[P.drone] ? P.drone : '';
+      if (z.ok) return card('✅', '#13a538', `Wohngebiet ${m(z.near)} entfernt: Abstand reicht`, `Geflogen wird in <b>${z.needH} m</b>${rcD ? ` (${DRONE_NAME[rcD]})` : ''}, seitlich sind es etwa <b>${m(z.near)}</b> – also auch mit A1/A3 erlaubt.<br><b>Grundlage:</b> ${TSR_REF} (seitlich weiter weg als hoch und mehr als 10 m statt 150 m).${where(z.fields)}`);
       if (!z.tsr) return card('🏘️', '#d42020', `Wohngebiet nur ${m(z.near)} entfernt`, `Mit A1/A3 brauchst du <b>150 m Abstand</b> zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten. Hier nicht fliegen – mit A2 wäre es möglich.${where(z.fields)}`,
         `<div class="lrules"><span>Fliegen nur:</span> mit <b>A2</b> · mit A1/A3 erst <b>ab 150 m Abstand</b></div>`);
-      if (z.m3 && !rcD) return card('🚁', '#e07800', `Wohngebiet ${m(z.near)} entfernt: nur mit Mavic 3T`, `Mit A1/A3 gilt zur Wildtierrettung die Allgemeinverfügung des BMDV: seitlich weiter weg als hoch und mehr als 10 m. Mit der <b>Mavic 3T</b> (${z.h3} m) reicht das, mit der Matrice 4T (${z.needH} m) nicht – dafür A2.${where(z.fields)}`,
+      if (z.m3 && !rcD) return card('🚁', '#e07800', `Wohngebiet ${m(z.near)} entfernt: nur mit Mavic 3T`, `Mit A1/A3: seitlich weiter weg als hoch und mehr als 10 m. Mit der <b>Mavic 3T</b> (${z.h3} m) reicht das, mit der Matrice 4T (${z.needH} m) nicht – dafür A2.<br><b>Grundlage:</b> ${TSR_REF}.${where(z.fields)}`,
         `<div class="lrules"><span>Fliegen nur:</span> <b>Mavic 3T</b> · oder mit <b>A2</b></div>`);
       return card('🏘️', '#d42020', `Wohngebiet nur ${m(z.near)} entfernt`, `Mit A1/A3 muss die Flugbahn zur Wildtierrettung seitlich weiter weg sein als hoch (<b>mehr als ${z.needH} m</b>) – hier nur ${m(z.near)}. Hier nicht fliegen – mit A2 wäre es möglich.${z.m3 && rcD === 'M4T' ? ' Mit der Mavic 3T (' + z.h3 + ' m) ginge es.' : ''}${where(z.fields)}`,
         `<div class="lrules"><span>Fliegen nur:</span> mit <b>A2</b> · mit A1/A3 erst <b>ab ${z.needH + 1} m Abstand</b></div>`);
@@ -11009,7 +11018,9 @@ function liteCardsHtml(b, o) {
       return card('✈️', '#d42020', 'Flugplatz: Zustimmung des Betreibers nötig', `${nm}. Bis 1,5 km um den Flugplatz nur mit Zustimmung der Flugaufsicht bzw. des Betreibers – die Allgemeinerlaubnis gilt hier nur bis 30 m, nicht für Kitzrettung (${H} m).${where(z.fields)}`,
         `<div class="lrules"><span>Fliegen nur:</span> mit <b>Zustimmung der Flugaufsicht/des Betreibers</b> – vorher anrufen</div>`); }
     const k = covKind(z.f.layer, z.reg);
-    const cov = coverageOf(z.f.layer, z.reg), via = cov === 'ae' ? 'mit A2 + Allgemeinerlaubnis' : cov === 'avgi' ? 'mit Allgemeinverfügung' : cov === 'power' ? 'mit Genehmigung des Netzbetreibers' : '';
+    const cov = coverageOf(z.f.layer, z.reg), avN = cov === 'avgi' ? avFor(z.f.layer, z.reg) : null;
+    const basis = cov === 'ae' ? `Allgemeinerlaubnis der Landesluftfahrtbehörde ${esc(stateName(z.reg.st))} (nur mit A2-Fernpilotenzeugnis)` : avN ? `${esc(avN.name || 'Allgemeinverfügung')}${avN.note ? ' – ' + esc(avN.note) : ''}` : cov === 'power' ? 'Genehmigung des Netzbetreibers' : '';
+    const via = cov === 'ae' ? 'mit A2 + Allgemeinerlaubnis' : cov === 'avgi' ? 'mit Allgemeinverfügung' : cov === 'power' ? 'mit Genehmigung des Netzbetreibers' : '';
     const nr5 = (LUFTVO_NR[z.f.layer] || [])[0] === 5;   // Straßen, Bahn, Wasserstraßen: 1:1-Regel
     const av = cov === 'avgi' ? avFor(z.f.layer, z.reg) : null, ru = cov === 'ae' ? rulesUl(z.f.layer) : cov === 'avgi' ? rulesUl(z.f.layer, av) : '';
     // Verbot: was wäre nötig? (z. B. mit A1/A3 → „mit A2 + Allgemeinerlaubnis erlaubt“)
@@ -11021,9 +11032,9 @@ function liteCardsHtml(b, o) {
       return { f, h, h3, d: ri ? ri.d : 0, cross: ri ? ri.cross : 0 }; }) : null;
     const hx = rz && rz.length ? Math.max(...rz.map(x => x.h)) : H, dmin = rz && rz.length ? Math.min(...rz.map(x => x.d)) : 0;
     const ok11 = (d, h) => d > h && d > 10;   // § 21h Abs. 3 Nr. 5 c: Höhe stets kleiner als der seitliche Abstand, Abstand stets > 10 m
-    if (rz && rz.length && rz.every(x => ok11(x.d, x.h))) return card('✅', '#13a538', `${esc(lbl)}: Abstand reicht (1:1)`, `${nm} – die Flugbahn bleibt etwa <b>${m(dmin)}</b> von der ${esc(lbl)} weg, geflogen wird in <b>${hx} m</b>${rcD ? ` (${DRONE_NAME[rcD]})` : ''}: seitlich weiter weg als hoch, also <b>auch mit A1/A3 und ohne Allgemeinerlaubnis</b> erlaubt. (Abstand zur Fahrbahn bzw. zum Gleis, aus der Mitte der dipul-Zone berechnet.)${where(z.fields)}`);
+    if (rz && rz.length && rz.every(x => ok11(x.d, x.h))) return card('✅', '#13a538', `${esc(lbl)}: Abstand reicht (1:1)`, `${nm} – die Flugbahn bleibt etwa <b>${m(dmin)}</b> von der ${esc(lbl)} weg, geflogen wird in <b>${hx} m</b>${rcD ? ` (${DRONE_NAME[rcD]})` : ''}: seitlich weiter weg als hoch, also <b>auch mit A1/A3 und ohne Allgemeinerlaubnis</b> erlaubt. (Abstand zur Fahrbahn bzw. zum Gleis, aus der Mitte der dipul-Zone berechnet.)<br><b>Grundlage:</b> ${NR5C_REF}.${where(z.fields)}`);
     // Nur die Mavic 3T (50 m) hält den Abstand ein, die Matrice 4T (70 m) nicht
-    const m3ok = !!(rz && rz.length && rz.every(x => ok11(x.d, x.h3))), m3txt = !m3ok ? '' : `Mit der <b>Mavic 3T</b> (${Math.max(...rz.map(x => x.h3))} m) ist der Abstand von etwa <b>${m(dmin)}</b> größer als die Flughöhe – dann reicht die 1:1-Regel, <b>auch mit A1/A3</b>, ohne Allgemeinerlaubnis.`;
+    const m3ok = !!(rz && rz.length && rz.every(x => ok11(x.d, x.h3))), m3txt = !m3ok ? '' : `Mit der <b>Mavic 3T</b> (${Math.max(...rz.map(x => x.h3))} m) ist der Abstand von etwa <b>${m(dmin)}</b> größer als die Flughöhe – dann reicht die 1:1-Regel, <b>auch mit A1/A3</b>, ohne Allgemeinerlaubnis (<b>Grundlage:</b> ${NR5C_REF}).`;
     if (m3ok && !rcD) return card('🚁', '#e07800', `${esc(lbl)}: nur mit Mavic 3T ohne Allgemeinerlaubnis`, `${nm} – ${m3txt} Die <b>Matrice 4T</b> fliegt ${hx} m hoch und wäre damit zu nah: dafür ${k === 'on' ? 'gilt hier die Allgemeinerlaubnis (A2)' : 'bräuchte es A2 + Allgemeinerlaubnis bzw. eine Zustimmung'}. <b>Für dieses Feld die Mavic 3T einplanen.</b>${where(z.fields)}`,
       `<div class="lrules"><span>Fliegen nur:</span> <b>Mavic 3T</b> mit seitlich mehr als ${Math.max(...rz.map(x => x.h3))} m (1:1-Regel)${k === 'on' ? ' · Matrice 4T mit A2 + Allgemeinerlaubnis' : ''}</div>`);
     if (m3ok && rcD === 'M4T' && k !== 'on') card('🚁', '#e07800', `${esc(lbl)}: mit Mavic 3T`, `${m3txt} Mit dieser Matrice 4T (${hx} m) nicht${need ? ` – alternativ ${need}` : ''}.${where(z.fields)}`,
@@ -11031,9 +11042,9 @@ function liteCardsHtml(b, o) {
     const dTxt = rz && rz.length ? (dmin === 0 ? `Die Flugbahn führt über die ${esc(lbl)}.` : `Die Flugbahn kommt der ${esc(lbl)} bis etwa <b>${m(dmin)}</b> nahe – bei ${hx} m Flughöhe müssten es mehr als ${hx} m sein.`) : '';
     const crossN = rz ? rz.reduce((n, x) => n + (x.cross >= 2 ? 1 : 0), 0) : 0;
     if (k === 'on') { const info = (NAT_LAYERS.includes(z.f.layer) && !(av && av.link === LINK_AVGI)) || z.f.layer === 'stromleitungen';   // Wildtierrettung: steht schon in den Auflagen
-      card('✅', '#13a538', `${esc(lbl)}: erlaubt per ${cov === 'ae' ? 'Allgemeinerlaubnis' : cov === 'avgi' ? 'Allgemeinverfügung' : 'Genehmigung'}`, `${nm} – ${via}.${info ? ' Der Flug wird vorher gemeldet (nur Informationspflicht, keine Zustimmung nötig).' : ''}${where(z.fields)}`, ru);
+      card('✅', '#13a538', `${esc(lbl)}: erlaubt per ${cov === 'ae' ? 'Allgemeinerlaubnis' : cov === 'avgi' ? 'Allgemeinverfügung' : 'Genehmigung'}`, `${nm} – ${via}.${info ? ' Der Flug wird vorher gemeldet (nur Informationspflicht, keine Zustimmung nötig).' : ''}${basis ? `<br><b>Grundlage:</b> ${basis}` : ''}${where(z.fields)}`, ru);
       if (nr5 && crossN) card('↔️', '#c77800', `${esc(lbl)}: Risikominimierung angeraten`, `Die Flugbahn läuft quer auf die Zone zu und wendet immer wieder an ihr. Zur Risikominimierung wird angeraten, die Bahnen im UAV Editor <b>parallel zur ${esc(lbl)}</b> zu legen – dann fliegt die Drohne daran entlang statt immer wieder darauf zu.${where(new Set(rz.filter(x => x.cross >= 2).map(x => x.f.title)))}`); }
-    else if (k === 'dist') card('↔️', '#e07800', `${esc(lbl)}: nur mit Abstand`, `${nm} – ${via}.${where(z.fields)}`, ru);
+    else if (k === 'dist') card('↔️', '#e07800', `${esc(lbl)}: nur mit Abstand`, `${nm} – ${via}.${basis ? `<br><b>Grundlage:</b> ${basis}` : ''}${where(z.fields)}`, ru);
     else if (nr5) card('⛔', '#d42020', esc(lbl), `${nm}. ${dTxt ? dTxt + ' ' : ''}${a2 ? 'Hier gilt keine Allgemeinerlaubnis.' : 'Mit A1/A3 gilt keine Allgemeinerlaubnis (die setzt A2 voraus).'} Erlaubt ist nur die <b>1:1-Regel</b>: seitlich immer weiter weg als die Flughöhe. ${pt ? '<b>Hier nicht fliegen.</b>' : '<b>Diesen Teil nicht befliegen</b> oder die Bahnen weiter weg planen.'}${where(z.fields)}`,
       `<div class="lrules"><span>Fliegen nur:</span> ${need ? need + ' · sonst ' : ''}<b>seitlich mehr als ${hx} m</b> weg (1:1-Regel)</div>`);
     else { const isAV = AV_ZONES.some(x => x[0] === z.f.layer), isAE = AE_LAYERS.includes(z.f.layer);
