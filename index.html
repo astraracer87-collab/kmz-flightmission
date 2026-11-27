@@ -904,6 +904,7 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
     <div class="set"><div class="l"><div class="t">Geozonen (dipul) anzeigen</div><div class="v">Flughäfen, Kontrollzonen, Schutzgebiete, Verkehrswege, Stromleitungen u. a. – nur zur Orientierung, maßgeblich ist dipul.de</div></div><label class="sw"><input type="checkbox" id="sGeo"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Eigene Zonen-Karte im Einsatzgebiet</div><div class="v">An: Um eure Felder zeichnet die App die Geozonen selbst – grün = Überflug erlaubt, orange = nur mit Abstand, rot = gesperrt (nach Allgemeinerlaubnis/Allgemeinverfügung), auch offline. Aus: überall das normale dipul-Bild.</div></div><label class="sw"><input type="checkbox" id="sGeoOwn"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Geozonen in ganz Deutschland</div><div class="v">Außerhalb eurer Felder zeigt die Karte die Geozonen als Bild vom dipul-Kartendienst (Aussehen wie die dipul-Karte, ab Zoom 7, angesehene Kacheln bleiben 30 Tage offline gespeichert). Antippen zeigt auch dort die Zonen-Infos. Um eure Felder zeichnet die App die Zonen selbst mit grün/orange/rot.</div></div><label class="sw"><input type="checkbox" id="sGeoAll"><span></span></label></div>
+    <div class="set" data-lite="1"><div class="l"><div class="t">BMDV-Allgemeinverfügung Tierschutz/Wildtierrettung</div><div class="v">Mit A1/A3 (A3): zur Wildtierrettung über Wiesen und Äckern reicht seitlich mehr Abstand als Flughöhe (und &gt; 10 m) zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten statt 150 m. Gilt seit 20.11.2024 bundesweit.</div></div><label class="sw"><input type="checkbox" id="sTsr"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Wohngrundstücke einbeziehen</div><div class="v">Zeigt auch Wohngrundstücke als Geozone (deckt Ortschaften flächig ab)</div></div><label class="sw"><input type="checkbox" id="sGeoRes"><span></span></label></div>
     <div class="set" data-lite="1"><div class="l"><div class="t">Geozonen-Daten</div><div class="v" id="vGeo"></div></div><button class="b-sec" id="bGeoNow">Neu holen</button></div>
     <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Bundesland-Erkennung</div>
@@ -1941,7 +1942,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { liteSort: 'new', uaveSwitched: '', liteCloudMap: '0', setupDone: '', avs: '', showObs: '1', showLines: '1', liteRcBtn: '0', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
+const DEF = { tsr: '1', liteSort: 'new', uaveSwitched: '', liteCloudMap: '0', setupDone: '', avs: '', showObs: '1', showLines: '1', liteRcBtn: '0', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
    planTool: '0', sideGroup: '0', catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
@@ -5023,7 +5024,14 @@ function flightBriefing(sel) {
         continue; }
       if (!a3 || f.layer !== 'wohngrundstuecke' || (z0 && !z0.near)) continue;
       const d = polyDistM(fr, f.rings);
-      if (d < 150) { const z = z0 || { f, reg, fields: new Set(), near: d }; z.near = Math.min(z.near, d); z.fields.add(fl.title); zones.set(key, z); }
+      // A3: normal 150 m zu Wohn-/Gewerbe-/Industrie-/Erholungsgebieten. BMDV-Allgemeinverfügung Tierschutz/Wildtierrettung (ab 20.11.2024):
+      // über Land-/Forstwirtschaftsflächen reicht seitlicher Abstand > Flughöhe und > 10 m (1:1)
+      const tsr = P.tsr !== '0', rcD = IS_LITE && DRONE_HEIGHT[P.drone] ? P.drone : '';
+      const hN = rcD ? flyH(fl, rcD) : Math.max(fl.height || 0, flyH(fl, 'M4T')), h3 = flyH(fl, 'M3T');
+      const lim = tsr ? Math.max(10, hN) : 150;
+      if (d <= lim) { const z = z0 || { f, reg, fields: new Set(), near: d }; z.near = Math.min(z.near, d); z.fields.add(fl.title);
+        z.tsr = tsr; z.needH = Math.max(z.needH || 0, hN); z.h3 = Math.max(z.h3 || 0, h3);
+        z.m3 = tsr && rcD !== 'M3T' && (z.m3 !== false) && d > Math.max(10, h3); zones.set(key, z); }
     }
   });
   return { zones: [...zones.values()], obs: [...obs.values()].sort((a, b) => a.d - b.d), rails: [...rails.values()], lines: [...lines.values()], vh: vincenzHits(sel) };
@@ -5127,7 +5135,7 @@ function wxFill(sel) {
 function briefingHtml(b, sel, wxh) {
   const fh = flightHeight(), multi = sel.length > 1;
   const fl = set => multi ? `<div class="meta">Betrifft: ${[...set].map(esc).join(', ')}</div>` : '';
-  const zs = b.zones.map(z => Object.assign(z, { k: z.near != null ? 'off' : covKind(z.f.layer, z.reg) })).sort((a, c) => KIND_ORDER[a.k] - KIND_ORDER[c.k]);
+  const zs = b.zones.map(z => Object.assign(z, { k: z.near != null ? (z.m3 && !IS_LITE ? 'dist' : 'off') : covKind(z.f.layer, z.reg) })).sort((a, c) => KIND_ORDER[a.k] - KIND_ORDER[c.k]);
   const cnt = k => zs.filter(z => z.k === k).length;
   let h = `<div class="meta" style="margin-bottom:8px">${zs.length ? `<b style="color:#d42020">${cnt('off')} gesperrt</b> · <b style="color:#e07800">${cnt('dist')} nur mit Abstand</b> · <b style="color:#13a538">${cnt('on')} erlaubt mit Auflagen</b>` : '<b style="color:#13a538">Keine Geozone im Flugbereich.</b>'}${fh ? ` · Missionshöhe ${fh} m` : ''} · Daten offline (dipul/OSM), maßgeblich ist dipul.de</div>`;
   h += wxh || '';
@@ -5137,11 +5145,16 @@ function briefingHtml(b, sel, wxh) {
     <div class="meta">${b.vh.map(x => esc(x.f.title) + ' – ' + Math.round(x.d) + ' m').join(' · ')}</div>${vincenzHtml(b.vh[0].a, true)}</div>`;
   zs.forEach(z => {
     const p = z.f.props || {}, label = z.f.layer === 'flugplaetze' && isHeliZone(z.f) ? 'Hubschrauberlandeplatz' : (LAYER_LABEL[z.f.layer] || z.f.layer);
-    if (z.near != null) {   // A1/A3: Wohngebiet nicht berührt, aber näher als 150 m
-      h += `<div class="zone" style="border-left:5px solid #d42020"><h4>${esc(p.name || label)} <span class="chip">${Math.round(z.near)} m daneben</span></h4>
+    if (z.near != null) {   // A1/A3: Wohngebiet nicht berührt, aber zu nah (150 m bzw. mit BMDV-AV Tierschutz: 1:1)
+      const col = z.m3 && !IS_LITE ? '#e07800' : '#d42020', dn = Math.round(z.near);
+      const txt = z.tsr
+        ? (z.m3 && !IS_LITE ? `Mit A1/A3 (Unterkategorie A3) gilt die Allgemeinverfügung des BMDV zur Wildtierrettung: seitlicher Abstand größer als die Flughöhe und mehr als 10 m. Hier ca. ${dn} m – reicht mit der <b>Mavic 3T</b> (${z.h3} m), nicht mit der Matrice 4T (${z.needH} m).`
+          : `Mit A1/A3 (Unterkategorie A3) gilt die Allgemeinverfügung des BMDV zur Wildtierrettung: seitlicher Abstand größer als die Flughöhe (${z.needH} m) und mehr als 10 m – hier nur ca. ${dn} m.`)
+        : `Mit A1/A3 (Unterkategorie A3): mindestens 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten – hier nur ca. ${dn} m.`;
+      h += `<div class="zone" style="border-left:5px solid ${col}"><h4>${esc(p.name || label)} <span class="chip">${dn} m daneben</span></h4>
         <div class="meta">${esc(label)} · ${esc(regionText(z.reg))}</div>${fl(z.fields)}
-        <div style="color:#d42020;font-weight:700">Mit A1/A3 (Unterkategorie A3): mindestens 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten – hier nur ca. ${Math.round(z.near)} m.</div>
-        <ul><li>Feld bzw. Route so anpassen, dass 150 m eingehalten werden, oder</li><li>mit A2-Fernpilotenzeugnis fliegen (dort gilt dieser Abstand nicht – nur 30 m zu unbeteiligten Personen)</li></ul></div>`;
+        <div style="color:${col};font-weight:700">${txt}</div>
+        <ul>${z.m3 && !IS_LITE ? '<li>Dieses Feld mit der Mavic 3T fliegen, oder</li>' : ''}<li>Feld bzw. Route so anpassen, dass der Abstand eingehalten wird, oder</li><li>mit A2-Fernpilotenzeugnis fliegen (dort gilt dieser Abstand nicht – nur 30 m zu unbeteiligten Personen)</li></ul></div>`;
       return;
     }
     const chip = `<span class="chip ${z.k === 'on' ? 'cov' : z.k === 'dist' ? 'dist' : ''}">${z.k === 'on' ? 'Überflug erlaubt' : z.k === 'dist' ? 'Nur mit Abstand' : 'Gesperrt'}</span>`;
@@ -5448,7 +5461,7 @@ function fillSettings() {
   else if (A.tileCacheInfo) { const mb = +A.tileCacheInfo() / 1048576; $('vTiles').textContent = `Grau/Karte: basemap.de (amtliche Karte) · Luftbild: Orthophotos Hessen/Rheinland-Pfalz · alle angesehenen und vorab geladenen Kacheln bleiben auf der RC (erst nach 1 Jahr neu geladen) · belegt ${mb < 1 ? '< 1 MB' : mb < 1024 ? Math.round(mb) + ' MB' : (mb / 1024).toFixed(1).replace('.', ',') + ' GB'}`; }
   document.querySelectorAll('[data-rcdrone]').forEach(b => b.classList.toggle('on', P.droneSet === '1' && b.dataset.rcdrone === P.drone));
   droneNag();
-  $('sGeo').checked = P.geo === '1'; $('sGeoRes').checked = zgOn('wohn');
+  $('sGeo').checked = P.geo === '1'; $('sGeoRes').checked = zgOn('wohn'); $('sTsr').checked = P.tsr !== '0';
   $('vGeo').textContent = geoText(true);
   fillRules();
   $('vAcc').textContent = A.hasAccess() ? 'Erteilt' : 'Fehlt – bitte erteilen';
@@ -5661,6 +5674,7 @@ document.querySelectorAll('[data-rcdrone]').forEach(b => b.onclick = () => { set
 $('bAcc').onclick = () => A.requestAccess();
 $('sGeo').onchange = e => { setP('geo', e.target.checked ? 1 : 0); geoBadge(); draw(); if (e.target.checked) geoSyncNow(false); };
 $('sGeoRes').onchange = e => { zgSet('wohn', e.target.checked); fillSettings(); };
+$('sTsr').onchange = e => { setP('tsr', e.target.checked ? '1' : '0'); fillSettings(); if (typeof fillRules === 'function') fillRules(); };
 /** Geozonen nur auf Knopfdruck aktualisieren: Einsatzgebiet oder ganz Deutschland (Übersicht) */
 const DE_BOX = [5.8, 47.2, 15.1, 55.1];
 function einsatzBox(km) {
@@ -5865,7 +5879,7 @@ function fillRules() {
   const a2 = P.lic === 'A2';
   $('vLic').textContent = a2
     ? 'A2: Allgemeinerlaubnis und Allgemeinverfügung nutzbar (für die eingetragenen Bundesländer).'
-    : 'A1/A3: Allgemeinerlaubnis und Allgemeinverfügung NICHT nutzbar – es gelten die normalen Regeln. Mavic 3T/Matrice 4T (Klasse C2) nur in A3: 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten.';
+    : 'A1/A3: Allgemeinerlaubnis NICHT nutzbar (nur Allgemeinverfügungen ohne A2-Pflicht). Mavic 3T/Matrice 4T (Klasse C2) nur in A3: ' + (P.tsr !== '0' ? 'zur Wildtierrettung (BMDV-Allgemeinverfügung) seitlich weiter weg als hoch und mehr als 10 m zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten – sonst 150 m.' : '150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten.');
   document.querySelectorAll('[data-lic]').forEach(b => b.classList.toggle('on', b.dataset.lic === P.lic));
   const sel = P.aeStates ? P.aeStates.split(',') : [];
   $('aeBox').style.opacity = a2 ? '' : '.45';
@@ -6825,7 +6839,8 @@ function showRules() {
       <p><span class="lnk" data-url="${LINK_AE}">Antragsformular öffnen (PDF)</span></p></div>
 
     <div class="zone"><h4>Mit A1/A3 (ohne Allgemeinerlaubnis) – normale Regeln</h4><ul>${li([
-      'Mavic 3T / Matrice 4T (Klasse C2) nur in Unterkategorie A3: mindestens 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten, keine unbeteiligten Personen gefährden',
+      P.tsr !== '0' ? 'Mavic 3T / Matrice 4T (Klasse C2) nur in Unterkategorie A3. Zur Wildtierrettung über Land-/Forstwirtschaftsflächen (Allgemeinverfügung des BMDV, ab 20.11.2024): seitlicher Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten stets größer als die Flughöhe und größer als 10 m statt 150 m – Mavic 3T (50 m) also mehr als 50 m, Matrice 4T (70 m) mehr als 70 m. Keine unbeteiligten Personen gefährden'
+        : 'Mavic 3T / Matrice 4T (Klasse C2) nur in Unterkategorie A3: mindestens 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten, keine unbeteiligten Personen gefährden',
       'Alle Geozonen nach § 21h LuftVO nur mit Zustimmung des Betreibers bzw. der zuständigen Stelle oder mit den dort genannten Abständen',
       'Naturschutzgebiete: eine eingetragene Allgemeinverfügung gilt auch mit A1/A3 – sie hängt nicht am A2'])}</ul></div>
 
@@ -10866,7 +10881,7 @@ async function pcMapMake(f) {
     const sv = P.lic; let zs = [];
     try { P.lic = 'A1A3'; zs = flightBriefing([f]).zones; P.lic = 'A2'; flightBriefing([f]).zones.forEach(z => { if (!zs.some(y => y.f === z.f)) zs.push(z); }); } finally { P.lic = sv; }
     // rot = Zone, wegen der es nicht mit jedem Zeugnis geht (z. B. Wohngebiet zu nah, ohne Allgemeinerlaubnis gesperrt)
-    const red = new Set(zs.filter(z => z.near != null || (() => { const s2 = P.lic; P.lic = 'A1A3'; try { return covKind(z.f.layer, z.reg) === 'off'; } finally { P.lic = s2; } })()));
+    const red = new Set(zs.filter(z => (z.near != null && !(z.m3 && !IS_LITE)) || (() => { const s2 = P.lic; P.lic = 'A1A3'; try { return covKind(z.f.layer, z.reg) === 'off'; } finally { P.lic = s2; } })()));
     const cv = await briefMap([f], [f], zs, 560, { cw: 900, base: P.pcMapBase || 'grey', near: true, red });
     return cv ? { url: cv.toDataURL('image/jpeg', 0.86), red: red.size, full: !!cv.__full, k } : null;
   })();
@@ -10980,8 +10995,15 @@ function liteCardsHtml(b, o) {
   // Geozonen am Feld
   b.zones.forEach(z => {
     const p = z.f.props || {}, lbl = LAYER_LABEL[z.f.layer] || z.f.layer, nm = esc(p.name || lbl);
-    if (z.near != null) return card('🏘️', '#d42020', `Wohngebiet nur ${m(z.near)} entfernt`, `Mit A1/A3 brauchst du <b>150 m Abstand</b> zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten. Hier nicht fliegen – mit A2 wäre es möglich.${where(z.fields)}`,
-      `<div class="lrules"><span>Fliegen nur:</span> mit <b>A2</b> · mit A1/A3 erst <b>ab 150 m Abstand</b></div>`);
+    if (z.near != null) {
+      const rcD = IS_LITE && DRONE_HEIGHT[P.drone] ? P.drone : '';
+      if (!z.tsr) return card('🏘️', '#d42020', `Wohngebiet nur ${m(z.near)} entfernt`, `Mit A1/A3 brauchst du <b>150 m Abstand</b> zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten. Hier nicht fliegen – mit A2 wäre es möglich.${where(z.fields)}`,
+        `<div class="lrules"><span>Fliegen nur:</span> mit <b>A2</b> · mit A1/A3 erst <b>ab 150 m Abstand</b></div>`);
+      if (z.m3 && !rcD) return card('🚁', '#e07800', `Wohngebiet ${m(z.near)} entfernt: nur mit Mavic 3T`, `Mit A1/A3 gilt zur Wildtierrettung die Allgemeinverfügung des BMDV: seitlich weiter weg als hoch und mehr als 10 m. Mit der <b>Mavic 3T</b> (${z.h3} m) reicht das, mit der Matrice 4T (${z.needH} m) nicht – dafür A2.${where(z.fields)}`,
+        `<div class="lrules"><span>Fliegen nur:</span> <b>Mavic 3T</b> · oder mit <b>A2</b></div>`);
+      return card('🏘️', '#d42020', `Wohngebiet nur ${m(z.near)} entfernt`, `Mit A1/A3 muss die Flugbahn zur Wildtierrettung seitlich weiter weg sein als hoch (<b>mehr als ${z.needH} m</b>) – hier nur ${m(z.near)}. Hier nicht fliegen – mit A2 wäre es möglich.${z.m3 && rcD === 'M4T' ? ' Mit der Mavic 3T (' + z.h3 + ' m) ginge es.' : ''}${where(z.fields)}`,
+        `<div class="lrules"><span>Fliegen nur:</span> mit <b>A2</b> · mit A1/A3 erst <b>ab ${z.needH + 1} m Abstand</b></div>`);
+    }
     if (z.f.layer === 'flugplaetze' && isHeliZone(z.f)) { heliZone = true; return; }   // Hubschrauberlandeplatz: unten eigene Karte mit Regeln
     if (z.f.layer === 'flugplaetze' && covKind(z.f.layer, z.reg) === 'off') { afZone = true;   // Flugplatz: kein Verbot, sondern Zustimmung nötig
       return card('✈️', '#d42020', 'Flugplatz: Zustimmung des Betreibers nötig', `${nm}. Bis 1,5 km um den Flugplatz nur mit Zustimmung der Flugaufsicht bzw. des Betreibers – die Allgemeinerlaubnis gilt hier nur bis 30 m, nicht für Kitzrettung (${H} m).${where(z.fields)}`,
