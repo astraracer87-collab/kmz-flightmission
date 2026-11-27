@@ -5403,7 +5403,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             boolean fresh = System.currentTimeMillis() - prefs.getLong("reg_fetched", 0) < 60 * DAY;   // Grenzen ändern sich kaum
             boolean hasLand = false;   // früherer Fehler: BKG-Daten ohne Bundesländer gespeichert – dann neu holen
             try { hasLand = regionFile().isFile() && readFile(regionFile()).contains("\"lvl\":\"4\""); } catch (Exception ignored) { }
-            if (!force && fresh && covers && hasLand) return;
+            if (!force && fresh && covers && hasLand && prefs.getInt("reg_v", 1) >= 2) return;   // v2: auch RB Kassel
             catSt("orte", "load");
             // amtliche Grenzen vom BKG – keine Overpass-Abfrage mehr
             boolean bkgOk;
@@ -5449,7 +5449,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 if (t == null) continue;
                 String lvl = t.optString("admin_level"), name = t.optString("name"), code = t.optString("ISO3166-2");
                 if ("4".equals(lvl) && !code.startsWith("DE-")) continue;
-                if ("5".equals(lvl) && !name.matches(".*Gie(ß|ss)en.*")) continue;
+                if ("5".equals(lvl) && !name.matches(".*(Gie(ß|ss)en|Kassel).*")) continue;   // Regierungsbezirke mit eigener Allgemeinverfügung
                 JSONArray mem = r.optJSONArray("members"), lines = new JSONArray();
                 if (mem != null) for (int k = 0; k < mem.length(); k++) {
                     JSONObject m = mem.getJSONObject(k);
@@ -5465,7 +5465,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
             }
             if (out.length() == 0) return;   // nichts überschreiben, wenn die Antwort leer ist
             writeFileAtomic(regionFile(), out.toString());
-            prefs.edit().putLong("reg_fetched", System.currentTimeMillis())
+            prefs.edit().putLong("reg_fetched", System.currentTimeMillis()).putInt("reg_v", 2)
                     .putString("reg_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
         } catch (Exception ex) {
             // Ausweg: amtliche Verwaltungsgrenzen des BKG (VG2500, vereinfacht) – unabhängig von OpenStreetMap
@@ -5486,7 +5486,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
                 @SuppressWarnings("unchecked") List<double[]> rings = (List<double[]>) f[2];
                 String lvl = ly[1], code = "";
                 if ("4".equals(lvl)) { int k = -1; try { k = Integer.parseInt(rs.length() >= 2 ? rs.substring(0, 2) : rs); } catch (Exception ignored) { } if (k < 1 || k > 16) continue; code = BKG_LAND[k]; }
-                else { if (!name.matches(".*Gie(ß|ss)en.*")) continue; name = name.startsWith("Regierungsbezirk") ? name : "Regierungsbezirk " + name; }
+                else { if (!name.matches(".*(Gie(ß|ss)en|Kassel).*")) continue; name = name.startsWith("Regierungsbezirk") ? name : "Regierungsbezirk " + name; }
                 boolean in = false; JSONArray lines = new JSONArray();
                 for (double[] r : rings) {
                     // Punkt-im-Polygon für die Gebietsmitte
@@ -5512,7 +5512,7 @@ public class MainActivity extends Activity implements android.hardware.SensorEve
         }
         if (out.length() == 0) return false;
         writeFileAtomic(regionFile(), out.toString());
-        prefs.edit().putLong("reg_fetched", System.currentTimeMillis())
+        prefs.edit().putLong("reg_fetched", System.currentTimeMillis()).putInt("reg_v", 2)
                 .putString("reg_bbox", new JSONObject().put("n", n).put("s", s).put("e", e).put("w", w).toString()).apply();
         return true;
     }

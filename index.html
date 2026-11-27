@@ -899,11 +899,12 @@ body.bartop #trafWarn{top:calc(84px + var(--tt))}
     <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Allgemeinverfügungen (Naturschutz-, FFH-, Vogelschutzgebiete)</div>
       <div class="v" style="margin-bottom:8px">Jede Allgemeinverfügung gilt nur in den eingetragenen Bundesländern und im eingetragenen Zeitraum – die Karte wendet sie nur dort an.</div>
       <div id="avBox"></div><button class="b-sec" id="avAdd" style="height:46px;margin-top:8px">+ Allgemeinverfügung hinzufügen</button></div>
-    <div class="set"><div class="l"><div class="t">Saison-Vorschau (Planung)</div><div class="v">Zeigt Naturschutz-, FFH- und Vogelschutzgebiete im RB Gießen so, als wäre Mähsaison (15.04.–30.06.). Nur zur Planung – außerhalb der Saison gilt die Verfügung NICHT.</div></div><label class="sw"><input type="checkbox" id="sSeason"><span></span></label></div>
+    <div class="set"><div class="l"><div class="t">Saison-Vorschau (Planung)</div><div class="v">Zeigt Naturschutz-, FFH- und Vogelschutzgebiete mit eingetragener Allgemeinverfügung so, als wäre Mähsaison. Nur zur Planung – außerhalb der Saison gilt die Verfügung NICHT.</div></div><label class="sw"><input type="checkbox" id="sSeason"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Überfluggenehmigung Stromleitungen (Netzbetreiber)</div><div class="v">Genehmigungen der Netzbetreiber liegen vor – Stromtrassen werden grau, in der Info stehen Spannung und Masthöhe</div></div><label class="sw"><input type="checkbox" id="sPower"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Geozonen (dipul) anzeigen</div><div class="v">Flughäfen, Kontrollzonen, Schutzgebiete, Verkehrswege, Stromleitungen u. a. – nur zur Orientierung, maßgeblich ist dipul.de</div></div><label class="sw"><input type="checkbox" id="sGeo"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Eigene Zonen-Karte im Einsatzgebiet</div><div class="v">An: Um eure Felder zeichnet die App die Geozonen selbst – grün = Überflug erlaubt, orange = nur mit Abstand, rot = gesperrt (nach Allgemeinerlaubnis/Allgemeinverfügung), auch offline. Aus: überall das normale dipul-Bild.</div></div><label class="sw"><input type="checkbox" id="sGeoOwn"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Geozonen in ganz Deutschland</div><div class="v">Außerhalb eurer Felder zeigt die Karte die Geozonen als Bild vom dipul-Kartendienst (Aussehen wie die dipul-Karte, ab Zoom 7, angesehene Kacheln bleiben 30 Tage offline gespeichert). Antippen zeigt auch dort die Zonen-Infos. Um eure Felder zeichnet die App die Zonen selbst mit grün/orange/rot.</div></div><label class="sw"><input type="checkbox" id="sGeoAll"><span></span></label></div>
+    <div class="set" data-lite="1"><div class="l"><div class="t">BMDV-Allgemeinverfügung Tierschutz/Wildtierrettung</div><div class="v">Mit A1/A3 (A3): zur Wildtierrettung über Wiesen und Äckern reicht seitlich mehr Abstand als Flughöhe (und &gt; 10 m) zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten statt 150 m. Gilt seit 20.11.2024 bundesweit.</div></div><label class="sw"><input type="checkbox" id="sTsr"><span></span></label></div>
     <div class="set"><div class="l"><div class="t">Wohngrundstücke einbeziehen</div><div class="v">Zeigt auch Wohngrundstücke als Geozone (deckt Ortschaften flächig ab)</div></div><label class="sw"><input type="checkbox" id="sGeoRes"><span></span></label></div>
     <div class="set" data-lite="1"><div class="l"><div class="t">Geozonen-Daten</div><div class="v" id="vGeo"></div></div><button class="b-sec" id="bGeoNow">Neu holen</button></div>
     <div class="set" style="flex-direction:column;align-items:stretch"><div class="t">Bundesland-Erkennung</div>
@@ -1941,7 +1942,7 @@ const TSRC = u => window.KR_TILE ? window.KR_TILE(u) : u;
 
 // ---------- Einstellungen ----------
 const ROOT = A.internalRoot();
-const DEF = { liteSort: 'new', uaveSwitched: '', liteCloudMap: '0', setupDone: '', avs: '', showObs: '1', showLines: '1', liteRcBtn: '0', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
+const DEF = { tsr: '1', liteSort: 'new', uaveSwitched: '', liteCloudMap: '0', setupDone: '', avs: '', showObs: '1', showLines: '1', liteRcBtn: '0', djiOnly: '', briefKmz: '0', pcOpen: '0', sideSort: 'name', sideDrone: 'alle', sideStand: 'alle', sideYear: '', uvLive: '1', gsat: '1', uaveMode: 'tabs', uaveView: '0', searchUi: 'side', sideGroupBy: 'namedate', pcMapBase: 'grey', briefAsk: '1', mailAsk: '1',   // PC: UAV Editor im Programm, Feldsuche oben/links, Bündeln nach
    planTool: '0', sideGroup: '0', catKnown: '', sideOpen: '0', opSeen: '[]', wsSort: 'name', wsDrone: 'alle', briefS: '3', briefE: '12', flyWin: '', pwrAdj: '1', pwrH: '70', liteCheckMode: 'alle', liteShow: 'today', webShow: '24h', netMail: '{}', pcWx: '1', dstMap: '{}', tNear: '1.5', tOvl: '1', rid: '0', rKm: '1', ridOwn: '', traffic: '0', trafMap: '1', tKm: '3', tAlt: '300', tSnd: '1', tShow: '3000', watch: '1', wGust: '10', wWind: '12', wShear: '5', wDur: '4', osmStates: '', catYears: '', catStand: 'aktiv,archiv', catDrone: 'beide', rcKeys: '0', rcKeyOff: '0', showNotam: '1', showLfa: '1', notamKm: '10', fsrc: 'uave', rcDir: '', uaveTest: '', winS: '3', winE: '10', plan: '0', planBatt: '', zg: 'luft,natur,verkehr,energie,sicher', geoOwn: '0', geoAll: '1', metar: '1', wxMaxH: '100', osmPower: '1', theme: 'auto', rose: '1', season: '1', compass: '1', wxStart: '04:00', airf: '1', geo: '1', georesi: '1', lic: 'A2', aeStates: 'HE', avgi: '1', power: '1', drone: '', droneSet: '', src: ROOT + '/UAV-Editor', dst: ROOT + '/Kitzrettung Import', move: '0', clear: '0', labels: '1', layer: 'grey' };
 const P = {};
 for (const k in DEF) P[k] = A.getPref(k, DEF[k]);
@@ -2582,7 +2583,7 @@ function featRegions(f) {
     regStoreSave();
   }
   const out = new Map();
-  masks.forEach(m => { const r = regFromMask(m); out.set((r.st || '') + '|' + r.rbGi, r); });
+  masks.forEach(m => { const r = regFromMask(m); out.set((r.st || '') + '|' + r.rbGi + '|' + r.rbKs, r); });
   return (f.regs = [...out.values()]);
 }
 const GEO_STYLE = { on: ['rgba(20,170,60,.24)', 'rgba(10,140,45,.95)', 1.5], dist: ['rgba(255,140,0,.26)', 'rgba(215,110,0,.95)', 1.8], off: ['rgba(230,30,30,.22)', 'rgba(210,20,20,.9)', 2] };
@@ -2702,9 +2703,9 @@ function memberFast(lat, lon) {
   return memberFrom(gridMask(gx, gy), gy * MG + MGO, gx * MG + MGO, lat, lon);
 }
 const regFromMask = m => {
-  let st = null, rb = false;
-  S.regions.forEach((r, i) => { if (!(m & (1 << i))) return; if (r.lvl === '4' && r.code) st = r.code.replace('DE-', ''); else if (r.lvl === '5') rb = true; });
-  return st ? { st, rbGi: st === 'HE' && rb, fallback: false } : { st: null, rbGi: false, fallback: true };
+  let st = null, gi = false, ks = false;
+  S.regions.forEach((r, i) => { if (!(m & (1 << i))) return; if (r.lvl === '4' && r.code) st = r.code.replace('DE-', ''); else if (r.lvl === '5') { if (/Kassel/.test(r.name || '')) ks = true; else gi = true; } });
+  return st ? { st, rbGi: st === 'HE' && gi, rbKs: st === 'HE' && ks, fallback: false } : { st: null, rbGi: false, rbKs: false, fallback: true };
 };
 const splitJobs = new Map(); let splitBusy = false, splitDrawT = 0;
 // Beim Wischen/Zoomen Pause, damit die Karte flüssig bleibt
@@ -4105,17 +4106,18 @@ function zoneRegion(f) {
   if (!S.regions.length) return featRegion(f);
   if (!ZREG) { try { const o = JSON.parse(A.getPref('zoneReg', '') || '{}'); ZREG = o.v === S.regFetched ? o.m || {} : {}; } catch (e) { ZREG = {}; } }
   const k = featKey(f), hit = ZREG[k];
-  const R = c => ({ st: c.split(':')[0] || null, rbGi: c.split(':')[1] === '1', fallback: false });
+  const R = c => ({ st: c.split(':')[0] || null, rbGi: c.split(':')[1] === '1', rbKs: c.split(':')[1] === '2', fallback: false });
+  const C = r => (r.st || '') + ':' + (r.rbGi ? 1 : r.rbKs ? 2 : 0);
   if (hit && !hit.startsWith('mix')) return R(hit);
   const pts = f.rings.flat(), n = pts.length, step = Math.max(1, Math.floor(n / 48)), votes = {};
-  for (let i = 0; i < n; i += step) { const r = regionAt(pts[i][1], pts[i][0]); const c = (r.st || '') + ':' + (r.rbGi ? 1 : 0); votes[c] = (votes[c] || 0) + 1; }
+  for (let i = 0; i < n; i += step) { const r = regionAt(pts[i][1], pts[i][0]); const c = C(r); votes[c] = (votes[c] || 0) + 1; }
   const tot = Object.values(votes).reduce((a, v) => a + v, 0), ord = Object.entries(votes).sort((a, c) => c[1] - a[1]);
   const mixed = ord.length > 1 && ord[1][1] / tot >= 0.2;
   let code = ord.length ? ord[0][0] : ':0';
   if (mixed) {   // wirklich in zwei Ländern: Punkt nahe unseren Feldern
     const cs = S.files.filter(x => x.center).map(x => x.center); let best = null, bd = Infinity;
     if (cs.length) pts.forEach(q => cs.forEach(c => { const d = (q[1] - c[0]) ** 2 + ((q[0] - c[1]) * 0.64) ** 2; if (d < bd) { bd = d; best = q; } }));
-    if (best) { const r = regionAt(best[1], best[0]); code = (r.st || '') + ':' + (r.rbGi ? 1 : 0); }
+    if (best) code = C(regionAt(best[1], best[0]));
   }
   ZREG[k] = (mixed ? 'mix' : '') + code;   // gemischte nur als Hinweis merken (hängt von den Feldern ab)
   clearTimeout(ZREG_T); ZREG_T = setTimeout(() => { try { A.setPref('zoneReg', JSON.stringify({ v: S.regFetched, m: ZREG })); } catch (e) { } }, 1500);
@@ -5022,7 +5024,14 @@ function flightBriefing(sel) {
         continue; }
       if (!a3 || f.layer !== 'wohngrundstuecke' || (z0 && !z0.near)) continue;
       const d = polyDistM(fr, f.rings);
-      if (d < 150) { const z = z0 || { f, reg, fields: new Set(), near: d }; z.near = Math.min(z.near, d); z.fields.add(fl.title); zones.set(key, z); }
+      // A3: normal 150 m zu Wohn-/Gewerbe-/Industrie-/Erholungsgebieten. BMDV-Allgemeinverfügung Tierschutz/Wildtierrettung (ab 20.11.2024):
+      // über Land-/Forstwirtschaftsflächen reicht seitlicher Abstand > Flughöhe und > 10 m (1:1)
+      const tsr = P.tsr !== '0', rcD = IS_LITE && DRONE_HEIGHT[P.drone] ? P.drone : '';
+      const hN = rcD ? flyH(fl, rcD) : Math.max(fl.height || 0, flyH(fl, 'M4T')), h3 = flyH(fl, 'M3T');
+      const lim = tsr ? Math.max(10, hN) : 150;
+      if (d <= lim) { const z = z0 || { f, reg, fields: new Set(), near: d }; z.near = Math.min(z.near, d); z.fields.add(fl.title);
+        z.tsr = tsr; z.needH = Math.max(z.needH || 0, hN); z.h3 = Math.max(z.h3 || 0, h3);
+        z.m3 = tsr && rcD !== 'M3T' && (z.m3 !== false) && d > Math.max(10, h3); zones.set(key, z); }
     }
   });
   return { zones: [...zones.values()], obs: [...obs.values()].sort((a, b) => a.d - b.d), rails: [...rails.values()], lines: [...lines.values()], vh: vincenzHits(sel) };
@@ -5126,7 +5135,7 @@ function wxFill(sel) {
 function briefingHtml(b, sel, wxh) {
   const fh = flightHeight(), multi = sel.length > 1;
   const fl = set => multi ? `<div class="meta">Betrifft: ${[...set].map(esc).join(', ')}</div>` : '';
-  const zs = b.zones.map(z => Object.assign(z, { k: z.near != null ? 'off' : covKind(z.f.layer, z.reg) })).sort((a, c) => KIND_ORDER[a.k] - KIND_ORDER[c.k]);
+  const zs = b.zones.map(z => Object.assign(z, { k: z.near != null ? (z.m3 && !IS_LITE ? 'dist' : 'off') : covKind(z.f.layer, z.reg) })).sort((a, c) => KIND_ORDER[a.k] - KIND_ORDER[c.k]);
   const cnt = k => zs.filter(z => z.k === k).length;
   let h = `<div class="meta" style="margin-bottom:8px">${zs.length ? `<b style="color:#d42020">${cnt('off')} gesperrt</b> · <b style="color:#e07800">${cnt('dist')} nur mit Abstand</b> · <b style="color:#13a538">${cnt('on')} erlaubt mit Auflagen</b>` : '<b style="color:#13a538">Keine Geozone im Flugbereich.</b>'}${fh ? ` · Missionshöhe ${fh} m` : ''} · Daten offline (dipul/OSM), maßgeblich ist dipul.de</div>`;
   h += wxh || '';
@@ -5136,11 +5145,16 @@ function briefingHtml(b, sel, wxh) {
     <div class="meta">${b.vh.map(x => esc(x.f.title) + ' – ' + Math.round(x.d) + ' m').join(' · ')}</div>${vincenzHtml(b.vh[0].a, true)}</div>`;
   zs.forEach(z => {
     const p = z.f.props || {}, label = z.f.layer === 'flugplaetze' && isHeliZone(z.f) ? 'Hubschrauberlandeplatz' : (LAYER_LABEL[z.f.layer] || z.f.layer);
-    if (z.near != null) {   // A1/A3: Wohngebiet nicht berührt, aber näher als 150 m
-      h += `<div class="zone" style="border-left:5px solid #d42020"><h4>${esc(p.name || label)} <span class="chip">${Math.round(z.near)} m daneben</span></h4>
+    if (z.near != null) {   // A1/A3: Wohngebiet nicht berührt, aber zu nah (150 m bzw. mit BMDV-AV Tierschutz: 1:1)
+      const col = z.m3 && !IS_LITE ? '#e07800' : '#d42020', dn = Math.round(z.near);
+      const txt = z.tsr
+        ? (z.m3 && !IS_LITE ? `Mit A1/A3 (Unterkategorie A3) gilt die Allgemeinverfügung des BMDV zur Wildtierrettung: seitlicher Abstand größer als die Flughöhe und mehr als 10 m. Hier ca. ${dn} m – reicht mit der <b>Mavic 3T</b> (${z.h3} m), nicht mit der Matrice 4T (${z.needH} m).`
+          : `Mit A1/A3 (Unterkategorie A3) gilt die Allgemeinverfügung des BMDV zur Wildtierrettung: seitlicher Abstand größer als die Flughöhe (${z.needH} m) und mehr als 10 m – hier nur ca. ${dn} m.`)
+        : `Mit A1/A3 (Unterkategorie A3): mindestens 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten – hier nur ca. ${dn} m.`;
+      h += `<div class="zone" style="border-left:5px solid ${col}"><h4>${esc(p.name || label)} <span class="chip">${dn} m daneben</span></h4>
         <div class="meta">${esc(label)} · ${esc(regionText(z.reg))}</div>${fl(z.fields)}
-        <div style="color:#d42020;font-weight:700">Mit A1/A3 (Unterkategorie A3): mindestens 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten – hier nur ca. ${Math.round(z.near)} m.</div>
-        <ul><li>Feld bzw. Route so anpassen, dass 150 m eingehalten werden, oder</li><li>mit A2-Fernpilotenzeugnis fliegen (dort gilt dieser Abstand nicht – nur 30 m zu unbeteiligten Personen)</li></ul></div>`;
+        <div style="color:${col};font-weight:700">${txt}</div>
+        <ul>${z.m3 && !IS_LITE ? '<li>Dieses Feld mit der Mavic 3T fliegen, oder</li>' : ''}<li>Feld bzw. Route so anpassen, dass der Abstand eingehalten wird, oder</li><li>mit A2-Fernpilotenzeugnis fliegen (dort gilt dieser Abstand nicht – nur 30 m zu unbeteiligten Personen)</li></ul></div>`;
       return;
     }
     const chip = `<span class="chip ${z.k === 'on' ? 'cov' : z.k === 'dist' ? 'dist' : ''}">${z.k === 'on' ? 'Überflug erlaubt' : z.k === 'dist' ? 'Nur mit Abstand' : 'Gesperrt'}</span>`;
@@ -5447,7 +5461,7 @@ function fillSettings() {
   else if (A.tileCacheInfo) { const mb = +A.tileCacheInfo() / 1048576; $('vTiles').textContent = `Grau/Karte: basemap.de (amtliche Karte) · Luftbild: Orthophotos Hessen/Rheinland-Pfalz · alle angesehenen und vorab geladenen Kacheln bleiben auf der RC (erst nach 1 Jahr neu geladen) · belegt ${mb < 1 ? '< 1 MB' : mb < 1024 ? Math.round(mb) + ' MB' : (mb / 1024).toFixed(1).replace('.', ',') + ' GB'}`; }
   document.querySelectorAll('[data-rcdrone]').forEach(b => b.classList.toggle('on', P.droneSet === '1' && b.dataset.rcdrone === P.drone));
   droneNag();
-  $('sGeo').checked = P.geo === '1'; $('sGeoRes').checked = zgOn('wohn');
+  $('sGeo').checked = P.geo === '1'; $('sGeoRes').checked = zgOn('wohn'); $('sTsr').checked = P.tsr !== '0';
   $('vGeo').textContent = geoText(true);
   fillRules();
   $('vAcc').textContent = A.hasAccess() ? 'Erteilt' : 'Fehlt – bitte erteilen';
@@ -5660,6 +5674,7 @@ document.querySelectorAll('[data-rcdrone]').forEach(b => b.onclick = () => { set
 $('bAcc').onclick = () => A.requestAccess();
 $('sGeo').onchange = e => { setP('geo', e.target.checked ? 1 : 0); geoBadge(); draw(); if (e.target.checked) geoSyncNow(false); };
 $('sGeoRes').onchange = e => { zgSet('wohn', e.target.checked); fillSettings(); };
+$('sTsr').onchange = e => { setP('tsr', e.target.checked ? '1' : '0'); fillSettings(); if (typeof fillRules === 'function') fillRules(); };
 /** Geozonen nur auf Knopfdruck aktualisieren: Einsatzgebiet oder ganz Deutschland (Übersicht) */
 const DE_BOX = [5.8, 47.2, 15.1, 55.1];
 function einsatzBox(km) {
@@ -5693,11 +5708,50 @@ const STATES = [['BW','Baden-Württemberg'],['BY','Bayern'],['BE','Berlin'],['BB
 // ---------- Allgemeinverfügungen (Naturschutz-/FFH-/Vogelschutzgebiete): frei eintragbar, je mit Bundesländern, Zeitraum und Zonenarten ----------
 const AV_ZONES = [['naturschutzgebiete', 'Naturschutzgebiete'], ['ffh-gebiete', 'FFH-Gebiete'], ['vogelschutzgebiete', 'Vogelschutzgebiete'], ['nationalparks', 'Nationalparks']];
 // Die AV Wildtierrettung setzt KEIN A2-Fernpilotenzeugnis voraus (anders als die Allgemeinerlaubnis der Länder) – a2: false
+// Saarland (MUKMAV): Zustimmung nach § 21h Abs. 3 Nr. 6 LuftVO + Ausnahme von den Schutzgebietsverordnungen, nur 15.04.–15.07., kein Ablaufdatum (Widerruf vorbehalten)
+const LINK_AVSL = 'https://www.saarland.de/SharedDocs/Downloads/DE/mukmav/naturschutz/dl_allgemeinverfuegung_LuftVO_naturschutz.pdf?__blob=publicationFile';
+const AVSL_RULES = [
+  'Nur zur Wildtierrettung im Zusammenhang mit einer naturschutzrechtlich zulässigen Mahd, jährlich 15.04.–15.07.',
+  'Gilt für Naturschutzgebiete sowie FFH- und Vogelschutzgebiete (auch als Landschaftsschutzgebiet ausgewiesen) im Saarland',
+  'Vorher die Oberste Naturschutzbehörde (Umweltministerium Saarland) über die geplanten Flüge informieren',
+  'Einmal im Jahr Bericht an die Oberste Naturschutzbehörde: wann, wie lange geflogen, welche Tiere gefunden/gerettet',
+  'Flughöhe so hoch wie möglich, bei der Tiere noch sicher erkannt werden; gleichbleibende Höhe',
+  'Ruhig fliegen, keine plötzlichen Richtungswechsel oder rasanten Manöver, Tiere nicht direkt anfliegen',
+  'Leise, kleine, möglichst elektrische Drohnen',
+  'Start und Landung möglichst auf Wegen, Parkplätzen oder befestigten Flächen, nicht in Tiernähe',
+  'Kitze nach Jagdrecht aus dem Wiesenbereich bringen; Gelege von Bodenbrütern abstecken und von der Mahd ausnehmen',
+  'Zusammenhängende Wiesen möglichst an einem Tag befliegen (mit den Landwirten absprechen)',
+  'Bei Reaktionen von Vögeln Abstand halten, bei wiederholten Angriffen Flug abbrechen',
+  'Passanten über Zweck und Verbotslage informieren; umweltrelevante Zwischenfälle dokumentieren und sofort melden'
+];
+const avSaarland = () => ({ id: 'slwtr', name: 'Allgemeinverfügung Saarland – Wildtierrettung', states: ['SL'], from: '04-15', to: '07-15', until: '', a2: false,
+  layers: ['naturschutzgebiete', 'ffh-gebiete', 'vogelschutzgebiete'], rules: AVSL_RULES.slice(), link: LINK_AVSL, note: 'Umweltministerium Saarland (MUKMAV) · § 21h Abs. 3 Nr. 6 LuftVO · Widerruf vorbehalten', on: true });
+// RP Kassel: Zustimmung nach § 21h Abs. 3 Nr. 6 LuftVO + Befreiung von den NSG-Verordnungen, jährlich 01.04.–30.06., 2024–2029
+const LINK_AVKS = 'https://rp-kassel.hessen.de/sites/rp-kassel.hessen.de/files/2024-04/allgemeinverfuegung_fuer_die_nutzung_von_drohnen_zur_wildtierrettung_2024-2029.pdf';
+const AVKS_RULES = [
+  'Nur zur Wildtierrettung (Rehkitze, Niederwild, Bodenbrüter) im Zusammenhang mit einer zulässigen Mahd, jährlich 01.04.–30.06.',
+  'Vorher das zuständige Forstamt bzw. Amt für den ländlichen Raum informieren',
+  'Flughöhe so hoch wie möglich, bei der Tiere noch sicher erkannt werden (empfohlen 40–50 m); gleichbleibende Höhe',
+  'Ruhig und gleichmäßig fliegen, keine abrupten Manöver, Tiere nicht direkt anfliegen',
+  'Höchstens zwei zusammenhängende Durchgänge; mindestens 50 m Abstand zu Waldrändern',
+  'Höchstens eine Drohne gleichzeitig je 15 ha; höchstens fünf begleitende Personen',
+  'Start und Landung möglichst auf Wegen oder Parkplätzen, nicht in Tiernähe',
+  'Bekannte Horste nicht überfliegen: 200 m Abstand bei Rotmilan, Kolkrabe, Wespenbussard, Baumfalke – 300 m bei Schwarzstorch',
+  'An stark besuchten Orten möglichst nicht an Wochenenden/Feiertagen',
+  'Leise, kleine, möglichst elektrische Drohnen',
+  'Passanten über Zweck und Verbotslage informieren',
+  'Bei Reaktionen von Vögeln Abstand halten, bei wiederholten Angriffen Flug abbrechen'
+];
+const avKassel = () => ({ id: 'rpks', name: 'Allgemeinverfügung RP Kassel – Wildtierrettung', states: ['HE'], rbKs: true, from: '04-01', to: '06-30', until: '2029-06-30', a2: false,
+  layers: ['naturschutzgebiete', 'ffh-gebiete', 'vogelschutzgebiete'], rules: AVKS_RULES.slice(), link: LINK_AVKS, note: 'Az. RPKS-24-29 a 0640/1-2022/2 vom 14.03.2024 · nur Regierungsbezirk Kassel', on: true });
 function avDefault() { return [{ id: 'rpgi', name: 'Allgemeinverfügung RP Gießen – Wildtierrettung', states: ['HE'], rbGi: true, from: '04-15', to: '06-30', until: '2029-06-30', a2: false,
-  layers: AVGI_LAYERS.slice(), rules: AVGI_RULES.slice(), link: LINK_AVGI, note: 'Az. RPGI-53.3-21a0500/2-2017/4 vom 26.04.2024 · nur Regierungsbezirk Gießen', on: P.avgi !== '0' }]; }
+  layers: AVGI_LAYERS.slice(), rules: AVGI_RULES.slice(), link: LINK_AVGI, note: 'Az. RPGI-53.3-21a0500/2-2017/4 vom 26.04.2024 · nur Regierungsbezirk Gießen', on: P.avgi !== '0' }, avKassel(), avSaarland()]; }
 function avList() { try { const a = JSON.parse(P.avs || 'null'); if (Array.isArray(a)) { a.forEach(av => { if (av.a2 === undefined) av.a2 = false; }); return a; } } catch (e) { } return avDefault(); }   // ohne Angabe: kein A2 nötig
 // einmalig: AV Wildtierrettung RP Gießen war versehentlich als „nur mit A2“ gespeichert – korrigieren
 if (A.getPref('avA2fix', '') !== '1') { try { const l = JSON.parse(P.avs || 'null'); if (Array.isArray(l)) { l.forEach(av => { if (av.id === 'rpgi' || /wildtier/i.test(av.name || '')) av.a2 = false; }); setP('avs', JSON.stringify(l)); } } catch (e) { } setP('avA2fix', 1); }
+// einmalig: neue Allgemeinverfügung Saarland in schon gespeicherte Listen aufnehmen
+if (A.getPref('avSLadd', '') !== '1') { try { const l = JSON.parse(P.avs || 'null'); if (Array.isArray(l) && !l.some(av => av.id === 'slwtr')) { l.push(avSaarland()); setP('avs', JSON.stringify(l)); } } catch (e) { } setP('avSLadd', 1); }
+if (A.getPref('avKSadd', '') !== '1') { try { const l = JSON.parse(P.avs || 'null'); if (Array.isArray(l) && !l.some(av => av.id === 'rpks')) { const gi = l.findIndex(av => av.id === 'rpgi'); l.splice(gi >= 0 ? gi + 1 : l.length, 0, avKassel()); setP('avs', JSON.stringify(l)); } } catch (e) { } setP('avKSadd', 1); }
 function avSave(list) { setP('avs', JSON.stringify(list)); applyGeoConfig(); fillRules(); }
 const avUntil = av => av.until ? new Date(av.until + 'T23:59:59') : null;
 function avSeasonOn(av, d) {
@@ -5709,10 +5763,10 @@ function avSeasonOn(av, d) {
 }
 function avInForce(av) { const u = avUntil(av); return avSeasonOn(av) || (P.season === '1' && (!u || new Date() <= u)); }
 const avLicOk = av => av.a2 !== true || P.lic === 'A2';   // nur wenn beim Eintrag ausdrücklich „nur mit A2“ angehakt ist
-function avFor(layer, reg) { return reg && reg.st ? avList().find(av => av.on && avLicOk(av) && (av.layers || []).includes(layer) && (av.states || []).includes(reg.st) && (!av.rbGi || reg.rbGi) && avInForce(av)) : null; }
+function avFor(layer, reg) { return reg && reg.st ? avList().find(av => av.on && avLicOk(av) && (av.layers || []).includes(layer) && (av.states || []).includes(reg.st) && (!av.rbGi || reg.rbGi) && (!av.rbKs || reg.rbKs) && avInForce(av)) : null; }
 const avLayersAll = () => [...new Set(avList().filter(a => a.on).flatMap(a => a.layers || []))];
 const mmdd = v => v ? v.slice(3, 5) + '.' + v.slice(0, 2) + '.' : '';
-const avText = av => `${(av.states || []).map(stateName).join(', ') || 'kein Bundesland'}${av.rbGi ? ' (nur RB Gießen)' : ''}${av.a2 === true ? ' · nur mit A2' : ''}${av.from && av.to ? ' · jährlich ' + mmdd(av.from) + '–' + mmdd(av.to) : ''}${av.until ? ' · gültig bis ' + av.until.split('-').reverse().join('.') : ''}`;
+const avText = av => `${(av.states || []).map(stateName).join(', ') || 'kein Bundesland'}${av.rbGi ? ' (nur RB Gießen)' : ''}${av.rbKs ? ' (nur RB Kassel)' : ''}${av.a2 === true ? ' · nur mit A2' : ''}${av.from && av.to ? ' · jährlich ' + mmdd(av.from) + '–' + mmdd(av.to) : ''}${av.until ? ' · gültig bis ' + av.until.split('-').reverse().join('.') : ''}`;
 function avgiActive(d) { return avList().some(av => av.on && avSeasonOn(av, d)); }
 // Saison-Vorschau: außerhalb 15.04.–30.06. so anzeigen, als wäre Mähsaison (zur Planung)
 function avgiInForce() { return avList().some(av => av.on && avInForce(av)); }
@@ -5762,7 +5816,7 @@ function regionAt(lat, lon) {
 }
 function regionText(reg) {
   if (!reg.st) return S.regions.length ? 'Bundesland unbekannt (außerhalb der geladenen Grenzen)' : 'Bundesland noch unbekannt – Landesgrenzen werden mit Internet geladen';
-  return `${stateName(reg.st)}${reg.st === 'HE' ? (reg.rbGi ? ' · Regierungsbezirk Gießen' : ' · nicht RB Gießen') : ''}`;
+  return `${stateName(reg.st)}${reg.st === 'HE' ? (reg.rbGi ? ' · Regierungsbezirk Gießen' : reg.rbKs ? ' · Regierungsbezirk Kassel' : ' · nicht RB Gießen/Kassel') : ''}`;
 }
 function featPoint(f) {
   if (f.type === 'Polygon' || f.type === 'MultiPolygon') {
@@ -5825,7 +5879,7 @@ function fillRules() {
   const a2 = P.lic === 'A2';
   $('vLic').textContent = a2
     ? 'A2: Allgemeinerlaubnis und Allgemeinverfügung nutzbar (für die eingetragenen Bundesländer).'
-    : 'A1/A3: Allgemeinerlaubnis und Allgemeinverfügung NICHT nutzbar – es gelten die normalen Regeln. Mavic 3T/Matrice 4T (Klasse C2) nur in A3: 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten.';
+    : 'A1/A3: Allgemeinerlaubnis NICHT nutzbar (nur Allgemeinverfügungen ohne A2-Pflicht). Mavic 3T/Matrice 4T (Klasse C2) nur in A3: ' + (P.tsr !== '0' ? 'zur Wildtierrettung (BMDV-Allgemeinverfügung) seitlich weiter weg als hoch und mehr als 10 m zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten – sonst 150 m.' : '150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten.');
   document.querySelectorAll('[data-lic]').forEach(b => b.classList.toggle('on', b.dataset.lic === P.lic));
   const sel = P.aeStates ? P.aeStates.split(',') : [];
   $('aeBox').style.opacity = a2 ? '' : '.45';
@@ -5838,7 +5892,7 @@ function fillRules() {
     b.onclick = () => { const s2 = new Set(sel); s2.has(k) ? s2.delete(k) : s2.add(k); setP('aeStates', [...s2].join(',')); fillRules(); applyGeoConfig(); };
     $('aeStates').appendChild(b);
   });
-  const names = [...new Set(S.regions.map(r => r.lvl === '4' ? stateName(r.code.replace('DE-', '')) : 'RB Gießen'))];
+  const names = [...new Set(S.regions.map(r => r.lvl === '4' ? stateName(r.code.replace('DE-', '')) : /Kassel/.test(r.name || '') ? 'RB Kassel' : 'RB Gießen'))];
   $('vReg').textContent = S.regions.length
     ? `Automatisch pro Ort aus Landesgrenzen (OpenStreetMap) · geladen: ${names.join(', ')} · Stand ${fmtDate(S.regFetched)}. Jede Geozone bekommt die Regeln ihres Bundeslands.`
     : 'Landesgrenzen noch nicht geladen – sie werden mit den Geozonen automatisch geholt (Internet nötig). Bis dahin ist das Bundesland unbekannt und keine Ausnahme wird angewendet (alles rot).';
@@ -5876,6 +5930,7 @@ function avEdit(i) {
   x.innerHTML = `<label>Bezeichnung<input class="inp" id="avN" value="${esc(av.name)}" placeholder="z. B. Allgemeinverfügung Kreis XY – Wildtierrettung"></label>
     <div class="avt">Gilt in diesen Bundesländern</div><div class="roots" id="avSt">${STATES.map(([k, n]) => `<button data-st="${k}" class="${av.states.includes(k) ? 'on' : ''}">${n}</button>`).join('')}</div>
     ${av.id === 'rpgi' || av.rbGi ? `<label class="pick"><input type="checkbox" id="avRb"${av.rbGi ? ' checked' : ''}><span>Nur Regierungsbezirk Gießen (Hessen)</span></label>` : ''}
+    ${av.id === 'rpks' || av.rbKs ? `<label class="pick"><input type="checkbox" id="avRbKs"${av.rbKs ? ' checked' : ''}><span>Nur Regierungsbezirk Kassel (Hessen)</span></label>` : ''}
     <label class="pick"><input type="checkbox" id="avA2"${av.a2 === true ? ' checked' : ''}><span>Gilt nur für Piloten mit A2-Fernpilotenzeugnis</span></label>
     <div class="avt">Zonenarten</div><div class="roots" id="avLy">${AV_ZONES.map(([k, n]) => `<button data-ly="${k}" class="${av.layers.includes(k) ? 'on' : ''}">${n}</button>`).join('')}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><label>Jährlich von<input class="inp" id="avF" value="${dd(av.from)}" placeholder="15.04."></label><label>bis<input class="inp" id="avT" value="${dd(av.to)}" placeholder="30.06."></label>
@@ -5890,6 +5945,7 @@ function avEdit(i) {
     av.states = [...x.querySelectorAll('#avSt .on')].map(b => b.dataset.st);
     av.layers = [...x.querySelectorAll('#avLy .on')].map(b => b.dataset.ly);
     av.rbGi = !!(x.querySelector('#avRb') && x.querySelector('#avRb').checked);
+    av.rbKs = !!(x.querySelector('#avRbKs') && x.querySelector('#avRbKs').checked);
     av.a2 = x.querySelector('#avA2').checked;
     av.from = pd(x.querySelector('#avF').value); av.to = pd(x.querySelector('#avT').value); av.until = x.querySelector('#avU').value || '';
     av.rules = x.querySelector('#avR').value.split('\n').map(t => t.trim()).filter(Boolean); av.link = x.querySelector('#avL').value.trim();
@@ -6072,7 +6128,7 @@ function rulesHtml(layer, reg) {
       : !on.length ? 'die eingetragene Allgemeinverfügung ist ausgeschaltet'
       : !reg.st ? 'das Bundesland an diesem Ort ist noch unbekannt (Landesgrenzen werden mit Internet automatisch geladen)'
       : !inSt.length ? `dieser Ort liegt in ${esc(stateName(reg.st))} – eingetragen sind nur: ${esc([...new Set(on.flatMap(a => a.states || []))].map(stateName).join(', '))}`
-      : inSt.every(a => a.rbGi && !reg.rbGi) ? 'dieser Ort liegt nicht im Regierungsbezirk Gießen'
+      : inSt.every(a => (a.rbGi && !reg.rbGi) || (a.rbKs && !reg.rbKs)) ? `dieser Ort liegt nicht im Regierungsbezirk ${inSt.some(a => a.rbKs) && !inSt.some(a => a.rbGi) ? 'Kassel' : inSt.some(a => a.rbKs) ? 'Gießen bzw. Kassel' : 'Gießen'}`
       : `heute ist keine Saison (${esc(inSt.map(a => mmdd(a.from) + '–' + mmdd(a.to)).join(', '))}) – zur Planung: Einstellungen → „Saison-Vorschau“`;
     why = `Nur mit Zustimmung der Naturschutzbehörde. Eine Allgemeinverfügung greift hier nicht: ${why2}. Die Allgemeinerlaubnis deckt Naturschutz-, FFH- und Vogelschutzgebiete grundsätzlich nicht ab.`;
   }
@@ -6783,7 +6839,8 @@ function showRules() {
       <p><span class="lnk" data-url="${LINK_AE}">Antragsformular öffnen (PDF)</span></p></div>
 
     <div class="zone"><h4>Mit A1/A3 (ohne Allgemeinerlaubnis) – normale Regeln</h4><ul>${li([
-      'Mavic 3T / Matrice 4T (Klasse C2) nur in Unterkategorie A3: mindestens 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten, keine unbeteiligten Personen gefährden',
+      P.tsr !== '0' ? 'Mavic 3T / Matrice 4T (Klasse C2) nur in Unterkategorie A3. Zur Wildtierrettung über Land-/Forstwirtschaftsflächen (Allgemeinverfügung des BMDV, ab 20.11.2024): seitlicher Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten stets größer als die Flughöhe und größer als 10 m statt 150 m – Mavic 3T (50 m) also mehr als 50 m, Matrice 4T (70 m) mehr als 70 m. Keine unbeteiligten Personen gefährden'
+        : 'Mavic 3T / Matrice 4T (Klasse C2) nur in Unterkategorie A3: mindestens 150 m Abstand zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten, keine unbeteiligten Personen gefährden',
       'Alle Geozonen nach § 21h LuftVO nur mit Zustimmung des Betreibers bzw. der zuständigen Stelle oder mit den dort genannten Abständen',
       'Naturschutzgebiete: eine eingetragene Allgemeinverfügung gilt auch mit A1/A3 – sie hängt nicht am A2'])}</ul></div>
 
@@ -9366,18 +9423,20 @@ function netMailText(o, startNo) {
 /** Meldung an die zuständige Stelle (z. B. Forstamt laut Allgemeinverfügung) – neutral, ohne Feldnamen */
 function natSubject(z) {
   const p = z.f.props || {}, av = (z.parts || [z]).map(q => avFor(q.f.layer, q.reg)).find(Boolean);
-  return (av && av.link === LINK_AVGI ? 'Information gem. NB 15 der AllgV Wildtierrettung (RP Gießen, Az. RPGI-53.3-21a0500/2-2017/4) – ' : 'Information Drohnenflug Kitzrettung – ') + (p.name || LAYER_LABEL[z.f.layer] || '');
+  return (av && av.link === LINK_AVGI ? 'Information gem. NB 15 der AllgV Wildtierrettung (RP Gießen, Az. RPGI-53.3-21a0500/2-2017/4) – ' : av && av.link === LINK_AVKS ? 'Information gem. NB 14 der AllgV Wildtierrettung (RP Kassel, Az. RPKS-24-29 a 0640/1-2022/2) – ' : 'Information Drohnenflug Kitzrettung – ') + (p.name || LAYER_LABEL[z.f.layer] || '');
 }
 function natMailText(z, fields) {
   const p = z.f.props || {}, lbl = natLbl(z);
   // Bezug auf die Allgemeinverfügung, die hier greift (RP Gießen: Nebenbestimmung Nr. 15 – Forstamt vorher informieren)
-  const av = (z.parts || [z]).map(q => avFor(q.f.layer, q.reg)).find(Boolean), gi = av && av.link === LINK_AVGI;
-  const ref = gi ? 'Gemäß Nebenbestimmung Nr. 15 der Allgemeinverfügung des Regierungspräsidiums Gießen zur Erteilung der Zustimmung nach § 21h Abs. 3 Nr. 6 LuftVO für die Nutzung von Drohnen im Rahmen der Wildtierrettung vom 26.04.2024 (Az. RPGI-53.3-21a0500/2-2017/4)'
+  const av = (z.parts || [z]).map(q => avFor(q.f.layer, q.reg)).find(Boolean), gi = av && av.link === LINK_AVGI, ks = av && av.link === LINK_AVKS;
+  const ref = ks ? 'Gemäß Nebenbestimmung Nr. 14 der Allgemeinverfügung des Regierungspräsidiums Kassel zur Zustimmung nach § 21h Abs. 3 Nr. 6 LuftVO und zur Befreiung von den Verboten der Naturschutzgebietsverordnungen für die Nutzung von Drohnen im Rahmen der Wildtierrettung vom 14.03.2024 (Az. RPKS-24-29 a 0640/1-2022/2)'
+    : gi ? 'Gemäß Nebenbestimmung Nr. 15 der Allgemeinverfügung des Regierungspräsidiums Gießen zur Erteilung der Zustimmung nach § 21h Abs. 3 Nr. 6 LuftVO für die Nutzung von Drohnen im Rahmen der Wildtierrettung vom 26.04.2024 (Az. RPGI-53.3-21a0500/2-2017/4)'
     : av ? `Gemäß der Allgemeinverfügung „${av.name || 'Wildtierrettung'}“${av.note ? ' (' + av.note + ')' : ''}` : '';
   return ['Sehr geehrte Damen und Herren,', '',
     `${ref ? ref + ' i' : 'hiermit i'}nformieren wir Sie vorab über Drohnenflüge zur Wildtierrettung (Rehkitzsuche vor der Mahd) im ${lbl}${p.name ? ' „' + p.name + '“' : ''}.`, '',
     `Zeitraum: ${flyWinText()}, in der Regel frühmorgens.`,
     'Betroffene Bereiche (ungefähr, Mittelpunkt WGS84, mit Link zu Google Maps):', ...areaLines(natAreas(z, S.areaSel || fields)), '',
+    ...(ks ? ['Die Nebenbestimmungen der Allgemeinverfügung werden eingehalten, u. a.: Einsatz nur im Zusammenhang mit einer zulässigen Mahd, höchstens zwei zusammenhängende Durchgänge, mindestens 50 m Abstand zu Waldrändern, höchstens eine Drohne gleichzeitig je 15 ha, höchstens fünf begleitende Personen, keine Überflüge bekannter Horste.', ''] : []),
     ...(gi ? ['Die Nebenbestimmungen der Allgemeinverfügung werden eingehalten, u. a.: Einsatz nur im Zusammenhang mit einer zulässigen Mahd, höchstens zwei zusammenhängende Durchgänge, mindestens 50 m Abstand zu Waldrändern, höchstens eine aktive Drohne je 15 ha, Tiere werden nicht direkt angeflogen, Start und Landung möglichst auf Wegen.', ''] : []),
     'Eine Karte fügen wir bei.', '', 'Sobald die Flüge abgeschlossen sind, geben wir Ihnen kurz Bescheid.', '', 'Mit freundlichen Grüßen', 'Kitzrettung Limburg e.V.'].join('\n');
 }
@@ -10822,7 +10881,7 @@ async function pcMapMake(f) {
     const sv = P.lic; let zs = [];
     try { P.lic = 'A1A3'; zs = flightBriefing([f]).zones; P.lic = 'A2'; flightBriefing([f]).zones.forEach(z => { if (!zs.some(y => y.f === z.f)) zs.push(z); }); } finally { P.lic = sv; }
     // rot = Zone, wegen der es nicht mit jedem Zeugnis geht (z. B. Wohngebiet zu nah, ohne Allgemeinerlaubnis gesperrt)
-    const red = new Set(zs.filter(z => z.near != null || (() => { const s2 = P.lic; P.lic = 'A1A3'; try { return covKind(z.f.layer, z.reg) === 'off'; } finally { P.lic = s2; } })()));
+    const red = new Set(zs.filter(z => (z.near != null && !(z.m3 && !IS_LITE)) || (() => { const s2 = P.lic; P.lic = 'A1A3'; try { return covKind(z.f.layer, z.reg) === 'off'; } finally { P.lic = s2; } })()));
     const cv = await briefMap([f], [f], zs, 560, { cw: 900, base: P.pcMapBase || 'grey', near: true, red });
     return cv ? { url: cv.toDataURL('image/jpeg', 0.86), red: red.size, full: !!cv.__full, k } : null;
   })();
@@ -10936,8 +10995,15 @@ function liteCardsHtml(b, o) {
   // Geozonen am Feld
   b.zones.forEach(z => {
     const p = z.f.props || {}, lbl = LAYER_LABEL[z.f.layer] || z.f.layer, nm = esc(p.name || lbl);
-    if (z.near != null) return card('🏘️', '#d42020', `Wohngebiet nur ${m(z.near)} entfernt`, `Mit A1/A3 brauchst du <b>150 m Abstand</b> zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten. Hier nicht fliegen – mit A2 wäre es möglich.${where(z.fields)}`,
-      `<div class="lrules"><span>Fliegen nur:</span> mit <b>A2</b> · mit A1/A3 erst <b>ab 150 m Abstand</b></div>`);
+    if (z.near != null) {
+      const rcD = IS_LITE && DRONE_HEIGHT[P.drone] ? P.drone : '';
+      if (!z.tsr) return card('🏘️', '#d42020', `Wohngebiet nur ${m(z.near)} entfernt`, `Mit A1/A3 brauchst du <b>150 m Abstand</b> zu Wohn-, Gewerbe-, Industrie- und Erholungsgebieten. Hier nicht fliegen – mit A2 wäre es möglich.${where(z.fields)}`,
+        `<div class="lrules"><span>Fliegen nur:</span> mit <b>A2</b> · mit A1/A3 erst <b>ab 150 m Abstand</b></div>`);
+      if (z.m3 && !rcD) return card('🚁', '#e07800', `Wohngebiet ${m(z.near)} entfernt: nur mit Mavic 3T`, `Mit A1/A3 gilt zur Wildtierrettung die Allgemeinverfügung des BMDV: seitlich weiter weg als hoch und mehr als 10 m. Mit der <b>Mavic 3T</b> (${z.h3} m) reicht das, mit der Matrice 4T (${z.needH} m) nicht – dafür A2.${where(z.fields)}`,
+        `<div class="lrules"><span>Fliegen nur:</span> <b>Mavic 3T</b> · oder mit <b>A2</b></div>`);
+      return card('🏘️', '#d42020', `Wohngebiet nur ${m(z.near)} entfernt`, `Mit A1/A3 muss die Flugbahn zur Wildtierrettung seitlich weiter weg sein als hoch (<b>mehr als ${z.needH} m</b>) – hier nur ${m(z.near)}. Hier nicht fliegen – mit A2 wäre es möglich.${z.m3 && rcD === 'M4T' ? ' Mit der Mavic 3T (' + z.h3 + ' m) ginge es.' : ''}${where(z.fields)}`,
+        `<div class="lrules"><span>Fliegen nur:</span> mit <b>A2</b> · mit A1/A3 erst <b>ab ${z.needH + 1} m Abstand</b></div>`);
+    }
     if (z.f.layer === 'flugplaetze' && isHeliZone(z.f)) { heliZone = true; return; }   // Hubschrauberlandeplatz: unten eigene Karte mit Regeln
     if (z.f.layer === 'flugplaetze' && covKind(z.f.layer, z.reg) === 'off') { afZone = true;   // Flugplatz: kein Verbot, sondern Zustimmung nötig
       return card('✈️', '#d42020', 'Flugplatz: Zustimmung des Betreibers nötig', `${nm}. Bis 1,5 km um den Flugplatz nur mit Zustimmung der Flugaufsicht bzw. des Betreibers – die Allgemeinerlaubnis gilt hier nur bis 30 m, nicht für Kitzrettung (${H} m).${where(z.fields)}`,
@@ -12782,7 +12848,7 @@ const hasPilot = () => { try { return !IS_WEB && !!(A.pilotApp && A.pilotApp());
 if ($('bPilot') && hasPilot()) { $('bPilot').style.display = ''; $('bPilot').onclick = e => { e.stopPropagation(); openPilot(); }; }
 if (P.uaveSwitched) { const nm = P.uaveSwitched; setP('uaveSwitched', ''); setTimeout(() => { toast('✓ Jetzt aktiv: UAV-Editor-Konto „' + (nm === '1' ? '' : nm) + '“', 'ok', 4000); if (isOnline() && A.uaveTest) A.uaveTest(); }, 800); }
 if (IS_LITE) liteInit();
-window.KR = { opImage2: async sel => { const ops = netOps(sel); return ops.length ? opImage(ops, 0) : null; }, fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl, catEntry, liteImport, heightPlan, pwrNeedH, pwrTop, uvCatAuto, liteBgLines, liteDlAbort, openPilot, hasPilot, liteSearch };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
+window.KR = { opImage2: async sel => { const ops = netOps(sel); return ops.length ? opImage(ops, 0) : null; }, fieldsShort2: n => fieldsShort(n), opFileName2: sel => { const ops = netOps(sel); return ops.map((o, i) => opFileName(ops, i)); }, natImage2: (z, s) => natImage(z, s), natAreas2: (z, s) => natAreas(z, s), mapImage2: o => mapImage(o), zoneViewBB2: (z, p) => zoneViewBB(z, p), uvOverlayFC2: b => uvOverlayFC(b), covKind2: (l, r) => covKind(l, r), briefMap2: (...a) => briefMap(...a), fieldVerdict2: f => fieldVerdict(f), einsatzWins, briefStart, labelBoxes2: () => labelBoxes, heightIssue, webCoach2: () => webCoach(), covBadges2: (...a) => covBadges(...a), routeZoneInfo, afImage2: sel => afImage(afZonesOf(flightBriefing(sel))[0], sel), afMail2: sel => { const z = afZonesOf(flightBriefing(sel))[0]; return afSubject(z) + "\n\n" + afMailText(z, sel.filter(f => z.fields.has(f.title))); }, liteCardsHtml2: (...a) => liteCardsHtml(...a), planOpen, plCompute, briefingHtml2: (...a) => briefingHtml(...a), goPlace, S, P, V, A, update, draw, load, VARIANT, lowNearPower, touchesPower, pwrAutoRaise, liteCardsHtml, doTransfer, flightBriefing, flyWinText, netMailText, briefingHtml, briefWinDef, newFieldsCheck, sideRender, briefMailDlg, plSet, djiUpload, webPreCheck, uvRoutesFor, uaveDl, catEntry, liteImport, heightPlan, pwrNeedH, pwrTop, uvCatAuto, liteBgLines, liteDlAbort, openPilot, hasPilot, liteSearch, avFor, regionText };   // Zugriff für Fehlersuche/Tests (Entwicklerwerkzeuge)
 // Saisonwechsel (15.04./30.06.) auch bei laufender App erkennen
 setInterval(applyGeoConfig, 30 * 60 * 1000);
 })();
