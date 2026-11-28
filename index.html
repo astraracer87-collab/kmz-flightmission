@@ -529,7 +529,8 @@
   .pcvs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
   .pcdr{display:flex;flex-direction:column;gap:3px;align-items:flex-start;padding:4px 8px;border-left:2px solid var(--line)}
   .pcdr small{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}
-  .pcdr>div{display:flex;gap:4px;flex-wrap:wrap}
+  .pcdr>div{display:flex;flex-direction:column;gap:4px;align-items:stretch}
+  .pcdr .pcv{justify-content:flex-start}
   .pcdsum{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:10px 0 4px}
   .pcdsum>div:not(.seg){display:flex;gap:6px;align-items:center;flex-wrap:wrap}
   .pcdsum .pcdsel{margin-left:auto}
@@ -10873,9 +10874,10 @@ function liteCheckInner(sel, opt) {
 /** PC-Pre-Check: eine Zeile je Feld – nur das Ergebnis (welches Zeugnis), Details aufklappbar mit Vorschaukarte und Gründen */
 const PCB = (ok, t) => `<div class="pcv" style="--c:${ok ? '#13a538' : '#d42020'}"><i>${ok ? '✓' : '✗'}</i>${t}</div>`;
 /** Ergebnis je Feld als Plaketten: grün ✓ = reicht, rot ✗ = reicht nicht – ohne Zusatzwörter */
-const pcBadges = v => v.k === 'a13' ? PCB(true, 'A1/A3')
+// immer beide Zeugnisse in fester Reihenfolge (A1/A3 oben, A2 darunter) – so stehen die Ergebnisse je Drohne sauber untereinander
+const pcBadges = v => v.k === 'a13' ? PCB(true, 'A1/A3') + PCB(true, 'A2')
   : v.k === 'a2' ? PCB(false, 'A1/A3') + PCB(true, v.onlyLic ? 'A2' : 'A2 + Allgemeinerlaubnis')
-  : v.k === 'zust' ? `<div class="pcv" style="--c:#d42020"><i>✈</i>Zustimmung Flugplatz</div>` : PCB(false, 'A1/A3') + PCB(false, 'A2');
+  : v.k === 'zust' ? PCB(false, 'A1/A3') + `<div class="pcv" style="--c:#d42020"><i>✈</i>A2: Zustimmung Flugplatz</div>` : PCB(false, 'A1/A3') + PCB(false, 'A2');
 const pcAuto = i => i.r >= 3 && !/^Stromleitung/i.test(i.t) ? '' : /^Stromleitung|Hochspannung|Freileitung/i.test(i.t) || /⚡/.test(i.ico) ? 'pwr' : /🌿|🌳|🦅|🐦/.test(i.ico) || /Schutzgebiet|Naturschutz|Vogelschutz|FFH|Nationalpark|Biosphäre|Landschaftsschutz/i.test(i.t) ? 'nat' : '';
 const pcShort = s => { s = String(s || '').replace(/\s+/g, ' ').trim(); const m = s.match(/^.{20,140}?[.!](\s|$)/); return m ? m[0].trim() : s.length > 140 ? s.slice(0, 137) + '…' : s; };
 /** je Drohne: Zeugnis-Ergebnis + Probleme (für die Spalten in den Details) */
